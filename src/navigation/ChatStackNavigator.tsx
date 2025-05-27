@@ -1,7 +1,7 @@
 import React from "react";
 import { createStackNavigator } from "@react-navigation/stack";
-import ChatScreen from "../screens/ChatScreen";
-import ConversationScreen from "../screens/ConversationScreen";
+import ChatScreen from "@/features/chat/screens/ChatScreen";
+import ConversationScreen from "@/features/chat/screens/ConversationScreen";
 
 export type ChatStackParamList = {
   ChatScreen: undefined;

@@ -2,9 +2,9 @@ import React from "react";
 import { TransitionPresets } from "@react-navigation/stack";
 import { createSharedElementStackNavigator } from "react-navigation-shared-element";
 import { HomeStackParamList } from "./types";
-import HomeScreen from "../screens/HomeScreen";
-import MapScreen from "../screens/MapScreen";
-import EventDetailsScreen from "../screens/EventDetailsScreen";
+import HomeScreen from "@/screens/HomeScreen";
+import MapScreen from "@/screens/MapScreen";
+import EventDetailsScreen from "@/features/events/screens/EventDetailsScreen";
 
 const Stack = createSharedElementStackNavigator<HomeStackParamList>();
 

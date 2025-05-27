@@ -1,7 +1,7 @@
 import React from "react";
 import { createStackNavigator } from "@react-navigation/stack";
 import { EventStackParamList } from "./types";
-import EventDetailsScreen from "../screens/EventDetailsScreen";
+import EventDetailsScreen from "@/features/events/screens/EventDetailsScreen";
 
 const Stack = createStackNavigator<EventStackParamList>();
 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { supabase } from "../../lib/supabase";
-import { useSession } from "../lib/SessionContext";
+import { supabase } from "@/lib/supabase";
+import { useSession } from "@/lib/SessionContext";
 import type { PostgrestError, RealtimeChannel } from "@supabase/supabase-js";
 
 export interface MessageAdvanced {

@@ -1,38 +1,22 @@
 import { create } from "zustand";
-import notificationsData from "../data/notifications.json";
-import type {
-  Notification,
-  NotificationType,
-} from "../components/notifications/NotificationItem";
 
+// This store is now deprecated in favor of useNotifications hook
+// Keeping it for backward compatibility during migration
 interface NotificationsState {
-  notifications: Notification[];
-  unread: Notification[];
+  notifications: any[];
+  unread: any[];
   markAllRead: () => void;
   markRead: (id: string) => void;
 }
 
-const validTypes: NotificationType[] = ["invite", "follow", "rsvp", "message"];
-const notificationsTyped: Notification[] = (
-  notificationsData as Notification[]
-).filter((n) => validTypes.includes(n.type as NotificationType));
-
 export const useNotificationsStore = create<NotificationsState>((set, get) => ({
-  notifications: notificationsTyped,
-  unread: notificationsTyped.filter((n) => !n.read),
-  markAllRead: () =>
-    set((state) => ({
-      notifications: state.notifications.map((n) => ({ ...n, read: true })),
-      unread: [],
-    })),
-  markRead: (id: string) =>
-    set((state) => {
-      const notifications = state.notifications.map((n) =>
-        n.id === id ? { ...n, read: true } : n
-      );
-      return {
-        notifications,
-        unread: notifications.filter((n) => !n.read),
-      };
-    }),
+  notifications: [],
+  unread: [],
+  markAllRead: () => {
+    console.warn("useNotificationsStore is deprecated. Use useNotifications hook instead.");
+    set({ notifications: [], unread: [] });
+  },
+  markRead: (id: string) => {
+    console.warn("useNotificationsStore is deprecated. Use useNotifications hook instead.");
+  },
 }));

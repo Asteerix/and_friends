@@ -1,13 +1,13 @@
 import React from "react";
 import { createStackNavigator } from "@react-navigation/stack";
 import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
-import BottomTabs from "../../components/BottomTabs";
-import ConversationScreen from "../screens/ConversationScreen";
-import ChatScreen from "../screens/ChatScreen";
-import NotificationsFullScreen from "../screens/NotificationsFullScreen";
-import EventDetailsScreen from "../screens/EventDetailsScreen";
-import { useSession } from "../lib/SessionContext";
-import { useOnboardingStatus } from "../hooks/useOnboardingStatus";
+import BottomTabs from "@/components/BottomTabs";
+import ConversationScreen from "@/features/chat/screens/ConversationScreen";
+import ChatScreen from "@/features/chat/screens/ChatScreen";
+import NotificationsFullScreen from "@/screens/NotificationsFullScreen";
+import EventDetailsScreen from "@/features/events/screens/EventDetailsScreen";
+import { useSession } from "@/lib/SessionContext";
+import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
 
 export type AppStackParamList = {
   MainTabs: undefined;

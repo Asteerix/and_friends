@@ -1,18 +1,43 @@
-import React, { createContext, useContext, Dispatch, SetStateAction } from "react";
+import React, { createContext, useContext, useState, useEffect, Dispatch, SetStateAction } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { supabase } from "../../lib/supabase";
+import { supabase } from "@/lib/supabase";
 
 export interface SessionContextType {
   session: Session | null;
   loading: boolean;
-  setSession?: Dispatch<SetStateAction<Session | null>>; // Optionnel pour l'instant, mais utile si App.tsx le gère
+  setSession?: Dispatch<SetStateAction<Session | null>>;
 }
 
 export const SessionContext = createContext<SessionContextType>({
   session: null,
   loading: true,
-  // setSession: () => {}, // Valeur par défaut pour setSession
 });
+
+export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setLoading(false);
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  return (
+    <SessionContext.Provider value={{ session, loading, setSession }}>
+      {children}
+    </SessionContext.Provider>
+  );
+};
 
 export const useSession = () => {
   const context = useContext(SessionContext);

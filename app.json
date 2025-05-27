@@ -1,15 +1,69 @@
 {
   "expo": {
-    "scheme": "acme",
-    "plugins": ["expo-localization", "expo-web-browser"],
-    "name": "and_friends",
+    "scheme": "andfriends",
+    "name": "& friends",
     "slug": "and_friends",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FF6B6B"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
-      "bundleIdentifier": "com.andfriends.app"
+      "supportsTablet": true,
+      "bundleIdentifier": "com.andfriends.app",
+      "infoPlist": {
+        "NSContactsUsageDescription": "& friends needs access to your contacts to help you find and connect with friends who are already using the app.",
+        "NSLocationWhenInUseUsageDescription": "& friends uses your location to show you events happening nearby and connect you with friends in your area.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "& friends uses your location to show you events happening nearby and notify you when friends are hosting events near you.",
+        "NSCameraUsageDescription": "& friends needs access to your camera to take photos for your profile and share memories from events.",
+        "NSPhotoLibraryUsageDescription": "& friends needs access to your photo library to let you choose photos for your profile and share memories from events.",
+        "NSCalendarsUsageDescription": "& friends needs access to your calendar to add events you're attending.",
+        "NSMicrophoneUsageDescription": "& friends needs access to your microphone to record audio messages."
+      }
     },
     "android": {
-      "package": "com.andfriends.app"
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FF6B6B"
+      },
+      "package": "com.andfriends.app",
+      "permissions": [
+        "READ_CONTACTS",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "READ_CALENDAR",
+        "WRITE_CALENDAR",
+        "RECORD_AUDIO"
+      ]
     },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-localization",
+      "expo-web-browser",
+      "expo-contacts",
+      "expo-location",
+      "expo-image-picker",
+      "expo-calendar",
+      "expo-av",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "& friends uses your location to show you events happening nearby and notify you when friends are hosting events near you."
+        }
+      ]
+    ],
     "extra": {
       "eas": {
         "projectId": ""

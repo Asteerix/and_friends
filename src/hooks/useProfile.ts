@@ -1,16 +1,22 @@
 import { useState, useEffect } from "react";
-import { supabase } from "../../lib/supabase";
-import { useSession } from "../lib/SessionContext";
+import { supabase } from "@/lib/supabase";
+import { useSession } from "@/lib/SessionContext";
 import type { PostgrestError } from "@supabase/supabase-js";
 
 export interface UserProfile {
   id: string;
   full_name?: string;
+  display_name?: string;
+  username?: string;
   avatar_url?: string;
+  cover_url?: string;
+  bio?: string;
   birth_date?: string;
+  hide_birth_date?: boolean;
   jam_preference?: string;
   restaurant_preference?: string;
   hobbies?: string[];
+  interests?: string[];
   path?: string;
   location_permission_granted?: boolean;
   contacts_permission_status?: string;
@@ -51,11 +57,17 @@ export function useProfile() {
       const profileData: UserProfile = {
         id: data.id,
         full_name: data.full_name,
+        display_name: data.display_name || data.full_name,
+        username: data.username,
         avatar_url: data.avatar_url,
+        cover_url: data.cover_url,
+        bio: data.bio,
         birth_date: data.birth_date,
+        hide_birth_date: data.hide_birth_date || false,
         jam_preference: data.jam_preference,
         restaurant_preference: data.restaurant_preference,
         hobbies: data.hobbies || [],
+        interests: data.interests || [],
         path: data.path,
         location_permission_granted: data.location_permission_granted,
         contacts_permission_status: data.contacts_permission_status,
@@ -227,6 +239,25 @@ export function useProfile() {
     };
   }, [session?.user?.id]);
 
+  const fetchAllProfiles = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .limit(50);
+
+      if (error) {
+        console.error("Error fetching profiles:", error);
+        return { profiles: [], error };
+      }
+
+      return { profiles: data || [], error: null };
+    } catch (err: any) {
+      console.error("Unexpected error fetching profiles:", err);
+      return { profiles: [], error: err };
+    }
+  };
+
   return {
     profile,
     loading,
@@ -235,5 +266,6 @@ export function useProfile() {
     updateProfile,
     uploadAvatar,
     getProfileStats,
+    fetchAllProfiles,
   };
 }

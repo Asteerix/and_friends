@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import pollsData from "../data/polls.json";
+import pollsData from "@/data/polls.json";
 
 export interface PollOption {
   id: string;
@@ -54,5 +54,32 @@ export function usePollStore() {
     return polls.find((p) => p.id === pollId);
   }
 
-  return { polls, getPoll, vote, userVotes };
+  async function createPoll(pollData: {
+    question: string;
+    options: string[];
+    type: 'single' | 'multiple';
+    expires_at: string;
+    anonymous: boolean;
+    chat_id?: string;
+    event_id?: string;
+  }) {
+    const newPoll: Poll = {
+      id: `poll-${Date.now()}`,
+      question: pollData.question,
+      options: pollData.options.map((opt, index) => ({
+        id: `opt-${index}`,
+        label: opt,
+        votes: 0,
+      })),
+      endsAt: pollData.expires_at,
+      author: 'currentUser', // TODO: Get from auth
+    };
+
+    setPolls(prev => [...prev, newPoll]);
+    
+    // TODO: Save to Supabase
+    return { data: newPoll, error: null };
+  }
+
+  return { polls, getPoll, vote, userVotes, createPoll };
 }

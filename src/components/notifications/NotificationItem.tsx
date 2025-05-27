@@ -5,21 +5,12 @@ import {
   StyleSheet,
   Platform,
   TouchableOpacity,
+  Image,
 } from "react-native";
+import { formatDistanceToNow } from "date-fns";
+import type { Notification } from "@/hooks/useNotifications";
 
-export type NotificationType = "invite" | "follow" | "rsvp" | "message";
-
-export interface Notification {
-  id: string;
-  type: NotificationType;
-  actor: string;
-  verb: string;
-  target?: string;
-  time: string;
-  read?: boolean;
-}
-
-const bulletColors: Record<NotificationType, string> = {
+const bulletColors = {
   invite: "#1E1F2B",
   follow: "#0057FF",
   rsvp: "#FF684D",
@@ -33,21 +24,29 @@ export default function NotificationItem({
   notification: Notification;
   onPress?: () => void;
 }) {
-  const { type, actor, verb, target, time } = notification;
+  const { type, title, message, user, created_at, read } = notification;
+  const timeAgo = formatDistanceToNow(new Date(created_at), { addSuffix: true });
+  
   return (
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.7}
-      style={styles.container}
+      style={[styles.container, !read && styles.unread]}
     >
-      <View style={[styles.bullet, { backgroundColor: bulletColors[type] }]} />
+      {user?.avatar_url ? (
+        <Image 
+          source={{ uri: user.avatar_url }} 
+          style={styles.avatar}
+        />
+      ) : (
+        <View style={[styles.bullet, { backgroundColor: bulletColors[type] }]} />
+      )}
       <View style={styles.textContainer}>
         <Text style={styles.text}>
-          <Text style={styles.actor}>{actor} </Text>
-          <Text style={styles.verb}>{verb} </Text>
-          {target ? <Text style={styles.target}>{target}</Text> : null}
+          <Text style={styles.title}>{title}</Text>
         </Text>
-        <Text style={styles.time}>{time}</Text>
+        <Text style={styles.message}>{message}</Text>
+        <Text style={styles.time}>{timeAgo}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -60,7 +59,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
+  unread: {
+    backgroundColor: "#F8F9FA",
+  },
   bullet: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 16,
+    marginTop: 2,
+  },
+  avatar: {
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -77,17 +86,15 @@ const styles = StyleSheet.create({
     fontFamily: Platform.OS === "ios" ? "SF Pro Text" : "Roboto",
     fontWeight: "400",
   },
-  actor: {
+  title: {
     fontWeight: "600",
     color: "#000",
   },
-  verb: {
-    fontWeight: "400",
-    color: "#000",
-  },
-  target: {
-    fontWeight: "600",
-    color: "#000",
+  message: {
+    fontSize: 14,
+    color: "#666",
+    marginTop: 2,
+    fontFamily: Platform.OS === "ios" ? "SF Pro Text" : "Roboto",
   },
   time: {
     fontSize: 13,

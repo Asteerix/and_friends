@@ -12,10 +12,10 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import Ionicons from "react-native-vector-icons/Ionicons";
-import { supabase } from "../../lib/supabase";
-import { useSession } from "../lib/SessionContext";
-import { useEventsAdvanced } from "../hooks/useEventsAdvanced";
-import { useProfile } from "../hooks/useProfile";
+import { supabase } from "@/lib/supabase";
+import { useSession } from "@/lib/SessionContext";
+import { useEventsAdvanced } from "@/hooks/useEventsAdvanced";
+import { useProfile } from "@/hooks/useProfile";
 
 interface CalendarEvent {
   id: string;

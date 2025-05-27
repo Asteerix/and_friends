@@ -12,20 +12,20 @@ import {
   Dimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { supabase } from "../../lib/supabase";
-import { useSession } from "../lib/SessionContext";
+import { supabase } from "@/lib/supabase";
+import { useSession } from "@/lib/SessionContext";
 import { getDeviceLanguage, t } from "../locales";
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
-import HeaderGreeting from "../components/HeaderGreeting";
-import MemoriesStrip from "../components/MemoriesStrip";
-import SearchBar from "../components/SearchBar";
-import CategoryTabs from "../components/CategoryTabs";
-import MiniMap from "../components/MiniMap";
-import SectionHeader from "../components/SectionHeader";
-import EventCard from "../components/EventCard";
-import { useEventsAdvanced } from "../hooks/useEventsAdvanced";
-import { useProfile } from "../hooks/useProfile";
+import HeaderGreeting from "@/components/HeaderGreeting";
+import MemoriesStrip from "@/components/MemoriesStrip";
+import SearchBar from "@/components/SearchBar";
+import CategoryTabs from "@/components/CategoryTabs";
+import MiniMap from "@/components/MiniMap";
+import SectionHeader from "@/components/SectionHeader";
+import EventCard from "@/components/EventCard";
+import { useEventsAdvanced } from "@/hooks/useEventsAdvanced";
+import { useProfile } from "@/hooks/useProfile";
 
 const { width } = Dimensions.get("window");
 
@@ -51,28 +51,6 @@ const HomeScreen = () => {
   const [activeCategory, setActiveCategory] = useState(0);
   const { events = [], loading: eventsLoading } = useEventsAdvanced();
   const { profile: userProfile, loading: profileLoading } = useProfile();
-
-  // 🚨 PROTECTION D'URGENCE - REDIRECTION FORCÉE
-  console.log("🚨 [HomeScreen] PROTECTION D'URGENCE ACTIVÉE");
-  console.log(`🚨 [HomeScreen] session: ${!!session}`);
-  console.log(`🚨 [HomeScreen] session.user: ${!!session?.user}`);
-  console.log(`🚨 [HomeScreen] session.user.id: ${session?.user?.id || "undefined"}`);
-  
-  React.useEffect(() => {
-    if (!session || !session.user) {
-      console.error("🚨 [HomeScreen] REDIRECTION FORCÉE - PAS DE SESSION!");
-      // FORCE LA REDIRECTION VERS L'AUTHENTIFICATION
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Auth' }],
-      });
-    }
-  }, [session, navigation]);
-
-  if (!session || !session.user) {
-    console.error("🚨 [HomeScreen] BLOCAGE COMPLET - RENDERING VIDE");
-    return null; // Rien n'est rendu en attendant la redirection
-  }
 
   const handleEventPress = (eventId: string) => {
     navigation.navigate("EventDetails", { eventId });

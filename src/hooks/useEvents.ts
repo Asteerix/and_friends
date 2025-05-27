@@ -1,19 +1,30 @@
 import { useEffect, useState } from "react";
-import { supabase } from "../../lib/supabase";
+import { supabase } from "@/lib/supabase";
 import type { PostgrestError } from "@supabase/supabase-js";
 
 export interface Event {
   id?: string;
   title: string;
+  subtitle?: string;
   description?: string;
   date: string;
+  time?: string;
   location?: string;
+  address?: string;
+  latitude?: number;
+  longitude?: number;
+  cover_url?: string;
   image_url?: string;
+  category?: string;
   tags?: string[];
   is_private?: boolean;
+  invite_only?: boolean;
+  max_participants?: number;
   created_by?: string;
   created_at?: string;
   updated_at?: string;
+  userRSVP?: string;
+  participants_count?: number;
 }
 
 export function useEvents() {
@@ -47,9 +58,33 @@ export function useEvents() {
       .insert([{ event_id, user_id }]);
   }
 
+  async function updateRSVP(event_id: string, status: string) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: { message: "Not authenticated" } };
+
+    const { data, error } = await supabase
+      .from("event_participants")
+      .upsert([{ 
+        event_id, 
+        user_id: user.id,
+        status,
+        updated_at: new Date().toISOString()
+      }])
+      .select();
+    
+    if (!error) {
+      // Update local state
+      setEvents(prev => prev.map(event => 
+        event.id === event_id ? { ...event, userRSVP: status } : event
+      ));
+    }
+    
+    return { data, error };
+  }
+
   useEffect(() => {
     fetchEvents();
   }, []);
 
-  return { events, loading, error, fetchEvents, createEvent, joinEvent };
+  return { events, loading, error, fetchEvents, createEvent, joinEvent, updateRSVP };
 }

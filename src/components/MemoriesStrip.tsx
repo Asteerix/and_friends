@@ -1,13 +1,42 @@
 import React from "react";
-import { FlatList, View, StyleSheet } from "react-native";
+import { FlatList, View, StyleSheet, ActivityIndicator } from "react-native";
 import MemoryItem from "./MemoryItem";
-import { memories } from "../data/data";
+import { useStories } from "@/hooks/useStories";
+import { useSession } from "@/lib/SessionContext";
 
 export default function MemoriesStrip() {
+  const { stories, loading } = useStories();
+  const { session } = useSession();
+  
+  // Add current user as first item for adding new story
+  const data = [
+    { 
+      id: "add-story", 
+      type: "add",
+      user_id: session?.user?.id 
+    },
+    ...stories.map(story => ({
+      id: story.id,
+      type: "story" as const,
+      imageUri: story.media_url,
+      avatarUri: story.user?.avatar_url,
+      user: story.user,
+      isOwn: story.user_id === session?.user?.id
+    }))
+  ];
+
+  if (loading && stories.length === 0) {
+    return (
+      <View style={[styles.container, styles.loading]}>
+        <ActivityIndicator size="small" />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <FlatList
-        data={memories}
+        data={data}
         keyExtractor={(item) => item.id}
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -29,6 +58,9 @@ const styles = StyleSheet.create({
   container: {
     height: 124,
     justifyContent: "center",
+  },
+  loading: {
+    alignItems: "center",
   },
   listContent: {
     paddingLeft: 0,

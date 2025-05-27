@@ -2,13 +2,13 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import React from "react";
 import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
-import HomeScreen from "../src/screens/HomeScreen";
-import MemoriesScreen from "../src/screens/MemoriesScreen";
-import CreateEventScreen from "../src/screens/CreateEventScreen";
-import CalendarScreen from "../src/screens/CalendarScreen";
-import ProfileScreen from "../src/screens/ProfileScreen";
-import { useSession } from "../src/lib/SessionContext";
-import { useOnboardingStatus } from "../src/hooks/useOnboardingStatus";
+import HomeScreen from "@/screens/HomeScreen";
+import MemoriesScreen from "@/screens/MemoriesScreen";
+import CreateEventScreen from "@/features/events/screens/CreateEventScreen";
+import CalendarScreen from "@/screens/CalendarScreen";
+import ProfileScreen from "@/screens/ProfileScreen";
+import { useSession } from "@/lib/SessionContext";
+import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
 
 /**
  * Mappage "nom d'onglet → icône Ionicons"
@@ -84,7 +84,7 @@ export default function BottomTabs() {
           tabBarHideOnKeyboard: false,
           lazy: false,
           animationEnabled: false, // (android & web)
-          tabBarIcon: ({ focused, color, size }) => (
+          tabBarIcon: ({ focused, color }) => (
             <Ionicons
               name={focused ? filled : outline}
               size={26}

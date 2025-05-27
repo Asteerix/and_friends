@@ -2,7 +2,7 @@ import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { useNavigation, useRoute } from "@react-navigation/native";
-import { useProfile } from "../hooks/useProfile";
+import { useProfile } from "@/hooks/useProfile";
 
 export default function HeaderGreeting() {
   const navigation = useNavigation();

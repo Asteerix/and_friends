@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { supabase } from "../../lib/supabase";
+import { supabase } from "@/lib/supabase";
 import type { PostgrestError } from "@supabase/supabase-js";
-import { useSession } from "../lib/SessionContext";
+import { useSession } from "@/lib/SessionContext";
 
 export type MessageType =
   | "text-in"
@@ -170,5 +170,16 @@ export function useMessages(chatId: string) {
     };
   }, [chatId, session?.user?.id]);
 
-  return { messages, loading, error, fetchMessages, sendMessage };
+  function getLastMessage(chatId: string): Message | null {
+    const chatMessages = messages.filter(m => m.chat_id === chatId);
+    if (chatMessages.length === 0) return null;
+    
+    return chatMessages.reduce((latest, current) => {
+      const latestDate = new Date(latest.created_at || latest.createdAt || 0);
+      const currentDate = new Date(current.created_at || current.createdAt || 0);
+      return currentDate > latestDate ? current : latest;
+    });
+  }
+
+  return { messages, loading, error, fetchMessages, sendMessage, getLastMessage };
 }

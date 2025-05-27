@@ -8,7 +8,7 @@ import {
   Platform,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
-import { Poll, PollOption } from "../hooks/usePollStore";
+import { Poll, PollOption } from "@/hooks/usePollStore";
 
 interface Props {
   poll: Poll;

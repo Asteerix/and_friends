@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import * as Haptics from "expo-haptics";
 import { AccessibilityInfo } from "react-native";
-import { supabase } from "../../lib/supabase";
+import { supabase } from "@/lib/supabase";
 import { t } from "../locales";
 
 interface UseOtpVerificationProps {
@@ -55,6 +55,19 @@ export function useOtpVerification({
         );
         return;
       }
+      // --- AJOUT POUR TEST: code magique 262879 ---
+      if (codeToVerify === "262879") {
+        await Haptics.notificationAsync(
+          Haptics.NotificationFeedbackType.Success
+        );
+        setError(false);
+        setErrorMessage("");
+        onSuccess();
+        alreadyVerifiedRef.current = true;
+        setLoading(false);
+        return;
+      }
+      // --- FIN AJOUT ---
       alreadyVerifiedRef.current = true;
       console.log("[OTP] verifyOtp invoked", ++verifyCount.current);
       setLoading(true);

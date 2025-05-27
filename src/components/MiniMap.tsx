@@ -4,7 +4,7 @@ import MapView from "react-native-maps";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { SharedElement } from "react-navigation-shared-element";
 import { useNavigation } from "@react-navigation/native";
-import { useMapStore } from "../store/mapStore";
+import { useMapStore } from "@/store/mapStore";
 
 export default function MiniMap() {
   const navigation = useNavigation();

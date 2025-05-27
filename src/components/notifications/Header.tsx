@@ -2,7 +2,7 @@ import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { useNavigation } from "@react-navigation/native";
-import { useNotificationsStore } from "../../store/notificationsStore";
+import { useNotificationsStore } from "@/store/notificationsStore";
 
 export default function Header() {
   const navigation = useNavigation();

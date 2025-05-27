@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "../../lib/supabase";
-import { useSession } from "../lib/SessionContext"; // Assurez-vous que le chemin est correct
+import { supabase } from "@/lib/supabase";
+import { useSession } from "@/lib/SessionContext"; // Assurez-vous que le chemin est correct
 
 export interface ProfileStatus {
   currentStep: string | null;

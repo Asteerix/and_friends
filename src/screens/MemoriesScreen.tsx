@@ -9,12 +9,15 @@ import {
   Dimensions,
   FlatList,
   RefreshControl,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import Ionicons from "react-native-vector-icons/Ionicons";
-import { supabase } from "../../lib/supabase";
-import { useSession } from "../lib/SessionContext";
+import { supabase } from "@/lib/supabase";
+import { useSession } from "@/lib/SessionContext";
+import { useStories } from "@/hooks/useStories";
+import { useSupabaseStorage } from "@/hooks/useSupabaseStorage";
 
 const { width } = Dimensions.get("window");
 const ITEM_WIDTH = (width - 48) / 2;
@@ -49,9 +52,12 @@ export default function MemoriesScreen() {
   const navigation = useNavigation();
   const { session } = useSession();
   const [memories, setMemories] = useState<Memory[]>([]);
-  const [stories, setStories] = useState<Story[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  
+  // Use stories hook for real-time stories
+  const { stories, loading: storiesLoading, createStory, viewStory } = useStories();
+  const { pickAndUploadImage, takePhotoAndUpload } = useSupabaseStorage();
 
   useEffect(() => {
     if (session?.user) {
@@ -96,48 +102,8 @@ export default function MemoriesScreen() {
       })) || [];
 
       setMemories(memoriesData);
-
-      // Fetch active stories (last 24 hours)
-      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       
-      // For now, we'll create mock stories since we don't have a stories table
-      const mockStories: Story[] = [
-        {
-          id: "1",
-          user_id: session.user.id,
-          image_url: "https://picsum.photos/200/300?random=1",
-          created_at: new Date().toISOString(),
-          expires_at: new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString(),
-          profile: {
-            full_name: "Votre story",
-            avatar_url: "https://randomuser.me/api/portraits/men/1.jpg",
-          },
-        },
-        {
-          id: "2",
-          user_id: "friend1",
-          image_url: "https://picsum.photos/200/300?random=2",
-          created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-          expires_at: new Date(Date.now() + 10 * 60 * 60 * 1000).toISOString(),
-          profile: {
-            full_name: "Marie",
-            avatar_url: "https://randomuser.me/api/portraits/women/2.jpg",
-          },
-        },
-        {
-          id: "3",
-          user_id: "friend2",
-          image_url: "https://picsum.photos/200/300?random=3",
-          created_at: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-          expires_at: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString(),
-          profile: {
-            full_name: "Thomas",
-            avatar_url: "https://randomuser.me/api/portraits/men/3.jpg",
-          },
-        },
-      ];
-
-      setStories(mockStories);
+      // Stories are now handled by the useStories hook with real-time updates
     } catch (error) {
       console.error("Error fetching memories and stories:", error);
     } finally {
@@ -151,20 +117,47 @@ export default function MemoriesScreen() {
     setRefreshing(false);
   };
 
-  const renderStoryItem = ({ item }: { item: Story }) => (
-    <TouchableOpacity style={styles.storyItem} onPress={() => {}}>
-      <Image source={{ uri: item.image_url }} style={styles.storyImage} />
-      <View style={styles.storyOverlay}>
-        <Image 
-          source={{ uri: item.profile?.avatar_url || "https://via.placeholder.com/32" }} 
-          style={styles.storyAvatar} 
-        />
-      </View>
-      <Text style={styles.storyName} numberOfLines={1}>
-        {item.profile?.full_name || "Unknown"}
-      </Text>
-    </TouchableOpacity>
-  );
+  const handleAddStory = async () => {
+    const { url, error } = await pickAndUploadImage("stories");
+    if (url && !error) {
+      await createStory(url, "image");
+    }
+  };
+
+  const renderStoryItem = ({ item }: { item: any }) => {
+    const isAddButton = item.id === "add-story";
+    
+    if (isAddButton) {
+      return (
+        <TouchableOpacity style={styles.storyItem} onPress={handleAddStory}>
+          <View style={[styles.storyImage, styles.addStoryButton]}>
+            <Ionicons name="add" size={32} color="#666" />
+          </View>
+          <Text style={styles.storyName} numberOfLines={1}>
+            Ajouter
+          </Text>
+        </TouchableOpacity>
+      );
+    }
+    
+    return (
+      <TouchableOpacity 
+        style={styles.storyItem} 
+        onPress={() => viewStory(item.id)}
+      >
+        <Image source={{ uri: item.media_url }} style={styles.storyImage} />
+        <View style={styles.storyOverlay}>
+          <Image 
+            source={{ uri: item.user?.avatar_url || "https://via.placeholder.com/32" }} 
+            style={styles.storyAvatar} 
+          />
+        </View>
+        <Text style={styles.storyName} numberOfLines={1}>
+          {item.user?.full_name || "Unknown"}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
 
   const renderMemoryItem = ({ item }: { item: Memory }) => (
     <TouchableOpacity 
@@ -233,14 +226,20 @@ export default function MemoriesScreen() {
             <Text style={styles.sectionTitle}>Stories</Text>
             <Text style={styles.sectionSubtitle}>Disparaissent dans 24h</Text>
           </View>
-          <FlatList
-            data={stories}
-            renderItem={renderStoryItem}
-            keyExtractor={(item) => item.id}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.storiesList}
-          />
+          {storiesLoading ? (
+            <View style={styles.storiesLoading}>
+              <ActivityIndicator size="small" color="#666" />
+            </View>
+          ) : (
+            <FlatList
+              data={[{ id: "add-story" }, ...stories]}
+              renderItem={renderStoryItem}
+              keyExtractor={(item) => item.id}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.storiesList}
+            />
+          )}
         </View>
 
         {/* Memories Section */}
@@ -361,6 +360,19 @@ const styles = StyleSheet.create({
     height: 70,
     borderRadius: 35,
     backgroundColor: "#E5E5E5",
+  },
+  addStoryButton: {
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "#E5E5E5",
+    borderStyle: "dashed",
+  },
+  storiesLoading: {
+    height: 70,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 16,
   },
   storyOverlay: {
     position: "absolute",

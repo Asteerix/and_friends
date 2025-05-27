@@ -1,6 +1,6 @@
 import React from "react";
 import { createStackNavigator } from "@react-navigation/stack";
-import NotificationsScreen from "../screens/NotificationsScreen";
+import NotificationsScreen from "@/screens/NotificationsScreen";
 
 export type NotificationsStackParamList = {
   NotificationsScreen: undefined;

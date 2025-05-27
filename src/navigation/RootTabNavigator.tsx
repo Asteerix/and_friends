@@ -4,30 +4,30 @@ import CustomTabBar from "../../components/ui/CustomTabBar";
 import HomeStackNavigator from "./HomeStackNavigator";
 import NotificationsStackNavigator from "./NotificationsStackNavigator";
 import ChatStackNavigator from "./ChatStackNavigator";
-import CreateEventScreen from "../screens/CreateEventScreen";
-import EditCoverScreen from "../screens/EditCoverScreen";
-import MemoriesScreen from "../screens/MemoriesScreen";
-import CalendarScreen from "../screens/CalendarScreen";
-import ProfileScreen from "../screens/ProfileScreen";
-// import ChatScreen from "../screens/ChatScreen";
-import { View, Text } from "react-native";
+import CreateEventScreen from "@/features/events/screens/CreateEventScreen";
+import EditCoverScreen from "@/features/events/screens/EditCoverScreen";
+import MemoriesScreen from "@/screens/MemoriesScreen";
+import CalendarScreen from "@/screens/CalendarScreen";
+import ProfileScreen from "@/screens/ProfileScreen";
+// import ChatScreen from "@/screens/ChatScreen";
 import { createStackNavigator } from "@react-navigation/stack";
 // Ajoute ici d'autres imports d'écrans ou stacks pour les autres onglets si besoin
 
-function DummyScreen({ label }: { label: string }) {
-  return (
-    <View
-      style={{
-        flex: 1,
-        backgroundColor: "#fff",
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
-      <Text style={{ fontSize: 24, color: "#000" }}>{label}</Text>
-    </View>
-  );
-}
+// Unused: DummyScreen was used for placeholder screens during development
+// function DummyScreen({ label }: { label: string }) {
+//   return (
+//     <View
+//       style={{
+//         flex: 1,
+//         backgroundColor: "#fff",
+//         alignItems: "center",
+//         justifyContent: "center",
+//       }}
+//     >
+//       <Text style={{ fontSize: 24, color: "#000" }}>{label}</Text>
+//     </View>
+//   );
+// }
 
 const Tab = createBottomTabNavigator();
 const CreateStack = createStackNavigator();
