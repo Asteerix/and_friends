@@ -1,0 +1,36 @@
+[
+  {
+    "id": "1",
+    "type": "invite",
+    "actor": "Robert Doe",
+    "verb": "invited you to",
+    "target": "Breakfast Club",
+    "time": "3 hours ago",
+    "read": false
+  },
+  {
+    "id": "2",
+    "type": "follow",
+    "actor": "Robert Doe",
+    "verb": "has followed you",
+    "time": "5 hours ago",
+    "read": false
+  },
+  {
+    "id": "3",
+    "type": "rsvp",
+    "actor": "Robert Doe",
+    "verb": "is going to",
+    "target": "Movie Night",
+    "time": "3 hours ago",
+    "read": true
+  },
+  {
+    "id": "4",
+    "type": "message",
+    "actor": "Robert Doe",
+    "verb": "message you",
+    "time": "3 hours ago",
+    "read": true
+  }
+]

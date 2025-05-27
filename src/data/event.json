@@ -1,0 +1,77 @@
+{
+  "id": "1",
+  "title": "Finally, a pasta night party, guys.",
+  "subtitle": "Come hungry. Bring a pasta, a sauce, or just yourself",
+  "description": "Making pasta, hanging out, maybe a little wine. No pressure — just good food, good people. If you want, bring something to throw into the mix (sauce, toppings).",
+  "tags": [
+    { "label": "Celebration", "icon": "restaurant-outline" },
+    { "label": "Causal", "icon": "happy-outline" }
+  ],
+  "host": {
+    "name": "Ana Eremina",
+    "avatar": "https://randomuser.me/api/portraits/women/44.jpg"
+  },
+  "time": "Thursday, May 16 • 7 PM – 10 PM",
+  "address": "123 Olive St, New York, NY, 10012",
+  "location": { "latitude": 40.725, "longitude": -73.995 },
+  "guests": [
+    {
+      "name": "Ana Eremina",
+      "avatar": "https://randomuser.me/api/portraits/women/44.jpg",
+      "status": "going"
+    },
+    {
+      "name": "John Doe",
+      "avatar": "https://randomuser.me/api/portraits/men/45.jpg",
+      "status": "notGoing"
+    },
+    {
+      "name": "Jane Smith",
+      "avatar": "https://randomuser.me/api/portraits/women/46.jpg",
+      "status": "going"
+    },
+    {
+      "name": "Mike Lee",
+      "avatar": "https://randomuser.me/api/portraits/men/47.jpg",
+      "status": "maybe"
+    },
+    {
+      "name": "Sara Kim",
+      "avatar": "https://randomuser.me/api/portraits/women/48.jpg",
+      "status": "notGoing"
+    },
+    {
+      "name": "Tom Brown",
+      "avatar": "https://randomuser.me/api/portraits/men/49.jpg",
+      "status": "going"
+    },
+    {
+      "name": "Lily Chan",
+      "avatar": "https://randomuser.me/api/portraits/women/50.jpg",
+      "status": "notGoing"
+    },
+    {
+      "name": "Paul Green",
+      "avatar": "https://randomuser.me/api/portraits/men/51.jpg",
+      "status": "going"
+    },
+    {
+      "name": "Emma White",
+      "avatar": "https://randomuser.me/api/portraits/women/52.jpg",
+      "status": "going"
+    },
+    {
+      "name": "Chris Black",
+      "avatar": "https://randomuser.me/api/portraits/men/53.jpg",
+      "status": "maybe"
+    }
+  ],
+  "bringItems": [
+    { "label": "Red Wine", "claimedBy": null },
+    { "label": "Dessert", "claimedBy": null }
+  ],
+  "images": {
+    "hero": "require('../../assets/pasta_hero.png')",
+    "noPeeking": "require('../../assets/no_peeking.png')"
+  }
+}

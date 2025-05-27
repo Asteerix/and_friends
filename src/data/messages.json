@@ -1,0 +1,42 @@
+[
+  {
+    "id": "1",
+    "type": "text-in",
+    "authorId": "2",
+    "text": "Looking forward to it! Should we bring snacks?",
+    "createdAt": "2024-06-01T09:18:00Z"
+  },
+  {
+    "id": "2",
+    "type": "text-out",
+    "authorId": "1",
+    "text": "Yes! I'll bring fruit and drinks",
+    "createdAt": "2024-06-01T09:19:00Z"
+  },
+  {
+    "id": "3",
+    "type": "image-preview",
+    "authorId": "1",
+    "createdAt": "2024-06-01T15:03:00Z",
+    "meta": {
+      "imageUrl": "https://images.unsplash.com/photo-restaurant.jpg",
+      "title": "Ippudo, NY",
+      "subtitle": "Ramen Restaurant",
+      "url": "https://ippudo.com"
+    }
+  },
+  {
+    "id": "4",
+    "type": "poll-large",
+    "authorId": "2",
+    "createdAt": "2024-06-01T15:10:00Z",
+    "meta": { "pollId": "poll1" }
+  },
+  {
+    "id": "5",
+    "type": "poll-compact",
+    "authorId": "2",
+    "createdAt": "2024-06-01T15:12:00Z",
+    "meta": { "pollId": "poll2" }
+  }
+]

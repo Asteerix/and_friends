@@ -1,0 +1,22 @@
+{
+  "expo": {
+    "scheme": "acme",
+    "plugins": ["expo-localization", "expo-web-browser"],
+    "name": "and_friends",
+    "slug": "and_friends",
+    "ios": {
+      "bundleIdentifier": "com.andfriends.app"
+    },
+    "android": {
+      "package": "com.andfriends.app"
+    },
+    "extra": {
+      "eas": {
+        "projectId": ""
+      },
+      "supabaseUrl": "REMPLACER_PAR_VOTRE_URL_SUPABASE_POUR_$_FRIENDS",
+      "supabaseAnonKey": "REMPLACER_PAR_VOTRE_CLE_ANON_SUPABASE_POUR_$_FRIENDS",
+      "testEmail": "test@example.com"
+    }
+  }
+}

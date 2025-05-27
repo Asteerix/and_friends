@@ -1,0 +1,23 @@
+[
+  {
+    "id": "poll1",
+    "question": "Where should we meet?",
+    "options": [
+      { "id": "a", "label": "Central Park", "votes": 6 },
+      { "id": "b", "label": "East Side Docks", "votes": 4 }
+    ],
+    "endsAt": "2024-06-01T16:10:00Z",
+    "author": "Samantha"
+  },
+  {
+    "id": "poll2",
+    "question": "Movie Choice",
+    "options": [
+      { "id": "a", "label": "Barbie", "votes": 5 },
+      { "id": "b", "label": "Oppenheimer", "votes": 3 },
+      { "id": "c", "label": "Spiderverse", "votes": 7 }
+    ],
+    "endsAt": "2024-06-01T17:10:00Z",
+    "author": "Ben"
+  }
+]
