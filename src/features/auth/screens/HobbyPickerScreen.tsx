@@ -1,9 +1,8 @@
-// HobbyPickerScreen.tsx
-// ---------------------------------------------------------------------------
-import { StackNavigationProp } from "@react-navigation/stack";
-import React, { useState, useEffect, useCallback } from "react";
+import { useRouter } from 'expo-router';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   KeyboardAvoidingView,
   Modal,
@@ -13,72 +12,91 @@ import {
   Text,
   TextInput,
   View,
-  Alert,
-} from "react-native";
-import { useNavigation } from "@react-navigation/native";
+} from 'react-native';
 
-import ScreenLayout from "@/components/ScreenLayout";
-import { supabase } from "@/lib/supabase";
-import { getDeviceLanguage, t } from "../../../locales";
-import { AuthStackParamList } from "@/navigation/types";
+import { supabase } from '@/shared/lib/supabase/client';
+import { getDeviceLanguage, t } from '@/shared/locales';
+import ScreenLayout from '@/shared/ui/ScreenLayout';
+import { useOnboardingStatus } from '@/hooks/useOnboardingStatus';
+import { useAuthNavigation } from '@/shared/hooks/useAuthNavigation';
+import { useRegistrationStep } from '@/shared/hooks/useRegistrationStep';
 
+// HobbyPickerScreen.tsx
 // ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-type NavProp = StackNavigationProp<AuthStackParamList, "HobbyPicker">;
 
 // ---------------------------------------------------------------------------
 // Constantes
 // ---------------------------------------------------------------------------
 const COLORS = {
-  white: "#FFFFFF",
-  black: "#000000",
-  grey0: "#E5E5E5",
-  error: "#D32F2F",
+  white: '#FFFFFF',
+  black: '#000000',
+  grey0: '#E5E5E5',
+  error: '#D32F2F',
 };
-const HOBBY_SCREEN_PROGRESS = 1.0; // Étape finale
-const NEXT_REGISTRATION_SCREEN_NAME: keyof AuthStackParamList = "LoadingScreen";
-const FINAL_REGISTRATION_STEP_VALUE = "registration_complete";
+// Removed - using getProgress() from useAuthNavigation
+const FINAL_REGISTRATION_STEP_VALUE = 'registration_complete';
 const MAX_HOBBIES = 5;
 
 const DEFAULT_HOBBIES = [
-  "Painting",
-  "Photography",
-  "Writing",
-  "Singing",
-  "Surfing",
-  "Running",
-  "Playing Instruments",
-  "Coding",
-  "Hiking",
-  "Board Games",
-  "Yoga",
-  "Biking",
-  "Thrifting",
-  "Gaming",
-  "Dancing",
-  "Journaling",
-  "Traveling",
-  "Reading",
-  "Learning Languages",
-  "Cooking",
-  "Scuba Diving",
-  "Gardening",
+  'Painting',
+  'Photography',
+  'Writing',
+  'Singing',
+  'Surfing',
+  'Running',
+  'Playing Instruments',
+  'Coding',
+  'Hiking',
+  'Board Games',
+  'Yoga',
+  'Biking',
+  'Thrifting',
+  'Gaming',
+  'Dancing',
+  'Journaling',
+  'Traveling',
+  'Reading',
+  'Learning Languages',
+  'Cooking',
+  'Scuba Diving',
+  'Gardening',
 ];
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 const HobbyPickerScreen: React.FC = () => {
-  const navigation = useNavigation<NavProp>();
+  const router = useRouter();
+  const { navigateBack, navigateNext, getProgress } = useAuthNavigation('hobby-picker');
   const lang = getDeviceLanguage();
+  const { currentStep, isComplete, loading: onboardingLoading } = useOnboardingStatus();
+
+  // Save registration step
+  useRegistrationStep('hobby_picker');
+
+  const handleBackPress = () => {
+    navigateBack();
+  };
 
   const [allHobbies, setAllHobbies] = useState<string[]>(DEFAULT_HOBBIES);
   const [selectedHobbies, setSelectedHobbies] = useState<string[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
-  const [newHobby, setNewHobby] = useState("");
+  const [newHobby, setNewHobby] = useState('');
   const [isSaving, setIsSaving] = useState(false); // Renamed from isLoading for clarity
   const [isFetchingInitialData, setIsFetchingInitialData] = useState(true);
+
+  useEffect(() => {
+    if (!onboardingLoading && currentStep && currentStep !== 'HobbyPicker') {
+      // Si ce n'est pas l'étape HobbyPicker, on redirige vers la page loading si tout est rempli
+      if (isComplete) {
+        router.replace('/(auth)/loading');
+      } else {
+        // Sinon, on redirige vers la bonne étape
+        // (Pas d'étape suivante après HobbyPicker, donc on redirige vers loading)
+        router.replace('/(auth)/loading');
+      }
+    }
+  }, [onboardingLoading, currentStep, isComplete, router]);
 
   // Fetch initial hobbies
   useEffect(() => {
@@ -90,14 +108,14 @@ const HobbyPickerScreen: React.FC = () => {
       if (user) {
         try {
           const { data, error } = await supabase
-            .from("profiles")
-            .select("hobbies")
-            .eq("id", user.id)
+            .from('profiles')
+            .select('hobbies')
+            .eq('id', user.id)
             .single();
 
-          if (error && error.code !== "PGRST116") {
-            console.error("Error fetching initial hobbies:", error);
-            Alert.alert(t("error_loading_profile_generic", lang));
+          if (error && error.code !== 'PGRST116') {
+            console.error('Error fetching initial hobbies:', error);
+            Alert.alert(t('error_loading_profile_generic', lang));
           } else if (data && Array.isArray(data.hobbies)) {
             setSelectedHobbies(data.hobbies);
             const uniqueFetchedHobbies = data.hobbies.filter(
@@ -114,13 +132,13 @@ const HobbyPickerScreen: React.FC = () => {
             setAllHobbies((prev) => [...prev].sort()); // Sort default hobbies if no data
           }
         } catch (e) {
-          console.error("Unexpected error fetching hobbies:", e);
-          Alert.alert(t("unexpected_error", lang));
+          console.error('Unexpected error fetching hobbies:', e);
+          Alert.alert(t('unexpected_error', lang));
         }
       }
       setIsFetchingInitialData(false);
     };
-    fetchInitialHobbies();
+    void fetchInitialHobbies();
   }, [lang]);
 
   const toggleHobby = useCallback(
@@ -130,8 +148,8 @@ const HobbyPickerScreen: React.FC = () => {
         if (prev.includes(hobby)) return prev.filter((x) => x !== hobby);
         if (prev.length >= MAX_HOBBIES) {
           Alert.alert(
-            t("hobby_picker_max_title", lang),
-            t("hobby_picker_max_message", lang, { max: MAX_HOBBIES })
+            t('hobby_picker_max_title', lang),
+            t('hobby_picker_max_message', lang, { max: MAX_HOBBIES })
           );
           return prev;
         }
@@ -148,11 +166,11 @@ const HobbyPickerScreen: React.FC = () => {
 
     if (selectedHobbies.length >= MAX_HOBBIES) {
       Alert.alert(
-        t("hobby_picker_max_title", lang),
-        t("hobby_picker_max_message", lang, { max: MAX_HOBBIES })
+        t('hobby_picker_max_title', lang),
+        t('hobby_picker_max_message', lang, { max: MAX_HOBBIES })
       );
       setModalVisible(false);
-      setNewHobby("");
+      setNewHobby('');
       return;
     }
     if (!allHobbies.includes(trimmedHobby)) {
@@ -161,7 +179,7 @@ const HobbyPickerScreen: React.FC = () => {
     if (!selectedHobbies.includes(trimmedHobby)) {
       setSelectedHobbies((prev) => [...prev, trimmedHobby]);
     }
-    setNewHobby("");
+    setNewHobby('');
     setModalVisible(false);
   };
 
@@ -170,31 +188,28 @@ const HobbyPickerScreen: React.FC = () => {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) {
-      Alert.alert(
-        t("error_session_expired_title", lang),
-        t("error_session_expired_message", lang)
-      );
+      Alert.alert(t('error_session_expired_title', lang), t('error_session_expired_message', lang));
       return false;
     }
     setIsSaving(true);
     try {
       const { error } = await supabase
-        .from("profiles")
+        .from('profiles')
         .update({
           hobbies: hobbiesToSave,
           current_registration_step: FINAL_REGISTRATION_STEP_VALUE,
         })
-        .eq("id", user.id);
+        .eq('id', user.id);
 
       if (error) {
-        console.error("Error saving hobbies to profile:", error);
-        Alert.alert(t("error_saving_profile", lang), error.message);
+        console.error('Error saving hobbies to profile:', error);
+        Alert.alert(t('error_saving_profile', lang), error.message);
         return false;
       }
       return true;
-    } catch (e: any) {
-      console.error("Unexpected error saving hobbies:", e);
-      Alert.alert(t("unexpected_error", lang), e.message);
+    } catch (e: unknown) {
+      console.error('Unexpected error saving hobbies:', e);
+      Alert.alert(t('unexpected_error', lang), e instanceof Error ? e.message : String(e));
       return false;
     } finally {
       setIsSaving(false);
@@ -206,7 +221,7 @@ const HobbyPickerScreen: React.FC = () => {
     const success = await updateProfileHobbies(selectedHobbies);
     if (success) {
       // NEXT_SCREEN_NAME est "LoadingScreen", qui est une destination valide pour replace.
-      navigation.replace(NEXT_REGISTRATION_SCREEN_NAME);
+      navigateNext('loading');
     }
   };
 
@@ -214,7 +229,7 @@ const HobbyPickerScreen: React.FC = () => {
     if (isSaving) return;
     const success = await updateProfileHobbies([]); // Save empty array for skip
     if (success) {
-      navigation.replace(NEXT_REGISTRATION_SCREEN_NAME);
+      navigateNext('loading');
     }
   };
 
@@ -231,12 +246,7 @@ const HobbyPickerScreen: React.FC = () => {
       ]}
       disabled={isLoading}
     >
-      <Text
-        style={[
-          styles.chipLabel,
-          selectedHobbies.includes(item) && { color: COLORS.white },
-        ]}
-      >
+      <Text style={[styles.chipLabel, selectedHobbies.includes(item) && { color: COLORS.white }]}>
         {item}
       </Text>
     </Pressable>
@@ -253,15 +263,16 @@ const HobbyPickerScreen: React.FC = () => {
   return (
     <>
       <ScreenLayout
-        navigation={navigation}
-        title={t("hobby_picker_title", lang)}
-        subtitle={t("hobby_picker_subtitle", lang, { max: MAX_HOBBIES })}
-        progress={HOBBY_SCREEN_PROGRESS}
+        title={t('hobby_picker_title', lang)}
+        subtitle={t('hobby_picker_subtitle', lang, { max: MAX_HOBBIES })}
+        progress={getProgress()}
         onContinue={handleContinue}
         continueDisabled={selectedHobbies.length === 0 || isLoading}
         showAltLink={true}
-        altLinkText={t("skip", lang)}
+        altLinkText={t('skip', lang)}
         onAltLinkPress={handleSkip}
+        showBackButton={true}
+        onBackPress={handleBackPress}
       >
         <View style={styles.contentContainer}>
           <FlatList
@@ -279,9 +290,7 @@ const HobbyPickerScreen: React.FC = () => {
             onPress={() => !isLoading && setModalVisible(true)}
             disabled={isLoading}
           >
-            <Text style={styles.addButtonText}>
-              {t("hobby_picker_add", lang)}
-            </Text>
+            <Text style={styles.addButtonText}>{t('hobby_picker_add', lang)}</Text>
           </Pressable>
 
           <Modal
@@ -292,33 +301,23 @@ const HobbyPickerScreen: React.FC = () => {
           >
             <KeyboardAvoidingView
               style={styles.modalBackdrop}
-              behavior={Platform.OS === "ios" ? "padding" : "height"}
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             >
               <View style={styles.modalCard}>
-                <Text style={styles.modalTitle}>
-                  {t("hobby_picker_new", lang)}
-                </Text>
+                <Text style={styles.modalTitle}>{t('hobby_picker_new', lang)}</Text>
                 <TextInput
                   style={styles.modalInput}
-                  placeholder={t("hobby_picker_placeholder", lang)}
+                  placeholder={t('hobby_picker_placeholder', lang)}
                   value={newHobby}
                   onChangeText={setNewHobby}
                   autoFocus
                 />
                 <View style={styles.modalActions}>
-                  <Pressable
-                    style={styles.cancelButton}
-                    onPress={() => setModalVisible(false)}
-                  >
-                    <Text style={styles.cancelButtonText}>
-                      {t("cancel", lang)}
-                    </Text>
+                  <Pressable style={styles.cancelButton} onPress={() => setModalVisible(false)}>
+                    <Text style={styles.cancelButtonText}>{t('cancel', lang)}</Text>
                   </Pressable>
-                  <Pressable
-                    style={styles.modalAddButton}
-                    onPress={addCustomHobby}
-                  >
-                    <Text style={styles.addButtonText}>{t("add", lang)}</Text>
+                  <Pressable style={styles.modalAddButton} onPress={addCustomHobby}>
+                    <Text style={styles.addButtonText}>{t('add', lang)}</Text>
                   </Pressable>
                 </View>
               </View>
@@ -335,8 +334,8 @@ export default HobbyPickerScreen;
 const styles = StyleSheet.create({
   contentContainer: { flex: 1, paddingHorizontal: 10, paddingTop: 10 }, // Reduced padding for more space for chips
   listStyle: { flex: 1 },
-  listContentContainer: { paddingBottom: 80, alignItems: "center" }, // Center items if not enough to fill width
-  row: { justifyContent: "space-around" }, // Distribute space in rows for numColumns
+  listContentContainer: { paddingBottom: 80, alignItems: 'center' }, // Center items if not enough to fill width
+  row: { justifyContent: 'space-around' }, // Distribute space in rows for numColumns
   chip: {
     borderWidth: 1,
     borderColor: COLORS.grey0,
@@ -344,16 +343,16 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 18,
     margin: 6,
-    alignItems: "center",
-    justifyContent: "center",
-    minWidth: "40%", // Ensure chips take up reasonable space
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: '40%', // Ensure chips take up reasonable space
   },
   chipSelected: { backgroundColor: COLORS.black, borderColor: COLORS.black },
   chipLabel: {
     fontSize: 15,
     color: COLORS.black,
-    fontFamily: Platform.OS === "ios" ? "System" : "sans-serif-medium",
-    textAlign: "center",
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium',
+    textAlign: 'center',
   },
   disabledChip: { opacity: 0.5 },
   addButton: {
@@ -361,31 +360,31 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 20,
     borderRadius: 25,
-    alignItems: "center",
+    alignItems: 'center',
     marginVertical: 15,
-    alignSelf: "center",
+    alignSelf: 'center',
     minWidth: 180,
   },
-  addButtonText: { fontSize: 16, color: COLORS.white, fontWeight: "600" },
+  addButtonText: { fontSize: 16, color: COLORS.white, fontWeight: '600' },
   disabledButton: { backgroundColor: COLORS.grey0 },
   modalBackdrop: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   modalCard: {
-    width: "90%",
+    width: '90%',
     backgroundColor: COLORS.white,
     borderRadius: 16,
     padding: 20,
-    alignItems: "stretch",
+    alignItems: 'stretch',
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: "600",
+    fontWeight: '600',
     marginBottom: 16,
-    textAlign: "center",
+    textAlign: 'center',
   },
   modalInput: {
     borderWidth: 1,
@@ -397,22 +396,22 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   modalActions: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     marginTop: 8,
   },
   cancelButton: {
     flex: 1,
-    alignItems: "center",
+    alignItems: 'center',
     paddingVertical: 12,
     borderRadius: 8,
     marginRight: 6,
     backgroundColor: COLORS.grey0,
   },
-  cancelButtonText: { fontSize: 16, color: COLORS.black, fontWeight: "500" },
+  cancelButtonText: { fontSize: 16, color: COLORS.black, fontWeight: '500' },
   modalAddButton: {
     flex: 1,
-    alignItems: "center",
+    alignItems: 'center',
     paddingVertical: 12,
     backgroundColor: COLORS.black,
     borderRadius: 8,
@@ -420,8 +419,8 @@ const styles = StyleSheet.create({
   },
   loadingScreenContainer: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: COLORS.white,
   },
 });

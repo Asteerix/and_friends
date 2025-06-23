@@ -1,516 +1,248 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  TextInput,
-  TouchableOpacity,
   StyleSheet,
-  Keyboard,
-  TouchableWithoutFeedback,
-  Modal,
-  FlatList,
-  Animated,
-  AccessibilityInfo,
   Platform,
+  SafeAreaView,
+  TouchableOpacity,
   Image,
+  TextInput,
+  StatusBar,
+  KeyboardAvoidingView,
+  Modal,
   Dimensions,
-} from "react-native";
-import { StackScreenProps } from "@react-navigation/stack";
-import {
-  parsePhoneNumberFromString,
-  CountryCode as LibCountryCode,
-  AsYouType,
-} from "libphonenumber-js";
-import * as Haptics from "expo-haptics";
-import { LinearGradient } from "expo-linear-gradient";
-import ScreenLayout from "@/components/ScreenLayout";
-import { supabase } from "@/lib/supabase";
+  ScrollView,
+  Pressable,
+} from 'react-native';
+import { create } from 'react-native-pixel-perfect';
+import Animated, { FadeInDown } from 'react-native-reanimated';
+import { supabase } from '@/shared/lib/supabase/client';
+import { Alert } from 'react-native';
+import { useAuthNavigation } from '@/shared/hooks/useAuthNavigation';
 
-type AuthStackParamList = {
-  PhoneVerification: undefined;
-  CodeVerification: {
-    phone: string;
-    callingCode: string;
-    countryCode: LibCountryCode;
-  };
-};
-
-type Props = StackScreenProps<AuthStackParamList, "PhoneVerification">;
-
-const COLORS = {
-  white: "#FFFFFF",
-  black: "#000000",
-  grey0: "#E5E5E5",
-  grey1: "#AEB0B4",
-  redError: "#FF3B30",
-};
-
-const { height: H } = Dimensions.get("window");
-
-const t = (key: string, _lang?: string) => {
-  const translations: { [key: string]: string } = {
-    "phoneVerification.title": "Vérifiez votre numéro",
-    "phoneVerification.description":
-      "Nous vous enverrons un code de vérification par SMS.",
-    "phoneVerification.country": "Pays",
-    "phoneVerification.phonePlaceholder": "000 000 0000",
-    "phoneVerification.continue": "Continuer",
-    "phoneVerification.error.invalid_phone_format":
-      "Format de téléphone invalide.",
-    "phoneVerification.error.rate_limit":
-      "Trop de tentatives. Veuillez réessayer plus tard.",
-    "phoneVerification.error.network_error":
-      "Erreur réseau. Veuillez vérifier votre connexion.",
-    "phoneVerification.error.otp_error":
-      "Une erreur est survenue lors de l'envoi du code.",
-    "phoneVerification.selectCountry": "Sélectionner un pays",
-    "onboarding.progressStep": "Étape {current} sur {total}",
-  };
-  return translations[key] || key;
-};
+const { height: H } = Dimensions.get('window');
+const designResolution = { width: 375, height: 812 };
+const perfectSize = create(designResolution);
 
 interface Country {
   name: string;
   flag: string;
-  code: LibCountryCode;
+  code: string;
   callingCode: string;
+  placeholder: string;
 }
 
 const COMMON_COUNTRIES: Country[] = [
-  { name: "France", flag: "🇫🇷", code: "FR", callingCode: "33" },
-  { name: "United States", flag: "🇺🇸", code: "US", callingCode: "1" },
-  { name: "United Kingdom", flag: "🇬🇧", code: "GB", callingCode: "44" },
-  { name: "Spain", flag: "🇪🇸", code: "ES", callingCode: "34" },
-  { name: "Germany", flag: "🇩🇪", code: "DE", callingCode: "49" },
-  { name: "Canada", flag: "🇨🇦", code: "CA", callingCode: "1" },
-  { name: "Australia", flag: "🇦🇺", code: "AU", callingCode: "61" },
-  { name: "Belgium", flag: "🇧🇪", code: "BE", callingCode: "32" },
-  { name: "Switzerland", flag: "🇨🇭", code: "CH", callingCode: "41" },
-  { name: "Italy", flag: "🇮🇹", code: "IT", callingCode: "39" },
+  {
+    name: 'United States',
+    flag: '🇺🇸',
+    code: 'US',
+    callingCode: '1',
+    placeholder: '(201) 555-0123',
+  },
+  { name: 'France', flag: '🇫🇷', code: 'FR', callingCode: '33', placeholder: '6 12 34 56 78' },
+  { name: 'United Kingdom', flag: '🇬🇧', code: 'GB', callingCode: '44', placeholder: '7400 123456' },
+  { name: 'Spain', flag: '🇪🇸', code: 'ES', callingCode: '34', placeholder: '612 34 56 78' },
+  { name: 'Germany', flag: '🇩🇪', code: 'DE', callingCode: '49', placeholder: '151 12345678' },
+  { name: 'Canada', flag: '🇨🇦', code: 'CA', callingCode: '1', placeholder: '(416) 555-0123' },
+  { name: 'Italy', flag: '🇮🇹', code: 'IT', callingCode: '39', placeholder: '312 345 6789' },
+  { name: 'Brazil', flag: '🇧🇷', code: 'BR', callingCode: '55', placeholder: '(11) 98765-4321' },
+  { name: 'Mexico', flag: '🇲🇽', code: 'MX', callingCode: '52', placeholder: '55 1234 5678' },
+  { name: 'Japan', flag: '🇯🇵', code: 'JP', callingCode: '81', placeholder: '90-1234-5678' },
+  { name: 'China', flag: '🇨🇳', code: 'CN', callingCode: '86', placeholder: '138 0000 0000' },
+  { name: 'India', flag: '🇮🇳', code: 'IN', callingCode: '91', placeholder: '98765 43210' },
+  { name: 'Australia', flag: '🇦🇺', code: 'AU', callingCode: '61', placeholder: '412 345 678' },
+  { name: 'Netherlands', flag: '🇳🇱', code: 'NL', callingCode: '31', placeholder: '6 12345678' },
+  { name: 'Switzerland', flag: '🇨🇭', code: 'CH', callingCode: '41', placeholder: '79 123 45 67' },
 ];
 
-const PHONE_VERIFICATION_PROGRESS = 0.14;
+interface PhoneVerificationScreenProps {}
 
-const getPhonePlaceholder = (countryCode: string) => {
-  switch (countryCode) {
-    case "FR":
-      return "0 00 00 00 00";
-    case "US":
-    case "CA":
-      return "(000) 000-0000";
-    case "GB":
-      return "0000 000000";
-    case "DE":
-      return "0000 0000000";
-    case "ES":
-      return "000 00 00 00";
-    case "IT":
-      return "000 000 0000";
-    case "BE":
-      return "000 00 00 00";
-    case "CH":
-      return "00 000 00 00";
-    case "AU":
-      return "0000 000 000";
-    default:
-      return "000 000 0000";
-  }
-};
-
-const PhoneVerificationScreen: React.FC<Props> = ({ navigation }) => {
+const PhoneVerificationScreen: React.FC<PhoneVerificationScreenProps> = React.memo(() => {
+  const { navigateNext, getProgress } = useAuthNavigation('phone-verification');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [isCountryModalVisible, setIsCountryModalVisible] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState<Country>(
-    COMMON_COUNTRIES[0]
+    COMMON_COUNTRIES[1] || { // France par défaut
+      name: 'France',
+      flag: '🇫🇷',
+      code: 'FR',
+      callingCode: '33',
+      placeholder: '6 12 34 56 78',
+    }
   );
-  const [phoneNumber, setPhoneNumber] = useState<string>("");
-  const [rawPhoneNumber, setRawPhoneNumber] = useState<string>("");
-  const [isValidNumber, setIsValidNumber] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-  const [isCountryModalVisible, setIsCountryModalVisible] =
-    useState<boolean>(false);
 
-  const shakeAnimation = useRef(new Animated.Value(0)).current;
-  const haloAnimation = useRef(new Animated.Value(0)).current;
-
+  // Clear user data when reaching this screen (user went back to start)
   useEffect(() => {
-    const pn = parsePhoneNumberFromString("", selectedCountry.code);
-  }, [selectedCountry]);
+    const clearUserData = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          // Reset registration progress
+          await supabase
+            .from('profiles')
+            .update({
+              current_registration_step: 'phone_verification',
+              // Clear any partial data
+              username: null,
+              full_name: null,
+              avatar_url: null,
+              birth_date: null,
+              path: null,
+              jam: null,
+              restaurant_recommendations: null,
+              hobbies: null,
+              location_permission_granted: null,
+              contacts_permission_status: null,
+            })
+            .eq('id', user.id);
+        }
+      } catch (error) {
+        console.error('Error clearing user data:', error);
+      }
+    };
 
-  const handlePhoneNumberChange = (text: string) => {
-    let digits = text.replace(/\D/g, "");
-    setRawPhoneNumber(digits);
-    const formatter = new AsYouType(selectedCountry.code);
-    const formatted = formatter.input(digits);
-    setPhoneNumber(formatted);
-    setError(null);
-    const pn = parsePhoneNumberFromString(digits, selectedCountry.code);
-    setIsValidNumber(pn?.isValid() ?? false);
-  };
+    clearUserData();
+  }, []);
 
   const handleCountrySelect = (country: Country) => {
     setSelectedCountry(country);
     setIsCountryModalVisible(false);
-    setPhoneNumber("");
-    setIsValidNumber(false);
-    setError(null);
-    const pn = parsePhoneNumberFromString("", country.code);
-  };
-
-  const startShakeAnimation = () => {
-    shakeAnimation.setValue(0);
-    Animated.sequence([
-      Animated.timing(shakeAnimation, {
-        toValue: 10,
-        duration: 50,
-        useNativeDriver: true,
-      }),
-      Animated.timing(shakeAnimation, {
-        toValue: -10,
-        duration: 50,
-        useNativeDriver: true,
-      }),
-      Animated.timing(shakeAnimation, {
-        toValue: 10,
-        duration: 50,
-        useNativeDriver: true,
-      }),
-      Animated.timing(shakeAnimation, {
-        toValue: 0,
-        duration: 50,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  };
-
-  const startHaloAnimation = () => {
-    haloAnimation.setValue(0);
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(haloAnimation, {
-          toValue: 1,
-          duration: 700,
-          useNativeDriver: false,
-        }),
-        Animated.timing(haloAnimation, {
-          toValue: 0,
-          duration: 700,
-          useNativeDriver: false,
-        }),
-      ])
-    ).start();
-  };
-
-  const stopHaloAnimation = () => {
-    haloAnimation.stopAnimation();
-    haloAnimation.setValue(0);
+    setPhoneNumber('');
   };
 
   const handleContinue = async () => {
-    if (!isValidNumber || isLoading) return;
-    Keyboard.dismiss();
-    setIsLoading(true);
-    setError(null);
-    startHaloAnimation();
-    let digitsOnly = rawPhoneNumber;
-    if (selectedCountry.code === "FR" && digitsOnly.startsWith("0")) {
-      digitsOnly = digitsOnly.substring(1);
+    if (!phoneNumber.trim()) {
+      Alert.alert('Erreur', 'Veuillez entrer un numéro de téléphone');
+      return;
     }
-    const fullPhoneNumber = `+${selectedCountry.callingCode}${digitsOnly}`;
-    try {
-      console.log(
-        "[PhoneVerificationScreen] Attempting to sign in with OTP. Full phone number:",
-        fullPhoneNumber
-      );
-      const { data, error: supaError } = await supabase.auth.signInWithOtp({
-        phone: fullPhoneNumber,
-        options: {
-          shouldCreateUser: true,
-        },
-      });
-      if (supaError) {
-        console.error(
-          "[PhoneVerificationScreen] Supabase signInWithOtp error:",
-          JSON.stringify(supaError, null, 2)
-        );
-        let errorMessageKey = "phoneVerification.error.otp_error";
-        if (
-          supaError.message.includes("Invalid phone number format") ||
-          supaError.message.includes("format")
-        ) {
-          errorMessageKey = "phoneVerification.error.invalid_phone_format";
-        } else if (
-          supaError.message.includes("rate limit") ||
-          supaError.message.includes("Rate limit exceeded")
-        ) {
-          errorMessageKey = "phoneVerification.error.rate_limit";
-        } else if (
-          supaError.message.includes("network") ||
-          supaError.message.includes("Network request failed")
-        ) {
-          errorMessageKey = "phoneVerification.error.network_error";
-        }
-        setError(t(errorMessageKey));
-        startShakeAnimation();
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        AccessibilityInfo.announceForAccessibility(t(errorMessageKey));
-      } else if (data) {
-        console.log(
-          "[PhoneVerificationScreen] Supabase signInWithOtp success (OTP sent). Data:",
-          JSON.stringify(data, null, 2)
-        );
-        const navigationParams = {
-          phone: digitsOnly,
-          callingCode: selectedCountry.callingCode,
-          countryCode: selectedCountry.code,
-        };
-        console.log(
-          "[PhoneVerificationScreen] Navigating to CodeVerification with params:",
-          JSON.stringify(navigationParams, null, 2)
-        );
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        navigation.replace("CodeVerification", navigationParams);
-      } else {
-        console.warn(
-          "[PhoneVerificationScreen] Supabase signInWithOtp returned no error but no data either."
-        );
-        setError(t("phoneVerification.error.otp_error"));
-        startShakeAnimation();
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      }
-    } catch (e: any) {
-      console.error(
-        "[PhoneVerificationScreen] Generic error during signInWithOtp:",
-        e
-      );
-      setError(t("phoneVerification.error.otp_error"));
-      startShakeAnimation();
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      AccessibilityInfo.announceForAccessibility(
-        t("phoneVerification.error.otp_error")
-      );
-    } finally {
-      setIsLoading(false);
-      stopHaloAnimation();
-    }
-  };
 
-  // Fonction de connexion automatique pour les tests
-  const handleTestLogin = async () => {
-    console.log("[PhoneVerificationScreen] Test login démarré");
     setIsLoading(true);
+    
     try {
-      // Simuler une connexion avec l'email de test
-      const testEmail =
-        process.env.EXPO_PUBLIC_TEST_EMAIL || "poltavtseefamaury@gmail.com";
-      console.log(
-        "[PhoneVerificationScreen] Tentative de connexion avec:",
-        testEmail
-      );
-
+      // Formater le numéro de téléphone avec le code pays
+      const cleanedPhone = phoneNumber.replace(/\s+/g, '').replace(/^0/, '');
+      const fullPhoneNumber = `+${selectedCountry.callingCode}${cleanedPhone}`;
+      
+      console.log('📱 [PhoneVerification] Envoi OTP à:', fullPhoneNumber);
+      
+      // Envoyer l'OTP via Supabase
       const { data, error } = await supabase.auth.signInWithOtp({
-        email: testEmail,
-        options: {
-          shouldCreateUser: true,
-        },
+        phone: fullPhoneNumber,
       });
 
       if (error) {
-        console.error(
-          "[PhoneVerificationScreen] Erreur lors de la connexion test:",
-          error
-        );
-        setError("Erreur lors de la connexion test");
-      } else {
-        console.log(
-          "[PhoneVerificationScreen] OTP envoyé pour test à:",
-          testEmail
-        );
-        setError(
-          "Un code de vérification a été envoyé à votre email de test. Vérifiez votre boîte mail."
-        );
-      }
-    } catch (error) {
-      console.error("[PhoneVerificationScreen] Erreur inattendue:", error);
-      setError("Erreur inattendue");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Fonction de connexion directe pour bypasser l'authentification (dev seulement)
-  const handleDirectLogin = async () => {
-    console.log("[PhoneVerificationScreen] Connexion directe pour dev");
-    setIsLoading(true);
-    try {
-      // Tentative de connexion anonyme ou avec un token de développement
-      const testEmail = "test@andfriends.dev";
-      const testPassword = "testpassword123";
-
-      // Créer un utilisateur de test s'il n'existe pas, puis se connecter
-      let { data, error } = await supabase.auth.signUp({
-        email: testEmail,
-        password: testPassword,
-      });
-
-      if (error && error.message.includes("User already registered")) {
-        // L'utilisateur existe déjà, essayons de nous connecter
-        const { data: signInData, error: signInError } =
-          await supabase.auth.signInWithPassword({
-            email: testEmail,
-            password: testPassword,
-          });
-
-        if (signInError) {
-          console.error(
-            "[PhoneVerificationScreen] Erreur connexion directe:",
-            signInError
+        console.error('❌ [PhoneVerification] Erreur envoi OTP:', error);
+        
+        // Si c'est une erreur de quota, proposer le mode test
+        if (error.message?.includes('Quota Exceeded')) {
+          Alert.alert(
+            'Quota SMS dépassé', 
+            'Le quota d\'envoi de SMS est dépassé. En développement, utilisez le numéro +33612345678 avec le code 123456.',
+            [
+              {
+                text: 'Utiliser le mode test',
+                onPress: () => {
+                  setPhoneNumber('612345678');
+                  navigateNext('code-verification');
+                }
+              },
+              { text: 'Annuler', style: 'cancel' }
+            ]
           );
-          setError("Erreur lors de la connexion directe");
         } else {
-          console.log("[PhoneVerificationScreen] Connexion directe réussie!");
-          // La navigation sera gérée automatiquement par le context de session
+          Alert.alert(
+            'Erreur', 
+            error.message || 'Impossible d\'envoyer le code. Vérifiez votre numéro.'
+          );
         }
-      } else if (error) {
-        console.error(
-          "[PhoneVerificationScreen] Erreur création utilisateur test:",
-          error
-        );
-        setError("Erreur lors de la création de l'utilisateur test");
       } else {
-        console.log(
-          "[PhoneVerificationScreen] Utilisateur test créé et connecté!"
-        );
-        // La navigation sera gérée automatiquement par le context de session
+        console.log('✅ [PhoneVerification] Réponse Supabase:', data);
+        
+        // Avec Supabase, l'absence d'erreur signifie que l'OTP a été envoyé
+        // même si data.user et data.session sont null (normal pour signInWithOtp)
+        console.log('✅ [PhoneVerification] OTP envoyé avec succès');
+        
+        // Naviguer vers l'écran de vérification du code
+        navigateNext('code-verification');
       }
     } catch (error) {
-      console.error("[PhoneVerificationScreen] Erreur inattendue:", error);
-      setError("Erreur inattendue");
+      console.error('❌ [PhoneVerification] Erreur inattendue:', error);
+      Alert.alert('Erreur', 'Une erreur inattendue s\'est produite');
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const animatedHaloStyle = {
-    opacity: haloAnimation.interpolate({
-      inputRange: [0, 1],
-      outputRange: [0, 0.3],
-    }),
-    transform: [
-      {
-        scale: haloAnimation.interpolate({
-          inputRange: [0, 1],
-          outputRange: [1, 1.2],
-        }),
-      },
-    ],
   };
 
   return (
-    <ScreenLayout
-      navigation={navigation}
-      title={undefined}
-      subtitle={undefined}
-      progress={PHONE_VERIFICATION_PROGRESS}
-      onContinue={handleContinue}
-      continueDisabled={!isValidNumber || isLoading}
-      continueButtonText={t("phoneVerification.continue")}
-      showAltLink={false}
-      showBackButton={false}
-    >
-      <Text
-        style={{
-          fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-          fontSize: 34,
-          color: COLORS.black,
-          textAlign: "center",
-          lineHeight: 38,
-          letterSpacing: 0.34,
-          marginTop: 8,
-        }}
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="dark-content" />
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoidingView}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        Are you <Text style={{ fontStyle: "italic" }}>real or something?</Text>
-      </Text>
-      <Text
-        style={{
-          fontFamily: Platform.OS === "ios" ? "System" : "sans-serif",
-          fontSize: 16,
-          color: COLORS.grey1,
-          textAlign: "center",
-          lineHeight: 24,
-          marginTop: 16,
-          marginBottom: 24,
-        }}
-      >
-        {"Let's make sure you're a real one.\nEnter your phone number to keep things safe."
-          .split("\n")
-          .map((line, idx) => (
-            <Text key={idx}>
-              {line}
-              {"\n"}
+        <View style={styles.container}>
+          <View style={styles.header}>
+            <View style={styles.progressContainer}>
+              <View style={[styles.progressBar, { width: `${getProgress() * 100}%` }]} />
+            </View>
+
+            <Text style={styles.title}>Are you real or something?</Text>
+            <Text style={styles.subtitle}>
+              Let's make sure you're a real one. Enter your phone number to keep things safe.
             </Text>
-          ))}
-      </Text>
-      <TouchableOpacity
-        style={styles.countryPickerButton}
-        onPress={() => setIsCountryModalVisible(true)}
-        disabled={isLoading}
-      >
-        <Text style={styles.countryPickerButtonText}>
-          {selectedCountry.flag} {selectedCountry.name} (+
-          {selectedCountry.callingCode})
-        </Text>
-        <Text style={styles.countryPickerArrow}>▼</Text>
-      </TouchableOpacity>
-      <Animated.View
-        style={[
-          styles.inputContainer,
-          { transform: [{ translateX: shakeAnimation }] },
-        ]}
-      >
-        <Text style={styles.prefix}>+{selectedCountry.callingCode}</Text>
-        <TextInput
-          style={styles.textInput}
-          placeholder={getPhonePlaceholder(selectedCountry.code)}
-          placeholderTextColor={COLORS.grey1}
-          keyboardType="phone-pad"
-          value={phoneNumber}
-          onChangeText={handlePhoneNumberChange}
-          editable={!isLoading}
-          autoFocus
-        />
-      </Animated.View>
-      <Image
-        source={require("../../../assets/images/register/wine.png")}
-        style={{
-          width: "100%",
-          maxWidth: 420,
-          alignSelf: "center",
-          marginTop: H * 0.04,
-          marginBottom: H * 0.04,
-          height: H * 0.28,
-        }}
-        resizeMode="contain"
-      />
-      {error && <Text style={styles.errorText}>{error}</Text>}
+          </View>
 
-      {/* Boutons de test temporaires - À SUPPRIMER EN PRODUCTION */}
-      <TouchableOpacity
-        style={[styles.testButton, { opacity: isLoading ? 0.6 : 1 }]}
-        onPress={handleTestLogin}
-        disabled={isLoading}
-      >
-        <Text style={styles.testButtonText}>📧 Test OTP Email</Text>
-      </TouchableOpacity>
+          <View style={styles.formContainer}>
+            <TouchableOpacity
+              style={styles.inputBox}
+              accessibilityRole="button"
+              accessibilityLabel="Select country"
+              onPress={() => setIsCountryModalVisible(true)}
+            >
+              <Text style={styles.flag}>{selectedCountry.flag}</Text>
+              <Text style={styles.inputText}>{selectedCountry.name}</Text>
+              <Text style={styles.chevron}>▼</Text>
+            </TouchableOpacity>
 
-      <TouchableOpacity
-        style={[styles.directLoginButton, { opacity: isLoading ? 0.6 : 1 }]}
-        onPress={handleDirectLogin}
-        disabled={isLoading}
-      >
-        <Text style={styles.directLoginButtonText}>
-          🚀 Connexion Directe (Dev)
-        </Text>
-      </TouchableOpacity>
+            <View style={[styles.inputBox, styles.phoneInputContainer]}>
+              <Text style={styles.countryCode}>+{selectedCountry.callingCode}</Text>
+              <View style={styles.separator} />
+              <TextInput
+                style={styles.textInput}
+                placeholder={selectedCountry.placeholder}
+                placeholderTextColor="#A9A9A9"
+                keyboardType="phone-pad"
+                value={phoneNumber}
+                onChangeText={setPhoneNumber}
+                accessibilityLabel="Phone number input"
+              />
+            </View>
+          </View>
+
+          <View style={styles.illustrationContainer}>
+            <Image
+              source={require('@/assets/images/register/phone_verification.png')}
+              style={styles.illustration}
+              resizeMode="contain"
+            />
+          </View>
+
+          <View style={styles.footer}>
+            <TouchableOpacity
+              style={[styles.button, (!phoneNumber.trim() || isLoading) && styles.buttonDisabled]}
+              onPress={handleContinue}
+              disabled={!phoneNumber.trim() || isLoading}
+              accessibilityRole="button"
+              accessibilityLabel="Continue to the next step"
+            >
+              <Text style={styles.buttonText}>{isLoading ? 'Envoi...' : 'Continue'}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
 
       <Modal
         animationType="slide"
@@ -518,205 +250,272 @@ const PhoneVerificationScreen: React.FC<Props> = ({ navigation }) => {
         visible={isCountryModalVisible}
         onRequestClose={() => setIsCountryModalVisible(false)}
       >
-        <TouchableWithoutFeedback
-          onPress={() => setIsCountryModalVisible(false)}
-        >
-          <View style={styles.modalOverlay}>
-            <TouchableWithoutFeedback>
-              <View style={styles.modalContent}>
-                <Text style={styles.modalTitle}>
-                  {t("phoneVerification.selectCountry")}
-                </Text>
-                <FlatList
-                  data={COMMON_COUNTRIES}
-                  keyExtractor={(item) => item.code}
-                  renderItem={({ item }) => (
-                    <TouchableOpacity
-                      style={styles.countryModalItem}
-                      onPress={() => handleCountrySelect(item)}
-                    >
-                      <Text style={styles.countryModalItemText}>
-                        {item.flag} {item.name} (+{item.callingCode})
+        <Pressable style={styles.modalOverlay} onPress={() => setIsCountryModalVisible(false)}>
+          <Animated.View
+            entering={FadeInDown.duration(300).springify()}
+            style={styles.modalContent}
+          >
+            <View style={styles.modalHandle} />
+            <Text style={styles.modalTitle}>Select your country</Text>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.modalScrollContent}
+            >
+              {COMMON_COUNTRIES.map((item) => (
+                <Pressable
+                  key={item.code}
+                  style={({ pressed }) => [
+                    styles.countryModalItem,
+                    pressed && styles.countryModalItemPressed,
+                    selectedCountry.code === item.code && styles.countryModalItemSelected,
+                  ]}
+                  onPress={() => handleCountrySelect(item)}
+                >
+                  <View style={styles.countryItemContent}>
+                    <Text style={styles.countryFlag}>{item.flag}</Text>
+                    <View style={styles.countryTextContainer}>
+                      <Text
+                        style={[
+                          styles.countryName,
+                          selectedCountry.code === item.code && styles.countryNameSelected,
+                        ]}
+                      >
+                        {item.name}
                       </Text>
-                    </TouchableOpacity>
-                  )}
-                />
-              </View>
-            </TouchableWithoutFeedback>
-          </View>
-        </TouchableWithoutFeedback>
+                      <Text
+                        style={[
+                          styles.countryCodeStyle,
+                          selectedCountry.code === item.code && styles.countryCodeSelected,
+                        ]}
+                      >
+                        +{item.callingCode}
+                      </Text>
+                    </View>
+                    {selectedCountry.code === item.code && <Text style={styles.checkmark}>✓</Text>}
+                  </View>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </Animated.View>
+        </Pressable>
       </Modal>
-    </ScreenLayout>
+    </SafeAreaView>
   );
-};
+});
 
 const styles = StyleSheet.create({
-  screenContainer: {
+  safeArea: {
     flex: 1,
-    backgroundColor: COLORS.white,
+    backgroundColor: '#FFFFFF',
   },
-  progressBarContainer: {
-    height: 4,
-    backgroundColor: COLORS.grey0,
-    marginTop: Platform.OS === "android" ? 25 : 0,
+  keyboardAvoidingView: {
+    flex: 1,
+  },
+  container: {
+    flex: 1,
+    paddingHorizontal: perfectSize(24),
+  },
+  header: {
+    paddingTop: perfectSize(14),
+  },
+  formContainer: {
+    marginTop: perfectSize(32),
+  },
+  footer: {
+    paddingBottom: perfectSize(20),
+  },
+  progressContainer: {
+    height: perfectSize(1.5),
+    backgroundColor: '#E5E5E5',
+    borderRadius: perfectSize(0.75),
+    marginHorizontal: perfectSize(40),
   },
   progressBar: {
-    height: "100%",
-    backgroundColor: COLORS.black,
-  },
-  contentContainer: {
-    flex: 1,
-    paddingHorizontal: "5%",
-    paddingTop: "5%",
-    alignItems: "center",
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#016fff',
+    borderRadius: perfectSize(0.75),
   },
   title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: COLORS.black,
-    marginBottom: 12,
-    textAlign: "center",
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+    fontSize: perfectSize(34),
+    lineHeight: perfectSize(41),
+    color: '#000000',
+    marginTop: perfectSize(44),
+    textAlign: 'center',
+    letterSpacing: 0.34,
   },
-  description: {
-    fontSize: 17,
-    color: COLORS.grey1,
-    textAlign: "center",
-    marginBottom: 30,
-    paddingHorizontal: "5%",
+  subtitle: {
+    fontSize: perfectSize(16),
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
+    lineHeight: perfectSize(24),
+    color: '#555555',
+    marginTop: perfectSize(20),
+    textAlign: 'center',
+    paddingHorizontal: perfectSize(16),
   },
-  countryPickerButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    height: 56,
-    width: "100%",
-    borderColor: COLORS.grey0,
+  inputBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: perfectSize(58),
+    backgroundColor: '#FFFFFF',
+    borderRadius: perfectSize(12),
     borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    backgroundColor: COLORS.white,
-    marginBottom: 16,
+    borderColor: '#E5E7EB',
+    paddingHorizontal: perfectSize(16),
   },
-  countryPickerButtonText: {
-    fontSize: 17,
-    color: COLORS.black,
+  phoneInputContainer: {
+    marginTop: perfectSize(16),
   },
-  countryPickerArrow: {
-    fontSize: 17,
-    color: COLORS.grey1,
+  flag: {
+    fontSize: perfectSize(24),
+    marginRight: perfectSize(12),
   },
-  inputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    height: 56,
-    width: "100%",
-    borderColor: COLORS.grey0,
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    backgroundColor: COLORS.white,
-    marginBottom: 8,
+  inputText: {
+    flex: 1,
+    fontSize: perfectSize(16),
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
+    color: '#111827',
   },
-  prefix: {
-    fontSize: 17,
-    fontWeight: "500",
-    color: COLORS.black,
-    marginRight: 8,
+  chevron: {
+    fontSize: perfectSize(12),
+    color: '#6B7280',
+  },
+  countryCode: {
+    fontSize: perfectSize(16),
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
+    color: '#111827',
+  },
+  separator: {
+    width: 1,
+    height: '60%',
+    backgroundColor: '#E5E7EB',
+    marginHorizontal: perfectSize(12),
   },
   textInput: {
     flex: 1,
-    fontSize: 17,
-    color: COLORS.black,
-    paddingVertical: 0,
-    backgroundColor: COLORS.white,
+    fontSize: perfectSize(16),
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
+    color: '#111827',
   },
-  errorText: {
-    color: COLORS.redError,
-    fontSize: 14,
-    marginBottom: 16,
-    textAlign: "center",
-    width: "100%",
+  illustrationContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: H * 0.04,
+    marginBottom: H * 0.04,
   },
-  continueButton: {
-    height: 56,
-    width: "100%",
-    backgroundColor: COLORS.black,
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 16,
-    overflow: "hidden",
+  illustration: {
+    width: '90%',
+    height: H * 0.25,
   },
-  continueButtonDisabled: {
-    backgroundColor: COLORS.grey1,
+  button: {
+    height: perfectSize(60),
+    backgroundColor: '#016fff',
+    borderRadius: perfectSize(14),
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  continueButtonText: {
-    color: COLORS.white,
-    fontSize: 17,
-    fontWeight: "600",
+  buttonDisabled: {
+    opacity: 0.5,
   },
-  haloBase: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.1)",
-    borderRadius: 12,
+  buttonText: {
+    color: '#FFFFFF',
+    fontSize: perfectSize(20),
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "flex-end",
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: COLORS.white,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    maxHeight: "70%",
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: perfectSize(24),
+    borderTopRightRadius: perfectSize(24),
+    paddingTop: perfectSize(12),
+    paddingHorizontal: perfectSize(0),
+    maxHeight: '80%',
+    minHeight: '50%',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: -4,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 10,
+  },
+  modalHandle: {
+    width: perfectSize(40),
+    height: perfectSize(4),
+    backgroundColor: '#E5E5E5',
+    borderRadius: perfectSize(2),
+    alignSelf: 'center',
+    marginBottom: perfectSize(20),
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: COLORS.black,
-    marginBottom: 20,
-    textAlign: "center",
+    fontSize: perfectSize(24),
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+    fontWeight: 'bold',
+    color: '#000000',
+    marginBottom: perfectSize(8),
+    textAlign: 'center',
+    paddingHorizontal: perfectSize(20),
+  },
+  modalScrollContent: {
+    paddingBottom: perfectSize(20),
   },
   countryModalItem: {
-    paddingVertical: 15,
+    paddingVertical: perfectSize(16),
+    paddingHorizontal: perfectSize(20),
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.grey0,
+    borderBottomColor: '#F5F5F5',
+  },
+  countryModalItemPressed: {
+    backgroundColor: '#F9FAFB',
+  },
+  countryModalItemSelected: {
+    backgroundColor: '#F0F4FF',
+    borderBottomColor: '#E0E7FF',
+  },
+  countryItemContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  countryFlag: {
+    fontSize: perfectSize(28),
+    marginRight: perfectSize(16),
+  },
+  countryTextContainer: {
+    flex: 1,
+  },
+  countryName: {
+    fontSize: perfectSize(17),
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
+    color: '#111827',
+    marginBottom: perfectSize(2),
+  },
+  countryNameSelected: {
+    fontWeight: '600',
+    color: '#000000',
+  },
+  countryCodeStyle: {
+    fontSize: perfectSize(14),
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
+    color: '#6B7280',
+  },
+  countryCodeSelected: {
+    color: '#4B5563',
+  },
+  checkmark: {
+    fontSize: perfectSize(20),
+    color: '#016fff',
+    fontWeight: '600',
   },
   countryModalItemText: {
-    fontSize: 17,
-    color: COLORS.black,
-  },
-  testButton: {
-    height: 48,
-    width: "100%",
-    backgroundColor: "#FF6B6B",
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 12,
-    marginBottom: 12,
-  },
-  testButtonText: {
-    color: COLORS.white,
-    fontSize: 15,
-    fontWeight: "600",
-  },
-  directLoginButton: {
-    height: 48,
-    width: "100%",
-    backgroundColor: "#4CAF50",
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 8,
-    marginBottom: 12,
-  },
-  directLoginButtonText: {
-    color: COLORS.white,
-    fontSize: 15,
-    fontWeight: "600",
+    fontSize: perfectSize(17),
+    color: '#111827',
   },
 });
 

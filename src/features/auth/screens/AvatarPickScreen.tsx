@@ -1,122 +1,42 @@
-// AvatarPickScreen.tsx
-// ---------------------------------------------------------------------------
-import { useNavigation } from "@react-navigation/native";
-import { StackNavigationProp } from "@react-navigation/stack";
-import * as ImagePicker from "expo-image-picker";
-import React, { useState, useEffect } from "react";
+import React, { useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Dimensions,
-  Image,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
   View,
-} from "react-native";
+  Text,
+  StyleSheet,
+  Image,
+  TouchableOpacity,
+  Platform,
+  Alert,
+} from 'react-native';
+import { create } from 'react-native-pixel-perfect';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as ImagePicker from 'expo-image-picker';
+import { useProfile } from '@/hooks/useProfile';
+import Icon from 'react-native-vector-icons/Ionicons';
+import { useAuthNavigation } from '@/shared/hooks/useAuthNavigation';
+import { useRegistrationStep } from '@/shared/hooks/useRegistrationStep';
 
-import ScreenLayout from "@/components/ScreenLayout";
-import { supabase } from "@/lib/supabase";
-import { getDeviceLanguage, t } from "../../../locales";
-import { AuthStackParamList } from "@/navigation/types";
+const designResolution = { width: 375, height: 812 };
+const perfectSize = create(designResolution);
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
+const AvatarPickScreen: React.FC = React.memo(() => {
+  const insets = useSafeAreaInsets();
+  const { navigateBack, navigateNext, getProgress } = useAuthNavigation('avatar-pick');
+  const { updateProfile } = useProfile();
+  const [isUploading, setIsUploading] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
-type NavProp = StackNavigationProp<AuthStackParamList, "AvatarPick">;
+  // Save registration step
+  useRegistrationStep('avatar_pick');
 
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
+  const handleBackPress = () => {
+    navigateBack();
+  };
 
-const { width: W } = Dimensions.get("window");
-const COLORS = {
-  white: "#FFFFFF",
-  black: "#000000",
-  grey0: "#E5E5E5",
-  grey2: "#666666",
-  grey3: "#555555",
-  error: "#D32F2F",
-};
-
-const AVATAR_PICK_PROGRESS = 0.57; // 4/7 of the onboarding wizard
-const AVATAR_SIZE = W * 0.58;
-const NEXT_SCREEN_NAME: keyof AuthStackParamList = "ContactsPermission";
-
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
-
-const AvatarPickScreen: React.FC = () => {
-  const navigation = useNavigation<NavProp>();
-  const lang = getDeviceLanguage();
-
-  const [imageUri, setImageUri] = useState<string | null>(null);
-  const [initialAvatarUrl, setInitialAvatarUrl] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isFetchingInitialData, setIsFetchingInitialData] = useState(true);
-
-  // ------------------------------------------------------------
-  // Fetch existing avatar on mount
-  // ------------------------------------------------------------
-  useEffect(() => {
-    const fetchAvatar = async () => {
-      setIsFetchingInitialData(true);
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
-
-      if (userError || !user) {
-        console.error(
-          "[AvatarPickScreen] Could not get current user:",
-          userError
-        );
-        Alert.alert(
-          t("error_session_expired_title", lang),
-          t("error_session_expired_message", lang)
-        );
-        setIsFetchingInitialData(false);
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("avatar_url")
-        .eq("id", user.id)
-        .single();
-
-      if (error && error.code !== "PGRST116") {
-        console.error("[AvatarPickScreen] Error fetching profile:", error);
-        Alert.alert(
-          t("error_loading_profile_title", lang),
-          t("error_loading_profile_message", lang)
-        );
-      } else if (data?.avatar_url) {
-        setImageUri(data.avatar_url);
-        setInitialAvatarUrl(data.avatar_url);
-      }
-
-      setIsFetchingInitialData(false);
-    };
-
-    fetchAvatar();
-  }, [lang]);
-
-  // ------------------------------------------------------------
-  // Helpers: permissions & pickers
-  // ------------------------------------------------------------
-  const openCamera = async () => {
-    if (isLoading) return;
-
-    const permission = await ImagePicker.requestCameraPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert(
-        t("permission_denied_camera_title", lang),
-        t("permission_denied_camera_message", lang)
-      );
+  const handleSnapPicture = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission required', 'Camera permission is required to take a photo.');
       return;
     }
 
@@ -127,20 +47,15 @@ const AvatarPickScreen: React.FC = () => {
       quality: 0.8,
     });
 
-    if (!result.canceled && result.assets?.length) {
-      setImageUri(result.assets[0].uri);
+    if (!result.canceled && result.assets[0]) {
+      setSelectedImage(result.assets[0].uri);
     }
   };
 
-  const openGallery = async () => {
-    if (isLoading) return;
-
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert(
-        t("permission_denied_gallery_title", lang),
-        t("permission_denied_gallery_message", lang)
-      );
+  const handlePickGallery = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission required', 'Gallery permission is required to select a photo.');
       return;
     }
 
@@ -151,278 +66,273 @@ const AvatarPickScreen: React.FC = () => {
       quality: 0.8,
     });
 
-    if (!result.canceled && result.assets?.length) {
-      setImageUri(result.assets[0].uri);
+    if (!result.canceled && result.assets[0]) {
+      setSelectedImage(result.assets[0].uri);
     }
   };
 
-  // ------------------------------------------------------------
-  // Upload avatar to Supabase Storage and return the public URL
-  // ------------------------------------------------------------
-  const uploadAvatar = async (uri: string): Promise<string | null> => {
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
-
-    if (userError || !user) {
-      Alert.alert(
-        t("error_session_expired_title", lang),
-        t("error_session_expired_message", lang)
-      );
-      return null;
-    }
-
-    try {
-      const response = await fetch(uri);
-      const blob = await response.blob();
-      const fileExt = uri.split(".").pop()?.toLowerCase() || "jpg";
-      const fileName = `${user.id}_${Date.now()}.${fileExt}`;
-      const filePath = `${user.id}/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("avatars")
-        .upload(filePath, blob, {
-          cacheControl: "3600",
-          upsert: true,
-          contentType: `image/${fileExt === "jpg" ? "jpeg" : fileExt}`,
+  const handleContinue = async () => {
+    if (selectedImage) {
+      setIsUploading(true);
+      try {
+        // TODO: Upload image to Supabase storage and get URL
+        // For now, we'll just save a placeholder
+        await updateProfile({
+          avatar_url: selectedImage,
         });
 
-      if (uploadError) {
-        console.error("[AvatarPickScreen] Upload error:", uploadError);
-        Alert.alert(
-          t("error_uploading_avatar_title", lang),
-          uploadError.message
-        );
-        return null;
+        navigateNext('contacts-permission');
+      } catch (error) {
+        console.error('Error saving avatar:', error);
+        Alert.alert('Error', 'Failed to save avatar. Please try again.');
+      } finally {
+        setIsUploading(false);
       }
-
-      const { data: publicUrlData } = supabase.storage
-        .from("avatars")
-        .getPublicUrl(filePath);
-
-      if (!publicUrlData?.publicUrl) {
-        Alert.alert(
-          t("error_uploading_avatar_title", lang),
-          t("unexpected_error_message", lang)
-        );
-        return null;
-      }
-
-      return publicUrlData.publicUrl;
-    } catch (e: any) {
-      console.error("[AvatarPickScreen] Unexpected upload error:", e);
-      Alert.alert(t("unexpected_error_title", lang), e.message);
-      return null;
+    } else {
+      navigateNext('location-permission');
     }
   };
 
-  // ------------------------------------------------------------
-  // Update profile row with avatar URL
-  // ------------------------------------------------------------
-  const updateUserProfile = async (
-    avatarUrl: string | null
-  ): Promise<boolean> => {
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
-
-    if (userError || !user) {
-      Alert.alert(
-        t("error_session_expired_title", lang),
-        t("error_session_expired_message", lang)
-      );
-      return false;
-    }
-
-    const { error } = await supabase
-      .from("profiles")
-      .update({
-        avatar_url: avatarUrl,
-        current_registration_step: "avatar_pick",
-      })
-      .eq("id", user.id);
-
-    if (error) {
-      console.error("[AvatarPickScreen] Profile update error:", error);
-      Alert.alert(t("error_saving_profile_title", lang), error.message);
-      return false;
-    }
-
-    return true;
+  const handleSkip = () => {
+    navigateNext('contacts-permission');
   };
-
-  // ------------------------------------------------------------
-  // Primary actions
-  // ------------------------------------------------------------
-  const handleContinue = async () => {
-    if (!imageUri || isLoading) return;
-
-    setIsLoading(true);
-
-    let finalUrl = initialAvatarUrl;
-    if (imageUri !== initialAvatarUrl) {
-      const uploaded = await uploadAvatar(imageUri);
-      if (!uploaded) {
-        setIsLoading(false);
-        return;
-      }
-      finalUrl = uploaded;
-    }
-
-    const success = await updateUserProfile(finalUrl);
-    setIsLoading(false);
-
-    if (success) {
-      navigation.navigate(NEXT_SCREEN_NAME);
-    }
-  };
-
-  const skipAction = () => {
-    if (isLoading) return;
-    navigation.navigate(NEXT_SCREEN_NAME);
-  };
-
-  // ------------------------------------------------------------
-  // Render
-  // ------------------------------------------------------------
-  if (isFetchingInitialData) {
-    return (
-      <View style={styles.loadingScreenContainer}>
-        <ActivityIndicator size="large" color={COLORS.black} />
-      </View>
-    );
-  }
 
   return (
-    <ScreenLayout
-      navigation={navigation}
-      title={t("avatar_pick_title", lang)}
-      subtitle={t("avatar_pick_subtitle", lang)}
-      progress={AVATAR_PICK_PROGRESS}
-      onContinue={handleContinue}
-      continueDisabled={!imageUri || isLoading}
-      showAltLink
-      altLinkText={t("skip", lang)}
-      onAltLinkPress={skipAction}
-      isLoading={isLoading}
-    >
-      <View style={styles.contentContainer}>
-        <View style={styles.avatarWrapper}>
-          {imageUri ? (
-            <Image source={{ uri: imageUri }} style={styles.avatarImage} />
-          ) : (
-            <Image
-              source={require("../../../assets/images/register/face.png")}
-              style={styles.avatarPlaceholder}
-              resizeMode="contain"
-            />
-          )}
-        </View>
-
-        {/* Camera button */}
-        <View style={styles.actionButton}>
-          <View style={styles.actionLeft}>
-            <Text style={styles.actionIcon}>📷</Text>
-          </View>
-          <Pressable
-            onPress={openCamera}
-            style={styles.actionRight}
-            android_ripple={{ color: "#00000010" }}
-            disabled={isLoading}
-          >
-            <Text style={styles.actionLabel}>
-              {t("avatar_pick_snap", lang)}
-            </Text>
-            <Text style={styles.chevron}>›</Text>
-          </Pressable>
-        </View>
-
-        {/* Gallery button */}
-        <View style={styles.actionButton}>
-          <View style={styles.actionLeft}>
-            <Text style={styles.actionIcon}>🖼</Text>
-          </View>
-          <Pressable
-            onPress={openGallery}
-            style={styles.actionRight}
-            android_ripple={{ color: "#00000010" }}
-            disabled={isLoading}
-          >
-            <Text style={styles.actionLabel}>
-              {t("avatar_pick_gallery", lang)}
-            </Text>
-            <Text style={styles.chevron}>›</Text>
-          </Pressable>
+    <View style={[styles.safeArea, { paddingTop: insets.top }]}>
+      {/* Header Row */}
+      <View style={styles.headerRow}>
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+          style={styles.backButton}
+          onPress={handleBackPress}
+        >
+          <Text style={styles.backArrow}>←</Text>
+        </TouchableOpacity>
+        <View style={styles.progressTrack}>
+          <View style={[styles.progressFill, { width: `${getProgress() * 100}%` }]} />
         </View>
       </View>
-    </ScreenLayout>
+
+      {/* Title & Subtitle */}
+      <Text
+        style={styles.title}
+        accessibilityRole="header"
+        accessibilityLabel="Time to add a face to the name"
+      >
+        Time to add a face to <Text style={styles.titleItalic}>the name</Text>
+      </Text>
+      <Text style={styles.subtitle} accessibilityRole="text">
+        Show your vibe. Pick a photo that{'\n'}feels like you.
+      </Text>
+
+      {/* Illustration */}
+      <View style={styles.illustrationContainer} accessible accessibilityLabel="Avatar illustration">
+        {selectedImage ? (
+          <Image source={{ uri: selectedImage }} style={styles.selectedAvatar} resizeMode="cover" />
+        ) : (
+          <Image
+            source={require('@/assets/images/register/avatar.png')}
+            style={styles.illustration}
+            resizeMode="contain"
+            accessibilityIgnoresInvertColors
+          />
+        )}
+      </View>
+
+      {/* Action Buttons */}
+      <View style={styles.actionButtonsWrapper}>
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={handleSnapPicture}
+          accessibilityRole="button"
+          accessibilityLabel="Snap a picture"
+          activeOpacity={0.8}
+        >
+          <View style={styles.actionIconWrapper}>
+            <Icon name="camera-outline" size={perfectSize(22)} color="#000" />
+          </View>
+          <Text style={styles.actionText}>Snap a picture</Text>
+          <Icon name="chevron-forward" size={perfectSize(20)} color="#C7C7CC" style={styles.chevronIcon} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={handlePickGallery}
+          accessibilityRole="button"
+          accessibilityLabel="Grab one from your gallery"
+          activeOpacity={0.8}
+        >
+          <View style={styles.actionIconWrapper}>
+            <Icon name="images-outline" size={perfectSize(22)} color="#000" />
+          </View>
+          <Text style={styles.actionText}>Grab one from your gallery</Text>
+          <Icon name="chevron-forward" size={perfectSize(20)} color="#C7C7CC" style={styles.chevronIcon} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Continue Button */}
+      <TouchableOpacity
+        style={[styles.continueButton, isUploading && { opacity: 0.4 }]}
+        onPress={handleContinue}
+        accessibilityRole="button"
+        accessibilityLabel="Continue"
+        activeOpacity={0.8}
+        disabled={isUploading}
+      >
+        <Text style={styles.continueButtonText}>{isUploading ? 'Uploading...' : 'Continue'}</Text>
+      </TouchableOpacity>
+
+      {/* Skip For Now */}
+      <TouchableOpacity
+        style={styles.skipButton}
+        onPress={handleSkip}
+        accessibilityRole="button"
+        accessibilityLabel="Skip For Now"
+        activeOpacity={0.8}
+        disabled={isUploading}
+      >
+        <Text style={styles.skipButtonText}>Skip For Now</Text>
+      </TouchableOpacity>
+    </View>
   );
-};
-
-export default AvatarPickScreen;
-
-// ---------------------------------------------------------------------------
-// Styles
-// ---------------------------------------------------------------------------
+});
 
 const styles = StyleSheet.create({
-  contentContainer: {
+  safeArea: {
     flex: 1,
-    alignItems: "center",
-    paddingHorizontal: 0,
-    justifyContent: "flex-start",
-    paddingTop: 20,
+    backgroundColor: '#fff',
+    paddingHorizontal: perfectSize(24),
   },
-  avatarWrapper: {
-    alignSelf: "center",
-    width: AVATAR_SIZE,
-    height: AVATAR_SIZE,
-    borderRadius: 16,
-    overflow: "hidden",
-    backgroundColor: COLORS.grey0,
-    marginBottom: 20,
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: perfectSize(8),
+    marginBottom: perfectSize(16),
   },
-  avatarPlaceholder: { width: "100%", height: "100%" },
-  avatarImage: { width: "100%", height: "100%" },
+  backButton: {
+    width: perfectSize(44),
+    height: perfectSize(44),
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+  },
+  backArrow: {
+    fontSize: perfectSize(28),
+    color: '#016fff',
+    marginLeft: perfectSize(0),
+  },
+  progressTrack: {
+    flex: 1,
+    height: perfectSize(2),
+    backgroundColor: '#E5E5E5',
+    marginLeft: perfectSize(8),
+    marginRight: perfectSize(8),
+    borderRadius: perfectSize(1),
+    overflow: 'hidden',
+  },
+  progressFill: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#016fff',
+    borderRadius: perfectSize(1),
+  },
+  title: {
+    marginTop: perfectSize(16),
+    fontSize: perfectSize(34),
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+    color: '#000',
+    textAlign: 'center',
+    lineHeight: perfectSize(41),
+    letterSpacing: 0.34,
+    fontWeight: '400',
+  },
+  titleItalic: {
+    fontStyle: 'italic',
+    fontFamily: Platform.OS === 'ios' ? 'Georgia-Italic' : 'serif',
+  },
+  subtitle: {
+    marginTop: perfectSize(16),
+    fontSize: perfectSize(16),
+    color: '#555555',
+    textAlign: 'center',
+    lineHeight: perfectSize(22),
+    marginBottom: perfectSize(24),
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
+    fontWeight: '400',
+  },
+  illustrationContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: perfectSize(8),
+    marginBottom: perfectSize(8),
+  },
+  illustration: {
+    width: perfectSize(280),
+    height: perfectSize(180),
+  },
+  selectedAvatar: {
+    width: perfectSize(160),
+    height: perfectSize(160),
+    borderRadius: perfectSize(80),
+    borderWidth: 3,
+    borderColor: '#016fff',
+  },
+  actionButtonsWrapper: {
+    width: '100%',
+    marginBottom: perfectSize(16),
+  },
   actionButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    height: 56,
-    borderColor: COLORS.grey0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: perfectSize(56),
+    borderColor: '#E5E5E5',
     borderWidth: 1,
-    borderRadius: 12,
-    alignSelf: "stretch",
-    backgroundColor: COLORS.white,
-    marginBottom: 16,
+    borderRadius: perfectSize(12),
+    backgroundColor: '#fff',
+    marginBottom: perfectSize(12),
+    paddingHorizontal: perfectSize(16),
   },
-  actionLeft: {
-    width: 56,
-    height: 56,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRightWidth: 1,
-    borderColor: COLORS.grey0,
+  actionIconWrapper: {
+    width: perfectSize(40),
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  actionIcon: { fontSize: 20, color: COLORS.black },
-  actionRight: {
+  actionText: {
     flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    justifyContent: "space-between",
+    fontSize: perfectSize(17),
+    color: '#000',
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
+    marginLeft: perfectSize(8),
   },
-  actionLabel: {
-    fontSize: 17,
-    color: COLORS.black,
-    fontFamily: Platform.OS === "ios" ? "System" : "sans-serif-medium",
+  chevronIcon: {
+    marginLeft: perfectSize(8),
   },
-  chevron: { fontSize: 24, color: COLORS.grey2, marginLeft: 8 },
-  loadingScreenContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: COLORS.white,
+  continueButton: {
+    height: perfectSize(60),
+    backgroundColor: '#016fff',
+    borderRadius: perfectSize(14),
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: perfectSize(16),
+  },
+  continueButtonText: {
+    color: '#fff',
+    fontSize: perfectSize(20),
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+    fontWeight: '400',
+  },
+  skipButton: {
+    alignSelf: 'center',
+    marginTop: perfectSize(-8),
+    paddingVertical: perfectSize(8),
+    marginBottom: perfectSize(16),
+  },
+  skipButtonText: {
+    color: '#016fff',
+    fontSize: perfectSize(16),
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
+    fontWeight: '400',
   },
 });
+
+export default AvatarPickScreen;

@@ -1,10 +1,8 @@
-// AgeInputScreen.tsx
-// ---------------------------------------------------------------------------
-import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
-import { StackNavigationProp } from "@react-navigation/stack";
-import React, { useCallback, useEffect, useState } from "react";
+import { useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Dimensions,
   FlatList,
   Image,
@@ -17,50 +15,48 @@ import {
   Text,
   TouchableOpacity,
   View,
-  Alert,
-} from "react-native";
+} from 'react-native';
 
-import ScreenLayout from "@/components/ScreenLayout";
-import { supabase } from "@/lib/supabase";
-import { getDeviceLanguage, t } from "../../../locales";
-import { AuthStackParamList } from "@/navigation/types";
+import { supabase } from '@/shared/lib/supabase/client';
+import { getDeviceLanguage, t } from '@/shared/locales';
+import ScreenLayout from '@/shared/ui/ScreenLayout';
+import { useAuthNavigation } from '@/shared/hooks/useAuthNavigation';
+import { useRegistrationStep } from '@/shared/hooks/useRegistrationStep';
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
-type NavProp = StackNavigationProp<AuthStackParamList, "AgeInput">;
+// Navigation type removed - using expo-router instead
 
 // ---------------------------------------------------------------------------
 // Constantes
 // ---------------------------------------------------------------------------
-const { width: W, height: H } = Dimensions.get("window");
+const { width: W, height: H } = Dimensions.get('window');
 const COLORS = {
-  white: "#FFFFFF",
-  black: "#000000",
-  grey0: "#E5E5E5",
-  grey1: "#AEB0B4",
-  grey2: "#666666",
-  grey3: "#555555",
-  greyF: "#F7F7F7",
-  error: "#D32F2F",
+  white: '#FFFFFF',
+  black: '#000000',
+  grey0: '#E5E5E5',
+  grey1: '#AEB0B4',
+  grey2: '#666666',
+  grey3: '#555555',
+  greyF: '#F7F7F7',
+  error: '#D32F2F',
 };
-const AGE_INPUT_PROGRESS = 0.88; // 7/8 (environ, si JamPicker est le dernier avant Hobby/Restaurant)
-const NEXT_REGISTRATION_SCREEN_NAME: keyof AuthStackParamList = "PathInput";
-const NEXT_REGISTRATION_STEP_VALUE = "path_input";
+const NEXT_REGISTRATION_STEP_VALUE = 'path_input';
 
 const MONTHS = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
 ];
 const CURRENT_YEAR = new Date().getFullYear();
 const MIN_BIRTH_YEAR = CURRENT_YEAR - 120;
@@ -82,18 +78,8 @@ interface PickerModalProps {
   onSelect: (value: string) => void;
   onClose: () => void;
 }
-const PickerModal: React.FC<PickerModalProps> = ({
-  visible,
-  data,
-  onSelect,
-  onClose,
-}) => (
-  <Modal
-    transparent
-    animationType="slide"
-    visible={visible}
-    onRequestClose={onClose}
-  >
+const PickerModal: React.FC<PickerModalProps> = ({ visible, data, onSelect, onClose }) => (
+  <Modal transparent animationType="slide" visible={visible} onRequestClose={onClose}>
     <Pressable style={styles.modalBackdrop} onPress={onClose} />
     <View style={styles.modalSheet}>
       <FlatList
@@ -119,8 +105,13 @@ const PickerModal: React.FC<PickerModalProps> = ({
 // Component
 // ---------------------------------------------------------------------------
 const AgeInputScreen: React.FC = () => {
-  const navigation = useNavigation<NavProp>();
+  const router = useRouter();
   const lang = getDeviceLanguage();
+  // const { currentStep, loading: onboardingLoading } = useOnboardingStatus(); // Removed to prevent auto-redirects
+  const { navigateBack, getProgress } = useAuthNavigation('age-input');
+
+  // Save registration step
+  useRegistrationStep('age_input');
 
   const [month, setMonth] = useState<string | null>(null);
   const [day, setDay] = useState<string | null>(null);
@@ -128,49 +119,75 @@ const AgeInputScreen: React.FC = () => {
   const [hideDOB, setHideDOB] = useState(false);
   const [ageErrorKey, setAgeErrorKey] = useState<string | null>(null);
   const [picker, setPicker] = useState<{
-    type: "month" | "day" | "year" | null;
+    type: 'month' | 'day' | 'year' | null;
   }>({ type: null });
   const [isLoading, setIsLoading] = useState(false);
   const [isFetchingInitialData, setIsFetchingInitialData] = useState(true);
 
+  // Removed auto-redirect logic to prevent navigation conflicts
+  // User should control navigation flow manually
+
   // Fetch existing profile data
   useEffect(() => {
+    console.log('🎂 [AgeInputScreen] Écran chargé');
+    testSupabaseConnection();
+    
     const fetchProfile = async () => {
       setIsFetchingInitialData(true);
       const {
         data: { user },
       } = await supabase.auth.getUser();
+      console.log('🎂 [AgeInputScreen] User:', user?.id);
       if (user) {
         try {
           const { data, error } = await supabase
-            .from("profiles")
-            .select("birth_date, hide_birth_date")
-            .eq("id", user.id)
+            .from('profiles')
+            .select('birth_date, hide_birth_date')
+            .eq('id', user.id)
             .single();
 
-          if (error && error.code !== "PGRST116") {
-            console.error("Error fetching age input profile data:", error);
-            Alert.alert(t("error_loading_profile_generic", lang));
+          if (error && error.code !== 'PGRST116') {
+            console.error('❌ [AgeInputScreen] Error fetching age input profile data:', error);
+            Alert.alert(t('error_loading_profile_generic', lang));
           } else if (data) {
+            console.log('✅ [AgeInputScreen] Profil récupéré:', data);
             if (data.birth_date) {
-              const [y, m, d] = data.birth_date.split("-");
+              const [y, m, d] = data.birth_date.split('-');
               setYear(y);
-              setMonth(MONTHS[parseInt(m, 10) - 1]);
+              setMonth(MONTHS[parseInt(m, 10) - 1] || null);
               setDay(String(parseInt(d, 10))); // Remove leading zero for display consistency
             }
-            if (typeof data.hide_birth_date === "boolean") {
+            if (typeof data.hide_birth_date === 'boolean') {
               setHideDOB(data.hide_birth_date);
             }
           }
         } catch (e) {
-          console.error("Unexpected error fetching age input profile data:", e);
-          Alert.alert(t("unexpected_error", lang));
+          console.error('❌ [AgeInputScreen] Unexpected error fetching age input profile data:', e);
+          Alert.alert(t('unexpected_error', lang));
         }
+      } else {
+        console.warn('⚠️ [AgeInputScreen] Pas d\'utilisateur connecté');
       }
       setIsFetchingInitialData(false);
     };
-    fetchProfile();
+    void fetchProfile();
   }, [lang]);
+
+  const testSupabaseConnection = async () => {
+    try {
+      console.log('🧪 [AgeInputScreen] Test de connexion Supabase...');
+      const { data, error } = await supabase.auth.getSession();
+      if (error) {
+        console.error('❌ [AgeInputScreen] Erreur Supabase:', error);
+      } else {
+        console.log('✅ [AgeInputScreen] Connexion Supabase OK');
+        console.log('  - Session existante:', !!data.session);
+        console.log('  - User ID:', data.session?.user?.id);
+      }
+    } catch (err) {
+      console.error('❌ [AgeInputScreen] Erreur critique:', err);
+    }
+  };
 
   const calculateAge = useCallback(
     (
@@ -208,20 +225,20 @@ const AgeInputScreen: React.FC = () => {
 
   const validateAge = useCallback((): boolean => {
     if (!month || !day || !year) {
-      setAgeErrorKey("error_age_date_required");
+      setAgeErrorKey('error_age_date_required');
       return false;
     }
     const age = calculateAge(month, day, year);
     if (age === null) {
-      setAgeErrorKey("error_age_invalid_date");
+      setAgeErrorKey('error_age_invalid_date');
       return false;
     }
     if (age < MIN_AGE) {
-      setAgeErrorKey("error_age_too_young");
+      setAgeErrorKey('error_age_too_young');
       return false;
     }
     if (age > MAX_AGE) {
-      setAgeErrorKey("error_age_too_old");
+      setAgeErrorKey('error_age_too_old');
       return false;
     }
     setAgeErrorKey(null);
@@ -234,8 +251,7 @@ const AgeInputScreen: React.FC = () => {
     else setAgeErrorKey(null);
   }, [month, day, year, isDateSelected, validateAge]);
 
-  const canContinue =
-    isDateSelected && !ageErrorKey && !isLoading && !isFetchingInitialData;
+  const canContinue = isDateSelected && !ageErrorKey && !isLoading && !isFetchingInitialData;
 
   const continueAction = async () => {
     if (!validateAge()) return;
@@ -244,15 +260,12 @@ const AgeInputScreen: React.FC = () => {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user || !user.id) {
-      Alert.alert(
-        t("error_session_expired_title", lang),
-        t("error_session_expired_message", lang)
-      );
+      Alert.alert(t('error_session_expired_title', lang), t('error_session_expired_message', lang));
       return;
     }
     if (!year || !month || !day) {
       // Should be caught by validateAge, but as a safeguard
-      setAgeErrorKey("error_age_date_required");
+      setAgeErrorKey('error_age_date_required');
       return;
     }
 
@@ -260,28 +273,28 @@ const AgeInputScreen: React.FC = () => {
     const monthIndex = MONTHS.indexOf(month);
     const birthDateISO = `${year}-${String(monthIndex + 1).padStart(
       2,
-      "0"
-    )}-${String(day).padStart(2, "0")}`;
+      '0'
+    )}-${String(day).padStart(2, '0')}`;
 
     try {
       const { error } = await supabase
-        .from("profiles")
+        .from('profiles')
         .update({
           birth_date: birthDateISO,
           hide_birth_date: hideDOB,
           current_registration_step: NEXT_REGISTRATION_STEP_VALUE,
         })
-        .eq("id", user.id);
+        .eq('id', user.id);
 
       if (error) {
-        console.error("Error saving birth date to profile:", error);
-        Alert.alert(t("error_saving_profile", lang), error.message);
+        console.error('Error saving birth date to profile:', error);
+        Alert.alert(t('error_saving_profile', lang), error.message);
       } else {
-        navigation.navigate(NEXT_REGISTRATION_SCREEN_NAME);
+        void router.push('/path-input');
       }
-    } catch (e: any) {
-      console.error("Unexpected error saving birth date:", e);
-      Alert.alert(t("unexpected_error", lang), e.message);
+    } catch (e: unknown) {
+      console.error('Unexpected error saving birth date:', e);
+      Alert.alert(t('unexpected_error', lang), e instanceof Error ? e.message : String(e));
     } finally {
       setIsLoading(false);
     }
@@ -297,55 +310,51 @@ const AgeInputScreen: React.FC = () => {
     );
   }
 
+  const handleBackPress = () => {
+    navigateBack();
+  };
+
   return (
     <>
       <ScreenLayout
-        navigation={navigation}
-        title={t("age_input_title", lang)}
-        subtitle={t("age_input_subtitle", lang)}
-        progress={AGE_INPUT_PROGRESS}
+        title={t('age_input_title', lang)}
+        subtitle={t('age_input_subtitle', lang)}
+        progress={getProgress()}
         onContinue={continueAction}
         continueDisabled={!canContinue}
+        onBackPress={handleBackPress}
       >
         <KeyboardAvoidingView
           style={styles.flexGrow}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
           <View style={styles.contentContainer}>
-            <Text style={styles.infoText}>{t("age_input_info", lang)}</Text>
+            <Text style={styles.infoText}>{t('age_input_info', lang)}</Text>
 
             <View style={styles.pickerGroupWrapper}>
-              {(["month", "day", "year"] as const).map((pickerType) => (
+              {(['month', 'day', 'year'] as const).map((pickerType) => (
                 <Pressable
                   key={pickerType}
                   style={[
                     styles.pickerBox,
-                    ageErrorKey && isDateSelected
-                      ? styles.inputErrorBorder
-                      : {},
+                    ageErrorKey && isDateSelected ? styles.inputErrorBorder : {},
                   ]}
-                  onPress={() =>
-                    !pickerDisabled && setPicker({ type: pickerType })
-                  }
+                  onPress={() => !pickerDisabled && setPicker({ type: pickerType })}
                   disabled={pickerDisabled}
                 >
                   <Text
                     style={[
                       styles.pickerText,
-                      !(pickerType === "month"
-                        ? month
-                        : pickerType === "day"
-                        ? day
-                        : year)
+                      !(pickerType === 'month' ? month : pickerType === 'day' ? day : year)
                         ? { color: COLORS.grey1 }
                         : {},
                     ]}
                   >
-                    {pickerType === "month"
-                      ? month ?? t("month", lang)
-                      : pickerType === "day"
-                      ? day ?? t("day", lang)
-                      : year ?? t("year", lang)}
+                    {pickerType === 'month'
+                      ? (month ?? t('month', lang))
+                      : pickerType === 'day'
+                        ? (day ?? t('day', lang))
+                        : (year ?? t('year', lang))}
                   </Text>
                   <Text style={styles.chevron}>⌄</Text>
                 </Pressable>
@@ -358,26 +367,20 @@ const AgeInputScreen: React.FC = () => {
             )}
 
             <Image
-              source={require("../../../assets/images/register/born.png")}
+              source={require('@/assets/images/register/born.png')}
               style={styles.illustration}
               resizeMode="contain"
             />
 
             <View style={styles.toggleCard}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.toggleTitle}>
-                  {t("age_input_hide_dob_title", lang)}
-                </Text>
-                <Text style={styles.toggleSubtitle}>
-                  {t("age_input_hide_dob_subtitle", lang)}
-                </Text>
+                <Text style={styles.toggleTitle}>{t('age_input_hide_dob_title', lang)}</Text>
+                <Text style={styles.toggleSubtitle}>{t('age_input_hide_dob_subtitle', lang)}</Text>
               </View>
               <Switch
                 value={hideDOB}
                 onValueChange={setHideDOB}
-                thumbColor={
-                  Platform.OS === "android" ? COLORS.white : undefined
-                }
+                thumbColor={Platform.OS === 'android' ? COLORS.white : undefined}
                 ios_backgroundColor={COLORS.grey1}
                 trackColor={{ true: COLORS.black, false: COLORS.grey1 }}
                 disabled={pickerDisabled}
@@ -386,19 +389,19 @@ const AgeInputScreen: React.FC = () => {
           </View>
         </KeyboardAvoidingView>
         <PickerModal
-          visible={picker.type === "month"}
+          visible={picker.type === 'month'}
           data={MONTHS}
           onSelect={(v) => setMonth(v)}
           onClose={() => setPicker({ type: null })}
         />
         <PickerModal
-          visible={picker.type === "day"}
+          visible={picker.type === 'day'}
           data={DAYS}
           onSelect={(v) => setDay(v)}
           onClose={() => setPicker({ type: null })}
         />
         <PickerModal
-          visible={picker.type === "year"}
+          visible={picker.type === 'year'}
           data={YEARS}
           onSelect={(v) => setYear(v)}
           onClose={() => setPicker({ type: null })}
@@ -414,26 +417,26 @@ const styles = StyleSheet.create({
   flexGrow: { flexGrow: 1 },
   contentContainer: {
     flex: 1,
-    alignItems: "center",
+    alignItems: 'center',
     paddingHorizontal: 0,
-    justifyContent: "flex-start",
+    justifyContent: 'flex-start',
     paddingTop: 20,
   },
   infoText: {
     fontSize: 16,
-    fontFamily: Platform.OS === "ios" ? "System" : "sans-serif",
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
     color: COLORS.grey3,
-    textAlign: "center",
+    textAlign: 'center',
     lineHeight: 24,
     marginBottom: 30,
   },
   pickerGroupWrapper: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     backgroundColor: COLORS.greyF,
     padding: 16,
     borderRadius: 16,
-    alignSelf: "stretch",
+    alignSelf: 'stretch',
   },
   pickerBox: {
     width: (W - 24 * 2 - 16 * 2) / 3 - 8,
@@ -441,15 +444,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.grey0,
     borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    flexDirection: "row",
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
     backgroundColor: COLORS.white,
   },
   inputErrorBorder: { borderColor: COLORS.error },
   pickerText: {
     fontSize: 17,
-    fontFamily: Platform.OS === "ios" ? "System" : "sans-serif",
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
     color: COLORS.black,
   },
   chevron: { fontSize: 13, color: COLORS.grey2, marginLeft: 6 },
@@ -457,52 +460,52 @@ const styles = StyleSheet.create({
     color: COLORS.error,
     fontSize: 12,
     marginTop: 8,
-    textAlign: "center",
-    width: "100%",
+    textAlign: 'center',
+    width: '100%',
   },
   illustration: {
-    width: "85%",
+    width: '85%',
     height: H * 0.2,
     marginTop: 20,
     marginBottom: 20,
-    alignSelf: "center",
+    alignSelf: 'center',
   },
   toggleCard: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: COLORS.grey0,
     borderRadius: 12,
     padding: 16,
-    alignSelf: "stretch",
+    alignSelf: 'stretch',
     backgroundColor: COLORS.white,
   },
   toggleTitle: {
     fontSize: 17,
-    fontFamily: Platform.OS === "ios" ? "System" : "sans-serif-medium",
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium',
     color: COLORS.black,
   },
   toggleSubtitle: { fontSize: 14, color: COLORS.grey3, marginTop: 4 },
-  modalBackdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)" },
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)' },
   modalSheet: {
     maxHeight: H * 0.45,
     backgroundColor: COLORS.white,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingTop: 8,
-    paddingBottom: Platform.OS === "ios" ? 20 : 8,
+    paddingBottom: Platform.OS === 'ios' ? 20 : 8,
   },
   modalItem: {
     paddingVertical: 14,
-    alignItems: "center",
+    alignItems: 'center',
     borderBottomWidth: 1,
     borderBottomColor: COLORS.grey0,
   },
   modalItemText: { fontSize: 18, color: COLORS.black },
   loadingScreenContainer: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: COLORS.white,
   },
 });

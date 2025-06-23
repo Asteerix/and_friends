@@ -1,31 +1,29 @@
-// JamPickerScreen.tsx
-// ---------------------------------------------------------------------------
-import { StackNavigationProp } from "@react-navigation/stack";
-import { useAudioPlayer } from "expo-audio"; // Assurez-vous que ce package est bien géré ou remplacé si besoin
-import React, { useCallback, useEffect, useState } from "react";
+import { Audio } from 'expo-av';
+import { useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Image,
+  KeyboardAvoidingView,
   Platform,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
   View,
-  Alert,
-} from "react-native";
-import { useNavigation } from "@react-navigation/native"; // Ajout
+} from 'react-native';
 
-import ScreenLayout from "@/components/ScreenLayout";
-import { supabase } from "@/lib/supabase";
-import { getDeviceLanguage, t } from "../../../locales";
-import { AuthStackParamList } from "@/navigation/types";
+import { supabase } from '@/shared/lib/supabase/client';
+import { getDeviceLanguage, t } from '@/shared/locales';
+import ScreenLayout from '@/shared/ui/ScreenLayout';
+import { useOnboardingStatus } from '@/hooks/useOnboardingStatus';
+import { useAuthNavigation } from '@/shared/hooks/useAuthNavigation';
+import { useRegistrationStep } from '@/shared/hooks/useRegistrationStep';
 
+// JamPickerScreen.tsx
 // ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-type NavProp = StackNavigationProp<AuthStackParamList, "JamPicker">;
 
 interface Song {
   id: string;
@@ -39,16 +37,15 @@ interface Song {
 // Constantes
 // ---------------------------------------------------------------------------
 const COLORS = {
-  white: "#FFFFFF",
-  black: "#000000",
-  grey0: "#E5E5E5",
-  grey1: "#AEB0B4",
-  grey2: "#666666",
-  grey3: "#555555",
-  error: "#D32F2F",
+  white: '#FFFFFF',
+  black: '#000000',
+  grey0: '#E5E5E5',
+  grey1: '#AEB0B4',
+  grey2: '#666666',
+  grey3: '#555555',
+  error: '#D32F2F',
 };
-const JAM_PICKER_PROGRESS = 0.9; // Ajusté, proche de la fin
-const NEXT_SCREEN_NAME: keyof AuthStackParamList = "RestaurantPicker";
+// Removed - using getProgress() from useAuthNavigation
 // const NEXT_REGISTRATION_STEP_VALUE = "restaurant_picker"; // Supprimé
 
 // ---------------------------------------------------------------------------
@@ -57,8 +54,8 @@ const NEXT_SCREEN_NAME: keyof AuthStackParamList = "RestaurantPicker";
 const useDebounce = (value: string, delay = 400) => {
   const [debounced, setDebounced] = useState(value);
   useEffect(() => {
-    const t = setTimeout(() => setDebounced(value), delay);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(timer);
   }, [value, delay]);
   return debounced;
 };
@@ -68,32 +65,41 @@ const AudioPreviewPlayer: React.FC<{
   playing: boolean;
   onFinish: () => void;
 }> = ({ uri, playing, onFinish }) => {
-  const player = useAudioPlayer(uri); // Ce hook vient de "expo-audio"
-  useEffect(() => {
-    if (playing) player.play();
-    else player.pause();
-    return () => player.pause();
-  }, [playing, player]);
+  const [sound, setSound] = useState<Audio.Sound | null>(null);
 
   useEffect(() => {
-    // Simple check pour onFinish, peut nécessiter une logique plus robuste avec expo-av
-    const interval = setInterval(() => {
-      // Check if playback has finished
-      if (
-        player.playing === false &&
-        player.currentTime > 0 &&
-        player.duration > 0 &&
-        player.currentTime >= player.duration - 100 &&
-        playing
-      ) {
-        // -100ms buffer
-        onFinish();
+    return () => {
+      if (sound) {
+        void sound.unloadAsync();
       }
-      // Note: Direct error property check removed as it's not standard on expo-audio's player type.
-      // Error handling would typically be done via status updates or specific error callbacks if provided by the library.
-    }, 500);
-    return () => clearInterval(interval);
-  }, [player, playing, onFinish, uri]);
+    };
+  }, [sound]);
+
+  useEffect(() => {
+    const loadAndPlaySound = async () => {
+      if (playing && uri) {
+        try {
+          const { sound: newSound } = await Audio.Sound.createAsync(
+            { uri },
+            { shouldPlay: true },
+            (status) => {
+              if (status.isLoaded && status.didJustFinish) {
+                onFinish();
+              }
+            }
+          );
+          setSound(newSound);
+        } catch (error) {
+          console.error('Error loading sound:', error);
+        }
+      } else if (!playing && sound) {
+        await sound.pauseAsync();
+      }
+    };
+
+    loadAndPlaySound();
+  }, [playing, uri, onFinish]);
+
   return null;
 };
 
@@ -101,10 +107,19 @@ const AudioPreviewPlayer: React.FC<{
 // Component
 // ---------------------------------------------------------------------------
 const JamPickerScreen: React.FC = () => {
-  const navigation = useNavigation<NavProp>();
+  const router = useRouter();
+  const { navigateBack, navigateNext, getProgress } = useAuthNavigation('jam-picker');
   const lang = getDeviceLanguage();
+  const { currentStep, loading: onboardingLoading } = useOnboardingStatus();
 
-  const [query, setQuery] = useState("");
+  // Save registration step
+  useRegistrationStep('jam_picker');
+
+  const handleBackPress = () => {
+    navigateBack();
+  };
+
+  const [query, setQuery] = useState('');
   const debouncedQuery = useDebounce(query);
   const [tracks, setTracks] = useState<Song[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -113,6 +128,18 @@ const JamPickerScreen: React.FC = () => {
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isFetchingInitialData, setIsFetchingInitialData] = useState(true);
+
+  useEffect(() => {
+    if (!onboardingLoading && currentStep && currentStep !== 'JamPicker') {
+      // Si ce n'est pas l'étape JamPicker, on redirige vers la bonne étape
+      const stepToRoute: Record<string, string> = {
+        RestaurantPicker: '/restaurant-picker',
+        HobbyPicker: '/hobby-picker',
+      };
+      const route = stepToRoute[currentStep] || '/restaurant-picker';
+      router.replace(route);
+    }
+  }, [onboardingLoading, currentStep, router]);
 
   // Fetch initial jam
   useEffect(() => {
@@ -124,28 +151,26 @@ const JamPickerScreen: React.FC = () => {
       if (user) {
         try {
           const { data, error } = await supabase
-            .from("profiles")
-            .select(
-              "jam_track_id, jam_title, jam_artist, jam_cover_url, jam_preview_url"
-            )
-            .eq("id", user.id)
+            .from('profiles')
+            .select('jam_track_id, jam_title, jam_artist, jam_cover_url, jam_preview_url')
+            .eq('id', user.id)
             .single();
 
-          if (error && error.code !== "PGRST116") {
-            console.error("Error fetching initial jam:", error);
+          if (error && error.code !== 'PGRST116') {
+            console.error('Error fetching initial jam:', error);
           } else if (data && data.jam_track_id) {
             setSelectedTrack({
               id: data.jam_track_id,
-              title: data.jam_title || "",
-              artist: data.jam_artist || "",
-              cover: data.jam_cover_url || "",
+              title: data.jam_title || '',
+              artist: data.jam_artist || '',
+              cover: data.jam_cover_url || '',
               preview: data.jam_preview_url || null,
             });
             // Optionnel: si le jam initial est sélectionné, on pourrait vouloir l'afficher même si la recherche est vide
             // ou pré-remplir la recherche avec le titre/artiste. Pour l'instant, on le sélectionne juste.
           }
         } catch (e) {
-          console.error("Unexpected error fetching initial jam:", e);
+          console.error('Unexpected error fetching initial jam:', e);
         }
       }
       setIsFetchingInitialData(false);
@@ -160,7 +185,7 @@ const JamPickerScreen: React.FC = () => {
 
       const searchTerm = debouncedQuery.trim()
         ? debouncedQuery
-        : selectedTrack?.title || "love songs"; // Default search
+        : selectedTrack?.title || 'love songs'; // Default search
       if (!searchTerm) {
         // If no debounced query and no selected track title, don't search
         setTracks([]);
@@ -174,28 +199,23 @@ const JamPickerScreen: React.FC = () => {
       setSearchError(null);
       try {
         const resp = await fetch(url);
-        if (!resp.ok)
-          throw new Error(
-            `iTunes API request failed with status ${resp.status}`
-          );
+        if (!resp.ok) throw new Error(`iTunes API request failed with status ${resp.status}`);
         const json = await resp.json();
         if (json.results && Array.isArray(json.results)) {
           const result: Song[] = json.results.map((r: any) => ({
             id: r.trackId.toString(),
             title: r.trackName,
             artist: r.artistName,
-            cover: r.artworkUrl100
-              ? r.artworkUrl100.replace("100x100", "200x200")
-              : "",
+            cover: r.artworkUrl100 ? r.artworkUrl100.replace('100x100', '200x200') : '',
             preview: r.previewUrl || null,
           }));
           setTracks(result);
         } else {
           setTracks([]);
         }
-      } catch (err: any) {
-        console.error("iTunes fetch error:", err);
-        setSearchError(t("error_network_request", lang)); // Clé à ajouter
+      } catch (err: unknown) {
+        console.error('iTunes fetch error:', err);
+        setSearchError(t('error_network_request', lang)); // Clé à ajouter
         setTracks([]);
       } finally {
         setIsSearching(false);
@@ -233,15 +253,9 @@ const JamPickerScreen: React.FC = () => {
         </View>
         {item.preview && (
           <>
-            <Pressable
-              hitSlop={8}
-              onPress={() => togglePlay(item)}
-              disabled={isSaving}
-            >
-              <Text
-                style={[styles.playIcon, isPlaying && { color: COLORS.black }]}
-              >
-                {isPlaying ? "⏸" : "▶"}
+            <Pressable hitSlop={8} onPress={() => togglePlay(item)} disabled={isSaving}>
+              <Text style={[styles.playIcon, isPlaying && { color: COLORS.black }]}>
+                {isPlaying ? '⏸' : '▶'}
               </Text>
             </Pressable>
             {isPlaying && (
@@ -264,35 +278,32 @@ const JamPickerScreen: React.FC = () => {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) {
-      Alert.alert(
-        t("error_session_expired_title", lang),
-        t("error_session_expired_message", lang)
-      );
+      Alert.alert(t('error_session_expired_title', lang), t('error_session_expired_message', lang));
       return false;
     }
     setIsSaving(true);
     try {
       const { error } = await supabase
-        .from("profiles")
+        .from('profiles')
         .update({
           jam_track_id: jamData?.id || null,
           jam_title: jamData?.title || null,
           jam_artist: jamData?.artist || null,
           jam_cover_url: jamData?.cover || null,
           jam_preview_url: jamData?.preview || null,
-          current_registration_step: "restaurant_picker",
+          current_registration_step: 'restaurant_picker',
         })
-        .eq("id", user.id);
+        .eq('id', user.id);
 
       if (error) {
-        console.error("Error saving jam to profile:", error);
-        Alert.alert(t("error_saving_profile", lang), error.message);
+        console.error('Error saving jam to profile:', error);
+        Alert.alert(t('error_saving_profile', lang), error.message);
         return false;
       }
       return true;
-    } catch (e: any) {
-      console.error("Unexpected error saving jam:", e);
-      Alert.alert(t("unexpected_error", lang), e.message);
+    } catch (e: unknown) {
+      console.error('Unexpected error saving jam:', e);
+      Alert.alert(t('unexpected_error', lang), e instanceof Error ? e.message : String(e));
       return false;
     } finally {
       setIsSaving(false);
@@ -302,13 +313,13 @@ const JamPickerScreen: React.FC = () => {
   const handleContinue = async () => {
     if (!selectedTrack || isSaving) return;
     const success = await updateProfileJam(selectedTrack);
-    if (success) navigation.navigate(NEXT_SCREEN_NAME);
+    if (success) navigateNext('restaurant-picker');
   };
 
   const handleSkip = async () => {
     if (isSaving) return;
     const success = await updateProfileJam(null); // Pass null to clear jam fields
-    if (success) navigation.navigate(NEXT_SCREEN_NAME);
+    if (success) navigateNext('restaurant-picker');
   };
 
   if (isFetchingInitialData && !isSaving) {
@@ -322,76 +333,72 @@ const JamPickerScreen: React.FC = () => {
   return (
     <>
       <ScreenLayout
-        navigation={navigation}
-        title={t("jam_picker_title", lang)}
-        subtitle={t("jam_picker_subtitle", lang)}
-        progress={JAM_PICKER_PROGRESS}
+        title={t('jam_picker_title', lang)}
+        subtitle={t('jam_picker_subtitle', lang)}
+        progress={getProgress()}
         onContinue={handleContinue}
         continueDisabled={!selectedTrack || isLoading}
         showAltLink={true}
-        altLinkText={t("skip", lang)}
+        altLinkText={t('skip', lang)}
         onAltLinkPress={handleSkip}
+        showBackButton={true}
+        onBackPress={handleBackPress}
       >
-        <View style={styles.searchBox}>
-          <Text style={styles.searchIcon}>🔍</Text>
-          <TextInput
-            style={styles.searchInput}
-            placeholder={t("jam_picker_placeholder", lang)}
-            placeholderTextColor={COLORS.grey1}
-            value={query}
-            onChangeText={setQuery}
-            returnKeyType="search"
-            editable={!isLoading}
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+        >
+          <View style={styles.searchBox}>
+            <Text style={styles.searchIcon}>🔍</Text>
+            <TextInput
+              style={styles.searchInput}
+              placeholder={t('jam_picker_placeholder', lang)}
+              placeholderTextColor={COLORS.grey1}
+              value={query}
+              onChangeText={setQuery}
+              returnKeyType="search"
+              editable={!isLoading}
+            />
+          </View>
+
+          {isSearching && <ActivityIndicator style={styles.loader} color={COLORS.black} />}
+          {searchError && !isSearching && <Text style={styles.errorText}>{searchError}</Text>}
+
+          {!isSearching && tracks.length === 0 && debouncedQuery.trim() !== '' && !searchError && (
+            <Text style={styles.infoText}>
+              {t('jam_picker_no_results', lang, { query: debouncedQuery })}
+            </Text>
+          )}
+          {!isSearching &&
+            tracks.length === 0 &&
+            debouncedQuery.trim() === '' &&
+            !searchError &&
+            !selectedTrack && (
+              <Text style={styles.infoText}>{t('jam_picker_initial_prompt', lang)}</Text>
+            )}
+
+          <FlatList
+            data={tracks}
+            keyExtractor={(item) => item.id}
+            renderItem={renderItem}
+            contentContainerStyle={styles.listContentContainer}
+            showsVerticalScrollIndicator={false}
+            style={styles.listStyle}
+            ListHeaderComponent={
+              selectedTrack &&
+              !tracks.find((track) => track.id === selectedTrack.id) &&
+              !isSearching ? (
+                // If selected track is not in current search results, show it at the top
+                <View>
+                  <Text style={styles.currentJamLabel}>{t('jam_picker_current_jam', lang)}</Text>
+                  {renderItem({ item: selectedTrack })}
+                  <View style={styles.separator} />
+                </View>
+              ) : null
+            }
           />
-        </View>
-
-        {isSearching && (
-          <ActivityIndicator style={styles.loader} color={COLORS.black} />
-        )}
-        {searchError && !isSearching && (
-          <Text style={styles.errorText}>{searchError}</Text>
-        )}
-
-        {!isSearching &&
-          tracks.length === 0 &&
-          debouncedQuery.trim() !== "" &&
-          !searchError && (
-            <Text style={styles.infoText}>
-              {t("jam_picker_no_results", lang, { query: debouncedQuery })}
-            </Text>
-          )}
-        {!isSearching &&
-          tracks.length === 0 &&
-          debouncedQuery.trim() === "" &&
-          !searchError &&
-          !selectedTrack && (
-            <Text style={styles.infoText}>
-              {t("jam_picker_initial_prompt", lang)}
-            </Text>
-          )}
-
-        <FlatList
-          data={tracks}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          contentContainerStyle={styles.listContentContainer}
-          showsVerticalScrollIndicator={false}
-          style={styles.listStyle}
-          ListHeaderComponent={
-            selectedTrack &&
-            !tracks.find((t) => t.id === selectedTrack.id) &&
-            !isSearching ? (
-              // If selected track is not in current search results, show it at the top
-              <View>
-                <Text style={styles.currentJamLabel}>
-                  {t("jam_picker_current_jam", lang)}
-                </Text>
-                {renderItem({ item: selectedTrack })}
-                <View style={styles.separator} />
-              </View>
-            ) : null
-          }
-        />
+        </KeyboardAvoidingView>
       </ScreenLayout>
     </>
   );
@@ -401,8 +408,8 @@ export default JamPickerScreen;
 
 const styles = StyleSheet.create({
   searchBox: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     height: 56,
     borderWidth: 1,
     borderColor: COLORS.grey0,
@@ -416,27 +423,27 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 17,
     color: COLORS.black,
-    fontFamily: Platform.OS === "ios" ? "System" : "sans-serif",
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
   },
   loader: { marginVertical: 24 },
   errorText: {
     color: COLORS.error,
     marginVertical: 12,
-    textAlign: "center",
+    textAlign: 'center',
     paddingHorizontal: 20,
   },
   infoText: {
     color: COLORS.grey3,
     marginVertical: 20,
-    textAlign: "center",
+    textAlign: 'center',
     paddingHorizontal: 20,
     fontSize: 16,
   },
-  listStyle: { flex: 1, width: "100%" },
+  listStyle: { flex: 1, width: '100%' },
   listContentContainer: { paddingTop: 8, paddingBottom: 120 },
   songRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: COLORS.grey0,
     borderRadius: 12,
@@ -455,7 +462,7 @@ const styles = StyleSheet.create({
   songTitle: {
     fontSize: 16,
     color: COLORS.black,
-    fontFamily: Platform.OS === "ios" ? "System" : "sans-serif-medium",
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium',
     marginBottom: 2,
   },
   songArtist: { fontSize: 14, color: COLORS.grey3 },
@@ -463,18 +470,18 @@ const styles = StyleSheet.create({
     fontSize: 22,
     color: COLORS.grey2,
     paddingHorizontal: 8,
-    marginLeft: "auto",
+    marginLeft: 'auto',
   },
   loadingScreenContainer: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: COLORS.white,
   },
   currentJamLabel: {
     fontSize: 14,
     color: COLORS.grey3,
-    fontWeight: "bold",
+    fontWeight: 'bold',
     marginBottom: 8,
     marginLeft: 4,
     marginTop: 4,
@@ -509,8 +516,8 @@ TODO:
      Si `expo-audio` n'est pas ce que vous vouliez, il faudra remplacer `useAudioPlayer`.
      Pour `expo-av`, la gestion serait plus comme:
      `const [sound, setSound] = useState<Audio.Sound | null>(null);`
-     `async function playSound(uri) { ... await Audio.Sound.createAsync({ uri }); ... await sound.playAsync(); }`
-     `useEffect(() => { return sound ? () => { sound.unloadAsync(); } : undefined; }, [sound]);`
+     `async function playSound(uri) { ... await Audio.Sound.createAsync({ uri }); ... await void sound.playAsync(); }`
+     `useEffect(() => { return sound ? () => { void sound.unloadAsync(); } : undefined; }, [sound]);`
 
 4. La gestion de l'état `isFetchingInitialData` et `debouncedQuery` a été ajoutée pour améliorer l'expérience
    de recherche initiale et de chargement.

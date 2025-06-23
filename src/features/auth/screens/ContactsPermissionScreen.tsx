@@ -1,194 +1,227 @@
-// ContactsPermissionScreen.tsx
-// ---------------------------------------------------------------------------
-import { StackNavigationProp } from "@react-navigation/stack";
-import * as Contacts from "expo-contacts";
-import React, { useState } from "react";
-import {
-  ActivityIndicator,
-  Dimensions,
-  Image,
-  Platform,
-  StyleSheet,
-  View,
-  Alert,
-} from "react-native";
-import { useNavigation } from "@react-navigation/native"; // Ajout
-import { useSession } from "@/lib/SessionContext";
+import React from 'react';
+import { View, Text, Image, StyleSheet, TouchableOpacity, Platform, Alert } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { create } from 'react-native-pixel-perfect';
+import * as Contacts from 'expo-contacts';
+import { useProfile } from '@/hooks/useProfile';
+import { useAuthNavigation } from '@/shared/hooks/useAuthNavigation';
+import { useRegistrationStep } from '@/shared/hooks/useRegistrationStep';
 
-import ScreenLayout from "@/components/ScreenLayout";
-import { supabase } from "@/lib/supabase"; // Ajout
-import { getDeviceLanguage, t } from "../../../locales";
-import { AuthStackParamList } from "@/navigation/types";
+const designResolution = { width: 375, height: 812 };
+const perfectSize = create(designResolution);
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-type NavProp = StackNavigationProp<AuthStackParamList, "ContactsPermission">;
+const ContactsPermissionScreen: React.FC = React.memo(() => {
+  const insets = useSafeAreaInsets();
+  const { navigateBack, navigateNext, getProgress } = useAuthNavigation('contacts-permission');
+  const { updateProfile } = useProfile();
+  const [isRequesting, setIsRequesting] = React.useState(false);
 
-// ---------------------------------------------------------------------------
-// Constantes
-// ---------------------------------------------------------------------------
-const { height: H } = Dimensions.get("window");
-const COLORS = {
-  white: "#FFFFFF",
-  black: "#000000",
-  grey3: "#555555",
-};
-const CONTACTS_PERMISSION_PROGRESS = 0.71; // 5/7 (environ)
-const NEXT_SCREEN_NAME: keyof AuthStackParamList = "LocationPermission";
+  // Save registration step
+  useRegistrationStep('contacts_permission');
 
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
-const ContactsPermissionScreen: React.FC = () => {
-  const navigation = useNavigation<NavProp>();
-  const lang = getDeviceLanguage();
-  const [isLoading, setIsLoading] = useState(false);
-  const { session } = useSession();
-
-  const handlePermissionRequest = async () => {
-    if (isLoading) return;
-    setIsLoading(true);
-
-    const { status } = await Contacts.requestPermissionsAsync();
-    console.log("[ContactsPermissionScreen] Permission status:", status);
-    if (session?.user) {
-      // Mettre à jour le statut de permission et l'étape courante dans le profil
-      await supabase
-        .from("profiles")
-        .update({
-          contacts_permission_status: status,
-          current_registration_step: "contacts_permission",
-        })
-        .eq("id", session.user.id);
-    }
-    if (status === "granted") {
-      // Récupérer les contacts
-      const { data } = await Contacts.getContactsAsync({
-        fields: [Contacts.Fields.PhoneNumbers, Contacts.Fields.Emails],
-      });
-      if (data && data.length > 0 && session?.user) {
-        // Préparer les contacts à insérer
-        const contactsToInsert = data
-          .map((contact) => {
-            const phone = contact.phoneNumbers?.[0]?.number || null;
-            const email = contact.emails?.[0]?.email || null;
-            if (!phone && !email) return null;
-            return {
-              user_id: session.user.id,
-              phone_number: phone,
-              email: email,
-              first_name: contact.firstName || null,
-              last_name: contact.lastName || null,
-            };
-          })
-          .filter(Boolean);
-        if (contactsToInsert.length > 0) {
-          const { error } = await supabase
-            .from("phone_contacts")
-            .insert(contactsToInsert);
-          if (error) {
-            console.error("Erreur lors de l'insertion des contacts:", error);
-            Alert.alert(t("error_saving_profile", lang), error.message);
-          }
-        }
-      }
-    }
-    console.log("[ContactsPermissionScreen] Navigating to LocationPermission");
-    navigation.navigate(NEXT_SCREEN_NAME);
-    setIsLoading(false);
+  const handleBackPress = () => {
+    navigateBack();
   };
 
-  const handleSkip = async () => {
-    if (isLoading) return;
-    setIsLoading(true);
-    if (session?.user) {
-      // Stocker le refus explicite et l'étape courante
-      await supabase
-        .from("profiles")
-        .update({
-          contacts_permission_status: "denied",
-          current_registration_step: "contacts_permission",
-        })
-        .eq("id", session.user.id);
+  const handleAllow = async () => {
+    setIsRequesting(true);
+    try {
+      const { status } = await Contacts.requestPermissionsAsync();
+
+      if (status === 'granted') {
+        await updateProfile({
+          contacts_permission_status: 'granted',
+        });
+        navigateNext('location-permission');
+      } else {
+        Alert.alert(
+          'Permission Denied',
+          'You can enable contacts access later in your device settings.',
+          [
+            {
+              text: 'Continue',
+              onPress: () => navigateNext('location-permission'),
+            },
+          ]
+        );
+      }
+    } catch (error) {
+      console.error('Error requesting contacts permission:', error);
+      Alert.alert('Error', 'An error occurred. Please try again.');
+    } finally {
+      setIsRequesting(false);
     }
-    console.log(
-      "[ContactsPermissionScreen] Skip pressed, navigating to LocationPermission"
-    );
-    navigation.navigate(NEXT_SCREEN_NAME);
+  };
+
+  const handleSkip = () => {
+    navigateNext('location-permission');
   };
 
   return (
-    <ScreenLayout
-      navigation={navigation}
-      title={t("contacts_permission_title", lang)}
-      subtitle={t("contacts_permission_subtitle", lang)}
-      progress={CONTACTS_PERMISSION_PROGRESS}
-      onContinue={handlePermissionRequest}
-      continueButtonText={t("contacts_permission_button_allow", lang)} // Ex: "Allow Access"
-      continueDisabled={isLoading}
-      showAltLink={true}
-      altLinkText={t("skip_for_now", lang)} // Ex: "Skip for now"
-      onAltLinkPress={handleSkip}
-      // isLoading prop retirée si ScreenLayout ne la supporte pas
-    >
-      <View style={styles.contentContainer}>
+    <View style={[styles.safeArea, { paddingTop: insets.top }]}>
+      {/* Header Row */}
+      <View style={styles.headerRow}>
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+          style={styles.backButton}
+          onPress={handleBackPress}
+        >
+          <Text style={styles.backArrow}>←</Text>
+        </TouchableOpacity>
+        <View style={styles.progressTrack}>
+          <View style={[styles.progressFill, { width: `${getProgress() * 100}%` }]} />
+        </View>
+      </View>
+
+      {/* Title & Subtitle */}
+      <Text
+        style={styles.title}
+        accessibilityRole="header"
+        accessibilityLabel="Help us find your people"
+      >
+        Help us find your <Text style={styles.titleItalic}>people</Text>
+      </Text>
+      <Text style={styles.subtitle} accessibilityRole="text">
+        Connect with friends already on the app.{'\n'}We'll notify you when they join.
+      </Text>
+
+      {/* Illustration */}
+      <View style={styles.illustrationContainer}>
         <Image
-          source={require("../../../assets/images/register/contacts-illustration.png")}
+          source={require('@/assets/images/register/contacts.png')}
           style={styles.illustration}
           resizeMode="contain"
+          accessibilityIgnoresInvertColors
         />
-        {isLoading && (
-          <ActivityIndicator
-            size="large"
-            color={COLORS.black}
-            style={styles.loadingIndicator}
-          />
-        )}
       </View>
-    </ScreenLayout>
-  );
-};
 
-export default ContactsPermissionScreen;
+      {/* Continue Button */}
+      <TouchableOpacity
+        style={[styles.continueButton, isRequesting && { opacity: 0.4 }]}
+        onPress={handleAllow}
+        accessibilityRole="button"
+        accessibilityLabel="Allow Contacts"
+        activeOpacity={0.8}
+        disabled={isRequesting}
+      >
+        <Text style={styles.continueButtonText}>
+          {isRequesting ? 'Requesting...' : 'Allow Contacts'}
+        </Text>
+      </TouchableOpacity>
+
+      {/* Skip For Now */}
+      <TouchableOpacity
+        style={styles.skipButton}
+        onPress={handleSkip}
+        accessibilityRole="button"
+        accessibilityLabel="Skip For Now"
+        activeOpacity={0.8}
+        disabled={isRequesting}
+      >
+        <Text style={styles.skipButtonText}>Skip For Now</Text>
+      </TouchableOpacity>
+    </View>
+  );
+});
 
 const styles = StyleSheet.create({
-  contentContainer: {
+  safeArea: {
     flex: 1,
-    alignItems: "center",
-    paddingHorizontal: 0,
-    justifyContent: "center", // Center the illustration and loader
-    paddingTop: 20,
+    backgroundColor: '#fff',
+    paddingHorizontal: perfectSize(24),
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: perfectSize(8),
+    marginBottom: perfectSize(16),
+  },
+  backButton: {
+    width: perfectSize(44),
+    height: perfectSize(44),
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+  },
+  backArrow: {
+    fontSize: perfectSize(28),
+    color: '#016fff',
+  },
+  progressTrack: {
+    flex: 1,
+    height: perfectSize(2),
+    backgroundColor: '#E5E5E5',
+    marginLeft: perfectSize(8),
+    marginRight: perfectSize(8),
+    borderRadius: perfectSize(1),
+    overflow: 'hidden',
+  },
+  progressFill: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#016fff',
+    borderRadius: perfectSize(1),
+  },
+  title: {
+    marginTop: perfectSize(16),
+    fontSize: perfectSize(34),
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+    color: '#000',
+    textAlign: 'center',
+    lineHeight: perfectSize(41),
+    letterSpacing: 0.34,
+    fontWeight: '400',
+  },
+  titleItalic: {
+    fontStyle: 'italic',
+    fontFamily: Platform.OS === 'ios' ? 'Georgia-Italic' : 'serif',
+  },
+  subtitle: {
+    marginTop: perfectSize(16),
+    fontSize: perfectSize(16),
+    color: '#555555',
+    textAlign: 'center',
+    lineHeight: perfectSize(22),
+    marginBottom: perfectSize(40),
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
+    fontWeight: '400',
+  },
+  illustrationContainer: {
+    flex: 1,
+    marginRight: -perfectSize(24), // Étend jusqu'au bord droit
+    justifyContent: 'center',
+    alignItems: 'flex-end', // Aligne l'image à droite
   },
   illustration: {
-    width: "85%",
-    height: H * 0.35,
-    alignSelf: "center",
-    marginBottom: 20,
+    width: '90%', // Ajustez selon vos besoins
+    height: '100%',
   },
-  loadingIndicator: {
-    marginTop: 20,
+  continueButton: {
+    height: perfectSize(60),
+    backgroundColor: '#016fff',
+    borderRadius: perfectSize(14),
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: perfectSize(16),
+  },
+  continueButtonText: {
+    color: '#fff',
+    fontSize: perfectSize(20),
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+    fontWeight: '400',
+  },
+  skipButton: {
+    alignSelf: 'center',
+    marginTop: perfectSize(-8),
+    paddingVertical: perfectSize(8),
+    marginBottom: perfectSize(16),
+  },
+  skipButtonText: {
+    color: '#016fff',
+    fontSize: perfectSize(16),
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
+    fontWeight: '400',
   },
 });
 
-/*
-TODO:
-1. Assurez-vous que la table `profiles` dans Supabase a une colonne
-   `contacts_permission_status` (par exemple, de type TEXT) pour stocker
-   'granted', 'denied', 'undetermined', ou 'skipped'.
-
-2. Ajoutez les clés de traduction nécessaires:
-   "contacts_permission_title": "Help us find your people" (ou équivalent)
-   "contacts_permission_subtitle": "Granting access to your contacts helps us connect you with friends already on the platform." (ou équivalent)
-   "contacts_permission_button_allow": "Allow Access" (ou "Continue")
-   "skip_for_now": "Skip for now"
-   "error_session_expired_title": "Session Expired" (déjà demandée)
-   "error_session_expired_message": "Your session has expired. Please log in again." (déjà demandée)
-   "error_saving_profile": "Error saving profile." (déjà demandée)
-   "unexpected_error": "An unexpected error occurred." (déjà demandée)
-
-3. Testez les deux flux : accorder la permission et sauter.
-   Vérifiez que `contacts_permission_status` et `current_registration_step` sont
-   correctement mis à jour dans Supabase.
-4. Si ScreenLayout ne gère pas `isLoading`, l'ActivityIndicator est déjà présent.
-*/
+export default ContactsPermissionScreen;

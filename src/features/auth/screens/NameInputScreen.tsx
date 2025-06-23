@@ -1,486 +1,372 @@
-// NameInputScreen.tsx
-// ---------------------------------------------------------------------------
-import { RouteProp, useNavigation, useRoute } from "@react-navigation/native"; // Ajout useNavigation
-import { StackNavigationProp } from "@react-navigation/stack";
-import React, { useEffect, useState, useCallback } from "react"; // Ajout useCallback
+import React, { useState, useRef } from 'react';
 import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  StyleSheet,
-  Text,
-  TextInput,
   View,
-  Alert, // Ajout pour les messages d'erreur
+  Text,
+  StyleSheet,
+  Platform,
+  TextInput,
   TouchableOpacity,
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+  KeyboardAvoidingView,
+  Image,
+  AccessibilityRole,
+  Alert,
+} from 'react-native';
+import { create } from 'react-native-pixel-perfect';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useProfile } from '@/hooks/useProfile';
+import { supabase } from '@/shared/lib/supabase/client';
+import { useAuthNavigation } from '@/shared/hooks/useAuthNavigation';
+import { useRegistrationStep } from '@/shared/hooks/useRegistrationStep';
 
-import ScreenLayout from "@/components/ScreenLayout";
-import { supabase } from "@/lib/supabase";
-import { getDeviceLanguage, t } from "../../../locales";
-import { AuthStackParamList } from "@/navigation/types"; // Modifié pour AuthStackParamList
+const designResolution = { width: 375, height: 812 };
+const perfectSize = create(designResolution);
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-// Modifié pour utiliser AuthStackParamList
-type NameInputNavProp = StackNavigationProp<AuthStackParamList, "NameInput">;
+interface NameInputScreenProps {}
 
-// ---------------------------------------------------------------------------
-// Constantes
-// ---------------------------------------------------------------------------
-const COLORS = {
-  white: "#FFFFFF",
-  black: "#000000",
-  grey0: "#E5E5E5",
-  grey1: "#AEB0B4",
-  grey3: "#555555",
-  error: "#D32F2F", // Standard error color
-};
+const NameInputScreen: React.FC<NameInputScreenProps> = React.memo(() => {
+  const [fullName, setFullName] = useState('');
+  const [handle, setHandle] = useState('');
+  const [fullNameError, setFullNameError] = useState('');
+  const [handleError, setHandleError] = useState('');
+  const [checkingHandle, setCheckingHandle] = useState(false);
+  const [handleTaken, setHandleTaken] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const insets = useSafeAreaInsets();
+  const handleInputRef = useRef<TextInput>(null);
+  const { navigateBack, navigateNext, getProgress } = useAuthNavigation('name-input');
+  const { updateProfile } = useProfile();
 
-const NAME_INPUT_PROGRESS = 0.42; // 3/7 (environ)
+  // Save registration step
+  useRegistrationStep('name_input');
 
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
-const NameInputScreen: React.FC = () => {
-  const navigation = useNavigation<NameInputNavProp>();
-  const lang = getDeviceLanguage();
+  const handleBackPress = () => {
+    navigateBack();
+  };
 
-  const [fullName, setFullName] = useState("");
-  const [fullNameErrorKey, setFullNameErrorKey] = useState<string | null>(null);
-  const [username, setUsername] = useState("");
-  const [usernameErrorKey, setUsernameErrorKey] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isFetchingInitialData, setIsFetchingInitialData] = useState(true);
-
-  // Fetch existing profile data on mount
-  useEffect(() => {
-    const fetchProfile = async () => {
-      setIsFetchingInitialData(true);
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      console.log("[NameInputScreen] fetchProfile - user:", user);
-      if (user) {
-        try {
-          const { data, error } = await supabase
-            .from("profiles")
-            .select("full_name, username")
-            .eq("id", user.id)
-            .single();
-          console.log("[NameInputScreen] fetchProfile - select full_name:", {
-            data,
-            error,
-          });
-          if (error && error.code !== "PGRST116") {
-            // PGRST116: row not found
-            console.error("Error fetching name input profile data:", error);
-            // Optionally set a general error message for the screen
-          } else if (data) {
-            if (data.full_name) setFullName(data.full_name);
-            if (data.username) setUsername(data.username);
-          }
-        } catch (e) {
-          console.error(
-            "Unexpected error fetching name input profile data:",
-            e
-          );
-        }
-      }
-      setIsFetchingInitialData(false);
-      console.log("[NameInputScreen] fetchProfile - FIN. fullName:", fullName);
-    };
-    fetchProfile();
-  }, []);
-
-  const validateFullName = useCallback((name: string): boolean => {
-    const trimmedName = name.trim();
-    if (trimmedName.length === 0) {
-      setFullNameErrorKey("error_fullname_required");
-      return false;
-    }
-    if (/\d/.test(trimmedName)) {
-      setFullNameErrorKey("error_fullname_invalid_numbers");
-      return false;
-    }
-    setFullNameErrorKey(null);
-    return true;
-  }, []);
-
-  // Ajout d'une fonction pour vérifier l'unicité du username
-  const checkUsernameUnique = useCallback(
-    async (username: string, userId: string): Promise<boolean> => {
+  // Check for handle uniqueness in Supabase
+  const checkHandleUnique = async (h: string) => {
+    setCheckingHandle(true);
+    setHandleTaken(false);
+    
+    try {
+      // Vérifier si le username existe déjà
       const { data, error } = await supabase
-        .from("profiles")
-        .select("id")
-        .ilike("username", username)
-        .neq("id", userId)
+        .from('profiles')
+        .select('username')
+        .eq('username', h.trim())
         .maybeSingle();
+      
       if (error) {
-        console.error("Error checking username uniqueness:", error);
-        return false; // On laisse passer, mais on pourrait bloquer
-      }
-      return !data;
-    },
-    []
-  );
-
-  const validateUsername = useCallback(
-    async (username: string): Promise<boolean> => {
-      const trimmed = username.trim().replace(/^@/, "");
-      if (trimmed.length === 0) {
-        setUsernameErrorKey("error_username_required");
+        console.error('Erreur lors de la vérification du handle:', error);
+        setHandleError('Erreur lors de la vérification.');
+        setCheckingHandle(false);
         return false;
       }
-      if (!/^[a-zA-Z0-9_\.]+$/.test(trimmed)) {
-        setUsernameErrorKey("error_username_invalid");
+      
+      if (data) {
+        setHandleTaken(true);
+        setHandleError('This handle is already taken.');
+        setCheckingHandle(false);
         return false;
       }
-      // Vérification unicité
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (user && user.id) {
-        const isUnique = await checkUsernameUnique(trimmed, user.id);
-        if (!isUnique) {
-          setUsernameErrorKey("error_username_taken");
-          return false;
-        }
-      }
-      setUsernameErrorKey(null);
+      
+      setHandleTaken(false);
+      setHandleError('');
+      setCheckingHandle(false);
       return true;
-    },
-    [checkUsernameUnique]
-  );
+    } catch (error) {
+      console.error('Erreur inattendue:', error);
+      setHandleError('Erreur de connexion.');
+      setCheckingHandle(false);
+      return false;
+    }
+  };
+
+  // Simple validation for demo
+  const validateFullName = (name: string) => {
+    if (!name.trim()) {
+      setFullNameError('Full name is required.');
+      return false;
+    }
+    setFullNameError('');
+    return true;
+  };
+  const validateHandle = async (h: string) => {
+    if (!h.trim()) {
+      setHandleError('Handle is required.');
+      setHandleTaken(false);
+      return false;
+    }
+    const unique = await checkHandleUnique(h);
+    return unique;
+  };
 
   const canContinue =
-    !fullNameErrorKey &&
-    !usernameErrorKey &&
-    fullName.trim().length > 0 &&
-    username.trim().length > 0 &&
-    !isLoading &&
-    !isFetchingInitialData;
+    !!fullName.trim() &&
+    !!handle.trim() &&
+    !fullNameError &&
+    !handleError &&
+    !handleTaken &&
+    !checkingHandle &&
+    !isSubmitting;
 
-  useEffect(() => {
-    if (fullName !== "" || fullNameErrorKey) validateFullName(fullName);
-  }, [fullName, validateFullName, fullNameErrorKey]);
-
-  useEffect(() => {
-    if (username !== "" || usernameErrorKey) {
-      (async () => {
-        await validateUsername(username);
-      })();
-    }
-  }, [username, validateUsername, usernameErrorKey]);
-
-  const handleContinue = async () => {
-    const isFullNameValid = validateFullName(fullName);
-    const isUsernameValid = await validateUsername(username);
-    if (!isFullNameValid || !isUsernameValid) return;
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    console.log(
-      "[NameInputScreen] handleContinue - user:",
-      user,
-      "fullName:",
-      fullName,
-      "username:",
-      username
-    );
-    if (!user || !user.id) {
-      console.error("User not found for saving name.");
-      // TODO: Display a generic error to the user (e.g., session expired)
-      return;
-    }
-
-    setIsLoading(true);
-    console.log(
-      "[NameInputScreen] handleContinue() - Attempting to update profile for user:",
-      user.id,
-      "with name:",
-      fullName.trim(),
-      "and username:",
-      username.trim().replace(/^@/, "")
-    );
-
-    try {
-      const { data: updateData, error: updateError } = await supabase
-        .from("profiles")
-        .update({
+  const onContinue = async () => {
+    const validName = validateFullName(fullName);
+    const validHandle = await validateHandle(handle);
+    if (validName && validHandle) {
+      setIsSubmitting(true);
+      
+      try {
+        // Sauvegarder les données dans le profil
+        const { error } = await updateProfile({
           full_name: fullName.trim(),
-          username: username.trim().replace(/^@/, ""),
-          current_registration_step: "name_input",
-        })
-        .eq("id", user.id)
-        .select(); // Ajout de .select() pour obtenir des données en retour et confirmer l'écriture
-      console.log(
-        "[NameInputScreen] handleContinue - updateData:",
-        updateData,
-        "updateError:",
-        updateError
-      );
-      if (updateError) {
-        console.error(
-          "[NameInputScreen] Supabase error updating profile:",
-          JSON.stringify(updateError, null, 2)
-        );
-        Alert.alert(
-          t("error_saving_profile_title", lang, {
-            defaultValue: "Erreur de sauvegarde",
-          }),
-          t("error_saving_profile_message", lang, {
-            defaultValue: `Impossible d'enregistrer le nom. Veuillez réessayer. Détail: ${updateError.message} (Code: ${updateError.code})`,
-            message: updateError.message,
-            code: updateError.code,
-          })
-        );
-        setIsLoading(false); // Assurez-vous que isLoading est false ici
-      } else {
-        console.log(
-          "[NameInputScreen] Profile updated successfully. Response data:",
-          JSON.stringify(updateData, null, 2)
-        );
-        console.log(
-          `[NameInputScreen] isLoading state BEFORE navigation: ${isLoading}`
-        );
-        console.log(
-          "[NameInputScreen] Attempting to navigate to AvatarPick..."
-        );
-        try {
-          navigation.navigate("AvatarPick");
-          console.log(
-            "[NameInputScreen] Successfully called navigation.navigate('AvatarPick')"
-          );
-        } catch (navError: any) {
-          console.error(
-            "[NameInputScreen] ERROR DURING NAVIGATION CALL to AvatarPick:",
-            JSON.stringify(navError, null, 2)
-          );
-          Alert.alert(
-            "Navigation Error",
-            `Failed to navigate to AvatarPick: ${navError.message}`
-          );
+          username: handle.trim(),
+        });
+
+        if (error) {
+          console.error('Erreur lors de la mise à jour du profil:', error);
+          Alert.alert('Erreur', 'Impossible de sauvegarder vos informations. Veuillez réessayer.');
+          setIsSubmitting(false);
+          return;
         }
-        // setIsLoading(false) sera appelé dans le finally.
+
+        // Navigate to the next screen in the auth flow
+        navigateNext('avatar-pick');
+      } catch (error) {
+        console.error('Erreur inattendue:', error);
+        Alert.alert('Erreur', 'Une erreur inattendue s\'est produite.');
+        setIsSubmitting(false);
       }
-    } catch (e) {
-      console.error("[NameInputScreen] Exception in handleContinue:", e);
-    } finally {
-      setIsLoading(false);
-      console.log(
-        "[NameInputScreen] handleContinue - FIN. isLoading:",
-        isLoading
-      );
     }
   };
-
-  // Sécurité : si la session saute, on force la navigation vers PhoneVerification
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session || !session.user) {
-        console.error(
-          "[NameInputScreen] ERREUR: Session absente, navigation forcée vers PhoneVerification."
-        );
-        navigation.navigate("PhoneVerification"); // 'as never' n'est plus nécessaire si le type est correct
-      }
-    });
-  }, [navigation]);
-
-  useEffect(() => {
-    const unsubscribe = navigation.addListener("beforeRemove", (e) => {
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session && session.user) {
-          e.preventDefault();
-          console.warn(
-            "[NameInputScreen] Go back bloqué car session présente."
-          );
-        }
-      });
-    });
-    return unsubscribe;
-  }, [navigation]);
-
-  // Handler pour la croix (déconnexion)
-  const handleLogout = async () => {
-    console.log("[NameInputScreen] Déconnexion demandée via la croix.");
-    try {
-      await supabase.auth.signOut();
-      console.log(
-        "[NameInputScreen] Déconnexion réussie. Navigation vers PhoneVerification."
-      );
-      navigation.reset({ index: 0, routes: [{ name: "PhoneVerification" }] });
-    } catch (e) {
-      console.error("[NameInputScreen] Erreur lors de la déconnexion:", e);
-      Alert.alert(
-        "Erreur",
-        "Impossible de se déconnecter. Veuillez réessayer."
-      );
-    }
-  };
-
-  if (isFetchingInitialData && !isLoading) {
-    // Show loader only for initial data fetch if not already saving
-    return (
-      <View style={styles.loadingScreenContainer}>
-        <ActivityIndicator size="large" color={COLORS.black} />
-      </View>
-    );
-  }
 
   return (
-    <>
-      {/* Croix de déconnexion en haut à gauche */}
-      <TouchableOpacity
-        onPress={handleLogout}
-        style={{
-          position: "absolute",
-          top: Platform.OS === "ios" ? 54 : 34,
-          left: 24,
-          zIndex: 10,
-        }}
-        hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
-      >
-        <Ionicons name="close" size={28} color={COLORS.black} />
-      </TouchableOpacity>
-      <ScreenLayout
-        navigation={navigation}
-        title={t("name_input_title", lang)}
-        subtitle={t("name_input_subtitle", lang)}
-        progress={NAME_INPUT_PROGRESS}
-        onContinue={handleContinue}
-        continueDisabled={!canContinue || isLoading}
-        showBackButton={false}
-      >
-        <KeyboardAvoidingView
-          style={styles.flexGrow}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
+    <View style={[styles.safeArea, { paddingTop: insets.top }]}>
+      {/* Header Row */}
+      <View style={styles.headerRow}>
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+          style={styles.backButton}
+          onPress={handleBackPress}
         >
-          <View style={styles.contentContainer}>
-            <View style={styles.inputWrapper}>
-              <TextInput
-                style={[
-                  styles.textInput,
-                  fullNameErrorKey ? styles.inputError : {},
-                ]}
-                placeholder={t("name_input_fullname_placeholder", lang)}
-                placeholderTextColor={COLORS.grey1}
-                value={fullName}
-                onChangeText={(text) => {
-                  setFullName(text);
-                  if (fullNameErrorKey) validateFullName(text);
-                }}
-                onBlur={() => validateFullName(fullName)}
-                autoCapitalize="words"
-                returnKeyType="next"
-                editable={!isLoading}
-                // onSubmitEditing={() => { /* focus username input */ }} // TODO
-              />
-              {fullNameErrorKey && (
-                <Text style={styles.errorText}>
-                  {t(fullNameErrorKey, lang)}
-                </Text>
-              )}
-            </View>
-            <View style={styles.inputWrapper}>
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <Text
-                  style={{
-                    fontSize: 17,
-                    color: COLORS.grey3,
-                    marginLeft: 12,
-                    marginRight: 2,
-                  }}
-                >
-                  @
-                </Text>
-                <TextInput
-                  style={[
-                    styles.textInput,
-                    usernameErrorKey ? styles.inputError : {},
-                    { flex: 1, marginLeft: 0 },
-                  ]}
-                  placeholder={t("name_input_username_placeholder", lang, {
-                    defaultValue: "Choose a username",
-                  })}
-                  placeholderTextColor={COLORS.grey1}
-                  value={username.replace(/^@/, "")}
-                  onChangeText={(text) => {
-                    setUsername(text.replace(/^@/, ""));
-                    if (usernameErrorKey)
-                      validateUsername(text.replace(/^@/, ""));
-                  }}
-                  onBlur={async () => {
-                    await validateUsername(username);
-                  }}
-                  autoCapitalize="none"
-                  returnKeyType="done"
-                  editable={!isLoading}
-                />
-              </View>
-              {usernameErrorKey && (
-                <Text style={styles.errorText}>
-                  {t(usernameErrorKey, lang)}
-                </Text>
-              )}
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </ScreenLayout>
-    </>
-  );
-};
+          <Text style={styles.backArrow}>←</Text>
+        </TouchableOpacity>
+        <View style={styles.progressTrack}>
+          <View style={[styles.progressFill, { width: `${getProgress() * 100}%` }]} />
+        </View>
+      </View>
 
-export default NameInputScreen;
+      {/* Title & Subtitle */}
+      <Text
+        style={styles.title}
+        accessibilityRole="header"
+        accessibilityLabel="What should we call you?"
+      >
+        What should we call <Text style={styles.titleItalic}>you?</Text>
+      </Text>
+      <Text style={styles.subtitle} accessibilityRole="text">
+        Tell us your name and pick a{'\n'}nickname friends can find you with.
+      </Text>
+
+      {/* Inputs */}
+      <KeyboardAvoidingView
+        style={styles.inputsContainer}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={perfectSize(40)}
+      >
+        <View style={styles.inputWrapper}>
+          <TextInput
+            style={[styles.input, fullNameError ? styles.inputError : undefined]}
+            placeholder="Enter your full name"
+            placeholderTextColor="#AEB0B4"
+            value={fullName}
+            onChangeText={setFullName}
+            onBlur={() => validateFullName(fullName)}
+            returnKeyType="next"
+            autoCapitalize="words"
+            accessible
+            accessibilityLabel="Full name"
+            accessibilityRole="text"
+            onSubmitEditing={() => handleInputRef.current?.focus()}
+          />
+          {!!fullNameError && <Text style={styles.errorText}>{fullNameError}</Text>}
+        </View>
+        <View style={styles.inputWrapper}>
+          <TextInput
+            ref={handleInputRef}
+            style={[styles.input, handleError ? styles.inputError : undefined]}
+            placeholder="Create a handle (e.g., @ana_eremina_)"
+            placeholderTextColor="#AEB0B4"
+            value={handle}
+            onChangeText={async (text) => {
+              setHandle(text);
+              setHandleError('');
+              setHandleTaken(false);
+              if (text.trim()) {
+                await validateHandle(text);
+              }
+            }}
+            onBlur={async () => {
+              if (handle.trim()) {
+                await validateHandle(handle);
+              }
+            }}
+            returnKeyType="done"
+            autoCapitalize="none"
+            accessible
+            accessibilityLabel="Handle"
+            accessibilityRole="text"
+          />
+          {!!handleError && <Text style={styles.errorText}>{handleError}</Text>}
+        </View>
+      </KeyboardAvoidingView>
+
+      {/* Illustration */}
+      <View
+        style={styles.illustrationContainer}
+        accessible
+        accessibilityLabel="Friends cheers illustration"
+      >
+        <Image
+          source={require('@/assets/images/register/name.png')}
+          style={styles.illustration}
+          resizeMode="contain"
+          accessibilityIgnoresInvertColors
+        />
+      </View>
+
+      {/* Continue Button */}
+      <TouchableOpacity
+        style={[styles.continueButton, !canContinue && { opacity: 0.4 }]}
+        onPress={onContinue}
+        accessibilityRole="button"
+        accessibilityLabel="Continue"
+        activeOpacity={0.8}
+        disabled={!canContinue}
+      >
+        <Text style={styles.continueButtonText}>
+          {isSubmitting ? 'Saving...' : 'Continue'}
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+});
 
 const styles = StyleSheet.create({
-  flexGrow: { flexGrow: 1 },
-  contentContainer: {
+  safeArea: {
     flex: 1,
-    alignItems: "center",
-    paddingHorizontal: 0,
-    justifyContent: "flex-start",
-    paddingTop: 20,
+    backgroundColor: '#fff',
+    paddingHorizontal: perfectSize(24),
   },
-  inputWrapper: { alignSelf: "stretch", marginBottom: 10 },
-  textInput: {
-    height: 56,
-    borderColor: COLORS.grey0,
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: perfectSize(8),
+    marginBottom: perfectSize(16),
+  },
+  backButton: {
+    width: perfectSize(44),
+    height: perfectSize(44),
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+  },
+  backArrow: {
+    fontSize: perfectSize(28),
+    color: '#016fff',
+    marginLeft: perfectSize(0),
+  },
+  progressTrack: {
+    flex: 1,
+    height: perfectSize(2),
+    backgroundColor: '#E5E5E5',
+    marginLeft: perfectSize(8),
+    marginRight: perfectSize(8),
+    borderRadius: perfectSize(1),
+    overflow: 'hidden',
+  },
+  progressFill: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#016fff',
+    borderRadius: perfectSize(1),
+  },
+  title: {
+    marginTop: perfectSize(16),
+    fontSize: perfectSize(34),
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+    color: '#000',
+    textAlign: 'center',
+    lineHeight: perfectSize(41),
+    letterSpacing: 0.34,
+    fontWeight: '400',
+  },
+  titleItalic: {
+    fontStyle: 'italic',
+    fontFamily: Platform.OS === 'ios' ? 'Georgia-Italic' : 'serif',
+  },
+  subtitle: {
+    marginTop: perfectSize(16),
+    fontSize: perfectSize(16),
+    color: '#555555',
+    textAlign: 'center',
+    lineHeight: perfectSize(22),
+    marginBottom: perfectSize(24),
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
+    fontWeight: '400',
+  },
+  inputsContainer: {
+    width: '100%',
+    marginBottom: perfectSize(16),
+  },
+  inputWrapper: {
+    marginBottom: perfectSize(12),
+  },
+  input: {
+    height: perfectSize(56),
+    borderColor: '#E5E5E5',
     borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    fontSize: 17,
-    fontFamily: Platform.OS === "ios" ? "System" : "sans-serif",
-    color: COLORS.black,
-    backgroundColor: COLORS.white,
+    borderRadius: perfectSize(12),
+    paddingHorizontal: perfectSize(16),
+    fontSize: perfectSize(17),
+    color: '#000',
+    backgroundColor: '#fff',
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
   },
-  inputError: { borderColor: COLORS.error },
+  inputError: {
+    borderColor: '#FF3B30',
+  },
   errorText: {
-    color: COLORS.error,
-    fontSize: 12,
-    marginTop: 4,
-    paddingLeft: 4,
+    color: '#FF3B30',
+    fontSize: perfectSize(12),
+    marginTop: perfectSize(4),
+    paddingLeft: perfectSize(4),
   },
-  loadingScreenContainer: {
+  illustrationContainer: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: COLORS.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: perfectSize(8),
+    marginBottom: perfectSize(8),
+  },
+  illustration: {
+    width: perfectSize(280),
+    height: perfectSize(180),
+  },
+  continueButton: {
+    height: perfectSize(60),
+    backgroundColor: '#016fff',
+    borderRadius: perfectSize(14),
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: perfectSize(16),
+  },
+  continueButtonText: {
+    color: '#fff',
+    fontSize: perfectSize(20),
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+    fontWeight: '400',
   },
 });
 
-/*
-TODO:
-1. Assurez-vous que les clés de traduction suivantes existent:
-   "error_fullname_required": "Full name is required."
-   "error_fullname_invalid_numbers": "Full name cannot contain numbers."
-   "error_saving_profile": "Error saving profile."
-   (et les clés existantes comme "name_input_title", "name_input_subtitle", "name_input_fullname_placeholder", "unexpected_error")
-2. Testez la lecture des données existantes et la sauvegarde.
-3. Implémentez le focus sur le champ username après la soumission du full name si souhaité.
-4. Si ScreenLayout ne gère pas `isLoading`, l'ActivityIndicator pour la sauvegarde est déjà implicitement géré par `continueDisabled`.
-*/
+export default NameInputScreen;
