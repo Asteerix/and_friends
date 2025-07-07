@@ -1,15 +1,15 @@
-import React, { useState, useRef, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Animated,
-  ActivityIndicator,
-} from 'react-native';
-import { Audio } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
+import { Audio } from 'expo-av';
+import React, { useState, useRef, useEffect } from 'react';
+import {
+  ActivityIndicator,
+  Animated,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
 interface VoiceMessageProps {
   uri: string;
@@ -18,7 +18,6 @@ interface VoiceMessageProps {
   transcription?: string;
   onTranscribe?: () => void;
 }
-
 export default function VoiceMessage({
   uri,
   duration,
@@ -31,14 +30,14 @@ export default function VoiceMessage({
   const [isLoading, setIsLoading] = useState(false);
   const [playbackPosition, setPlaybackPosition] = useState(0);
   const [playbackDuration, setPlaybackDuration] = useState(duration * 1000);
-  
+
   const progressAnim = useRef(new Animated.Value(0)).current;
-  const playbackSubscription = useRef<any>(null);
+  // const playbackSubscription = useRef<any>(null);
 
   useEffect(() => {
     return () => {
       if (sound) {
-        sound.unloadAsync();
+        void sound.unloadAsync();
       }
     };
   }, [sound]);
@@ -61,11 +60,11 @@ export default function VoiceMessage({
     }
   };
 
-  const onPlaybackStatusUpdate = (status: Audio.PlaybackStatus) => {
+  const onPlaybackStatusUpdate = (status: any) => {
     if (status.isLoaded) {
       setPlaybackPosition(status.positionMillis || 0);
       setPlaybackDuration(status.durationMillis || duration * 1000);
-      
+
       if (status.didJustFinish) {
         setIsPlaying(false);
         setPlaybackPosition(0);
@@ -77,7 +76,7 @@ export default function VoiceMessage({
   const togglePlayback = async () => {
     try {
       let currentSound = sound;
-      
+
       if (!currentSound) {
         currentSound = await loadAudio();
         if (!currentSound) return;
@@ -120,11 +119,7 @@ export default function VoiceMessage({
     <View style={[styles.container, isOwn ? styles.ownMessage : styles.otherMessage]}>
       <View style={styles.audioContainer}>
         {/* Play/Pause Button */}
-        <TouchableOpacity
-          style={styles.playButton}
-          onPress={togglePlayback}
-          disabled={isLoading}
-        >
+        <TouchableOpacity style={styles.playButton} onPress={togglePlayback} disabled={isLoading}>
           {isLoading ? (
             <ActivityIndicator size="small" color={isOwn ? 'white' : '#007AFF'} />
           ) : (
@@ -146,7 +141,7 @@ export default function VoiceMessage({
             maximumTrackTintColor={isOwn ? 'rgba(255,255,255,0.3)' : '#E0E0E0'}
             thumbTintColor={isOwn ? 'white' : '#007AFF'}
           />
-          
+
           {/* Waveform visualization (static) */}
           <View style={styles.waveform}>
             {[...Array(30)].map((_, i) => (
@@ -176,14 +171,9 @@ export default function VoiceMessage({
           "{transcription}"
         </Text>
       ) : (
-        <TouchableOpacity
-          style={styles.transcribeButton}
-          onPress={onTranscribe}
-        >
+        <TouchableOpacity style={styles.transcribeButton} onPress={onTranscribe}>
           <Ionicons name="text" size={16} color={isOwn ? 'white' : '#007AFF'} />
-          <Text style={[styles.transcribeText, isOwn && styles.ownTranscribeText]}>
-            Transcribe
-          </Text>
+          <Text style={[styles.transcribeText, isOwn && styles.ownTranscribeText]}>Transcribe</Text>
         </TouchableOpacity>
       )}
     </View>

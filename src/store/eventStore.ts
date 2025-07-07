@@ -1,6 +1,6 @@
-import { create } from "zustand";
+import { create } from 'zustand';
 
-export type RSVPStatus = "unknown" | "going" | "maybe" | "notGoing";
+export type RSVPStatus = 'unknown' | 'going' | 'maybe' | 'notGoing';
 
 interface BringItem {
   label: string;
@@ -20,8 +20,7 @@ interface EventStore {
   claimItem: (eventId: string, itemLabel: string, user: string) => void;
   guests: Record<string, Guest[]>;
   setGuests: (eventId: string, guests: Guest[]) => void;
-}
-
+};
 export const useEventStore = create<EventStore>((set) => ({
   rsvp: {},
   setRSVP: (eventId, status) =>

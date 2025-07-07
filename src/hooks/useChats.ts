@@ -1,6 +1,8 @@
-import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
-import type { PostgrestError } from "@supabase/supabase-js";
+import type { PostgrestError } from '@supabase/supabase-js';
+import { useEffect, useState } from 'react';
+
+
+import { supabase } from '@/shared/lib/supabase/client';
 
 export interface Chat {
   id?: string;
@@ -9,8 +11,7 @@ export interface Chat {
   event_id?: string;
   created_by?: string;
   created_at?: string;
-}
-
+};
 export function useChats() {
   const [chats, setChats] = useState<Chat[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -19,9 +20,9 @@ export function useChats() {
   async function fetchChats() {
     setLoading(true);
     const { data, error } = await supabase
-      .from("chats")
-      .select("*")
-      .order("created_at", { ascending: false });
+      .from('chats')
+      .select('*')
+      .order('created_at', { ascending: false });
     setChats((data as Chat[]) || []);
     setError(error);
     setLoading(false);
@@ -29,7 +30,7 @@ export function useChats() {
 
   async function createChat(chat: Chat) {
     const { data, error } = await supabase
-      .from("chats")
+      .from('chats')
       .insert([chat])
       .select();
     if (!error && data) setChats((prev) => [...prev, ...(data as Chat[])]);
@@ -38,7 +39,7 @@ export function useChats() {
 
   async function joinChat(chat_id: string, user_id: string) {
     return await supabase
-      .from("chat_participants")
+      .from('chat_participants')
       .insert([{ chat_id, user_id }]);
   }
 

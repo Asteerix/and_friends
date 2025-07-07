@@ -14,13 +14,13 @@ import {
   TextInput,
   View,
 } from 'react-native';
-
 import { supabase } from '@/shared/lib/supabase/client';
 import { getDeviceLanguage, t } from '@/shared/locales';
 import ScreenLayout from '@/shared/ui/ScreenLayout';
 import { useOnboardingStatus } from '@/hooks/useOnboardingStatus';
 import { useAuthNavigation } from '@/shared/hooks/useAuthNavigation';
 import { useRegistrationStep } from '@/shared/hooks/useRegistrationStep';
+import SearchIcon from '@/assets/svg/search.svg';
 
 // JamPickerScreen.tsx
 // ---------------------------------------------------------------------------
@@ -350,7 +350,7 @@ const JamPickerScreen: React.FC = () => {
           keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
         >
           <View style={styles.searchBox}>
-            <Text style={styles.searchIcon}>🔍</Text>
+            <SearchIcon width={20} height={20} />
             <TextInput
               style={styles.searchInput}
               placeholder={t('jam_picker_placeholder', lang)}
@@ -362,42 +362,47 @@ const JamPickerScreen: React.FC = () => {
             />
           </View>
 
-          {isSearching && <ActivityIndicator style={styles.loader} color={COLORS.black} />}
-          {searchError && !isSearching && <Text style={styles.errorText}>{searchError}</Text>}
+          <View style={styles.listContainer}>
+            {isSearching && <ActivityIndicator style={styles.loader} color={COLORS.black} />}
+            {searchError && !isSearching && <Text style={styles.errorText}>{searchError}</Text>}
 
-          {!isSearching && tracks.length === 0 && debouncedQuery.trim() !== '' && !searchError && (
-            <Text style={styles.infoText}>
-              {t('jam_picker_no_results', lang, { query: debouncedQuery })}
-            </Text>
-          )}
-          {!isSearching &&
-            tracks.length === 0 &&
-            debouncedQuery.trim() === '' &&
-            !searchError &&
-            !selectedTrack && (
-              <Text style={styles.infoText}>{t('jam_picker_initial_prompt', lang)}</Text>
-            )}
+            {!isSearching &&
+              tracks.length === 0 &&
+              debouncedQuery.trim() !== '' &&
+              !searchError && (
+                <Text style={styles.infoText}>
+                  {t('jam_picker_no_results', lang, { query: debouncedQuery })}
+                </Text>
+              )}
+            {!isSearching &&
+              tracks.length === 0 &&
+              debouncedQuery.trim() === '' &&
+              !searchError &&
+              !selectedTrack && (
+                <Text style={styles.infoText}>{t('jam_picker_initial_prompt', lang)}</Text>
+              )}
 
-          <FlatList
-            data={tracks}
-            keyExtractor={(item) => item.id}
-            renderItem={renderItem}
-            contentContainerStyle={styles.listContentContainer}
-            showsVerticalScrollIndicator={false}
-            style={styles.listStyle}
-            ListHeaderComponent={
-              selectedTrack &&
-              !tracks.find((track) => track.id === selectedTrack.id) &&
-              !isSearching ? (
-                // If selected track is not in current search results, show it at the top
-                <View>
-                  <Text style={styles.currentJamLabel}>{t('jam_picker_current_jam', lang)}</Text>
-                  {renderItem({ item: selectedTrack })}
-                  <View style={styles.separator} />
-                </View>
-              ) : null
-            }
-          />
+            <FlatList
+              data={tracks}
+              keyExtractor={(item) => item.id}
+              renderItem={renderItem}
+              contentContainerStyle={styles.listContentContainer}
+              showsVerticalScrollIndicator={false}
+              style={styles.listStyle}
+              ListHeaderComponent={
+                selectedTrack &&
+                !tracks.find((track) => track.id === selectedTrack.id) &&
+                !isSearching ? (
+                  // If selected track is not in current search results, show it at the top
+                  <View>
+                    <Text style={styles.currentJamLabel}>{t('jam_picker_current_jam', lang)}</Text>
+                    {renderItem({ item: selectedTrack })}
+                    <View style={styles.separator} />
+                  </View>
+                ) : null
+              }
+            />
+          </View>
         </KeyboardAvoidingView>
       </ScreenLayout>
     </>
@@ -418,12 +423,23 @@ const styles = StyleSheet.create({
     marginTop: 10,
     marginBottom: 16,
   },
-  searchIcon: { fontSize: 18, color: COLORS.grey2, marginRight: 8 },
   searchInput: {
     flex: 1,
     fontSize: 17,
     color: COLORS.black,
     fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
+    marginLeft: 12,
+  },
+  listContainer: {
+    flex: 1,
+    maxHeight: '70%',
+    backgroundColor: '#F8F8F8',
+    borderRadius: 16,
+    marginBottom: 16,
+    paddingHorizontal: 12,
+    paddingTop: 12,
+    borderWidth: 1,
+    borderColor: COLORS.grey0,
   },
   loader: { marginVertical: 24 },
   errorText: {
@@ -440,7 +456,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   listStyle: { flex: 1, width: '100%' },
-  listContentContainer: { paddingTop: 8, paddingBottom: 120 },
+  listContentContainer: { paddingTop: 8, paddingBottom: 16 },
   songRow: {
     flexDirection: 'row',
     alignItems: 'center',

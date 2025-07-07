@@ -1,21 +1,22 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-  TextInput,
-  Image,
-  Share,
-  Alert,
-} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation, useRoute } from '@react-navigation/native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useProfile } from "@/hooks/useProfile";
-import * as Haptics from 'expo-haptics';
 import * as Contacts from 'expo-contacts';
+import * as Haptics from 'expo-haptics';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import {
+  Alert,
+  FlatList,
+  Image,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  Share,
+} from 'react-native';
+
+import { useProfile } from '@/hooks/useProfile';
 
 interface Friend {
   id: string;
@@ -26,17 +27,17 @@ interface Friend {
   isRegistered: boolean;
   isSelected: boolean;
 }
-
 export default function InviteFriendsScreen() {
-  const navigation = useNavigation();
-  const route = useRoute();
-  const { eventId, eventTitle } = route.params as any;
+  const router = useRouter();
+
+  const params = useLocalSearchParams<{ eventId: string; eventTitle: string }>();
+  const { eventTitle } = params;
   const { fetchAllProfiles } = useProfile();
-  
+
   const [searchQuery, setSearchQuery] = useState('');
   const [friends, setFriends] = useState<Friend[]>([]);
   const [selectedFriends, setSelectedFriends] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'app' | 'contacts'>('app');
 
   useEffect(() => {
@@ -45,12 +46,12 @@ export default function InviteFriendsScreen() {
 
   const loadFriends = async () => {
     setLoading(true);
-    
+
     if (activeTab === 'app') {
       // Load app users
       const result = await fetchAllProfiles();
       if (result) {
-        const appFriends = result.profiles.map(profile => ({
+        const appFriends = result.profiles.map((profile) => ({
           id: profile.id,
           name: profile.display_name || profile.full_name || 'Unknown',
           username: profile.username,
@@ -70,8 +71,10 @@ export default function InviteFriendsScreen() {
 
         if (data.length > 0) {
           const contactFriends = data
-            .filter(contact => contact.name && contact.phoneNumbers && contact.phoneNumbers.length > 0)
-            .map(contact => ({
+            .filter(
+              (contact) => contact.name && contact.phoneNumbers && contact.phoneNumbers.length > 0
+            )
+            .map((contact) => ({
               id: contact.id || '',
               name: contact.name || '',
               phoneNumber: contact.phoneNumbers?.[0]?.number,
@@ -83,16 +86,16 @@ export default function InviteFriendsScreen() {
         }
       }
     }
-    
+
     setLoading(false);
   };
 
   const toggleFriendSelection = (friendId: string) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    
-    setSelectedFriends(prev => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    setSelectedFriends((prev) => {
       if (prev.includes(friendId)) {
-        return prev.filter(id => id !== friendId);
+        return prev.filter((id) => id !== friendId);
       } else {
         return [...prev, friendId];
       }
@@ -107,17 +110,17 @@ export default function InviteFriendsScreen() {
 
     if (activeTab === 'app') {
       // Send in-app invitations
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Alert.alert(
         'Invitations Sent!',
         `${selectedFriends.length} friends have been invited to ${eventTitle}.`,
-        [{ text: 'OK', onPress: () => navigation.goBack() }]
+        [{ text: 'OK', onPress: () => router.back() }]
       );
     } else {
       // Share via SMS/WhatsApp
-      const selectedContacts = friends.filter(f => selectedFriends.includes(f.id));
-      const phoneNumbers = selectedContacts.map(c => c.phoneNumber).join(', ');
-      
+      // const selectedContacts = friends.filter(f => selectedFriends.includes(f.id));
+      // const phoneNumbers = selectedContacts.map(c => c.phoneNumber).join(', ');
+
       try {
         await Share.share({
           message: `Hey! You're invited to ${eventTitle} 🎉\n\nJoin me on & friends app to RSVP!\n\nDownload: https://andfriends.app`,
@@ -129,9 +132,10 @@ export default function InviteFriendsScreen() {
     }
   };
 
-  const filteredFriends = friends.filter(friend =>
-    friend.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    friend.username?.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredFriends = friends.filter(
+    (friend) =>
+      friend.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      friend.username?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const renderFriend = ({ item }: { item: Friend }) => {
@@ -147,17 +151,13 @@ export default function InviteFriendsScreen() {
             <Image source={{ uri: item.avatar }} style={styles.avatar} />
           ) : (
             <View style={styles.avatarPlaceholder}>
-              <Text style={styles.avatarText}>
-                {item.name.charAt(0).toUpperCase()}
-              </Text>
+              <Text style={styles.avatarText}>{item.name.charAt(0).toUpperCase()}</Text>
             </View>
           )}
-          
+
           <View style={styles.friendInfo}>
             <Text style={styles.friendName}>{item.name}</Text>
-            {item.username && (
-              <Text style={styles.friendUsername}>@{item.username}</Text>
-            )}
+            {item.username && <Text style={styles.friendUsername}>@{item.username}</Text>}
             {item.phoneNumber && !item.isRegistered && (
               <Text style={styles.friendPhone}>{item.phoneNumber}</Text>
             )}
@@ -170,15 +170,8 @@ export default function InviteFriendsScreen() {
               <Text style={styles.inviteBadgeText}>Invite</Text>
             </View>
           )}
-          <View
-            style={[
-              styles.checkbox,
-              isSelected && styles.checkboxSelected,
-            ]}
-          >
-            {isSelected && (
-              <Ionicons name="checkmark" size={16} color="white" />
-            )}
+          <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
+            {isSelected && <Ionicons name="checkmark" size={16} color="white" />}
           </View>
         </View>
       </TouchableOpacity>
@@ -188,19 +181,13 @@ export default function InviteFriendsScreen() {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <LinearGradient
-        colors={['#45B7D1', '#3498DB']}
-        style={styles.header}
-      >
+      <LinearGradient colors={['#45B7D1', '#3498DB']} style={styles.header}>
         <View style={styles.headerTop}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
+          <TouchableOpacity onPress={() => router.back()}>
             <Ionicons name="close" size={28} color="white" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Invite Friends</Text>
-          <TouchableOpacity
-            onPress={handleInviteSelected}
-            disabled={selectedFriends.length === 0}
-          >
+          <TouchableOpacity onPress={handleInviteSelected} disabled={selectedFriends.length === 0}>
             <Text
               style={[
                 styles.inviteButton,
@@ -258,7 +245,7 @@ export default function InviteFriendsScreen() {
           if (selectedFriends.length === filteredFriends.length) {
             setSelectedFriends([]);
           } else {
-            setSelectedFriends(filteredFriends.map(f => f.id));
+            setSelectedFriends(filteredFriends.map((f) => f.id));
           }
         }}
       >
@@ -276,13 +263,9 @@ export default function InviteFriendsScreen() {
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <Text style={styles.emptyStateEmoji}>
-              {activeTab === 'app' ? '👥' : '📱'}
-            </Text>
+            <Text style={styles.emptyStateEmoji}>{activeTab === 'app' ? '👥' : '📱'}</Text>
             <Text style={styles.emptyStateText}>
-              {activeTab === 'app'
-                ? 'No friends found'
-                : 'No contacts available'}
+              {activeTab === 'app' ? 'No friends found' : 'No contacts available'}
             </Text>
             <Text style={styles.emptyStateSubtext}>
               {activeTab === 'app'
@@ -296,14 +279,8 @@ export default function InviteFriendsScreen() {
       {/* Bottom Action */}
       {selectedFriends.length > 0 && (
         <View style={styles.bottomAction}>
-          <TouchableOpacity
-            style={styles.inviteSelectedButton}
-            onPress={handleInviteSelected}
-          >
-            <LinearGradient
-              colors={['#45B7D1', '#3498DB']}
-              style={styles.inviteSelectedGradient}
-            >
+          <TouchableOpacity style={styles.inviteSelectedButton} onPress={handleInviteSelected}>
+            <LinearGradient colors={['#45B7D1', '#3498DB']} style={styles.inviteSelectedGradient}>
               <Text style={styles.inviteSelectedText}>
                 {activeTab === 'app'
                   ? `Send ${selectedFriends.length} Invitation${selectedFriends.length > 1 ? 's' : ''}`

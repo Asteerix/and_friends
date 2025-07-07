@@ -1,0 +1,926 @@
+[
+  {
+    "section": "CONFIGURATION DÉTAILLÉE PAR TABLE",
+    "table_name": "activities",
+    "realtime_enabled": "OUI",
+    "should_have_realtime": "OUI",
+    "rls_enabled": "OUI"
+  },
+  {
+    "section": "CONFIGURATION DÉTAILLÉE PAR TABLE",
+    "table_name": "chat_participants",
+    "realtime_enabled": "OUI",
+    "should_have_realtime": "OUI",
+    "rls_enabled": "OUI"
+  },
+  {
+    "section": "CONFIGURATION DÉTAILLÉE PAR TABLE",
+    "table_name": "chats",
+    "realtime_enabled": "OUI",
+    "should_have_realtime": "OUI",
+    "rls_enabled": "OUI"
+  },
+  {
+    "section": "CONFIGURATION DÉTAILLÉE PAR TABLE",
+    "table_name": "event_comments",
+    "realtime_enabled": "OUI",
+    "should_have_realtime": "OUI",
+    "rls_enabled": "OUI"
+  },
+  {
+    "section": "CONFIGURATION DÉTAILLÉE PAR TABLE",
+    "table_name": "event_likes",
+    "realtime_enabled": "OUI",
+    "should_have_realtime": "OUI",
+    "rls_enabled": "OUI"
+  },
+  {
+    "section": "CONFIGURATION DÉTAILLÉE PAR TABLE",
+    "table_name": "event_memories",
+    "realtime_enabled": "OUI",
+    "should_have_realtime": "OUI",
+    "rls_enabled": "OUI"
+  },
+  {
+    "section": "CONFIGURATION DÉTAILLÉE PAR TABLE",
+    "table_name": "event_participants",
+    "realtime_enabled": "OUI",
+    "should_have_realtime": "OUI",
+    "rls_enabled": "OUI"
+  },
+  {
+    "section": "CONFIGURATION DÉTAILLÉE PAR TABLE",
+    "table_name": "events",
+    "realtime_enabled": "OUI",
+    "should_have_realtime": "OUI",
+    "rls_enabled": "OUI"
+  },
+  {
+    "section": "CONFIGURATION DÉTAILLÉE PAR TABLE",
+    "table_name": "friendships",
+    "realtime_enabled": "OUI",
+    "should_have_realtime": "OUI",
+    "rls_enabled": "OUI"
+  },
+  {
+    "section": "CONFIGURATION DÉTAILLÉE PAR TABLE",
+    "table_name": "memory_comments",
+    "realtime_enabled": "OUI",
+    "should_have_realtime": "OUI",
+    "rls_enabled": "OUI"
+  },
+  {
+    "section": "CONFIGURATION DÉTAILLÉE PAR TABLE",
+    "table_name": "memory_likes",
+    "realtime_enabled": "OUI",
+    "should_have_realtime": "OUI",
+    "rls_enabled": "OUI"
+  },
+  {
+    "section": "CONFIGURATION DÉTAILLÉE PAR TABLE",
+    "table_name": "messages",
+    "realtime_enabled": "OUI",
+    "should_have_realtime": "OUI",
+    "rls_enabled": "OUI"
+  },
+  {
+    "section": "CONFIGURATION DÉTAILLÉE PAR TABLE",
+    "table_name": "notifications",
+    "realtime_enabled": "OUI",
+    "should_have_realtime": "OUI",
+    "rls_enabled": "OUI"
+  },
+  {
+    "section": "CONFIGURATION DÉTAILLÉE PAR TABLE",
+    "table_name": "poll_votes",
+    "realtime_enabled": "OUI",
+    "should_have_realtime": "OUI",
+    "rls_enabled": "OUI"
+  },
+  {
+    "section": "CONFIGURATION DÉTAILLÉE PAR TABLE",
+    "table_name": "polls",
+    "realtime_enabled": "OUI",
+    "should_have_realtime": "OUI",
+    "rls_enabled": "OUI"
+  },
+  {
+    "section": "CONFIGURATION DÉTAILLÉE PAR TABLE",
+    "table_name": "stories",
+    "realtime_enabled": "OUI",
+    "should_have_realtime": "OUI",
+    "rls_enabled": "OUI"
+  },
+  {
+    "section": "CONFIGURATION DÉTAILLÉE PAR TABLE",
+    "table_name": "story_views",
+    "realtime_enabled": "OUI",
+    "should_have_realtime": "OUI",
+    "rls_enabled": "OUI"
+  },
+  {
+    "section": "CONFIGURATION DÉTAILLÉE PAR TABLE",
+    "table_name": "contacts",
+    "realtime_enabled": "NON",
+    "should_have_realtime": "NON",
+    "rls_enabled": "OUI"
+  },
+  {
+    "section": "CONFIGURATION DÉTAILLÉE PAR TABLE",
+    "table_name": "event_templates",
+    "realtime_enabled": "NON",
+    "should_have_realtime": "NON",
+    "rls_enabled": "OUI"
+  },
+  {
+    "section": "CONFIGURATION DÉTAILLÉE PAR TABLE",
+    "table_name": "phone_contacts",
+    "realtime_enabled": "NON",
+    "should_have_realtime": "NON",
+    "rls_enabled": "OUI"
+  },
+  {
+    "section": "CONFIGURATION DÉTAILLÉE PAR TABLE",
+    "table_name": "profiles",
+    "realtime_enabled": "NON",
+    "should_have_realtime": "NON",
+    "rls_enabled": "OUI"
+  },
+  {
+    "section": "CONFIGURATION DÉTAILLÉE PAR TABLE",
+    "table_name": "push_tokens",
+    "realtime_enabled": "NON",
+    "should_have_realtime": "NON",
+    "rls_enabled": "OUI"
+  },
+  {
+    "section": "CONFIGURATION DÉTAILLÉE PAR TABLE",
+    "table_name": "reports",
+    "realtime_enabled": "NON",
+    "should_have_realtime": "NON",
+    "rls_enabled": "OUI"
+  },
+  {
+    "section": "CONFIGURATION DÉTAILLÉE PAR TABLE",
+    "table_name": "search_history",
+    "realtime_enabled": "NON",
+    "should_have_realtime": "NON",
+    "rls_enabled": "OUI"
+  },
+  {
+    "section": "CONFIGURATION DÉTAILLÉE PAR TABLE",
+    "table_name": "story_highlights",
+    "realtime_enabled": "NON",
+    "should_have_realtime": "NON",
+    "rls_enabled": "OUI"
+  },
+  {
+    "section": "CONFIGURATION DÉTAILLÉE PAR TABLE",
+    "table_name": "user_blocks",
+    "realtime_enabled": "NON",
+    "should_have_realtime": "NON",
+    "rls_enabled": "OUI"
+  }
+]
+
+[
+  {
+    "enum_name": "chat_type",
+    "values": "direct, group, event",
+    "used_in": null
+  },
+  {
+    "enum_name": "event_privacy",
+    "values": "public, private, friends_only, invite_only",
+    "used_in": null
+  },
+  {
+    "enum_name": "friendship_status",
+    "values": "pending, accepted, declined, blocked",
+    "used_in": null
+  },
+  {
+    "enum_name": "media_type",
+    "values": "image, video, audio",
+    "used_in": "event_memories.type"
+  },
+  {
+    "enum_name": "message_type",
+    "values": "text, image, video, audio, voice, location, poll, event_share, story_reply",
+    "used_in": null
+  },
+  {
+    "enum_name": "notification_type",
+    "values": "friend_request, friend_accepted, event_invite, event_update, event_reminder, event_cancelled, new_message, new_story, story_mention, memory_like, memory_comment, event_comment, event_like, rsvp_update",
+    "used_in": null
+  },
+  {
+    "enum_name": "participant_status",
+    "values": "invited, going, maybe, not_going, host, co_host",
+    "used_in": null
+  },
+  {
+    "enum_name": "story_type",
+    "values": "photo, video, event_story",
+    "used_in": "stories.type"
+  }
+]
+
+[
+  {
+    "table_structure": "\n══════════════════════════════════════════════════════════════════════════════\n📋 TABLE: activities\n   Rows: ~-1 | Size: 40 kB | RLS: YES | Realtime: YES\n──────────────────────────────────────────────────────────────────────────────\n   01. id                        uuid                      NOT NULL  DEFAULT: uuid_generate_v4()\n       └─ PRIMARY KEY"
+  },
+  {
+    "table_structure": "\n   02. created_at                timestamp with time zone  NOT NULL  DEFAULT: now()"
+  },
+  {
+    "table_structure": "\n   03. user_id                   uuid                      NOT NULL  \n       └─ FOREIGN KEY → profiles(id)"
+  },
+  {
+    "table_structure": "\n   04. type                      varchar(50)               NOT NULL  "
+  },
+  {
+    "table_structure": "\n   05. description               text                      NULL      "
+  },
+  {
+    "table_structure": "\n   06. event_id                  uuid                      NULL      \n       └─ FOREIGN KEY → events(id)"
+  },
+  {
+    "table_structure": "\n   07. target_user_id            uuid                      NULL      \n       └─ FOREIGN KEY → profiles(id)"
+  },
+  {
+    "table_structure": "\n   08. data                      jsonb                     NULL      "
+  },
+  {
+    "table_structure": "\n   09. is_public                 boolean                   NULL      DEFAULT: true"
+  },
+  {
+    "table_structure": "\n══════════════════════════════════════════════════════════════════════════════\n📋 TABLE: chat_participants\n   Rows: ~-1 | Size: 16 kB | RLS: YES | Realtime: YES\n──────────────────────────────────────────────────────────────────────────────\n   01. chat_id                   uuid                      NOT NULL  \n       └─ PRIMARY KEY"
+  },
+  {
+    "table_structure": "\n   02. user_id                   uuid                      NOT NULL  \n       └─ PRIMARY KEY"
+  },
+  {
+    "table_structure": "\n   03. joined_at                 timestamp with time zone  NULL      DEFAULT: now()"
+  },
+  {
+    "table_structure": "\n══════════════════════════════════════════════════════════════════════════════\n📋 TABLE: chats\n   Rows: ~-1 | Size: 32 kB | RLS: YES | Realtime: YES\n──────────────────────────────────────────────────────────────────────────────\n   01. id                        uuid                      NOT NULL  DEFAULT: gen_random_uuid()\n       └─ PRIMARY KEY"
+  },
+  {
+    "table_structure": "\n   02. name                      text                      NULL      "
+  },
+  {
+    "table_structure": "\n   03. is_group                  boolean                   NULL      DEFAULT: false"
+  },
+  {
+    "table_structure": "\n   04. event_id                  uuid                      NULL      \n       └─ FOREIGN KEY → events(id)"
+  },
+  {
+    "table_structure": "\n   05. created_by                uuid                      NULL      \n       └─ FOREIGN KEY → profiles(id)"
+  },
+  {
+    "table_structure": "\n   06. created_at                timestamp with time zone  NULL      DEFAULT: now()"
+  },
+  {
+    "table_structure": "\n══════════════════════════════════════════════════════════════════════════════\n📋 TABLE: contacts\n   Rows: ~-1 | Size: 48 kB | RLS: YES | Realtime: NO\n──────────────────────────────────────────────────────────────────────────────\n   01. id                        uuid                      NOT NULL  DEFAULT: gen_random_uuid()\n       └─ PRIMARY KEY"
+  },
+  {
+    "table_structure": "\n   02. user_id                   uuid                      NOT NULL  \n       └─ FOREIGN KEY → profiles(id)"
+  },
+  {
+    "table_structure": "\n   03. phone_number              text                      NOT NULL  \n       └─ INDEXED"
+  },
+  {
+    "table_structure": "\n   04. name                      text                      NULL      "
+  },
+  {
+    "table_structure": "\n   05. matched_user_id           uuid                      NULL      \n       └─ FOREIGN KEY → profiles(id)"
+  },
+  {
+    "table_structure": "\n   06. invited                   boolean                   NULL      DEFAULT: false"
+  },
+  {
+    "table_structure": "\n   07. invited_at                timestamp with time zone  NULL      "
+  },
+  {
+    "table_structure": "\n   08. created_at                timestamp with time zone  NULL      DEFAULT: now()"
+  },
+  {
+    "table_structure": "\n   09. updated_at                timestamp with time zone  NULL      DEFAULT: now()"
+  },
+  {
+    "table_structure": "\n══════════════════════════════════════════════════════════════════════════════\n📋 TABLE: event_comments\n   Rows: ~-1 | Size: 40 kB | RLS: YES | Realtime: YES\n──────────────────────────────────────────────────────────────────────────────\n   01. id                        uuid                      NOT NULL  DEFAULT: uuid_generate_v4()\n       └─ PRIMARY KEY"
+  },
+  {
+    "table_structure": "\n   02. created_at                timestamp with time zone  NOT NULL  DEFAULT: now()"
+  },
+  {
+    "table_structure": "\n   03. updated_at                timestamp with time zone  NOT NULL  DEFAULT: now()"
+  },
+  {
+    "table_structure": "\n   04. event_id                  uuid                      NOT NULL  \n       └─ FOREIGN KEY → events(id)"
+  },
+  {
+    "table_structure": "\n   05. user_id                   uuid                      NOT NULL  \n       └─ FOREIGN KEY → profiles(id)"
+  },
+  {
+    "table_structure": "\n   06. parent_id                 uuid                      NULL      \n       └─ FOREIGN KEY → event_comments(id)"
+  },
+  {
+    "table_structure": "\n   07. content                   text                      NOT NULL  "
+  },
+  {
+    "table_structure": "\n   08. likes_count               integer                   NULL      DEFAULT: 0"
+  },
+  {
+    "table_structure": "\n   09. replies_count             integer                   NULL      DEFAULT: 0"
+  },
+  {
+    "table_structure": "\n   10. is_edited                 boolean                   NULL      DEFAULT: false"
+  },
+  {
+    "table_structure": "\n   11. is_deleted                boolean                   NULL      DEFAULT: false"
+  },
+  {
+    "table_structure": "\n══════════════════════════════════════════════════════════════════════════════\n📋 TABLE: event_likes\n   Rows: ~-1 | Size: 16 kB | RLS: YES | Realtime: YES\n──────────────────────────────────────────────────────────────────────────────\n   01. event_id                  uuid                      NOT NULL  \n       └─ PRIMARY KEY"
+  },
+  {
+    "table_structure": "\n   02. user_id                   uuid                      NOT NULL  \n       └─ PRIMARY KEY"
+  },
+  {
+    "table_structure": "\n   03. created_at                timestamp with time zone  NOT NULL  DEFAULT: now()"
+  },
+  {
+    "table_structure": "\n══════════════════════════════════════════════════════════════════════════════\n📋 TABLE: event_memories\n   Rows: ~-1 | Size: 32 kB | RLS: YES | Realtime: YES\n──────────────────────────────────────────────────────────────────────────────\n   01. id                        uuid                      NOT NULL  DEFAULT: uuid_generate_v4()\n       └─ PRIMARY KEY"
+  },
+  {
+    "table_structure": "\n   02. created_at                timestamp with time zone  NOT NULL  DEFAULT: now()"
+  },
+  {
+    "table_structure": "\n   03. updated_at                timestamp with time zone  NOT NULL  DEFAULT: now()"
+  },
+  {
+    "table_structure": "\n   04. event_id                  uuid                      NOT NULL  \n       └─ FOREIGN KEY → events(id)"
+  },
+  {
+    "table_structure": "\n   05. user_id                   uuid                      NOT NULL  \n       └─ FOREIGN KEY → profiles(id)"
+  },
+  {
+    "table_structure": "\n   06. type                      media_type                NOT NULL  "
+  },
+  {
+    "table_structure": "\n   07. media_url                 text                      NOT NULL  "
+  },
+  {
+    "table_structure": "\n   08. thumbnail_url             text                      NULL      "
+  },
+  {
+    "table_structure": "\n   09. caption                   text                      NULL      "
+  },
+  {
+    "table_structure": "\n   10. duration                  integer                   NULL      "
+  },
+  {
+    "table_structure": "\n   11. is_public                 boolean                   NULL      DEFAULT: true"
+  },
+  {
+    "table_structure": "\n   12. likes_count               integer                   NULL      DEFAULT: 0"
+  },
+  {
+    "table_structure": "\n   13. comments_count            integer                   NULL      DEFAULT: 0"
+  },
+  {
+    "table_structure": "\n   14. views_count               integer                   NULL      DEFAULT: 0"
+  },
+  {
+    "table_structure": "\n══════════════════════════════════════════════════════════════════════════════\n📋 TABLE: event_participants\n   Rows: ~1 | Size: 48 kB | RLS: YES | Realtime: YES\n──────────────────────────────────────────────────────────────────────────────\n   01. event_id                  uuid                      NOT NULL  \n       └─ PRIMARY KEY"
+  },
+  {
+    "table_structure": "\n   02. user_id                   uuid                      NOT NULL  \n       └─ PRIMARY KEY"
+  },
+  {
+    "table_structure": "\n   03. joined_at                 timestamp with time zone  NULL      DEFAULT: now()"
+  },
+  {
+    "table_structure": "\n   04. status                    text                      NULL      DEFAULT: 'going'::text"
+  },
+  {
+    "table_structure": "\n══════════════════════════════════════════════════════════════════════════════\n📋 TABLE: event_templates\n   Rows: ~-1 | Size: 24 kB | RLS: YES | Realtime: NO\n──────────────────────────────────────────────────────────────────────────────\n   01. id                        uuid                      NOT NULL  DEFAULT: uuid_generate_v4()\n       └─ PRIMARY KEY"
+  },
+  {
+    "table_structure": "\n   02. created_at                timestamp with time zone  NOT NULL  DEFAULT: now()"
+  },
+  {
+    "table_structure": "\n   03. updated_at                timestamp with time zone  NOT NULL  DEFAULT: now()"
+  },
+  {
+    "table_structure": "\n   04. user_id                   uuid                      NOT NULL  \n       └─ FOREIGN KEY → profiles(id)"
+  },
+  {
+    "table_structure": "\n   05. name                      varchar(100)              NOT NULL  "
+  },
+  {
+    "table_structure": "\n   06. description               text                      NULL      "
+  },
+  {
+    "table_structure": "\n   07. event_data                jsonb                     NOT NULL  "
+  },
+  {
+    "table_structure": "\n   08. is_public                 boolean                   NULL      DEFAULT: false"
+  },
+  {
+    "table_structure": "\n   09. uses_count                integer                   NULL      DEFAULT: 0"
+  },
+  {
+    "table_structure": "\n══════════════════════════════════════════════════════════════════════════════\n📋 TABLE: events\n   Rows: ~1 | Size: 128 kB | RLS: YES | Realtime: YES\n──────────────────────────────────────────────────────────────────────────────\n   01. id                        uuid                      NOT NULL  DEFAULT: gen_random_uuid()\n       └─ PRIMARY KEY"
+  },
+  {
+    "table_structure": "\n   02. title                     text                      NOT NULL  \n       └─ INDEXED"
+  },
+  {
+    "table_structure": "\n   03. description               text                      NULL      \n       └─ INDEXED"
+  },
+  {
+    "table_structure": "\n   04. date                      timestamp with time zone  NOT NULL  \n       └─ INDEXED"
+  },
+  {
+    "table_structure": "\n   05. location                  text                      NULL      "
+  },
+  {
+    "table_structure": "\n   06. created_by                uuid                      NULL      \n       └─ FOREIGN KEY → profiles(id)"
+  },
+  {
+    "table_structure": "\n   07. created_at                timestamp with time zone  NULL      DEFAULT: now()"
+  },
+  {
+    "table_structure": "\n   08. is_private                boolean                   NULL      DEFAULT: false\n       └─ INDEXED"
+  },
+  {
+    "table_structure": "\n   09. cover_bg_color            text                      NULL      "
+  },
+  {
+    "table_structure": "\n   10. cover_font                text                      NULL      "
+  },
+  {
+    "table_structure": "\n   11. cover_image               text                      NULL      "
+  },
+  {
+    "table_structure": "\n   12. subtitle                  text                      NULL      "
+  },
+  {
+    "table_structure": "\n══════════════════════════════════════════════════════════════════════════════\n📋 TABLE: friendships\n   Rows: ~-1 | Size: 48 kB | RLS: YES | Realtime: YES\n──────────────────────────────────────────────────────────────────────────────\n   01. id                        uuid                      NOT NULL  DEFAULT: gen_random_uuid()\n       └─ PRIMARY KEY"
+  },
+  {
+    "table_structure": "\n   02. user_id                   uuid                      NOT NULL  \n       └─ FOREIGN KEY → profiles(id)"
+  },
+  {
+    "table_structure": "\n   03. friend_id                 uuid                      NOT NULL  \n       └─ FOREIGN KEY → profiles(id)"
+  },
+  {
+    "table_structure": "\n   04. status                    text                      NOT NULL  DEFAULT: 'pending'::text\n       └─ INDEXED"
+  },
+  {
+    "table_structure": "\n   05. requested_at              timestamp with time zone  NULL      DEFAULT: now()"
+  },
+  {
+    "table_structure": "\n   06. responded_at              timestamp with time zone  NULL      "
+  },
+  {
+    "table_structure": "\n   07. created_at                timestamp with time zone  NULL      DEFAULT: now()"
+  },
+  {
+    "table_structure": "\n   08. updated_at                timestamp with time zone  NULL      DEFAULT: now()"
+  },
+  {
+    "table_structure": "\n══════════════════════════════════════════════════════════════════════════════\n📋 TABLE: memory_comments\n   Rows: ~-1 | Size: 32 kB | RLS: YES | Realtime: YES\n──────────────────────────────────────────────────────────────────────────────\n   01. id                        uuid                      NOT NULL  DEFAULT: uuid_generate_v4()\n       └─ PRIMARY KEY"
+  },
+  {
+    "table_structure": "\n   02. created_at                timestamp with time zone  NOT NULL  DEFAULT: now()"
+  },
+  {
+    "table_structure": "\n   03. updated_at                timestamp with time zone  NOT NULL  DEFAULT: now()"
+  },
+  {
+    "table_structure": "\n   04. memory_id                 uuid                      NOT NULL  \n       └─ FOREIGN KEY → event_memories(id)"
+  },
+  {
+    "table_structure": "\n   05. user_id                   uuid                      NOT NULL  \n       └─ FOREIGN KEY → profiles(id)"
+  },
+  {
+    "table_structure": "\n   06. content                   text                      NOT NULL  "
+  },
+  {
+    "table_structure": "\n   07. is_edited                 boolean                   NULL      DEFAULT: false"
+  },
+  {
+    "table_structure": "\n   08. is_deleted                boolean                   NULL      DEFAULT: false"
+  },
+  {
+    "table_structure": "\n══════════════════════════════════════════════════════════════════════════════\n📋 TABLE: memory_likes\n   Rows: ~-1 | Size: 16 kB | RLS: YES | Realtime: YES\n──────────────────────────────────────────────────────────────────────────────\n   01. memory_id                 uuid                      NOT NULL  \n       └─ PRIMARY KEY"
+  },
+  {
+    "table_structure": "\n   02. user_id                   uuid                      NOT NULL  \n       └─ PRIMARY KEY"
+  },
+  {
+    "table_structure": "\n   03. created_at                timestamp with time zone  NOT NULL  DEFAULT: now()"
+  },
+  {
+    "table_structure": "\n══════════════════════════════════════════════════════════════════════════════\n📋 TABLE: messages\n   Rows: ~-1 | Size: 48 kB | RLS: YES | Realtime: YES\n──────────────────────────────────────────────────────────────────────────────\n   01. id                        uuid                      NOT NULL  DEFAULT: gen_random_uuid()\n       └─ PRIMARY KEY"
+  },
+  {
+    "table_structure": "\n══════════════════════════════════════════════════════════════════════════════\n📋 TABLE: messages\n   Rows: ~-1 | Size: 48 kB | RLS: YES | Realtime: YES\n──────────────────────────────────────────────────────────────────────────────\n   01. id                        uuid                      NOT NULL  DEFAULT: gen_random_uuid()\n       └─ PRIMARY KEY"
+  },
+  {
+    "table_structure": "\n   02. chat_id                   uuid                      NULL      \n       └─ FOREIGN KEY → chats(id)"
+  },
+  {
+    "table_structure": "\n   03. user_id                   uuid                      NULL      \n       └─ FOREIGN KEY → profiles(id)"
+  },
+  {
+    "table_structure": "\n   07. created_at                timestamp with time zone  NULL      DEFAULT: now()"
+  },
+  {
+    "table_structure": "\n   08. content                   text                      NULL      "
+  },
+  {
+    "table_structure": "\n   09. message_type              text                      NULL      DEFAULT: 'text'::text"
+  },
+  {
+    "table_structure": "\n   10. metadata                  jsonb                     NULL      "
+  },
+  {
+    "table_structure": "\n══════════════════════════════════════════════════════════════════════════════\n📋 TABLE: notifications\n   Rows: ~-1 | Size: 56 kB | RLS: YES | Realtime: YES\n──────────────────────────────────────────────────────────────────────────────\n   01. id                        uuid                      NOT NULL  DEFAULT: gen_random_uuid()\n       └─ PRIMARY KEY"
+  },
+  {
+    "table_structure": "\n   02. user_id                   uuid                      NOT NULL  \n       └─ FOREIGN KEY → profiles(id)"
+  },
+  {
+    "table_structure": "\n   03. type                      text                      NOT NULL  \n       └─ INDEXED"
+  },
+  {
+    "table_structure": "\n   04. title                     text                      NOT NULL  "
+  },
+  {
+    "table_structure": "\n   05. body                      text                      NOT NULL  "
+  },
+  {
+    "table_structure": "\n   06. data                      jsonb                     NULL      DEFAULT: '{}'::jsonb"
+  },
+  {
+    "table_structure": "\n   07. read                      boolean                   NULL      DEFAULT: false\n       └─ INDEXED"
+  },
+  {
+    "table_structure": "\n   08. read_at                   timestamp with time zone  NULL      "
+  },
+  {
+    "table_structure": "\n   09. created_at                timestamp with time zone  NULL      DEFAULT: now()\n       └─ INDEXED"
+  },
+  {
+    "table_structure": "\n   10. updated_at                timestamp with time zone  NULL      DEFAULT: now()"
+  },
+  {
+    "table_structure": "\n══════════════════════════════════════════════════════════════════════════════\n📋 TABLE: phone_contacts\n   Rows: ~-1 | Size: 48 kB | RLS: YES | Realtime: NO\n──────────────────────────────────────────────────────────────────────────────\n   01. id                        uuid                      NOT NULL  DEFAULT: gen_random_uuid()\n       └─ PRIMARY KEY"
+  },
+  {
+    "table_structure": "\n   02. user_id                   uuid                      NULL      \n       └─ FOREIGN KEY → profiles(id)"
+  },
+  {
+    "table_structure": "\n   03. phone_number              text                      NULL      "
+  },
+  {
+    "table_structure": "\n   04. email                     text                      NULL      "
+  },
+  {
+    "table_structure": "\n   05. first_name                text                      NULL      "
+  },
+  {
+    "table_structure": "\n   06. last_name                 text                      NULL      "
+  },
+  {
+    "table_structure": "\n   07. created_at                timestamp with time zone  NULL      DEFAULT: now()"
+  },
+  {
+    "table_structure": "\n   08. updated_at                timestamp with time zone  NULL      DEFAULT: now()"
+  },
+  {
+    "table_structure": "\n══════════════════════════════════════════════════════════════════════════════\n📋 TABLE: poll_votes\n   Rows: ~-1 | Size: 24 kB | RLS: YES | Realtime: YES\n──────────────────────────────────────────────────────────────────────────────\n   01. poll_id                   uuid                      NOT NULL  \n       └─ PRIMARY KEY"
+  },
+  {
+    "table_structure": "\n   02. user_id                   uuid                      NOT NULL  \n       └─ PRIMARY KEY"
+  },
+  {
+    "table_structure": "\n   03. option_ids                ARRAY                     NULL      "
+  },
+  {
+    "table_structure": "\n   04. voted_at                  timestamp with time zone  NOT NULL  DEFAULT: now()"
+  },
+  {
+    "table_structure": "\n══════════════════════════════════════════════════════════════════════════════\n📋 TABLE: polls\n   Rows: ~-1 | Size: 40 kB | RLS: YES | Realtime: YES\n──────────────────────────────────────────────────────────────────────────────\n   01. id                        uuid                      NOT NULL  DEFAULT: uuid_generate_v4()\n       └─ PRIMARY KEY"
+  },
+  {
+    "table_structure": "\n   02. created_at                timestamp with time zone  NOT NULL  DEFAULT: now()"
+  },
+  {
+    "table_structure": "\n   03. message_id                uuid                      NULL      \n       └─ FOREIGN KEY → messages(id)"
+  },
+  {
+    "table_structure": "\n   04. event_id                  uuid                      NULL      \n       └─ FOREIGN KEY → events(id)"
+  },
+  {
+    "table_structure": "\n   05. created_by                uuid                      NOT NULL  \n       └─ FOREIGN KEY → profiles(id)"
+  },
+  {
+    "table_structure": "\n   06. question                  text                      NOT NULL  "
+  },
+  {
+    "table_structure": "\n   07. options                   jsonb                     NOT NULL  "
+  },
+  {
+    "table_structure": "\n   08. multiple_choice           boolean                   NULL      DEFAULT: false"
+  },
+  {
+    "table_structure": "\n   09. anonymous                 boolean                   NULL      DEFAULT: false"
+  },
+  {
+    "table_structure": "\n   10. show_results_before_vote  boolean                   NULL      DEFAULT: true"
+  },
+  {
+    "table_structure": "\n   11. can_change_vote           boolean                   NULL      DEFAULT: true"
+  },
+  {
+    "table_structure": "\n   12. expires_at                timestamp with time zone  NULL      "
+  },
+  {
+    "table_structure": "\n   13. total_votes               integer                   NULL      DEFAULT: 0"
+  },
+  {
+    "table_structure": "\n   14. results                   jsonb                     NULL      "
+  },
+  {
+    "table_structure": "\n══════════════════════════════════════════════════════════════════════════════\n📋 TABLE: profiles - Stocke les informations de profil utilisateur et l'état de l'onboarding.\n   Rows: ~1 | Size: 152 kB | RLS: YES | Realtime: NO\n──────────────────────────────────────────────────────────────────────────────\n   01. id                        uuid                      NOT NULL  \n       └─ PRIMARY KEY"
+  },
+  {
+    "table_structure": "\n   02. created_at                timestamp with time zone  NOT NULL  DEFAULT: now()"
+  },
+  {
+    "table_structure": "\n   03. updated_at                timestamp with time zone  NOT NULL  DEFAULT: now()"
+  },
+  {
+    "table_structure": "\n   04. current_registration_step text                      NULL      \n       └─ INDEXED"
+  },
+  {
+    "table_structure": "\n   05. is_profile_complete       boolean                   NOT NULL  DEFAULT: false\n       └─ INDEXED"
+  },
+  {
+    "table_structure": "\n   06. full_name                 text                      NULL      \n       └─ INDEXED"
+  },
+  {
+    "table_structure": "\n   07. avatar_url                text                      NULL      "
+  },
+  {
+    "table_structure": "\n   08. birth_date                date                      NULL      "
+  },
+  {
+    "table_structure": "\n   09. jam_preference            text                      NULL      "
+  },
+  {
+    "table_structure": "\n   10. restaurant_preference     text                      NULL      "
+  },
+  {
+    "table_structure": "\n   11. hobbies                   ARRAY                     NULL      \n       └─ INDEXED"
+  },
+  {
+    "table_structure": "\n   12. location_permission_grant boolean                   NULL      DEFAULT: false"
+  },
+  {
+    "table_structure": "\n   13. contacts_permission_statu text                      NULL      "
+  },
+  {
+    "table_structure": "\n   14. hide_birth_date           boolean                   NULL      DEFAULT: false"
+  },
+  {
+    "table_structure": "\n   15. jam_track_id              text                      NULL      "
+  },
+  {
+    "table_structure": "\n   16. jam_title                 text                      NULL      "
+  },
+  {
+    "table_structure": "\n   17. jam_artist                text                      NULL      "
+  },
+  {
+    "table_structure": "\n   18. jam_cover_url             text                      NULL      "
+  },
+  {
+    "table_structure": "\n   19. jam_preview_url           text                      NULL      "
+  },
+  {
+    "table_structure": "\n   20. selected_restaurant_id    text                      NULL      "
+  },
+  {
+    "table_structure": "\n   21. selected_restaurant_name  text                      NULL      "
+  },
+  {
+    "table_structure": "\n   22. selected_restaurant_addre text                      NULL      "
+  },
+  {
+    "table_structure": "\n   23. path                      text                      NULL      "
+  },
+  {
+    "table_structure": "\n   24. username                  text                      NULL      \n       └─ INDEXED"
+  },
+  {
+    "table_structure": "\n══════════════════════════════════════════════════════════════════════════════\n📋 TABLE: push_tokens\n   Rows: ~-1 | Size: 40 kB | RLS: YES | Realtime: NO\n──────────────────────────────────────────────────────────────────────────────\n   01. id                        uuid                      NOT NULL  DEFAULT: gen_random_uuid()\n       └─ PRIMARY KEY"
+  },
+  {
+    "table_structure": "\n   02. user_id                   uuid                      NOT NULL  \n       └─ FOREIGN KEY → profiles(id)"
+  },
+  {
+    "table_structure": "\n   03. token                     text                      NOT NULL  \n       └─ INDEXED"
+  },
+  {
+    "table_structure": "\n   04. platform                  text                      NOT NULL  "
+  },
+  {
+    "table_structure": "\n   05. device_info               jsonb                     NULL      DEFAULT: '{}'::jsonb"
+  },
+  {
+    "table_structure": "\n   06. active                    boolean                   NULL      DEFAULT: true\n       └─ INDEXED"
+  },
+  {
+    "table_structure": "\n   07. created_at                timestamp with time zone  NULL      DEFAULT: now()"
+  },
+  {
+    "table_structure": "\n   08. updated_at                timestamp with time zone  NULL      DEFAULT: now()"
+  },
+  {
+    "table_structure": "\n══════════════════════════════════════════════════════════════════════════════\n📋 TABLE: reports\n   Rows: ~-1 | Size: 72 kB | RLS: YES | Realtime: NO\n──────────────────────────────────────────────────────────────────────────────\n   01. id                        uuid                      NOT NULL  DEFAULT: uuid_generate_v4()\n       └─ PRIMARY KEY"
+  },
+  {
+    "table_structure": "\n   02. created_at                timestamp with time zone  NOT NULL  DEFAULT: now()"
+  },
+  {
+    "table_structure": "\n   03. reporter_id               uuid                      NOT NULL  \n       └─ FOREIGN KEY → profiles(id)"
+  },
+  {
+    "table_structure": "\n   04. type                      varchar(20)               NOT NULL  "
+  },
+  {
+    "table_structure": "\n   05. reported_user_id          uuid                      NULL      \n       └─ FOREIGN KEY → profiles(id)"
+  },
+  {
+    "table_structure": "\n   06. reported_event_id         uuid                      NULL      \n       └─ FOREIGN KEY → events(id)"
+  },
+  {
+    "table_structure": "\n   07. reported_message_id       uuid                      NULL      \n       └─ FOREIGN KEY → messages(id)"
+  },
+  {
+    "table_structure": "\n   08. reported_story_id         uuid                      NULL      \n       └─ FOREIGN KEY → stories(id)"
+  },
+  {
+    "table_structure": "\n   09. reported_memory_id        uuid                      NULL      \n       └─ FOREIGN KEY → event_memories(id)"
+  },
+  {
+    "table_structure": "\n   10. reason                    varchar(50)               NOT NULL  "
+  },
+  {
+    "table_structure": "\n   11. description               text                      NULL      "
+  },
+  {
+    "table_structure": "\n   12. evidence                  jsonb                     NULL      "
+  },
+  {
+    "table_structure": "\n   13. status                    varchar(20)               NULL      DEFAULT: 'pending'::character varying"
+  },
+  {
+    "table_structure": "\n   14. reviewed_at               timestamp with time zone  NULL      "
+  },
+  {
+    "table_structure": "\n   15. reviewed_by               uuid                      NULL      \n       └─ FOREIGN KEY → profiles(id)"
+  },
+  {
+    "table_structure": "\n   16. resolution                text                      NULL      "
+  },
+  {
+    "table_structure": "\n══════════════════════════════════════════════════════════════════════════════\n📋 TABLE: search_history\n   Rows: ~-1 | Size: 24 kB | RLS: YES | Realtime: NO\n──────────────────────────────────────────────────────────────────────────────\n   01. id                        uuid                      NOT NULL  DEFAULT: uuid_generate_v4()\n       └─ PRIMARY KEY"
+  },
+  {
+    "table_structure": "\n   02. user_id                   uuid                      NOT NULL  \n       └─ FOREIGN KEY → profiles(id)"
+  },
+  {
+    "table_structure": "\n   03. query                     text                      NOT NULL  "
+  },
+  {
+    "table_structure": "\n   04. type                      varchar(20)               NULL      "
+  },
+  {
+    "table_structure": "\n   05. results_count             integer                   NULL      "
+  },
+  {
+    "table_structure": "\n   06. clicked_result            jsonb                     NULL      "
+  },
+  {
+    "table_structure": "\n   07. created_at                timestamp with time zone  NOT NULL  DEFAULT: now()"
+  },
+  {
+    "table_structure": "\n══════════════════════════════════════════════════════════════════════════════\n📋 TABLE: stories\n   Rows: ~-1 | Size: 32 kB | RLS: YES | Realtime: YES\n──────────────────────────────────────────────────────────────────────────────\n   01. id                        uuid                      NOT NULL  DEFAULT: uuid_generate_v4()\n       └─ PRIMARY KEY"
+  },
+  {
+    "table_structure": "\n   02. created_at                timestamp with time zone  NOT NULL  DEFAULT: now()"
+  },
+  {
+    "table_structure": "\n   03. user_id                   uuid                      NOT NULL  \n       └─ FOREIGN KEY → profiles(id)"
+  },
+  {
+    "table_structure": "\n   04. event_id                  uuid                      NULL      \n       └─ FOREIGN KEY → events(id)"
+  },
+  {
+    "table_structure": "\n   05. type                      story_type                NOT NULL  DEFAULT: 'photo'::story_type"
+  },
+  {
+    "table_structure": "\n   06. media_url                 text                      NOT NULL  "
+  },
+  {
+    "table_structure": "\n   07. thumbnail_url             text                      NULL      "
+  },
+  {
+    "table_structure": "\n   08. caption                   text                      NULL      "
+  },
+  {
+    "table_structure": "\n   09. music_data                jsonb                     NULL      "
+  },
+  {
+    "table_structure": "\n   10. stickers                  ARRAY                     NULL      "
+  },
+  {
+    "table_structure": "\n   11. filters                   jsonb                     NULL      "
+  },
+  {
+    "table_structure": "\n   12. mentions                  ARRAY                     NULL      "
+  },
+  {
+    "table_structure": "\n   13. location                  geography                 NULL      "
+  },
+  {
+    "table_structure": "\n   14. location_name             varchar(200)              NULL      "
+  },
+  {
+    "table_structure": "\n   15. is_highlight              boolean                   NULL      DEFAULT: false"
+  },
+  {
+    "table_structure": "\n   16. hide_from                 ARRAY                     NULL      "
+  },
+  {
+    "table_structure": "\n   17. expires_at                timestamp with time zone  NULL      DEFAULT: (now() + '24:00:00'::interval)\n       └─ INDEXED"
+  },
+  {
+    "table_structure": "\n   18. views_count               integer                   NULL      DEFAULT: 0"
+  },
+  {
+    "table_structure": "\n   19. replies_count             integer                   NULL      DEFAULT: 0"
+  },
+  {
+    "table_structure": "\n══════════════════════════════════════════════════════════════════════════════\n📋 TABLE: story_highlights\n   Rows: ~-1 | Size: 24 kB | RLS: YES | Realtime: NO\n──────────────────────────────────────────────────────────────────────────────\n   01. id                        uuid                      NOT NULL  DEFAULT: uuid_generate_v4()\n       └─ PRIMARY KEY"
+  },
+  {
+    "table_structure": "\n   02. created_at                timestamp with time zone  NOT NULL  DEFAULT: now()"
+  },
+  {
+    "table_structure": "\n   03. updated_at                timestamp with time zone  NOT NULL  DEFAULT: now()"
+  },
+  {
+    "table_structure": "\n   04. user_id                   uuid                      NOT NULL  \n       └─ FOREIGN KEY → profiles(id)"
+  },
+  {
+    "table_structure": "\n   05. title                     varchar(100)              NOT NULL  "
+  },
+  {
+    "table_structure": "\n   06. cover_url                 text                      NULL      "
+  },
+  {
+    "table_structure": "\n   07. story_ids                 ARRAY                     NULL      "
+  },
+  {
+    "table_structure": "\n   08. position                  integer                   NULL      DEFAULT: 0"
+  },
+  {
+    "table_structure": "\n══════════════════════════════════════════════════════════════════════════════\n📋 TABLE: story_views\n   Rows: ~-1 | Size: 16 kB | RLS: YES | Realtime: YES\n──────────────────────────────────────────────────────────────────────────────\n   01. story_id                  uuid                      NOT NULL  \n       └─ PRIMARY KEY"
+  },
+  {
+    "table_structure": "\n   02. viewer_id                 uuid                      NOT NULL  \n       └─ PRIMARY KEY"
+  },
+  {
+    "table_structure": "\n   03. viewed_at                 timestamp with time zone  NOT NULL  DEFAULT: now()"
+  },
+  {
+    "table_structure": "\n══════════════════════════════════════════════════════════════════════════════\n📋 TABLE: user_blocks\n   Rows: ~-1 | Size: 24 kB | RLS: YES | Realtime: NO\n──────────────────────────────────────────────────────────────────────────────\n   01. blocker_id                uuid                      NOT NULL  \n       └─ PRIMARY KEY"
+  },
+  {
+    "table_structure": "\n   02. blocked_id                uuid                      NOT NULL  \n       └─ PRIMARY KEY"
+  },
+  {
+    "table_structure": "\n   03. created_at                timestamp with time zone  NOT NULL  DEFAULT: now()"
+  },
+  {
+    "table_structure": "\n   04. reason                    text                      NULL      "
+  }
+]

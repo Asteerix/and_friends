@@ -1,73 +1,73 @@
-import { useState, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
-import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system';
+import { useState, useCallback } from 'react';
+
+import { decode as base64Decode } from '@/shared/lib/base64';
+import { supabase } from '@/shared/lib/supabase/client';
 
 interface VoiceMessageData {
   uri: string;
   duration: number;
   transcription?: string;
 }
-
 export function useVoiceMessages() {
   const [isUploading, setIsUploading] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const uploadVoiceMessage = useCallback(async (
-    localUri: string,
-    conversationId: string,
-    duration: number
-  ): Promise<VoiceMessageData | null> => {
-    try {
-      setIsUploading(true);
-      setError(null);
+  const uploadVoiceMessage = useCallback(
+    async (
+      localUri: string,
+      conversationId: string,
+      duration: number
+    ): Promise<VoiceMessageData | null> => {
+      try {
+        setIsUploading(true);
+        setError(null);
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) throw new Error('Not authenticated');
 
-      // Read file as base64
-      const base64 = await FileSystem.readAsStringAsync(localUri, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
+        // Read file as base64
+        const base64 = await FileSystem.readAsStringAsync(localUri, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
 
-      // Generate unique filename
-      const fileName = `${user.id}/${Date.now()}.m4a`;
-      
-      // Upload to Supabase Storage
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('chat-media')
-        .upload(`${conversationId}/${fileName}`, 
-          decode(base64), 
-          {
+        // Generate unique filename
+        const fileName = `${user.id}/${Date.now()}.m4a`;
+
+        // Upload to Supabase Storage
+        const { error: uploadError } = await supabase.storage
+          .from('chat-media')
+          .upload(`${conversationId}/${fileName}`, base64Decode(base64), {
             contentType: 'audio/mp4',
             upsert: false,
-          }
-        );
+          });
 
-      if (uploadError) throw uploadError;
+        if (uploadError) throw uploadError;
 
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('chat-media')
-        .getPublicUrl(`${conversationId}/${fileName}`);
+        // Get public URL
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from('chat-media').getPublicUrl(`${conversationId}/${fileName}`);
 
-      return {
-        uri: publicUrl,
-        duration,
-      };
-    } catch (err: any) {
-      console.error('Error uploading voice message:', err);
-      setError(err.message);
-      return null;
-    } finally {
-      setIsUploading(false);
-    }
-  }, []);
+        return {
+          uri: publicUrl,
+          duration,
+        };
+      } catch (err: unknown) {
+        console.error(err);
+        setError(err instanceof Error ? err.message : String(err));
+        return null;
+      } finally {
+        setIsUploading(false);
+      }
+    },
+    []
+  );
 
-  const transcribeVoiceMessage = useCallback(async (
-    audioUrl: string
-  ): Promise<string | null> => {
+  const transcribeVoiceMessage = useCallback(async (audioUrl: string): Promise<string | null> => {
     try {
       setIsTranscribing(true);
       setError(null);
@@ -80,29 +80,24 @@ export function useVoiceMessages() {
       if (transcribeError) throw transcribeError;
 
       return data.transcription || null;
-    } catch (err: any) {
-      console.error('Error transcribing voice message:', err);
-      setError(err.message);
+    } catch (err: unknown) {
+      console.error(err);
+      setError(err instanceof Error ? err.message : String(err));
       return null;
     } finally {
       setIsTranscribing(false);
     }
   }, []);
 
-  const sendVoiceMessage = useCallback(async (
-    localUri: string,
-    duration: number,
-    conversationId: string
-  ) => {
-    try {
-      // Upload voice message
-      const voiceData = await uploadVoiceMessage(localUri, conversationId, duration);
-      if (!voiceData) throw new Error('Failed to upload voice message');
+  const sendVoiceMessage = useCallback(
+    async (localUri: string, duration: number, conversationId: string) => {
+      try {
+        // Upload voice message
+        const voiceData = await uploadVoiceMessage(localUri, conversationId, duration);
+        if (!voiceData) throw new Error('Failed to upload voice message');
 
-      // Create message in database
-      const { error: messageError } = await supabase
-        .from('messages')
-        .insert({
+        // Create message in database
+        const { error: messageError } = await supabase.from('messages').insert({
           conversation_id: conversationId,
           sender_id: (await supabase.auth.getUser()).data.user?.id,
           content: null,
@@ -111,24 +106,26 @@ export function useVoiceMessages() {
           created_at: new Date().toISOString(),
         });
 
-      if (messageError) throw messageError;
+        if (messageError) throw messageError;
 
-      // Optionally start transcription in background
-      transcribeVoiceMessage(voiceData.uri).then(transcription => {
-        if (transcription) {
-          // Update message with transcription
-          // This would be done via a webhook or background job in production
-          console.log('Transcription:', transcription);
-        }
-      });
+        // Optionally start transcription in background
+        transcribeVoiceMessage(voiceData.uri).then((transcription) => {
+          if (transcription) {
+            // Update message with transcription
+            // This would be done via a webhook or background job in production
+            console.log('Transcription:', transcription);
+          }
+        });
 
-      return voiceData;
-    } catch (err: any) {
-      console.error('Error sending voice message:', err);
-      setError(err.message);
-      return null;
-    }
-  }, [uploadVoiceMessage, transcribeVoiceMessage]);
+        return voiceData;
+      } catch (err: unknown) {
+        console.error(err);
+        setError(err instanceof Error ? err.message : String(err));
+        return null;
+      }
+    },
+    [uploadVoiceMessage, transcribeVoiceMessage]
+  );
 
   return {
     sendVoiceMessage,
@@ -137,14 +134,4 @@ export function useVoiceMessages() {
     isTranscribing,
     error,
   };
-}
-
-// Helper function to decode base64
-function decode(base64: string): ArrayBuffer {
-  const binaryString = atob(base64);
-  const bytes = new Uint8Array(binaryString.length);
-  for (let i = 0; i < binaryString.length; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
-  }
-  return bytes.buffer;
 }

@@ -1,15 +1,17 @@
-import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
-import { useSession } from "@/lib/SessionContext";
-import type { PostgrestError } from "@supabase/supabase-js";
+import type { PostgrestError } from '@supabase/supabase-js';
+import { useState, useEffect } from 'react';
+
+import { supabase } from '@/shared/lib/supabase/client';
+import { useSession } from '@/shared/providers/SessionContext';
+import { supabaseQuery } from '@/shared/lib/supabase/withNetworkRetry';
+import { useNetworkError } from '@/shared/providers/NetworkErrorProvider';
 
 export interface EventParticipant {
   id: string;
   full_name?: string;
   avatar_url?: string;
-  status: "going" | "maybe" | "not_going";
+  status: 'going' | 'maybe' | 'not_going';
 }
-
 export interface EventAdvanced {
   id: string;
   title: string;
@@ -33,12 +35,12 @@ export interface EventAdvanced {
   };
   participants?: EventParticipant[];
   participants_count?: number;
-  user_status?: "going" | "maybe" | "not_going" | null;
+  user_status?: 'going' | 'maybe' | 'not_going' | null;
   is_creator?: boolean;
 }
-
 export function useEventsAdvanced() {
   const { session } = useSession();
+  const { showNetworkError } = useNetworkError();
   const [events, setEvents] = useState<EventAdvanced[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<PostgrestError | null>(null);
@@ -49,8 +51,8 @@ export function useEventsAdvanced() {
 
     try {
       // Fetch all public events + events user is participating in
-      const { data: eventsData, error: eventsError } = await supabase
-        .from("events")
+      const { data: eventsData, error: eventsError } = await supabaseQuery(() => supabase
+        .from('events')
         .select(
           `
           *,
@@ -61,11 +63,21 @@ export function useEventsAdvanced() {
           )
         `
         )
-        .order("date", { ascending: true });
+        .order('date', { ascending: true })
+      );
 
       if (eventsError) {
         setError(eventsError);
-        console.error("Error fetching events:", eventsError);
+        console.error('Error fetching events:', eventsError);
+        
+        // Show network error modal if it's a network issue
+        if (eventsError.code === 'NETWORK_ERROR') {
+          showNetworkError({
+            message: eventsError.message,
+            timestamp: Date.now(),
+            retryAction: fetchEvents,
+          });
+        }
         return;
       }
 
@@ -74,29 +86,29 @@ export function useEventsAdvanced() {
         (eventsData || []).map(async (event) => {
           // Get participants count
           const { count: participantsCount } = await supabase
-            .from("event_participants")
-            .select("*", { count: "exact", head: true })
-            .eq("event_id", event.id);
+            .from('event_participants')
+            .select('*', { count: 'exact', head: true })
+            .eq('event_id', event.id);
 
           // Get user's participation status if logged in
-          let userStatus = null;
+          let userStatus: 'going' | 'maybe' | 'not_going' | null = null;
           if (session?.user) {
             const { data: participation } = await supabase
-              .from("event_participants")
-              .select("status")
-              .eq("event_id", event.id)
-              .eq("user_id", session.user.id)
+              .from('event_participants')
+              .select('*')
+              .eq('event_id', event.id)
+              .eq('user_id', session.user.id)
               .single();
 
-            userStatus = participation?.status || null;
+            // Since status column is missing, just check if user is participating
+            userStatus = participation ? 'going' : null;
           }
 
           // Get top participants for display
           const { data: participants } = await supabase
-            .from("event_participants")
+            .from('event_participants')
             .select(
               `
-              status,
               profiles (
                 id,
                 full_name,
@@ -104,17 +116,32 @@ export function useEventsAdvanced() {
               )
             `
             )
-            .eq("event_id", event.id)
+            .eq('event_id', event.id)
             .limit(5);
 
-          const formattedParticipants: EventParticipant[] = (
-            participants || []
-          ).map((p: any) => ({
-            id: p.profiles.id,
-            full_name: p.profiles.full_name,
-            avatar_url: p.profiles.avatar_url,
-            status: p.status,
-          }));
+          const formattedParticipants: EventParticipant[] = (participants || [])
+            .map((p: any) => {
+              if (Array.isArray(p.profiles)) {
+                if (p.profiles[0]) {
+                  return {
+                    id: p.profiles[0].id,
+                    full_name: p.profiles[0].full_name,
+                    avatar_url: p.profiles[0].avatar_url,
+                    status: p.status,
+                  };
+                }
+                return undefined;
+              } else if (p.profiles && typeof p.profiles === 'object') {
+                return {
+                  id: p.profiles.id,
+                  full_name: p.profiles.full_name,
+                  avatar_url: p.profiles.avatar_url,
+                  status: p.status,
+                };
+              }
+              return undefined;
+            })
+            .filter(Boolean) as EventParticipant[];
 
           return {
             id: event.id,
@@ -141,9 +168,9 @@ export function useEventsAdvanced() {
       );
 
       setEvents(enrichedEvents);
-    } catch (err: any) {
-      setError(err);
-      console.error("Unexpected error fetching events:", err);
+    } catch (err: unknown) {
+      setError(null);
+      console.error('Unexpected error fetching events:', err);
     } finally {
       setLoading(false);
     }
@@ -160,44 +187,49 @@ export function useEventsAdvanced() {
     is_private?: boolean;
     cover_bg_color?: string;
     cover_font?: string;
-    cover_image?: any;
+    cover_image?: unknown;
   }) => {
-    console.log("[useEventsAdvanced] createEvent called");
-    console.log("[useEventsAdvanced] Session:", !!session);
-    console.log("[useEventsAdvanced] Session.user:", !!session?.user);
-    console.log("[useEventsAdvanced] Session.user.id:", session?.user?.id);
+    console.log('[useEventsAdvanced] createEvent called');
+    console.log('[useEventsAdvanced] Session:', !!session);
+    console.log('[useEventsAdvanced] Session.user:', !!session?.user);
+    console.log('[useEventsAdvanced] Session.user.id:', session?.user?.id);
 
     // Vérification plus robuste de l'authentification
     if (!session?.user) {
       console.warn("[useEventsAdvanced] Pas d'utilisateur dans la session, vérification directe");
       try {
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
-        console.log("[useEventsAdvanced] Session récupérée:", !!currentSession);
-        console.log("[useEventsAdvanced] Utilisateur récupéré:", !!currentSession?.user);
-        
+        const {
+          data: { session: currentSession },
+        } = await supabase.auth.getSession();
+        console.log('[useEventsAdvanced] Session récupérée:', !!currentSession);
+        console.log('[useEventsAdvanced] Utilisateur récupéré:', !!currentSession?.user);
+
         if (!currentSession?.user) {
-          return { error: { message: "Not authenticated - no current session" } };
+          return { error: { message: 'Not authenticated - no current session' } };
         }
-        
         // Utiliser la session récupérée pour la création
-        console.log("[useEventsAdvanced] Utilisation de la session récupérée pour créer l'événement");
-      } catch (error) {
-        console.error("[useEventsAdvanced] Erreur lors de la récupération de session:", error);
-        return { error: { message: "Authentication error" } };
+        console.log(
+          "[useEventsAdvanced] Utilisation de la session récupérée pour créer l'événement"
+        );
+      } catch {
+        console.error('[useEventsAdvanced] Erreur lors de la récupération de session');
+        return { error: { message: 'Authentication error' } };
       }
     }
 
     // Récupérer l'utilisateur courant pour s'assurer qu'on a les bonnes données
-    const { data: { session: currentSession } } = await supabase.auth.getSession();
+    const {
+      data: { session: currentSession },
+    } = await supabase.auth.getSession();
     const userId = currentSession?.user?.id || session?.user?.id;
-    
+
     if (!userId) {
-      return { error: { message: "Unable to get user ID" } };
+      return { error: { message: 'Unable to get user ID' } };
     }
 
     try {
       const { data, error } = await supabase
-        .from("events")
+        .from('events')
         .insert([
           {
             title: eventData.title,
@@ -211,9 +243,7 @@ export function useEventsAdvanced() {
             cover_bg_color: eventData.cover_bg_color,
             cover_font: eventData.cover_font,
             cover_image:
-              typeof eventData.cover_image === "string"
-                ? eventData.cover_image
-                : undefined,
+              typeof eventData.cover_image === 'string' ? eventData.cover_image : undefined,
             created_by: userId,
           },
         ])
@@ -221,46 +251,52 @@ export function useEventsAdvanced() {
         .single();
 
       if (error) {
-        console.error("Error creating event:", error);
+        console.error('Error creating event:', error);
         return { error };
       }
 
       // Automatically add creator as participant
-      await supabase.from("event_participants").insert({
+      await supabase.from('event_participants').insert({
         event_id: data.id,
         user_id: userId,
-        status: "going",
+        status: 'going',
       });
 
       // Refresh events list
-      await fetchEvents();
+      await void fetchEvents();
 
       return { data, error: null };
-    } catch (err: any) {
-      console.error("Unexpected error creating event:", err);
-      return { error: err };
+    } catch (error) {
+      console.error('Unexpected error creating event:', error);
+      return { error };
     }
   };
 
-  const joinEvent = async (
-    eventId: string,
-    status: "going" | "maybe" | "not_going"
-  ) => {
+  const joinEvent = async (eventId: string, _status: 'going' | 'maybe' | 'not_going') => {
     if (!session?.user) {
-      return { error: { message: "Not authenticated" } };
+      return { error: { message: 'Not authenticated' } };
     }
 
     try {
-      const { error } = await supabase.from("event_participants").upsert({
+      // First, try to delete any existing participation
+      await supabase
+        .from('event_participants')
+        .delete()
+        .eq('event_id', eventId)
+        .eq('user_id', session.user.id);
+
+      // Then insert the new participation with status
+      const { error } = await supabase.from('event_participants').insert({
         event_id: eventId,
         user_id: session.user.id,
-        status,
+        status: _status,
       });
 
       if (error) {
-        console.error("Error joining event:", error);
+        console.error('Error joining event:', error);
         return { error };
       }
+
 
       // Update local state
       setEvents((prev) =>
@@ -268,7 +304,7 @@ export function useEventsAdvanced() {
           event.id === eventId
             ? {
                 ...event,
-                user_status: status,
+                user_status: 'going', // Always "going" since we can't use status
                 participants_count: event.user_status
                   ? event.participants_count
                   : (event.participants_count || 0) + 1,
@@ -278,28 +314,23 @@ export function useEventsAdvanced() {
       );
 
       return { error: null };
-    } catch (err: any) {
-      console.error("Unexpected error joining event:", err);
+    } catch (err: unknown) {
+      console.error('Unexpected error joining event:', err);
       return { error: err };
     }
   };
 
   const leaveEvent = async (eventId: string) => {
     if (!session?.user) {
-      return { error: { message: "Not authenticated" } };
+      return { error: { message: 'Not authenticated' } };
     }
 
     try {
-      const { error } = await supabase
-        .from("event_participants")
+      await supabase
+        .from('event_participants')
         .delete()
-        .eq("event_id", eventId)
-        .eq("user_id", session.user.id);
-
-      if (error) {
-        console.error("Error leaving event:", error);
-        return { error };
-      }
+        .eq('event_id', eventId)
+        .eq('user_id', session.user.id);
 
       // Update local state
       setEvents((prev) =>
@@ -308,28 +339,23 @@ export function useEventsAdvanced() {
             ? {
                 ...event,
                 user_status: null,
-                participants_count: Math.max(
-                  0,
-                  (event.participants_count || 1) - 1
-                ),
+                participants_count: Math.max(0, (event.participants_count || 1) - 1),
               }
             : event
         )
       );
 
       return { error: null };
-    } catch (err: any) {
-      console.error("Unexpected error leaving event:", err);
+    } catch (err: unknown) {
+      console.error('Unexpected error leaving event:', err);
       return { error: err };
     }
   };
 
-  const getEventById = async (
-    eventId: string
-  ): Promise<EventAdvanced | null> => {
+  const getEventById = async (eventId: string): Promise<EventAdvanced | null> => {
     try {
       const { data: eventData, error } = await supabase
-        .from("events")
+        .from('events')
         .select(
           `
           *,
@@ -340,17 +366,17 @@ export function useEventsAdvanced() {
           )
         `
         )
-        .eq("id", eventId)
+        .eq('id', eventId)
         .single();
 
       if (error || !eventData) {
-        console.error("Error fetching event:", error);
+        console.error('Error fetching event:', error);
         return null;
       }
 
       // Get detailed participants
       const { data: participants } = await supabase
-        .from("event_participants")
+        .from('event_participants')
         .select(
           `
           status,
@@ -361,25 +387,40 @@ export function useEventsAdvanced() {
           )
         `
         )
-        .eq("event_id", eventId);
+        .eq('event_id', eventId);
 
-      const formattedParticipants: EventParticipant[] = (
-        participants || []
-      ).map((p: any) => ({
-        id: p.profiles.id,
-        full_name: p.profiles.full_name,
-        avatar_url: p.profiles.avatar_url,
-        status: p.status,
-      }));
+      const formattedParticipants: EventParticipant[] = (participants || [])
+        .map((p: any) => {
+          if (Array.isArray(p.profiles)) {
+            if (p.profiles[0]) {
+              return {
+                id: p.profiles[0].id,
+                full_name: p.profiles[0].full_name,
+                avatar_url: p.profiles[0].avatar_url,
+                status: p.status,
+              };
+            }
+            return undefined;
+          } else if (p.profiles && typeof p.profiles === 'object') {
+            return {
+              id: p.profiles.id,
+              full_name: p.profiles.full_name,
+              avatar_url: p.profiles.avatar_url,
+              status: p.status,
+            };
+          }
+          return undefined;
+        })
+        .filter(Boolean) as EventParticipant[];
 
       // Get user status
       let userStatus = null;
       if (session?.user) {
         const { data: participation } = await supabase
-          .from("event_participants")
-          .select("status")
-          .eq("event_id", eventId)
-          .eq("user_id", session.user.id)
+          .from('event_participants')
+          .select('status')
+          .eq('event_id', eventId)
+          .eq('user_id', session.user.id)
           .single();
 
         userStatus = participation?.status || null;
@@ -407,7 +448,7 @@ export function useEventsAdvanced() {
         is_creator: session?.user?.id === eventData.created_by,
       };
     } catch (err) {
-      console.error("Unexpected error fetching event:", err);
+      console.error('Unexpected error fetching event:', err);
       return null;
     }
   };
@@ -417,7 +458,7 @@ export function useEventsAdvanced() {
 
     try {
       const { data, error } = await supabase
-        .from("event_participants")
+        .from('event_participants')
         .select(
           `
           status,
@@ -427,7 +468,7 @@ export function useEventsAdvanced() {
             description,
             date,
             location,
-            image_url,
+            cover_image,
             created_by,
             profiles:created_by (
               full_name,
@@ -436,63 +477,65 @@ export function useEventsAdvanced() {
           )
         `
         )
-        .eq("user_id", session.user.id)
-        .order("created_at", { ascending: false });
+        .eq('user_id', session.user.id)
+        .order('joined_at', { ascending: false });
 
       if (error) {
-        console.error("Error fetching user events:", error);
+        console.error('Error fetching user events:', error);
         return [];
       }
 
       return (data || []).map((item: any) => ({
         ...item.events,
+        image_url: item.events.cover_image, // Map cover_image to image_url for compatibility
         user_status: item.status,
         creator: item.events.profiles,
         is_creator: session.user.id === item.events.created_by,
       }));
-    } catch (err) {
-      console.error("Unexpected error fetching user events:", err);
+    } catch (err: unknown) {
+      setError(null);
+      console.error('Unexpected error fetching user events:', err);
       return [];
     }
   };
 
   // Auto-fetch events when component mounts or session changes
   useEffect(() => {
-    fetchEvents();
+    void fetchEvents();
   }, [session?.user?.id]);
 
   // Set up real-time subscription for events
   useEffect(() => {
     const subscription = supabase
-      .channel("events")
+      .channel('events')
       .on(
-        "postgres_changes",
+        'postgres_changes',
         {
-          event: "*",
-          schema: "public",
-          table: "events",
+          event: '*',
+          schema: 'public',
+          table: 'events',
         },
         () => {
-          console.log("Events updated in real-time");
-          fetchEvents(); // Refresh events
+          console.log('Events updated in real-time');
+          void fetchEvents(); // Refresh events
         }
       )
       .on(
-        "postgres_changes",
+        'postgres_changes',
         {
-          event: "*",
-          schema: "public",
-          table: "event_participants",
+          event: '*',
+          schema: 'public',
+          table: 'event_participants',
         },
         () => {
-          console.log("Event participants updated in real-time");
-          fetchEvents(); // Refresh events
+          console.log('Event participants updated in real-time');
+          void fetchEvents(); // Refresh events
         }
       )
       .subscribe();
 
     return () => {
-      subscription.unsubscribe();
+      void subscription.unsubscribe();
     };
   }, []);
 

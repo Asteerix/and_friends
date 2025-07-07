@@ -1,5 +1,5 @@
-import { create } from "zustand";
-import { Region } from "react-native-maps";
+import { Region } from 'react-native-maps';
+import { create } from 'zustand';
 
 const DEFAULT_REGION: Region = {
   latitude: 40.729,

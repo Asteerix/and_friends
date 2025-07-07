@@ -1,60 +1,54 @@
-import React, { useState, useEffect, useRef } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Dimensions,
-  SafeAreaView,
-  Alert,
-  Platform,
-} from 'react-native';
-import { Camera, CameraType } from 'expo-camera';
-import * as Location from 'expo-location';
-import { DeviceMotion } from 'expo-sensors';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
-import { useNearbyEvents } from "@/hooks/useNearbyEvents";
-import { Event } from '@/entities/event/types';
-import AREventMarker from "@/components/AREventMarker";
+import { CameraView, useCameraPermissions } from 'expo-camera';
+import * as Location from 'expo-location';
+import { useRouter } from 'expo-router';
+import { DeviceMotion } from 'expo-sensors';
+import React, { useState, useEffect, useRef } from 'react';
+import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+import AREventMarker from '../components/AREventMarker';
+import { useNearbyEvents, NearbyEvent } from '../hooks/useNearbyEvents';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-interface AREvent extends Event {
+interface AREvent extends NearbyEvent {
   distance: number;
   bearing: number;
   x?: number;
   y?: number;
 }
-
 export default function MapARScreen() {
-  const navigation = useNavigation();
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const router = useRouter();
+  const [permission, requestPermission] = useCameraPermissions();
   const [userLocation, setUserLocation] = useState<Location.LocationObject | null>(null);
   const [userHeading, setUserHeading] = useState(0);
   const [arEvents, setArEvents] = useState<AREvent[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<AREvent | null>(null);
   const [showRadar, setShowRadar] = useState(true);
-  
-  const cameraRef = useRef<Camera>(null);
+  const [locationPermission, setLocationPermission] = useState<boolean | null>(null);
+
+  const cameraRef = useRef<any>(null);
   const deviceMotionSubscription = useRef<any>(null);
-  
-  const { events, loading } = useNearbyEvents(userLocation?.coords.latitude, userLocation?.coords.longitude);
+
+  const { events } = useNearbyEvents(userLocation?.coords.latitude, userLocation?.coords.longitude);
 
   useEffect(() => {
     (async () => {
-      // Request camera permission
-      const { status: cameraStatus } = await Camera.requestCameraPermissionsAsync();
-      
+      // Request camera permission if needed
+      if (!permission?.granted) {
+        await requestPermission();
+      }
+
       // Request location permission
       const { status: locationStatus } = await Location.requestForegroundPermissionsAsync();
-      
-      setHasPermission(cameraStatus === 'granted' && locationStatus === 'granted');
-      
+
+      setLocationPermission(locationStatus === 'granted');
+
       if (locationStatus === 'granted') {
         const location = await Location.getCurrentPositionAsync({});
         setUserLocation(location);
-        
+
         // Watch user location
         Location.watchPositionAsync(
           {
@@ -73,7 +67,8 @@ export default function MapARScreen() {
     deviceMotionSubscription.current = DeviceMotion.addListener((motion) => {
       if (motion.rotation) {
         // Calculate heading from device rotation
-        const heading = Math.atan2(motion.rotation.gamma || 0, motion.rotation.beta || 0) * (180 / Math.PI);
+        const heading =
+          Math.atan2(motion.rotation.gamma || 0, motion.rotation.beta || 0) * (180 / Math.PI);
         setUserHeading(heading);
       }
     });
@@ -88,10 +83,11 @@ export default function MapARScreen() {
   useEffect(() => {
     if (userLocation && events.length > 0) {
       // Calculate AR positions for events
-      const arEventsData = events.map(event => {
-        const eventLat = event.location?.latitude || 0;
-        const eventLng = event.location?.longitude || 0;
-        
+      const arEventsData = events.map((event) => {
+        // For now, use dummy coordinates since EventAdvanced doesn't have lat/lng
+        const eventLat = 0;
+        const eventLng = 0;
+
         // Calculate distance and bearing
         const distance = calculateDistance(
           userLocation.coords.latitude,
@@ -99,58 +95,58 @@ export default function MapARScreen() {
           eventLat,
           eventLng
         );
-        
+
         const bearing = calculateBearing(
           userLocation.coords.latitude,
           userLocation.coords.longitude,
           eventLat,
           eventLng
         );
-        
+
         // Calculate screen position based on bearing and heading
         const relativeBearing = (bearing - userHeading + 360) % 360;
         const x = (relativeBearing / 60) * SCREEN_WIDTH; // 60 degree field of view
         const y = SCREEN_HEIGHT / 2 - (distance < 100 ? 100 : distance < 500 ? 200 : 300);
-        
+
         return {
           ...event,
           distance,
           bearing,
           x: relativeBearing < 30 || relativeBearing > 330 ? x : undefined,
           y: relativeBearing < 30 || relativeBearing > 330 ? y : undefined,
-        } as AREvent;
+        };
       });
-      
+
       setArEvents(arEventsData);
     }
   }, [userLocation, events, userHeading]);
 
   const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
     const R = 6371000; // Earth's radius in meters
-    const φ1 = lat1 * Math.PI / 180;
-    const φ2 = lat2 * Math.PI / 180;
-    const Δφ = (lat2 - lat1) * Math.PI / 180;
-    const Δλ = (lon2 - lon1) * Math.PI / 180;
+    const φ1 = (lat1 * Math.PI) / 180;
+    const φ2 = (lat2 * Math.PI) / 180;
+    const Δφ = ((lat2 - lat1) * Math.PI) / 180;
+    const Δλ = ((lon2 - lon1) * Math.PI) / 180;
 
-    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-              Math.cos(φ1) * Math.cos(φ2) *
-              Math.sin(Δλ/2) * Math.sin(Δλ/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const a =
+      Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+      Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
     return R * c;
   };
 
   const calculateBearing = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
-    const φ1 = lat1 * Math.PI / 180;
-    const φ2 = lat2 * Math.PI / 180;
-    const Δλ = (lon2 - lon1) * Math.PI / 180;
+    const φ1 = (lat1 * Math.PI) / 180;
+    const φ2 = (lat2 * Math.PI) / 180;
+    const Δλ = ((lon2 - lon1) * Math.PI) / 180;
 
     const y = Math.sin(Δλ) * Math.cos(φ2);
     const x = Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
 
     const θ = Math.atan2(y, x);
 
-    return (θ * 180 / Math.PI + 360) % 360;
+    return ((θ * 180) / Math.PI + 360) % 360;
   };
 
   const formatDistance = (distance: number): string => {
@@ -160,22 +156,17 @@ export default function MapARScreen() {
     return `${(distance / 1000).toFixed(1)}km`;
   };
 
-  if (hasPermission === null) {
+  if (!permission || locationPermission === null) {
     return <View style={styles.container} />;
   }
 
-  if (hasPermission === false) {
+  if (!permission.granted || !locationPermission) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.permissionContainer}>
           <MaterialIcons name="location-off" size={64} color="#999" />
-          <Text style={styles.permissionText}>
-            Camera and location access required for AR view
-          </Text>
-          <TouchableOpacity
-            style={styles.permissionButton}
-            onPress={() => navigation.goBack()}
-          >
+          <Text style={styles.permissionText}>Camera and location access required for AR view</Text>
+          <TouchableOpacity style={styles.permissionButton} onPress={() => router.back()}>
             <Text style={styles.permissionButtonText}>Go Back</Text>
           </TouchableOpacity>
         </View>
@@ -185,17 +176,13 @@ export default function MapARScreen() {
 
   return (
     <View style={styles.container}>
-      <Camera
-        ref={cameraRef}
-        style={styles.camera}
-        type={CameraType.back}
-      >
+      <CameraView ref={cameraRef} style={styles.camera} facing="back">
         {/* AR Event Markers */}
-        {arEvents.map((event) => 
+        {arEvents.map((event) =>
           event.x !== undefined && event.y !== undefined ? (
             <AREventMarker
               key={event.id}
-              event={event}
+              event={{ ...event, distance: event.distance }}
               x={event.x}
               y={event.y}
               distance={event.distance}
@@ -207,23 +194,17 @@ export default function MapARScreen() {
 
         {/* Header */}
         <SafeAreaView style={styles.header}>
-          <TouchableOpacity
-            style={styles.headerButton}
-            onPress={() => navigation.goBack()}
-          >
+          <TouchableOpacity style={styles.headerButton} onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={28} color="white" />
           </TouchableOpacity>
-          
+
           <Text style={styles.headerTitle}>AR View</Text>
-          
-          <TouchableOpacity
-            style={styles.headerButton}
-            onPress={() => setShowRadar(!showRadar)}
-          >
-            <MaterialIcons 
-              name={showRadar ? "radar" : "radar"} 
-              size={28} 
-              color={showRadar ? "white" : "#666"} 
+
+          <TouchableOpacity style={styles.headerButton} onPress={() => setShowRadar(!showRadar)}>
+            <MaterialIcons
+              name={showRadar ? 'radar' : 'radar'}
+              size={28}
+              color={showRadar ? 'white' : '#666'}
             />
           </TouchableOpacity>
         </SafeAreaView>
@@ -234,38 +215,33 @@ export default function MapARScreen() {
             <View style={styles.radarCircle}>
               {/* User position (center) */}
               <View style={styles.userDot} />
-              
+
               {/* Event dots on radar */}
               {arEvents.map((event) => {
-                const angle = (event.bearing - userHeading) * Math.PI / 180;
+                const angle = ((event.bearing - userHeading) * Math.PI) / 180;
                 const distance = Math.min(event.distance / 1000, 1); // Normalize to radar size
                 const x = Math.sin(angle) * distance * 80;
                 const y = -Math.cos(angle) * distance * 80;
-                
+
                 return (
                   <View
                     key={event.id}
                     style={[
                       styles.radarDot,
                       {
-                        transform: [
-                          { translateX: x },
-                          { translateY: y },
-                        ],
+                        transform: [{ translateX: x }, { translateY: y }],
                       },
                       selectedEvent?.id === event.id && styles.selectedRadarDot,
                     ]}
                   />
                 );
               })}
-              
+
               {/* Direction indicator */}
               <View style={styles.directionIndicator} />
             </View>
-            
-            <Text style={styles.radarText}>
-              {arEvents.length} events nearby
-            </Text>
+
+            <Text style={styles.radarText}>{arEvents.length} events nearby</Text>
           </View>
         )}
 
@@ -273,17 +249,15 @@ export default function MapARScreen() {
         {selectedEvent && (
           <TouchableOpacity
             style={styles.eventDetails}
-            onPress={() => navigation.navigate('EventDetailsScreen', { eventId: selectedEvent.id })}
+            onPress={() => router.push(`/event-details?eventId=${selectedEvent.id}`)}
             activeOpacity={0.9}
           >
             <Text style={styles.eventTitle}>{selectedEvent.title}</Text>
             <Text style={styles.eventSubtitle}>{selectedEvent.subtitle}</Text>
             <View style={styles.eventInfo}>
-              <Text style={styles.eventDistance}>
-                {formatDistance(selectedEvent.distance)}
-              </Text>
+              <Text style={styles.eventDistance}>{formatDistance(selectedEvent.distance)}</Text>
               <Text style={styles.eventTime}>
-                {new Date(selectedEvent.startTime).toLocaleDateString()}
+                {new Date(selectedEvent.date).toLocaleDateString()}
               </Text>
             </View>
             <Text style={styles.eventAction}>Tap to view details →</Text>
@@ -299,7 +273,7 @@ export default function MapARScreen() {
           <View style={[styles.gridLine, { top: '75%' }]} />
           <Text style={[styles.gridText, { top: '75%' }]}>1km+</Text>
         </View>
-      </Camera>
+      </CameraView>
     </View>
   );
 }

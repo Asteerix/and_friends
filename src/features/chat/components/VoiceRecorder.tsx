@@ -1,27 +1,19 @@
-import React, { useState, useRef, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Animated,
-  Platform,
-  Alert,
-} from 'react-native';
+
+import { Ionicons } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
 import * as Haptics from 'expo-haptics';
-import { Ionicons } from '@expo/vector-icons';
+import React, { useState, useRef, useEffect } from 'react';
+import { Alert, Animated, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface VoiceRecorderProps {
   onRecordingComplete: (uri: string, duration: number) => void;
   onCancel: () => void;
 }
-
 export default function VoiceRecorder({ onRecordingComplete, onCancel }: VoiceRecorderProps) {
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
   const [duration, setDuration] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
-  const [amplitude, setAmplitude] = useState(0);
+  // const [amplitude, setAmplitude] = useState(0);
   
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const pulseAnim = useRef(new Animated.Value(0)).current;
@@ -74,7 +66,7 @@ export default function VoiceRecorder({ onRecordingComplete, onCancel }: VoiceRe
   const startRecording = async () => {
     try {
       // Haptic feedback
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
       // Configure recording options
       const recordingOptions: Audio.RecordingOptions = {
@@ -130,7 +122,7 @@ export default function VoiceRecorder({ onRecordingComplete, onCancel }: VoiceRe
 
     try {
       // Haptic feedback
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
       // Stop duration counter
       if (durationInterval.current) {
@@ -170,7 +162,7 @@ export default function VoiceRecorder({ onRecordingComplete, onCancel }: VoiceRe
 
     try {
       // Haptic feedback
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
 
       // Stop duration counter
       if (durationInterval.current) {
@@ -204,7 +196,7 @@ export default function VoiceRecorder({ onRecordingComplete, onCancel }: VoiceRe
         ? (status.metering + 160) / 160
         : Math.min(status.metering / 100, 1);
       
-      setAmplitude(normalizedAmplitude);
+      // setAmplitude(normalizedAmplitude);
       
       // Animate waveform
       Animated.timing(amplitudeAnim, {

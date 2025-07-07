@@ -1,8 +1,5 @@
-// UNUSED: This file is part of Expo Router structure but the app uses React Navigation instead
-
 import { Stack } from 'expo-router';
 
-/*
 export default function AuthLayout() {
   return (
     <Stack
@@ -11,6 +8,7 @@ export default function AuthLayout() {
         animation: 'slide_from_right',
       }}
     >
+      <Stack.Screen name="onboarding" />
       <Stack.Screen name="phone-verification" />
       <Stack.Screen name="code-verification" />
       <Stack.Screen name="name-input" />
@@ -26,4 +24,3 @@ export default function AuthLayout() {
     </Stack>
   );
 }
-*/

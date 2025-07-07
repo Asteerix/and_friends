@@ -1,3 +1,4 @@
+
 export interface User {
   id: string;
   handle: string;
@@ -41,12 +42,11 @@ export interface User {
   contactsPermission: boolean;
   locationPermission: boolean;
   notificationPermission: boolean;
-  phoneContacts?: any;
+  phoneContacts?: Record<string, unknown>;
   settings: UserSettings;
   createdAt: Date;
   updatedAt: Date;
-}
-
+};
 export interface Restaurant {
   id: string;
   name: string;
@@ -56,8 +56,7 @@ export interface Restaurant {
   priceLevel?: number;
   rating?: number;
   imageUrl?: string;
-}
-
+};
 export interface UserSettings {
   notifications: {
     events: boolean;
@@ -76,16 +75,14 @@ export interface UserSettings {
     calendarTheme?: string;
   };
   language: string;
-}
-
+};
 export interface CreateUserData {
   handle: string;
   fullName: string;
   birthDate?: Date;
   hideAge?: boolean;
-}
-
-export interface UpdateUserData extends Partial<Omit<User, 'id' | 'createdAt' | 'updatedAt'>> {}
+};
+export type UpdateUserData = Partial<Omit<User, 'id' | 'createdAt' | 'updatedAt'>>;
 
 export interface UserSearchParams {
   query?: string;
@@ -93,14 +90,12 @@ export interface UserSearchParams {
   interests?: string[];
   limit?: number;
   offset?: number;
-}
-
+};
 export interface Follow {
   followerId: string;
   followingId: string;
   createdAt: Date;
-}
-
+};
 export interface Block {
   blockerId: string;
   blockedId: string;

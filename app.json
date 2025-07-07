@@ -62,7 +62,8 @@
         {
           "locationAlwaysAndWhenInUsePermission": "& friends uses your location to show you events happening nearby and notify you when friends are hosting events near you."
         }
-      ]
+      ],
+      "expo-font"
     ],
     "extra": {
       "eas": {

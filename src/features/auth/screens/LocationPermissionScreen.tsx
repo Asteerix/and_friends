@@ -1,160 +1,240 @@
-import * as Location from 'expo-location';
-import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, Dimensions, Image, StyleSheet, View } from 'react-native';
-
+import {
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  Pressable,
+  ActivityIndicator,
+  Platform,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { create } from 'react-native-pixel-perfect';
+import { useRouter } from 'expo-router';
+import * as Location from 'expo-location';
 import { supabase } from '@/shared/lib/supabase/client';
-import { getDeviceLanguage, t } from '@/shared/locales';
-import ScreenLayout from '@/shared/ui/ScreenLayout';
 import { useAuthNavigation } from '@/shared/hooks/useAuthNavigation';
 import { useRegistrationStep } from '@/shared/hooks/useRegistrationStep';
 
-// LocationPermissionScreen.tsx
-// ---------------------------------------------------------------------------
+const designResolution = { width: 375, height: 812 };
+const perfectSize = create(designResolution);
 
-// ---------------------------------------------------------------------------
-// Constantes
-// ---------------------------------------------------------------------------
-const { height: H } = Dimensions.get('window');
-const COLORS = {
-  white: '#FFFFFF',
-  black: '#000000',
-  grey3: '#555555',
-};
+const illustration = require('@/assets/images/register/localisation.png');
 
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
-const LocationPermissionScreen: React.FC = () => {
+const LocationPermissionScreen: React.FC = React.memo(() => {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
-  const lang = getDeviceLanguage();
-  // const { currentStep, loading: onboardingLoading } = useOnboardingStatus(); // Removed to prevent auto-redirects
-  const { navigateBack, getProgress } = useAuthNavigation('location-permission');
+  const { navigateBack, navigateNext, getProgress } = useAuthNavigation('location-permission');
+  useRegistrationStep('location_permission');
   const [isLoading, setIsLoading] = useState(false);
 
-  // Save registration step
-  useRegistrationStep('location_permission');
-
-  // Removed auto-redirect logic to prevent navigation conflicts
-  // User should control navigation flow manually
-
-  // Remove auto-skip to prevent navigation loops
-  // Users should explicitly click continue even if permission was already granted
-
-  const updateUserProfileWithPermission = async (permissionGranted: boolean) => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user || !user.id) {
-      console.error('User not found for updating location permission.');
-      Alert.alert(t('error_session_expired_title', lang), t('error_session_expired_message', lang));
-      return false;
-    }
-
-    setIsLoading(true);
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          location_permission_granted: permissionGranted,
-          current_registration_step: 'location_permission',
-        })
-        .eq('id', user.id);
-
-      if (error) {
-        console.error('Error updating profile with location permission:', error);
-        Alert.alert(t('error_saving_profile', lang), error.message);
-        return false;
-      }
-      return true;
-    } catch (e: unknown) {
-      console.error('Unexpected error updating profile:', e);
-      Alert.alert(t('unexpected_error', lang), e instanceof Error ? e.message : String(e));
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handlePermissionRequest = async () => {
+  const handleAllow = async () => {
     if (isLoading) return;
     setIsLoading(true);
-
     const { status } = await Location.requestForegroundPermissionsAsync();
-    console.log('[LocationPermissionScreen] Permission requested, status:', status);
     const permissionGranted = status === Location.PermissionStatus.GRANTED;
-    await updateUserProfileWithPermission(permissionGranted);
-
-    // Always navigate to next screen, even if permission denied
-    void router.push('/age-input');
+    await supabase
+      .from('profiles')
+      .update({
+        location_permission_granted: permissionGranted,
+        current_registration_step: 'age_input',
+      })
+      .eq('id', (await supabase.auth.getUser()).data.user?.id);
+    navigateNext('age-input');
     setIsLoading(false);
   };
 
   const handleSkip = async () => {
     if (isLoading) return;
     setIsLoading(true);
-
-    // Si l'utilisateur saute, on enregistre que la permission n'a pas été accordée (false).
-    const profileUpdated = await updateUserProfileWithPermission(false);
-    if (profileUpdated) {
-      void router.push('/age-input');
-    } else {
-      setIsLoading(false);
-    }
+    await supabase
+      .from('profiles')
+      .update({
+        location_permission_granted: false,
+        current_registration_step: 'age_input',
+      })
+      .eq('id', (await supabase.auth.getUser()).data.user?.id);
+    navigateNext('age-input');
+    setIsLoading(false);
   };
 
-  const handleBackPress = () => {
+  const handleBack = () => {
     navigateBack();
   };
 
   return (
-    <ScreenLayout
-      title={t('location_permission_title', lang)}
-      subtitle={t('location_permission_subtitle', lang)}
-      progress={getProgress()}
-      onContinue={handlePermissionRequest}
-      continueButtonText={t('location_permission_button_allow', lang)} // Ex: "Enable Location"
-      continueDisabled={isLoading}
-      showAltLink={true}
-      altLinkText={t('skip_for_now', lang)} // Ex: "Skip for now"
-      onAltLinkPress={handleSkip}
-      onBackPress={handleBackPress}
-      // isLoading prop retirée si ScreenLayout ne la supporte pas
-    >
-      <View style={styles.contentContainer}>
+    <View style={[styles.safeArea, { paddingTop: insets.top }]}>
+      {/* Header Row */}
+      <View style={styles.headerRow}>
+        <Pressable
+          onPress={handleBack}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+          style={({ pressed }) => [styles.backButton, { opacity: pressed ? 0.5 : 1 }]}
+        >
+          <Text style={styles.backArrow}>←</Text>
+        </Pressable>
+        <View style={styles.progressTrack}>
+          <View style={[styles.progressFill, { width: `${getProgress() * 100}%` }]} />
+        </View>
+      </View>
+
+      {/* Title & Subtitle */}
+      <Text
+        style={styles.title}
+        accessibilityRole="header"
+        accessibilityLabel="See what's happening nearby"
+      >
+        See what's happening <Text style={styles.titleItalic}>nearby</Text>
+      </Text>
+      <Text
+        style={styles.subtitle}
+        accessibilityLabel="To show nearby events, we need your location — nothing sneaky."
+      >
+        To show nearby events, we{`\n`}need your location — nothing sneaky.
+      </Text>
+
+      {/* Illustration */}
+      <View style={styles.illustrationContainer}>
         <Image
-          source={require('@/assets/images/register/location-illustration.png')}
+          source={illustration}
           style={styles.illustration}
           resizeMode="contain"
+          accessible
+          accessibilityLabel="Person among green flowers illustration"
         />
-        {isLoading && (
-          <ActivityIndicator size="large" color={COLORS.black} style={styles.loadingIndicator} />
-        )}
       </View>
-    </ScreenLayout>
-  );
-};
 
-export default LocationPermissionScreen;
+      {/* Buttons */}
+      <Pressable
+        style={({ pressed }) => [
+          styles.continueButton,
+          { opacity: pressed || isLoading ? 0.4 : 1 },
+        ]}
+        onPress={handleAllow}
+        disabled={isLoading}
+        accessibilityRole="button"
+        accessibilityLabel="Allow Location Access"
+      >
+        {isLoading ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.continueButtonText}>Allow Location Access</Text>
+        )}
+      </Pressable>
+      <Pressable
+        onPress={handleSkip}
+        disabled={isLoading}
+        accessibilityRole="button"
+        accessibilityLabel="Skip For Now"
+        style={({ pressed }) => [styles.skipButton, { opacity: pressed ? 0.6 : 1 }]}
+      >
+        <Text style={styles.skipButtonText}>Skip For Now</Text>
+      </Pressable>
+    </View>
+  );
+});
 
 const styles = StyleSheet.create({
-  contentContainer: {
+  safeArea: {
     flex: 1,
+    backgroundColor: '#fff',
+    paddingHorizontal: perfectSize(24),
+  },
+  headerRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 0,
+    marginTop: perfectSize(8),
+    marginBottom: perfectSize(16),
+  },
+  backButton: {
+    width: perfectSize(44),
+    height: perfectSize(44),
     justifyContent: 'center',
-    paddingTop: 20,
+    alignItems: 'flex-start',
+  },
+  backArrow: {
+    fontSize: perfectSize(28),
+    color: '#016fff',
+  },
+  progressTrack: {
+    flex: 1,
+    height: perfectSize(2),
+    backgroundColor: '#E5E5E5',
+    marginLeft: perfectSize(8),
+    marginRight: perfectSize(8),
+    borderRadius: perfectSize(1),
+    overflow: 'hidden',
+  },
+  progressFill: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#016fff',
+    borderRadius: perfectSize(1),
+  },
+  title: {
+    marginTop: perfectSize(16),
+    fontSize: perfectSize(34),
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+    color: '#000',
+    textAlign: 'center',
+    lineHeight: perfectSize(41),
+    letterSpacing: 0.34,
+    fontWeight: '400',
+  },
+  titleItalic: {
+    fontStyle: 'italic',
+    fontFamily: Platform.OS === 'ios' ? 'Georgia-Italic' : 'serif',
+  },
+  subtitle: {
+    marginTop: perfectSize(16),
+    fontSize: perfectSize(16),
+    color: '#555555',
+    textAlign: 'center',
+    lineHeight: perfectSize(22),
+    marginBottom: perfectSize(40),
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
+    fontWeight: '400',
+  },
+  illustrationContainer: {
+    flex: 1,
+    marginRight: -perfectSize(24), // Étend jusqu'au bord droit
+    justifyContent: 'center',
+    alignItems: 'flex-end', // Aligne l'image à droite
   },
   illustration: {
-    width: '85%',
-    height: H * 0.35,
-    alignSelf: 'center',
-    marginBottom: 20,
+    width: '90%', // Ajustez selon vos besoins
+    height: '100%',
   },
-  loadingIndicator: {
-    marginTop: 20,
+  continueButton: {
+    height: perfectSize(60),
+    backgroundColor: '#016fff',
+    borderRadius: perfectSize(14),
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: perfectSize(16),
+  },
+  continueButtonText: {
+    color: '#fff',
+    fontSize: perfectSize(20),
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+    fontWeight: '400',
+  },
+  skipButton: {
+    alignSelf: 'center',
+    marginTop: perfectSize(-8),
+    paddingVertical: perfectSize(8),
+    marginBottom: perfectSize(16),
+  },
+  skipButtonText: {
+    color: '#016fff',
+    fontSize: perfectSize(16),
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
+    fontWeight: '400',
   },
 });
+
+export default LocationPermissionScreen;
 
 /*
 TODO:

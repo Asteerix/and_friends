@@ -1,26 +1,97 @@
-// UNUSED: This file is part of Expo Router structure but the app uses React Navigation instead
-
 import { Tabs } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { Platform } from 'react-native';
+import { Platform, View } from 'react-native';
+import Svg, { Path, G, Rect, Circle } from 'react-native-svg';
 
-/*
+// SVG components for tab icons
+const HomeIcon = ({ color }: { color: string }) => (
+  <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Path
+      d="M9 22V12h6v10"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+const MemoriesIcon = ({ color }: { color: string }) => (
+  <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+    <Rect x="3" y="3" width="7" height="7" stroke={color} strokeWidth="2" />
+    <Rect x="14" y="3" width="7" height="7" stroke={color} strokeWidth="2" />
+    <Rect x="3" y="14" width="7" height="7" stroke={color} strokeWidth="2" />
+    <Rect x="14" y="14" width="7" height="7" stroke={color} strokeWidth="2" />
+  </Svg>
+);
+
+const CreateIcon = ({ color }: { color: string }) => (
+  <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+    <Circle cx="12" cy="12" r="10" stroke={color} strokeWidth="2" />
+    <Path
+      d="M12 8v8M8 12h8"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+    />
+  </Svg>
+);
+
+const CalendarIcon = ({ color }: { color: string }) => (
+  <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+    <Rect x="3" y="4" width="18" height="18" rx="2" stroke={color} strokeWidth="2" />
+    <Path d="M16 2v4M8 2v4M3 10h18" stroke={color} strokeWidth="2" strokeLinecap="round" />
+    <Path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01" stroke={color} strokeWidth="2" strokeLinecap="round" />
+  </Svg>
+);
+
+const ProfileIcon = ({ color }: { color: string }) => (
+  <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Circle
+      cx="12"
+      cy="7"
+      r="4"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
 export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#000',
-        tabBarInactiveTintColor: '#999',
+        tabBarActiveTintColor: '#007AFF',
+        tabBarInactiveTintColor: '#8E8E93',
         tabBarStyle: {
-          borderTopWidth: 1,
-          borderTopColor: '#E0E0E0',
-          paddingBottom: Platform.OS === 'ios' ? 20 : 10,
-          height: Platform.OS === 'ios' ? 84 : 60,
+          backgroundColor: '#E8F4E8',
+          borderTopWidth: 0,
+          height: Platform.OS === 'ios' ? 88 : 64,
+          paddingBottom: Platform.OS === 'ios' ? 24 : 8,
+          paddingTop: 8,
+          elevation: 0,
+          shadowOpacity: 0,
         },
         tabBarLabelStyle: {
           fontSize: 12,
-          fontFamily: 'SpaceMono',
+          fontFamily: Platform.OS === 'ios' ? 'System' : 'Roboto',
+          marginTop: 4,
         },
       }}
     >
@@ -28,48 +99,38 @@ export default function TabLayout() {
         name="home"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home-outline" size={size} color={color} />
-          ),
+          tabBarIcon: ({ color }) => <HomeIcon color={color} />,
         }}
       />
       <Tabs.Screen
-        name="map"
+        name="memories"
         options={{
-          title: 'Map',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="map-outline" size={size} color={color} />
-          ),
+          title: 'Memories',
+          tabBarIcon: ({ color }) => <MemoriesIcon color={color} />,
         }}
       />
       <Tabs.Screen
-        name="create"
+        name="my-events"
         options={{
           title: 'Create',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="add-circle-outline" size={size} color={color} />
-          ),
+          tabBarIcon: ({ color }) => <CreateIcon color={color} />,
+          tabBarLabel: 'Create',
         }}
       />
       <Tabs.Screen
-        name="chat"
+        name="calendar"
         options={{
-          title: 'Chat',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="chatbubble-outline" size={size} color={color} />
-          ),
+          title: 'Calendar',
+          tabBarIcon: ({ color }) => <CalendarIcon color={color} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person-outline" size={size} color={color} />
-          ),
+          tabBarIcon: ({ color }) => <ProfileIcon color={color} />,
         }}
       />
     </Tabs>
   );
 }
-*/

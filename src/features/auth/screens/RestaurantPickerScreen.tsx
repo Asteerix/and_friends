@@ -23,6 +23,7 @@ import ScreenLayout from '@/shared/ui/ScreenLayout';
 import { useOnboardingStatus } from '@/hooks/useOnboardingStatus';
 import { useAuthNavigation } from '@/shared/hooks/useAuthNavigation';
 import { useRegistrationStep } from '@/shared/hooks/useRegistrationStep';
+import SearchIcon from '@/assets/svg/search.svg';
 
 // RestaurantPickerScreen.tsx
 // ---------------------------------------------------------------------------
@@ -389,7 +390,7 @@ export default function RestaurantPickerScreen() {
           keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
         >
           <View style={st.search}>
-            <Text style={st.icon}>🔍</Text>
+            <SearchIcon width={20} height={20} />
             <TextInput
               style={st.input}
               placeholder={t('restaurant_picker_placeholder', lang)}
@@ -401,36 +402,38 @@ export default function RestaurantPickerScreen() {
             />
           </View>
 
-          {isSearching && <ActivityIndicator style={st.loader} color={COLORS.black} />}
-          {searchError && !isSearching && <Text style={st.error}>{searchError}</Text>}
+          <View style={st.listContainer}>
+            {isSearching && <ActivityIndicator style={st.loader} color={COLORS.black} />}
+            {searchError && !isSearching && <Text style={st.error}>{searchError}</Text>}
 
-          {!isSearching &&
-            places.length === 0 &&
-            query.trim() === '' &&
-            !searchError &&
-            !selectedPlace && (
-              <Text style={st.infoText}>{t('restaurant_picker_initial_prompt', lang)}</Text>
-            )}
+            {!isSearching &&
+              places.length === 0 &&
+              query.trim() === '' &&
+              !searchError &&
+              !selectedPlace && (
+                <Text style={st.infoText}>{t('restaurant_picker_initial_prompt', lang)}</Text>
+              )}
 
-          <FlatList
-            data={places}
-            keyExtractor={(item) => item.id}
-            renderItem={renderItem}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={st.listContentContainer}
-            style={st.listStyle}
-            ListHeaderComponent={
-              selectedPlace && !places.find((p) => p.id === selectedPlace.id) && !isSearching ? (
-                <View>
-                  <Text style={st.currentSelectionLabel}>
-                    {t('restaurant_picker_current_selection', lang)}
-                  </Text>
-                  {renderItem({ item: selectedPlace })}
-                  <View style={st.separator} />
-                </View>
-              ) : null
-            }
-          />
+            <FlatList
+              data={places}
+              keyExtractor={(item) => item.id}
+              renderItem={renderItem}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={st.listContentContainer}
+              style={st.listStyle}
+              ListHeaderComponent={
+                selectedPlace && !places.find((p) => p.id === selectedPlace.id) && !isSearching ? (
+                  <View>
+                    <Text style={st.currentSelectionLabel}>
+                      {t('restaurant_picker_current_selection', lang)}
+                    </Text>
+                    {renderItem({ item: selectedPlace })}
+                    <View style={st.separator} />
+                  </View>
+                ) : null
+              }
+            />
+          </View>
         </KeyboardAvoidingView>
       </ScreenLayout>
     </>
@@ -449,12 +452,23 @@ const st = StyleSheet.create({
     marginTop: 10,
     marginBottom: 16,
   },
-  icon: { fontSize: 18, color: COLORS.grey2, marginRight: 8 },
   input: {
     flex: 1,
     fontSize: 17,
     color: COLORS.black,
     fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
+    marginLeft: 12,
+  },
+  listContainer: {
+    flex: 1,
+    maxHeight: '70%',
+    backgroundColor: '#F8F8F8',
+    borderRadius: 16,
+    marginBottom: 16,
+    paddingHorizontal: 12,
+    paddingTop: 12,
+    borderWidth: 1,
+    borderColor: COLORS.grey0,
   },
   loader: { marginVertical: 24 },
   error: {
@@ -471,7 +485,7 @@ const st = StyleSheet.create({
     fontSize: 16,
   },
   listStyle: { flex: 1, width: '100%' },
-  listContentContainer: { paddingTop: 8, paddingBottom: 120 },
+  listContentContainer: { paddingTop: 8, paddingBottom: 16 },
   card: {
     flexDirection: 'row',
     alignItems: 'center',

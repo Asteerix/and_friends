@@ -1,22 +1,21 @@
-import { create } from "zustand";
+import { create } from 'zustand';
 
 // This store is now deprecated in favor of useNotifications hook
 // Keeping it for backward compatibility during migration
 interface NotificationsState {
-  notifications: any[];
-  unread: any[];
+  notifications: unknown[];
+  unread: unknown[];
   markAllRead: () => void;
   markRead: (id: string) => void;
-}
-
-export const useNotificationsStore = create<NotificationsState>((set, get) => ({
+};
+export const useNotificationsStore = create<NotificationsState>((set) => ({
   notifications: [],
   unread: [],
   markAllRead: () => {
-    console.warn("useNotificationsStore is deprecated. Use useNotifications hook instead.");
+    console.warn('useNotificationsStore is deprecated. Use useNotifications hook instead.');
     set({ notifications: [], unread: [] });
   },
-  markRead: (id: string) => {
-    console.warn("useNotificationsStore is deprecated. Use useNotifications hook instead.");
+  markRead: () => {
+    console.warn('useNotificationsStore is deprecated. Use useNotifications hook instead.');
   },
 }));

@@ -1,19 +1,19 @@
-import { useState, useEffect } from "react";
-import pollsData from "@/data/polls.json";
+import { useState, useEffect } from 'react';
+
+import pollsData from '@/data/polls.json';
 
 export interface PollOption {
   id: string;
   label: string;
   votes: number;
-}
+};
 export interface Poll {
   id: string;
   question: string;
   options: PollOption[];
   endsAt: string;
   author: string;
-}
-
+};
 export function usePollStore() {
   const [polls, setPolls] = useState<Poll[]>(pollsData as Poll[]);
   const [userVotes, setUserVotes] = useState<{ [pollId: string]: string }>({});
@@ -40,11 +40,11 @@ export function usePollStore() {
       prev.map((poll) =>
         poll.id === pollId
           ? {
-              ...poll,
-              options: poll.options.map((opt) =>
-                opt.id === optionId ? { ...opt, votes: opt.votes + 1 } : opt
-              ),
-            }
+            ...poll,
+            options: poll.options.map((opt) =>
+              opt.id === optionId ? { ...opt, votes: opt.votes + 1 } : opt
+            ),
+          }
           : poll
       )
     );

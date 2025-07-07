@@ -1,4 +1,3 @@
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
@@ -11,6 +10,8 @@ import {
   Text,
   TouchableOpacity,
   View,
+  ImageBackground,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '@/shared/lib/supabase/client';
@@ -25,6 +26,8 @@ const COLORS = {
   green: '#22C55E',
   black: '#000000',
 };
+
+const { width, height } = Dimensions.get('window');
 
 const LoadingScreen: React.FC = () => {
   const router = useRouter();
@@ -66,22 +69,25 @@ const LoadingScreen: React.FC = () => {
   }, [router, checkAnim]);
 
   return (
-    <SafeAreaView style={styles.root}>
+    <View style={styles.root}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
-      <LinearGradient
-        colors={[COLORS.purple, COLORS.blue, COLORS.orange]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.gradient}
+      <ImageBackground
+        source={require('@/assets/images/splash_background.png')}
+        style={styles.backgroundImage}
+        resizeMode="cover"
       >
-        <View style={styles.centered}>
-          {step === 'loading' && (
-            <>
-              <ActivityIndicator size="large" color={COLORS.white} style={{ marginBottom: 32 }} />
-              <Text style={styles.title}>Bienvenue !</Text>
-              <Text style={styles.subtitle}>Nous préparons ton expérience...</Text>
-            </>
-          )}
+        <SafeAreaView style={styles.safeArea}>
+          <View style={styles.centered}>
+            {step === 'loading' && (
+              <>
+                <ActivityIndicator size="large" color={COLORS.white} style={styles.spinner} />
+                <View style={styles.textContainer}>
+                  <Text style={styles.loadingText}>We're getting</Text>
+                  <Text style={styles.loadingText}>everything ready</Text>
+                  <Text style={styles.loadingText}>for you</Text>
+                </View>
+              </>
+            )}
           {step === 'success' && (
             <>
               <Animated.View style={[styles.checkCircle, { backgroundColor: COLORS.green }]}>
@@ -119,14 +125,18 @@ const LoadingScreen: React.FC = () => {
                   }}
                 />
               </Animated.View>
-              <Text style={styles.title}>C'est prêt !</Text>
-              <Text style={styles.subtitle}>Bienvenue dans l'aventure 🎉</Text>
+              <View style={styles.textContainer}>
+                <Text style={styles.successText}>All set!</Text>
+                <Text style={styles.successSubtext}>Welcome to the adventure 🎉</Text>
+              </View>
             </>
           )}
           {step === 'error' && (
             <>
-              <Text style={[styles.title, { color: COLORS.orange }]}>Oups...</Text>
-              <Text style={styles.subtitle}>{errorMsg || 'Une erreur est survenue.'}</Text>
+              <View style={styles.textContainer}>
+                <Text style={[styles.errorText]}>Oops...</Text>
+                <Text style={styles.errorSubtext}>{errorMsg || 'Something went wrong.'}</Text>
+              </View>
               <TouchableOpacity
                 style={styles.retryBtn}
                 onPress={() => {
@@ -137,35 +147,82 @@ const LoadingScreen: React.FC = () => {
                   }, 500);
                 }}
               >
-                <Text style={styles.retryText}>Accéder à l'app</Text>
+                <Text style={styles.retryText}>Access the app</Text>
               </TouchableOpacity>
             </>
           )}
         </View>
-      </LinearGradient>
-    </SafeAreaView>
+      </SafeAreaView>
+    </ImageBackground>
+  </View>
   );
 };
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.purple },
-  gradient: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', width: '100%' },
-  title: {
-    fontSize: Platform.OS === 'ios' ? 34 : 28,
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+  root: { 
+    flex: 1, 
+    backgroundColor: COLORS.blue,
+  },
+  backgroundImage: {
+    flex: 1,
+    width: width,
+    height: height,
+  },
+  safeArea: {
+    flex: 1,
+  },
+  centered: { 
+    flex: 1, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    width: '100%',
+  },
+  spinner: {
+    marginBottom: 40,
+    transform: [{ scale: 1.2 }],
+  },
+  textContainer: {
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 28,
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'Roboto',
     color: COLORS.white,
     textAlign: 'center',
-    marginBottom: 8,
-    fontWeight: Platform.OS === 'ios' ? 'normal' : 'bold',
+    fontWeight: '600',
+    lineHeight: 34,
+    letterSpacing: -0.5,
   },
-  subtitle: {
-    fontSize: 18,
-    color: COLORS.cream,
+  successText: {
+    fontSize: 32,
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'Roboto',
+    color: COLORS.white,
     textAlign: 'center',
-    marginBottom: 24,
-    marginTop: 4,
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  successSubtext: {
+    fontSize: 20,
+    color: COLORS.white,
+    textAlign: 'center',
+    fontWeight: '500',
+    opacity: 0.9,
+  },
+  errorText: {
+    fontSize: 32,
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'Roboto',
+    color: COLORS.white,
+    textAlign: 'center',
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  errorSubtext: {
+    fontSize: 18,
+    color: COLORS.white,
+    textAlign: 'center',
     fontWeight: '400',
+    opacity: 0.9,
+    paddingHorizontal: 40,
   },
   checkCircle: {
     width: 60,
@@ -176,11 +233,13 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   retryBtn: {
-    marginTop: 24,
-    backgroundColor: COLORS.blue,
+    marginTop: 32,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     paddingHorizontal: 32,
     paddingVertical: 14,
     borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.4)',
   },
   retryText: {
     color: COLORS.white,

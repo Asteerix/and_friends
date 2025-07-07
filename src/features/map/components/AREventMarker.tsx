@@ -1,24 +1,19 @@
 import React, { useRef, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Animated,
-  Image,
-} from 'react-native';
+
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { Event } from '@/entities/event/types';
+
+import { Animated, TouchableOpacity, View, Text, StyleSheet } from 'react-native';
+
+import type { EventAdvanced } from '@/hooks/useEventsAdvanced';
 
 interface AREventMarkerProps {
-  event: Event & { distance: number };
+  event: EventAdvanced & { distance: number };
   x: number;
   y: number;
   distance: number;
   onPress: () => void;
   isSelected: boolean;
 }
-
 export default function AREventMarker({
   event,
   x,
@@ -57,7 +52,7 @@ export default function AREventMarker({
     } else {
       pulseAnim.setValue(1);
     }
-  }, [isSelected]);
+  }, [isSelected, scaleAnim, pulseAnim]);
 
   const getMarkerSize = () => {
     if (distance < 100) return 80;
@@ -79,20 +74,14 @@ export default function AREventMarker({
   };
 
   const getEventIcon = () => {
-    switch (event.category) {
-      case 'party':
-        return 'party-mode';
-      case 'sports':
-        return 'sports-basketball';
-      case 'music':
-        return 'music-note';
-      case 'food':
-        return 'restaurant';
-      case 'outdoor':
-        return 'terrain';
-      default:
-        return 'event';
-    }
+    // Check tags for event type
+    const tags = event.tags || [];
+    if (tags.includes('party') || tags.includes('nightlife')) return 'party-mode';
+    if (tags.includes('sports') || tags.includes('fitness')) return 'sports-basketball';
+    if (tags.includes('music') || tags.includes('concert')) return 'music-note';
+    if (tags.includes('food') || tags.includes('dining')) return 'restaurant';
+    if (tags.includes('outdoor') || tags.includes('nature')) return 'terrain';
+    return 'event';
   };
 
   const markerSize = getMarkerSize();
@@ -107,10 +96,7 @@ export default function AREventMarker({
           width: markerSize,
           height: markerSize,
           opacity: getMarkerOpacity(),
-          transform: [
-            { scale: scaleAnim },
-            { scale: isSelected ? pulseAnim : 1 },
-          ],
+          transform: [{ scale: scaleAnim }, { scale: isSelected ? pulseAnim : 1 }],
         },
       ]}
     >
@@ -121,19 +107,19 @@ export default function AREventMarker({
       >
         {/* Background gradient effect */}
         <View style={[styles.gradientBackground, isSelected && styles.selectedGradient]} />
-        
+
         {/* Icon */}
         <MaterialIcons
           name={getEventIcon() as any}
           size={markerSize * 0.4}
           color={isSelected ? '#007AFF' : 'white'}
         />
-        
+
         {/* Distance badge */}
         <View style={styles.distanceBadge}>
           <Text style={styles.distanceText}>{formatDistance(distance)}</Text>
         </View>
-        
+
         {/* Event info (shown for close events) */}
         {distance < 500 && (
           <View style={styles.infoContainer}>
@@ -142,16 +128,14 @@ export default function AREventMarker({
             </Text>
             <View style={styles.attendeesContainer}>
               <Ionicons name="people" size={12} color="#666" />
-              <Text style={styles.attendeesText}>{event.currentAttendees}</Text>
+              <Text style={styles.attendeesText}>{event.participants_count || 0}</Text>
             </View>
           </View>
         )}
       </TouchableOpacity>
-      
+
       {/* Direction line (for distant events) */}
-      {distance > 500 && (
-        <View style={styles.directionLine} />
-      )}
+      {distance > 500 && <View style={styles.directionLine} />}
     </Animated.View>
   );
 }

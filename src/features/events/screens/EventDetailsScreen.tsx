@@ -1,31 +1,32 @@
-import React, { useEffect, useState } from "react";
+import { Ionicons } from '@expo/vector-icons';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React from 'react';
+import { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Image,
-  Dimensions,
-  Alert,
   ActivityIndicator,
-  FlatList,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useRoute, useNavigation } from "@react-navigation/native";
-import Ionicons from "react-native-vector-icons/Ionicons";
-import { useSession } from "@/lib/SessionContext";
-import { useEventsAdvanced } from "@/hooks/useEventsAdvanced";
+  Alert,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-const { width } = Dimensions.get("window");
-const HERO_COLOR = "#FFE400";
+import { EventMemories } from '@/features/events/components/EventMemories';
+import { useEventsAdvanced } from '@/hooks/useEventsAdvanced';
+import { useSession } from '@/shared/providers/SessionContext';
+
+// const { width } = Dimensions.get("window");
+const HERO_COLOR = '#FFE400';
 const RADIUS = 36;
 
 export default function EventDetailsScreen() {
-  const route = useRoute();
-  const navigation = useNavigation();
+  const params = useLocalSearchParams<{ eventId: string }>();
+  const router = useRouter();
   const { session } = useSession();
-  const { eventId } = route.params as { eventId: string };
+  const eventId = params.eventId || '';
   const { getEventById, joinEvent } = useEventsAdvanced();
   const [event, setEvent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -41,17 +42,15 @@ export default function EventDetailsScreen() {
     setLoading(true);
     const eventData = await getEventById(eventId);
     if (!eventData) {
-      Alert.alert("Erreur", "Impossible de charger les détails de l'événement");
-      navigation.goBack();
+      Alert.alert('Erreur', "Impossible de charger les détails de l'événement");
+      void router.back();
       return;
     }
     setEvent(eventData);
     setLoading(false);
   };
 
-  const handleParticipation = async (
-    status: "going" | "maybe" | "not_going"
-  ) => {
+  const handleParticipation = async (status: 'going' | 'maybe' | 'not_going') => {
     if (!session?.user || !event) return;
     setActionLoading(true);
     await joinEvent(event.id, status);
@@ -65,8 +64,8 @@ export default function EventDetailsScreen() {
         style={{
           flex: 1,
           backgroundColor: HERO_COLOR,
-          justifyContent: "center",
-          alignItems: "center",
+          justifyContent: 'center',
+          alignItems: 'center',
         }}
       >
         <ActivityIndicator size="large" color="#000" />
@@ -79,60 +78,59 @@ export default function EventDetailsScreen() {
 
   // Format date/time
   const eventDate = new Date(event.date);
-  const dateStr = eventDate.toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
+  const dateStr = eventDate.toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
   });
-  const timeStr = eventDate.toLocaleTimeString("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
+  const timeStr = eventDate.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
   });
 
   // Participants avatars
   const avatars = (event.participants || []).map(
-    (p: any) =>
+    (p: { avatar_url?: string; full_name?: string }) =>
       p.avatar_url || `https://ui-avatars.com/api/?name=${p.full_name}&size=64`
   );
   const goingCount = (event.participants || []).filter(
-    (p: any) => p.status === "going"
+    (p: { status?: string }) => p.status === 'going'
   ).length;
   const notGoingCount = (event.participants || []).filter(
-    (p: any) => p.status === "not_going"
+    (p: { status?: string }) => p.status === 'not_going'
   ).length;
   const maybeCount = (event.participants || []).filter(
-    (p: any) => p.status === "maybe"
+    (p: { status?: string }) => p.status === 'maybe'
   ).length;
 
   // What to bring (mock)
   const bringItems = [
-    { label: "Red Wine", claimedBy: null },
-    { label: "Dessert", claimedBy: null },
+    { label: 'Red Wine', claimedBy: null },
+    { label: 'Dessert', claimedBy: null },
   ];
 
+  // Calculate event status
+  const now = new Date();
+  const eventStatus =
+    eventDate < now
+      ? 'past'
+      : eventDate.toDateString() === now.toDateString()
+        ? 'ongoing'
+        : 'upcoming';
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#FFF" }} edges={["top"]}>
-      <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: 32 }}
-      >
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#FFF' }} edges={['top']}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 32 }}>
         {/* Hero section */}
         <View style={styles.heroSection}>
           <View style={styles.heroHeaderRow}>
-            <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              style={styles.heroHeaderBtn}
-            >
+            <TouchableOpacity onPress={() => router.back()} style={styles.heroHeaderBtn}>
               <Ionicons name="arrow-back-outline" size={24} color="#222" />
             </TouchableOpacity>
             <Text style={styles.heroHeaderTitle}>Event</Text>
             <View style={styles.heroHeaderRight}>
               <TouchableOpacity style={styles.heroHeaderCircle}>
-                <Ionicons
-                  name="chatbubble-ellipses-outline"
-                  size={20}
-                  color="#222"
-                />
+                <Ionicons name="chatbubble-ellipses-outline" size={20} color="#222" />
               </TouchableOpacity>
               <TouchableOpacity style={styles.heroHeaderCircle}>
                 <Ionicons name="notifications-outline" size={20} color="#222" />
@@ -150,7 +148,7 @@ export default function EventDetailsScreen() {
               ))}
             </View>
             <Image
-              source={require("../../../../assets/images/register/wine.png")}
+              source={require('@/assets/images/register/wine.png')}
               style={styles.heroImage}
               resizeMode="contain"
             />
@@ -163,15 +161,11 @@ export default function EventDetailsScreen() {
           <View style={styles.hostRow}>
             <Image
               source={{
-                uri:
-                  event.creator?.avatar_url ||
-                  "https://ui-avatars.com/api/?name=Host",
+                uri: event.creator?.avatar_url || 'https://ui-avatars.com/api/?name=Host',
               }}
               style={styles.hostAvatar}
             />
-            <Text style={styles.hostText}>
-              Hosted by {event.creator?.full_name || "Unknown"}
-            </Text>
+            <Text style={styles.hostText}>Hosted by {event.creator?.full_name || 'Unknown'}</Text>
           </View>
           <View style={styles.infoRow}>
             <Ionicons name="calendar-outline" size={18} color="#222" />
@@ -181,17 +175,15 @@ export default function EventDetailsScreen() {
           </View>
           <View style={styles.infoRow}>
             <Ionicons name="location-outline" size={18} color="#222" />
-            <Text style={styles.infoText}>
-              {event.location || "Location TBD"}
-            </Text>
+            <Text style={styles.infoText}>{event.location || 'Location TBD'}</Text>
           </View>
           {/* MiniMap ou image statique */}
           <View style={styles.mapPreview}>
             <Image
-              source={require("../../../../assets/images/register/wine.png")}
+              source={require('@/assets/images/register/wine.png')}
               style={{
-                width: "100%",
-                height: "100%",
+                width: '100%',
+                height: '100%',
                 borderRadius: 12,
                 opacity: 0.1,
               }}
@@ -199,7 +191,7 @@ export default function EventDetailsScreen() {
             />
           </View>
           <Text style={styles.infoTextSmall}>
-            {event.location || "123 Olive St, New York, NY, 10012"}
+            {event.location || '123 Olive St, New York, NY, 10012'}
           </Text>
         </View>
         {/* Participants */}
@@ -219,8 +211,7 @@ export default function EventDetailsScreen() {
               </View>
             )}
             <Text style={styles.avatarsCount}>
-              {goingCount} going • {notGoingCount} not going • {maybeCount}{" "}
-              maybe
+              {goingCount} going • {notGoingCount} not going • {maybeCount} maybe
             </Text>
           </View>
         </View>
@@ -236,41 +227,45 @@ export default function EventDetailsScreen() {
             </View>
           ))}
         </View>
+
+        {/* Event Memories Section */}
+        {(eventStatus === 'ongoing' || eventStatus === 'past') && (
+          <EventMemories eventId={eventId} eventStatus={eventStatus} />
+        )}
       </ScrollView>
       {/* Action buttons */}
-      <View style={styles.actionBar}>
-        <TouchableOpacity
-          style={[
-            styles.actionBtn,
-            event.user_status === "going" && styles.actionBtnActive,
-          ]}
-          onPress={() => handleParticipation("going")}
-          disabled={actionLoading}
-        >
-          <Text
-            style={[
-              styles.actionBtnText,
-              event.user_status === "going" && styles.actionBtnTextActive,
-            ]}
+      {eventStatus !== 'past' && (
+        <View style={styles.actionBar}>
+          <TouchableOpacity
+            style={[styles.actionBtn, event.user_status === 'going' && styles.actionBtnActive]}
+            onPress={() => handleParticipation('going')}
+            disabled={actionLoading}
           >
-            I'm in! 🎉
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.actionBtn}
-          onPress={() => handleParticipation("maybe")}
-          disabled={actionLoading}
-        >
-          <Text style={styles.actionBtnText}>🤔</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.actionBtn}
-          onPress={() => handleParticipation("not_going")}
-          disabled={actionLoading}
-        >
-          <Text style={styles.actionBtnText}>❌</Text>
-        </TouchableOpacity>
-      </View>
+            <Text
+              style={[
+                styles.actionBtnText,
+                event.user_status === 'going' && styles.actionBtnTextActive,
+              ]}
+            >
+              I'm in! 🎉
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.actionBtn}
+            onPress={() => handleParticipation('maybe')}
+            disabled={actionLoading}
+          >
+            <Text style={styles.actionBtnText}>🤔</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.actionBtn}
+            onPress={() => handleParticipation('not_going')}
+            disabled={actionLoading}
+          >
+            <Text style={styles.actionBtnText}>❌</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -282,12 +277,12 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: RADIUS,
     paddingBottom: 24,
     paddingTop: 0,
-    overflow: "hidden",
+    overflow: 'hidden',
   },
   heroHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingTop: 16,
     marginBottom: 0,
@@ -295,62 +290,62 @@ const styles = StyleSheet.create({
   heroHeaderBtn: {
     width: 40,
     height: 40,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   heroHeaderTitle: {
     fontSize: 16,
-    color: "#222",
-    fontWeight: "bold",
-    textAlign: "center",
+    color: '#222',
+    fontWeight: 'bold',
+    textAlign: 'center',
     flex: 1,
   },
   heroHeaderRight: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   heroHeaderCircle: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFF",
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFF',
     marginLeft: 8,
-    shadowColor: "#000",
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08,
     shadowRadius: 2,
     elevation: 2,
   },
   heroContent: {
-    alignItems: "center",
+    alignItems: 'center',
     marginTop: 12,
     marginBottom: 0,
     paddingHorizontal: 24,
   },
   heroTitle: {
     fontSize: 32,
-    fontWeight: "bold",
-    color: "#222",
-    textAlign: "center",
-    fontFamily: "Georgia",
+    fontWeight: 'bold',
+    color: '#222',
+    textAlign: 'center',
+    fontFamily: 'Georgia',
     marginBottom: 8,
   },
   heroSubtitle: {
     fontSize: 16,
-    color: "#222",
-    textAlign: "center",
+    color: '#222',
+    textAlign: 'center',
     marginBottom: 12,
   },
   heroTagsRow: {
-    flexDirection: "row",
-    justifyContent: "center",
+    flexDirection: 'row',
+    justifyContent: 'center',
     marginBottom: 12,
     gap: 8,
   },
   heroTag: {
-    backgroundColor: "#FFF",
+    backgroundColor: '#FFF',
     borderRadius: 16,
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -358,8 +353,8 @@ const styles = StyleSheet.create({
   },
   heroTagText: {
     fontSize: 14,
-    color: "#222",
-    fontWeight: "500",
+    color: '#222',
+    fontWeight: '500',
   },
   heroImage: {
     width: 180,
@@ -368,30 +363,30 @@ const styles = StyleSheet.create({
     marginBottom: 0,
   },
   sectionWhite: {
-    backgroundColor: "#FFF",
+    backgroundColor: '#FFF',
     borderRadius: 24,
     marginHorizontal: 16,
     marginTop: 16,
     padding: 20,
-    shadowColor: "#000",
+    shadowColor: '#000',
     shadowOpacity: 0.04,
     shadowRadius: 4,
     elevation: 1,
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: "bold",
-    color: "#222",
+    fontWeight: 'bold',
+    color: '#222',
     marginBottom: 8,
   },
   sectionDesc: {
     fontSize: 15,
-    color: "#444",
+    color: '#444',
     marginBottom: 12,
   },
   hostRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 8,
   },
   hostAvatar: {
@@ -402,36 +397,36 @@ const styles = StyleSheet.create({
   },
   hostText: {
     fontSize: 15,
-    color: "#222",
+    color: '#222',
   },
   infoRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 4,
   },
   infoText: {
     fontSize: 15,
-    color: "#222",
+    color: '#222',
     marginLeft: 8,
   },
   infoTextSmall: {
     fontSize: 13,
-    color: "#888",
+    color: '#888',
     marginTop: 2,
     marginBottom: 0,
     marginLeft: 4,
   },
   mapPreview: {
-    width: "100%",
+    width: '100%',
     height: 120,
     borderRadius: 12,
-    backgroundColor: "#EEE",
+    backgroundColor: '#EEE',
     marginVertical: 8,
-    overflow: "hidden",
+    overflow: 'hidden',
   },
   avatarsRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 8,
     marginTop: 8,
   },
@@ -440,80 +435,80 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     borderWidth: 2,
-    borderColor: "#FFF",
-    backgroundColor: "#EEE",
+    borderColor: '#FFF',
+    backgroundColor: '#EEE',
   },
   avatarMore: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#EEE",
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: '#EEE',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginLeft: -16,
   },
   avatarMoreText: {
-    color: "#222",
-    fontWeight: "bold",
+    color: '#222',
+    fontWeight: 'bold',
   },
   avatarsCount: {
     fontSize: 13,
-    color: "#888",
+    color: '#888',
     marginLeft: 12,
   },
   bringRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 8,
-    backgroundColor: "#F8F8F8",
+    backgroundColor: '#F8F8F8',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
   },
   bringLabel: {
     fontSize: 15,
-    color: "#222",
+    color: '#222',
     flex: 1,
   },
   bringClaimBtn: {
-    backgroundColor: "#FFF",
+    backgroundColor: '#FFF',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderWidth: 1,
-    borderColor: "#E5E5E5",
+    borderColor: '#E5E5E5',
   },
   bringClaimText: {
-    color: "#888",
+    color: '#888',
     fontSize: 14,
   },
   actionBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     padding: 16,
-    backgroundColor: "#FFF",
+    backgroundColor: '#FFF',
     borderTopWidth: 1,
-    borderTopColor: "#EEE",
+    borderTopColor: '#EEE',
   },
   actionBtn: {
     flex: 1,
-    backgroundColor: "#F5F5F5",
+    backgroundColor: '#F5F5F5',
     borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: 16,
     marginHorizontal: 4,
   },
   actionBtnActive: {
-    backgroundColor: "#000",
+    backgroundColor: '#000',
   },
   actionBtnText: {
-    color: "#222",
+    color: '#222',
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: '600',
   },
   actionBtnTextActive: {
-    color: "#FFF",
+    color: '#FFF',
   },
 });

@@ -1,6 +1,8 @@
-import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
-import type { PostgrestError } from "@supabase/supabase-js";
+import type { PostgrestError } from '@supabase/supabase-js';
+import { useEffect, useState } from 'react';
+
+
+import { supabase } from '@/shared/lib/supabase/client';
 
 export interface Event {
   id?: string;
@@ -25,8 +27,7 @@ export interface Event {
   updated_at?: string;
   userRSVP?: string;
   participants_count?: number;
-}
-
+};
 export function useEvents() {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -35,9 +36,9 @@ export function useEvents() {
   async function fetchEvents() {
     setLoading(true);
     const { data, error } = await supabase
-      .from("events")
-      .select("*")
-      .order("date", { ascending: true });
+      .from('events')
+      .select('*')
+      .order('date', { ascending: true });
     setEvents((data as Event[]) || []);
     setError(error);
     setLoading(false);
@@ -45,7 +46,7 @@ export function useEvents() {
 
   async function createEvent(event: Event) {
     const { data, error } = await supabase
-      .from("events")
+      .from('events')
       .insert([event])
       .select();
     if (!error && data) setEvents((prev) => [...prev, ...(data as Event[])]);
@@ -54,16 +55,16 @@ export function useEvents() {
 
   async function joinEvent(event_id: string, user_id: string) {
     return await supabase
-      .from("event_participants")
+      .from('event_participants')
       .insert([{ event_id, user_id }]);
   }
 
   async function updateRSVP(event_id: string, status: string) {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { error: { message: "Not authenticated" } };
+    if (!user) return { error: { message: 'Not authenticated' } };
 
     const { data, error } = await supabase
-      .from("event_participants")
+      .from('event_participants')
       .upsert([{ 
         event_id, 
         user_id: user.id,
@@ -83,7 +84,7 @@ export function useEvents() {
   }
 
   useEffect(() => {
-    fetchEvents();
+    void fetchEvents();
   }, []);
 
   return { events, loading, error, fetchEvents, createEvent, joinEvent, updateRSVP };

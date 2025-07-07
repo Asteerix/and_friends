@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
+
+import { supabase } from '@/shared/lib/supabase/client';
+
 import { Story, StoryHighlight } from '../types';
 
 interface UserStories {
@@ -9,7 +11,6 @@ interface UserStories {
   hasUnviewedStories: boolean;
   stories: Story[];
 }
-
 export function useStories() {
   const [userStories, setUserStories] = useState<UserStories[]>([]);
   const [myStories, setMyStories] = useState<Story[]>([]);
@@ -25,18 +26,22 @@ export function useStories() {
   const fetchStories = async () => {
     try {
       setLoading(true);
-      
+
       // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
       // Fetch stories from followed users and own stories
       const { data: stories, error: storiesError } = await supabase
         .from('stories')
-        .select(`
+        .select(
+          `
           *,
-          user:users(id, handle, full_name, avatar_url)
-        `)
+          user:user_id(id, username, full_name, avatar_url)
+        `
+        )
         .gt('expires_at', new Date().toISOString())
         .order('created_at', { ascending: false });
 
@@ -48,37 +53,40 @@ export function useStories() {
         if (!acc[userId]) {
           acc[userId] = {
             userId,
-            name: story.user.full_name || story.user.handle,
+            name: story.user.full_name || story.user.username,
             avatar: story.user.avatar_url,
-            hasUnviewedStories: !story.views.includes(user.id),
+            hasUnviewedStories: !story.views?.includes(user.id),
             stories: [],
           };
         }
-        
+
         acc[userId].stories.push({
           ...story,
           views: story.views || [],
           createdAt: new Date(story.created_at),
           expiresAt: new Date(story.expires_at),
         });
-        
+
         return acc;
       }, {});
 
       // Convert to array and sort
       const userStoriesArray = Object.values(groupedStories || {}) as UserStories[];
-      
+
       // Sort: unviewed first, then by most recent story
       userStoriesArray.sort((a, b) => {
         if (a.hasUnviewedStories && !b.hasUnviewedStories) return -1;
         if (!a.hasUnviewedStories && b.hasUnviewedStories) return 1;
-        return new Date(b.stories[0].createdAt).getTime() - new Date(a.stories[0].createdAt).getTime();
+        return (
+          new Date(b.stories[0]?.createdAt || 0).getTime() -
+          new Date(a.stories[0]?.createdAt || 0).getTime()
+        );
       });
 
       setUserStories(userStoriesArray);
-      
+
       // Set my stories
-      const myUserStories = userStoriesArray.find(u => u.userId === user.id);
+      const myUserStories = userStoriesArray.find((u) => u.userId === user.id);
       setMyStories(myUserStories?.stories || []);
 
       // Fetch highlights
@@ -89,9 +97,8 @@ export function useStories() {
         .order('created_at', { ascending: false });
 
       setHighlights(highlightsData || []);
-      
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
     }
@@ -100,65 +107,90 @@ export function useStories() {
   const subscribeToStories = () => {
     const subscription = supabase
       .channel('stories')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'stories',
-      }, () => {
-        fetchStories();
-      })
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'stories',
+        },
+        () => {
+          fetchStories();
+        }
+      )
       .subscribe();
 
     return () => {
-      subscription.unsubscribe();
+      void subscription.unsubscribe();
     };
   };
 
   const markAsViewed = useCallback(async (storyId: string) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Add user ID to views array
-      const { error } = await supabase.rpc('add_story_view', {
-        story_id: storyId,
-        viewer_id: user.id,
-      });
+      // First, get the current story to check existing views
+      const { data: story, error: fetchError } = await supabase
+        .from('stories')
+        .select('views')
+        .eq('id', storyId)
+        .single();
 
-      if (error) throw error;
+      if (fetchError) {
+        console.error('Error fetching story:', fetchError);
+        return;
+      }
+
+      // Check if user already viewed this story
+      const currentViews = story.views || [];
+      if (currentViews.includes(user.id)) {
+        console.log('Story already viewed by user');
+        return;
+      }
+
+      // Add user to views array
+      const updatedViews = [...currentViews, user.id];
+      
+      const { error: updateError } = await supabase
+        .from('stories')
+        .update({ 
+          views: updatedViews,
+          views_count: updatedViews.length 
+        })
+        .eq('id', storyId);
+
+      if (updateError) throw updateError;
 
       // Update local state
-      setUserStories(prev => prev.map(userStory => ({
-        ...userStory,
-        stories: userStory.stories.map(story => 
-          story.id === storyId 
-            ? { ...story, views: [...story.views, user.id] }
-            : story
-        ),
-        hasUnviewedStories: userStory.stories.some(
-          s => s.id !== storyId && !s.views.includes(user.id)
-        ),
-      })));
-      
-    } catch (err: any) {
+      setUserStories((prev) =>
+        prev.map((userStory) => ({
+          ...userStory,
+          stories: userStory.stories.map((story) =>
+            story.id === storyId ? { ...story, views: updatedViews } : story
+          ),
+          hasUnviewedStories: userStory.stories.some(
+            (s) => s.id !== storyId && !s.views.includes(user.id)
+          ),
+        }))
+      );
+    } catch (err: unknown) {
       console.error('Error marking story as viewed:', err);
     }
   }, []);
 
   const deleteStory = useCallback(async (storyId: string) => {
     try {
-      const { error } = await supabase
-        .from('stories')
-        .delete()
-        .eq('id', storyId);
+      const { error } = await supabase.from('stories').delete().eq('id', storyId);
 
       if (error) throw error;
 
       // Update local state
-      setMyStories(prev => prev.filter(s => s.id !== storyId));
+      setMyStories((prev) => prev.filter((s) => s.id !== storyId));
       fetchStories();
-      
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error deleting story:', err);
       throw err;
     }
@@ -166,7 +198,9 @@ export function useStories() {
 
   const createHighlight = useCallback(async (title: string, storyIds: string[]) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
       const { data, error } = await supabase
@@ -181,9 +215,8 @@ export function useStories() {
 
       if (error) throw error;
 
-      setHighlights(prev => [data, ...prev]);
-      
-    } catch (err: any) {
+      setHighlights((prev) => [data, ...prev]);
+    } catch (err: unknown) {
       console.error('Error creating highlight:', err);
       throw err;
     }
@@ -191,16 +224,12 @@ export function useStories() {
 
   const deleteHighlight = useCallback(async (highlightId: string) => {
     try {
-      const { error } = await supabase
-        .from('story_highlights')
-        .delete()
-        .eq('id', highlightId);
+      const { error } = await supabase.from('story_highlights').delete().eq('id', highlightId);
 
       if (error) throw error;
 
-      setHighlights(prev => prev.filter(h => h.id !== highlightId));
-      
-    } catch (err: any) {
+      setHighlights((prev) => prev.filter((h) => h.id !== highlightId));
+    } catch (err: unknown) {
       console.error('Error deleting highlight:', err);
       throw err;
     }
@@ -219,7 +248,6 @@ export function useStories() {
     refetch: fetchStories,
   };
 }
-
 export function useCreateStory() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -229,7 +257,9 @@ export function useCreateStory() {
       setUploading(true);
       setError(null);
 
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
       // In production, upload media to storage first
@@ -240,7 +270,7 @@ export function useCreateStory() {
         .insert({
           user_id: user.id,
           media_url: storyData.mediaUrl,
-          media_type: storyData.mediaType,
+          type: storyData.mediaType === 'video' ? 'video' : 'photo',
           caption: storyData.caption,
           event_id: storyData.eventId,
           music_data: storyData.musicData,
@@ -254,9 +284,8 @@ export function useCreateStory() {
       if (createError) throw createError;
 
       return data;
-      
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err));
       throw err;
     } finally {
       setUploading(false);

@@ -1,20 +1,21 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Image,
-  SectionList,
-  RefreshControl,
-} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation, useRoute } from '@react-navigation/native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { format } from 'date-fns';
-import { useEvents } from "@/hooks/useEvents";
 import * as Haptics from 'expo-haptics';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
+import React from 'react';
+import {
+  Image,
+  RefreshControl,
+  SectionList,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+
+import { useEvents } from '@/hooks/useEvents';
 
 const rsvpStatuses = [
   { id: 'going', label: 'Going', icon: 'checkmark-circle', color: '#4CAF50' },
@@ -23,11 +24,12 @@ const rsvpStatuses = [
 ];
 
 export default function RSVPManagementScreen() {
-  const navigation = useNavigation();
-  const route = useRoute();
-  const { eventId } = route.params as any;
+  const router = useRouter();
+
+  const params = useLocalSearchParams<{ eventId: string }>();
+  const { eventId } = params;
   const { events, updateRSVP } = useEvents();
-  
+
   const [refreshing, setRefreshing] = useState(false);
   const [attendees, setAttendees] = useState<any>({
     going: [],
@@ -35,7 +37,7 @@ export default function RSVPManagementScreen() {
     'not-going': [],
   });
 
-  const event = events.find(e => e.id === eventId);
+  const event = events.find((e) => e.id === eventId);
 
   useEffect(() => {
     loadAttendees();
@@ -54,9 +56,7 @@ export default function RSVPManagementScreen() {
         { id: '4', name: 'Sarah Williams', avatar: null, username: 'sarahw' },
         { id: '5', name: 'Tom Brown', avatar: null, username: 'tomb' },
       ],
-      'not-going': [
-        { id: '6', name: 'Emily Davis', avatar: null, username: 'emilyd' },
-      ],
+      'not-going': [{ id: '6', name: 'Emily Davis', avatar: null, username: 'emilyd' }],
     });
   };
 
@@ -67,7 +67,7 @@ export default function RSVPManagementScreen() {
   };
 
   const handleChangeRSVP = async (newStatus: string) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     await updateRSVP(eventId, newStatus);
     // Refresh attendees list
     loadAttendees();
@@ -92,21 +92,19 @@ export default function RSVPManagementScreen() {
       count: attendees['not-going'].length,
       color: '#F44336',
     },
-  ].filter(section => section.data.length > 0);
+  ].filter((section) => section.data.length > 0);
 
   const renderAttendee = ({ item }: any) => (
     <TouchableOpacity
       style={styles.attendeeCard}
-      onPress={() => navigation.navigate('PersonCard', { person: item })}
+      onPress={() => router.push('/screens/person-card')}
     >
       <View style={styles.avatarContainer}>
         {item.avatar ? (
           <Image source={{ uri: item.avatar }} style={styles.avatar} />
         ) : (
           <View style={styles.avatarPlaceholder}>
-            <Text style={styles.avatarText}>
-              {item.name.charAt(0).toUpperCase()}
-            </Text>
+            <Text style={styles.avatarText}>{item.name.charAt(0).toUpperCase()}</Text>
           </View>
         )}
       </View>
@@ -131,14 +129,8 @@ export default function RSVPManagementScreen() {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <LinearGradient
-        colors={['#45B7D1', '#3498DB']}
-        style={styles.header}
-      >
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
+      <LinearGradient colors={['#45B7D1', '#3498DB']} style={styles.header}>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
         <View style={styles.headerContent}>
@@ -191,11 +183,7 @@ export default function RSVPManagementScreen() {
         renderSectionHeader={renderSectionHeader}
         contentContainerStyle={styles.listContent}
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor="#45B7D1"
-          />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#45B7D1" />
         }
         ListEmptyComponent={
           <View style={styles.emptyState}>

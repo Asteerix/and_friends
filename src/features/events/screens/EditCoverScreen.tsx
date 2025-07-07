@@ -1,23 +1,24 @@
-import React, { useState, useRef } from 'react';
+import * as Haptics from 'expo-haptics';
+import * as ImagePicker from 'expo-image-picker';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React from 'react';
+import { useRef, useState } from 'react';
 import {
-  View,
+  Animated,
+  Dimensions,
+  FlatList,
+  Image,
+  SafeAreaView,
+  ScrollView,
   StyleSheet,
   TouchableOpacity,
-  ScrollView,
-  Image,
-  Dimensions,
-  TextInput,
-  FlatList,
-  Animated,
+  View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation, useRoute } from '@react-navigation/native';
-import * as ImagePicker from 'expo-image-picker';
-import * as Haptics from 'expo-haptics';
-import GradientBackground from "@/components/common/GradientBackground";
-import CustomText, { AfterHoursText, PlayfairText, OffbeatText } from "@/components/common/CustomText";
 
-const { width, height } = Dimensions.get('window');
+import CustomText, { AfterHoursText, OffbeatText, PlayfairText } from '@/shared/ui/CustomText';
+import GradientBackground from '@/shared/ui/GradientBackground';
+
+const { width } = Dimensions.get('window');
 
 const fontOptions = [
   { id: 'afterHours', name: 'After Hours', component: AfterHoursText },
@@ -50,39 +51,74 @@ const decorations = [
 ];
 
 const templates = [
-  { id: 'birthday', name: 'Birthday', gradient: ['#6BCF7F', '#92E3A9'], font: 'playfair', decorations: ['🎂', '🎉'] },
-  { id: 'party', name: 'Party', gradient: ['#FF6B9D', '#FFC4D6'], font: 'afterHours', decorations: ['🎉', '💃'] },
-  { id: 'dinner', name: 'Dinner', gradient: ['#8B5CF6', '#A78BFA'], font: 'playfair', decorations: ['🍷', '🍕'] },
-  { id: 'concert', name: 'Concert', gradient: ['#45B7D1', '#3498DB'], font: 'offbeat', decorations: ['🎵', '🔥'] },
-  { id: 'casual', name: 'Casual', gradient: ['#FFD93D', '#FFE873'], font: 'afterHours', decorations: ['⭐', '✨'] },
+  {
+    id: 'birthday',
+    name: 'Birthday',
+    gradient: ['#6BCF7F', '#92E3A9'],
+    font: 'playfair',
+    decorations: ['🎂', '🎉'],
+  },
+  {
+    id: 'party',
+    name: 'Party',
+    gradient: ['#FF6B9D', '#FFC4D6'],
+    font: 'afterHours',
+    decorations: ['🎉', '💃'],
+  },
+  {
+    id: 'dinner',
+    name: 'Dinner',
+    gradient: ['#8B5CF6', '#A78BFA'],
+    font: 'playfair',
+    decorations: ['🍷', '🍕'],
+  },
+  {
+    id: 'concert',
+    name: 'Concert',
+    gradient: ['#45B7D1', '#3498DB'],
+    font: 'offbeat',
+    decorations: ['🎵', '🔥'],
+  },
+  {
+    id: 'casual',
+    name: 'Casual',
+    gradient: ['#FFD93D', '#FFE873'],
+    font: 'afterHours',
+    decorations: ['⭐', '✨'],
+  },
 ];
 
 export default function EditCoverScreen() {
-  const navigation = useNavigation();
-  const route = useRoute();
-  const { eventTitle = 'Event Title', onSave } = route.params as any;
-  
+  const router = useRouter();
+
+  const params = useLocalSearchParams<{ eventTitle?: string; onSave?: string }>();
+  const { eventTitle = 'Event Title' } = params;
+
   const [activeTab, setActiveTab] = useState<'style' | 'decorate' | 'templates'>('style');
   const [selectedFont, setSelectedFont] = useState('afterHours');
-  const [selectedGradient, setSelectedGradient] = useState<[string, string]>(colorOptions[0] as [string, string]);
+  const [selectedGradient, setSelectedGradient] = useState<[string, string]>(
+    colorOptions[0] as [string, string]
+  );
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
-  const [placedDecorations, setPlacedDecorations] = useState<Array<{id: string, emoji: string, x: number, y: number}>>([]);
-  const [title, setTitle] = useState(eventTitle);
-  
+  const [placedDecorations, setPlacedDecorations] = useState<
+    Array<{ id: string; emoji: string; x: number; y: number }>
+  >([]);
+  const [title] = useState(eventTitle);
+
   const slideAnim = useRef(new Animated.Value(0)).current;
 
   const handleTabChange = (tab: 'style' | 'decorate' | 'templates') => {
     const toValue = tab === 'style' ? 0 : tab === 'decorate' ? -width : -width * 2;
-    
+
     Animated.spring(slideAnim, {
       toValue,
       useNativeDriver: true,
       tension: 50,
       friction: 10,
     }).start();
-    
+
     setActiveTab(tab);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
   const handlePickImage = async () => {
@@ -105,7 +141,7 @@ export default function EditCoverScreen() {
       y: Math.random() * 200 + 100,
     };
     setPlacedDecorations([...placedDecorations, newDecoration]);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
   const handleApplyTemplate = (template: any) => {
@@ -119,31 +155,22 @@ export default function EditCoverScreen() {
         y: 150,
       }))
     );
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   };
 
   const handleSave = () => {
-    const coverData = {
-      title,
-      font: selectedFont,
-      gradient: selectedGradient,
-      backgroundImage,
-      decorations: placedDecorations,
-    };
-    
-    if (onSave) {
-      onSave(coverData);
-    }
-    
-    navigation.goBack();
+    // TODO: Implement save functionality
+    // For now, just go back
+
+    void router.back();
   };
 
-  const FontComponent = fontOptions.find(f => f.id === selectedFont)?.component || AfterHoursText;
+  const FontComponent = fontOptions.find((f) => f.id === selectedFont)?.component || AfterHoursText;
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+        <TouchableOpacity onPress={() => router.back()}>
           <CustomText size="lg">Cancel</CustomText>
         </TouchableOpacity>
         <AfterHoursText size="lg">Edit Cover</AfterHoursText>
@@ -159,7 +186,7 @@ export default function EditCoverScreen() {
           {backgroundImage && (
             <Image source={{ uri: backgroundImage }} style={styles.backgroundImage} />
           )}
-          
+
           {placedDecorations.map((dec, index) => (
             <View
               key={`${dec.id}_${index}`}
@@ -168,7 +195,7 @@ export default function EditCoverScreen() {
               <CustomText size="xxl">{dec.emoji}</CustomText>
             </View>
           ))}
-          
+
           <View style={styles.titleContainer}>
             <FontComponent size="xl" color="#FFF" align="center" style={styles.previewTitle}>
               {title}
@@ -190,7 +217,7 @@ export default function EditCoverScreen() {
             Style
           </CustomText>
         </TouchableOpacity>
-        
+
         <TouchableOpacity
           style={[styles.tab, activeTab === 'decorate' && styles.activeTab]}
           onPress={() => handleTabChange('decorate')}
@@ -203,7 +230,7 @@ export default function EditCoverScreen() {
             Decorate
           </CustomText>
         </TouchableOpacity>
-        
+
         <TouchableOpacity
           style={[styles.tab, activeTab === 'templates' && styles.activeTab]}
           onPress={() => handleTabChange('templates')}
@@ -238,10 +265,7 @@ export default function EditCoverScreen() {
                 return (
                   <TouchableOpacity
                     key={font.id}
-                    style={[
-                      styles.fontOption,
-                      selectedFont === font.id && styles.selectedOption,
-                    ]}
+                    style={[styles.fontOption, selectedFont === font.id && styles.selectedOption]}
                     onPress={() => setSelectedFont(font.id)}
                   >
                     <FontComp size="lg">{font.name}</FontComp>
@@ -311,7 +335,10 @@ export default function EditCoverScreen() {
               style={styles.templateOption}
               onPress={() => handleApplyTemplate(template)}
             >
-              <GradientBackground colors={template.gradient as [string, string]} style={styles.templatePreview}>
+              <GradientBackground
+                colors={template.gradient as [string, string]}
+                style={styles.templatePreview}
+              >
                 <CustomText size="lg" color="#FFF" align="center">
                   {template.name}
                 </CustomText>

@@ -49,11 +49,20 @@ const NameInputScreen: React.FC<NameInputScreenProps> = React.memo(() => {
     setHandleTaken(false);
     
     try {
-      // Vérifier si le username existe déjà
+      // Get current user ID
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setHandleError('User not authenticated.');
+        setCheckingHandle(false);
+        return false;
+      }
+
+      // Check if username exists for OTHER users
       const { data, error } = await supabase
         .from('profiles')
-        .select('username')
+        .select('id, username')
         .eq('username', h.trim())
+        .neq('id', user.id)
         .maybeSingle();
       
       if (error) {

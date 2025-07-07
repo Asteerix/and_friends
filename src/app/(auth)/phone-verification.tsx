@@ -1,3 +1,2 @@
-// UNUSED: This file is part of Expo Router structure but the app uses React Navigation instead
 
-export { default } from "@/features/auth/screens/PhoneVerificationScreen";
+export { default } from '@/features/auth/screens/PhoneVerificationScreen';

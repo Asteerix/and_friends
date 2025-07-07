@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
-import { useSession } from "@/lib/SessionContext";
-import type { PostgrestError } from "@supabase/supabase-js";
+import type { PostgrestError } from '@supabase/supabase-js';
+import { useState, useEffect } from 'react';
+
+import { supabase } from '@/shared/lib/supabase/client';
+import { useSession } from '@/shared/providers/SessionContext';
 
 export interface UserProfile {
   id: string;
@@ -15,6 +16,8 @@ export interface UserProfile {
   hide_birth_date?: boolean;
   jam_preference?: string;
   restaurant_preference?: string;
+  selected_jams?: string[];
+  selected_restaurants?: string[];
   hobbies?: string[];
   interests?: string[];
   path?: string;
@@ -24,8 +27,18 @@ export interface UserProfile {
   email?: string;
   created_at?: string;
   updated_at?: string;
+  settings?: {
+    notifications: {
+      event_invites: boolean;
+      friend_requests: boolean;
+      event_reminders: boolean;
+    };
+    privacy: {
+      who_can_invite: string;
+      hide_from_search: boolean;
+    };
+  };
 }
-
 export function useProfile() {
   const { session } = useSession();
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -43,13 +56,13 @@ export function useProfile() {
 
     try {
       const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", session.user.id)
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
         .single();
 
       if (error) {
-        console.error("Error fetching profile:", error);
+        console.error('Error fetching profile:', error);
         setError(error);
         return;
       }
@@ -66,6 +79,8 @@ export function useProfile() {
         hide_birth_date: data.hide_birth_date || false,
         jam_preference: data.jam_preference,
         restaurant_preference: data.restaurant_preference,
+        selected_jams: data.selected_jams || [],
+        selected_restaurants: data.selected_restaurants || [],
         hobbies: data.hobbies || [],
         interests: data.interests || [],
         path: data.path,
@@ -75,12 +90,13 @@ export function useProfile() {
         email: session.user.email,
         created_at: data.created_at,
         updated_at: data.updated_at,
+        settings: data.settings,
       };
 
       setProfile(profileData);
-    } catch (err: any) {
-      console.error("Unexpected error fetching profile:", err);
-      setError(err);
+    } catch (err: unknown) {
+      console.error('Unexpected error fetching profile:', err);
+      setError(err as PostgrestError);
     } finally {
       setLoading(false);
     }
@@ -88,7 +104,7 @@ export function useProfile() {
 
   const updateProfile = async (updates: Partial<UserProfile>) => {
     if (!session?.user) {
-      return { error: { message: "Not authenticated" } };
+      return { error: { message: 'Not authenticated' } };
     }
 
     setLoading(true);
@@ -96,25 +112,30 @@ export function useProfile() {
 
     try {
       const { data, error } = await supabase
-        .from("profiles")
+        .from('profiles')
         .update({
           full_name: updates.full_name,
+          username: updates.username,
           avatar_url: updates.avatar_url,
+          cover_url: updates.cover_url,
+          bio: updates.bio,
           birth_date: updates.birth_date,
+          hide_birth_date: updates.hide_birth_date,
           jam_preference: updates.jam_preference,
           restaurant_preference: updates.restaurant_preference,
           hobbies: updates.hobbies,
           path: updates.path,
           location_permission_granted: updates.location_permission_granted,
           contacts_permission_status: updates.contacts_permission_status,
+          settings: updates.settings,
           updated_at: new Date().toISOString(),
         })
-        .eq("id", session.user.id)
+        .eq('id', session.user.id)
         .select()
         .single();
 
       if (error) {
-        console.error("Error updating profile:", error);
+        console.error('Error updating profile:', error);
         setError(error);
         return { error };
       }
@@ -128,48 +149,88 @@ export function useProfile() {
       setProfile(updatedProfile);
 
       return { data: updatedProfile, error: null };
-    } catch (err: any) {
-      console.error("Unexpected error updating profile:", err);
-      setError(err);
+    } catch (err: unknown) {
+      console.error('Unexpected error updating profile:', error);
+      setError(err as PostgrestError);
       return { error: err };
     } finally {
       setLoading(false);
     }
   };
 
-  const uploadAvatar = async (avatarFile: File | Blob, fileName: string) => {
+  const uploadAvatar = async (avatarUri: string) => {
     if (!session?.user) {
-      return { error: { message: "Not authenticated" } };
+      return { error: { message: 'Not authenticated' } };
     }
 
     try {
-      const fileExt = fileName.split('.').pop();
-      const filePath = `${session.user.id}/avatar.${fileExt}`;
+      const response = await fetch(avatarUri);
+      const blob = await response.blob();
+      if (!blob || blob.size === 0) {
+        return { error: { message: 'Image vide, upload annulé.' } };
+      }
+      const fileExt = avatarUri.split('.').pop()?.toLowerCase() || 'jpg';
+      const fileName = `${session.user.id}-${Date.now()}.${fileExt}`;
 
       // Upload image to Supabase Storage
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, avatarFile, {
-          cacheControl: '3600',
-          upsert: true,
-        });
+      const { error: uploadError } = await supabase.storage.from('avatars').upload(fileName, blob, {
+        contentType: `image/${fileExt}`,
+        cacheControl: '3600',
+        upsert: false,
+      });
 
       if (uploadError) {
-        console.error("Error uploading avatar:", uploadError);
+        console.error('Error uploading avatar:', uploadError);
         return { error: uploadError };
       }
 
       // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(filePath);
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from('avatars').getPublicUrl(fileName);
 
       // Update profile with new avatar URL
       const updateResult = await updateProfile({ avatar_url: publicUrl });
       return updateResult;
+    } catch (err: unknown) {
+      console.error('Unexpected error uploading avatar:', error);
+      return { error: err };
+    }
+  };
 
-    } catch (err: any) {
-      console.error("Unexpected error uploading avatar:", err);
+  const uploadCover = async (coverUri: string) => {
+    if (!session?.user) {
+      return { error: { message: 'Not authenticated' } };
+    }
+
+    try {
+      const response = await fetch(coverUri);
+      const blob = await response.blob();
+      const fileExt = coverUri.split('.').pop()?.toLowerCase() || 'jpg';
+      const fileName = `${session.user.id}-cover-${Date.now()}.${fileExt}`;
+
+      // Upload image to Supabase Storage
+      const { error: uploadError } = await supabase.storage.from('covers').upload(fileName, blob, {
+        contentType: `image/${fileExt}`,
+        cacheControl: '3600',
+        upsert: false,
+      });
+
+      if (uploadError) {
+        console.error('Error uploading cover:', uploadError);
+        return { error: uploadError };
+      }
+
+      // Get public URL
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from('covers').getPublicUrl(fileName);
+
+      // Update profile with new cover URL
+      const updateResult = await updateProfile({ cover_url: publicUrl });
+      return updateResult;
+    } catch (err: unknown) {
+      console.error('Unexpected error uploading cover:', error);
       return { error: err };
     }
   };
@@ -180,30 +241,30 @@ export function useProfile() {
     try {
       // Get events created count
       const { count: eventsCreated } = await supabase
-        .from("events")
-        .select("*", { count: "exact", head: true })
-        .eq("created_by", session.user.id);
+        .from('events')
+        .select('*', { count: 'exact', head: true })
+        .eq('created_by', session.user.id);
 
       // Get events participated count
       const { count: eventsParticipated } = await supabase
-        .from("event_participants")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", session.user.id);
+        .from('event_participants')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', session.user.id);
 
       // Get friends count
       const { count: friendsCount } = await supabase
-        .from("friendships")
-        .select("*", { count: "exact", head: true })
+        .from('friendships')
+        .select('*', { count: 'exact', head: true })
         .or(`user_id.eq.${session.user.id},friend_id.eq.${session.user.id}`)
-        .eq("status", "accepted");
+        .eq('status', 'accepted');
 
       return {
         eventsCreated: eventsCreated || 0,
         eventsParticipated: eventsParticipated || 0,
         friendsCount: friendsCount || 0,
       };
-    } catch (error) {
-      console.error("Error fetching profile stats:", error);
+    } catch {
+      console.error('Error fetching profile stats:', error);
       return null;
     }
   };
@@ -220,40 +281,37 @@ export function useProfile() {
     const subscription = supabase
       .channel(`profile:${session.user.id}`)
       .on(
-        "postgres_changes",
+        'postgres_changes',
         {
-          event: "UPDATE",
-          schema: "public",
-          table: "profiles",
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'profiles',
           filter: `id=eq.${session.user.id}`,
         },
         (payload) => {
-          console.log("Profile updated in real-time:", payload);
+          console.log('Profile updated in real-time:', payload);
           fetchProfile(); // Refresh profile data
         }
       )
       .subscribe();
 
     return () => {
-      subscription.unsubscribe();
+      void subscription.unsubscribe();
     };
   }, [session?.user?.id]);
 
   const fetchAllProfiles = async () => {
     try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .limit(50);
+      const { data, error } = await supabase.from('profiles').select('*').limit(50);
 
       if (error) {
-        console.error("Error fetching profiles:", error);
+        console.error('Error fetching profiles:', error);
         return { profiles: [], error };
       }
 
       return { profiles: data || [], error: null };
-    } catch (err: any) {
-      console.error("Unexpected error fetching profiles:", err);
+    } catch (err: unknown) {
+      console.error('Unexpected error fetching profiles:', error);
       return { profiles: [], error: err };
     }
   };
@@ -265,6 +323,7 @@ export function useProfile() {
     fetchProfile,
     updateProfile,
     uploadAvatar,
+    uploadCover,
     getProfileStats,
     fetchAllProfiles,
   };

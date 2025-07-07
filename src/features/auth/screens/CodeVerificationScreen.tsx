@@ -17,7 +17,6 @@ import { create } from 'react-native-pixel-perfect';
 import * as Haptics from 'expo-haptics';
 import { supabase } from '@/shared/lib/supabase/client';
 import { useAuthNavigation } from '@/shared/hooks/useAuthNavigation';
-import { useRegistrationStep } from '@/shared/hooks/useRegistrationStep';
 
 const designResolution = { width: 375, height: 812 };
 const perfectSize = create(designResolution);
@@ -34,9 +33,7 @@ const CodeVerificationScreen: React.FC<CodeVerificationScreenProps> = React.memo
   const [code, setCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const inputRef = useRef<TextInput>(null);
-
-  // Save registration step
-  useRegistrationStep('code_verification');
+  // Removed auto-save - step is saved when navigating forward from phone verification
 
   const handleBackPress = () => {
     navigateBack();
@@ -114,6 +111,19 @@ const CodeVerificationScreen: React.FC<CodeVerificationScreenProps> = React.memo
         }
 
         console.log('✅ [CodeVerificationScreen] Session de test créée');
+        
+        // Save next step before navigating
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase
+            .from('profiles')
+            .update({ 
+              current_registration_step: 'name_input',
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', user.id);
+        }
+        
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         navigateNext('name-input');
         setIsLoading(false);
@@ -155,6 +165,18 @@ const CodeVerificationScreen: React.FC<CodeVerificationScreenProps> = React.memo
       console.log('📍 [CodeVerificationScreen] Session après vérification:', !!session);
       if (session) {
         console.log('  - User ID confirmé:', session.user.id);
+      }
+      
+      // Save next step before navigating
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase
+          .from('profiles')
+          .update({ 
+            current_registration_step: 'name_input',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', user.id);
       }
       
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);

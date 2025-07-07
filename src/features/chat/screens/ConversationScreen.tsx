@@ -1,60 +1,54 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useHeaderHeight } from '@react-navigation/elements';
+import { useLocalSearchParams } from 'expo-router';
+import React, { useState, useEffect, useRef } from 'react';
 import {
-  View,
+  Alert,
   FlatList,
-  StyleSheet,
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
+  StyleSheet,
   Text,
-  Alert,
-} from "react-native";
-import { useRoute, useNavigation } from "@react-navigation/native";
-import { useHeaderHeight } from "@react-navigation/elements";
-import HeaderChat from "@/components/HeaderChat";
-import ScribbleDivider from "@/components/ScribbleDivider";
-import BubbleLeft from "@/components/BubbleLeft";
-import BubbleRight from "@/components/BubbleRight";
-import LinkCard from "@/components/LinkCard";
-import PollBlockLarge from "@/components/PollBlockLarge";
-import PollBlockCompact from "@/components/PollBlockCompact";
-import InputBar from "@/components/InputBar";
-import { useMessagesAdvanced } from "@/hooks/useMessagesAdvanced";
-import { usePollStore } from "@/hooks/usePollStore";
-import { useSession } from "@/lib/SessionContext";
-import { supabase } from "@/lib/supabase";
+  View,
+} from 'react-native';
 
-interface RouteParams {
-  chatId: string;
-}
+import BubbleLeft from '@/features/chat/components/BubbleLeft';
+import BubbleRight from '@/features/chat/components/BubbleRight';
+import HeaderChat from '@/features/chat/components/HeaderChat';
+import InputBar from '@/features/chat/components/InputBar';
+import LinkCard from '@/features/home/components/LinkCard';
+import { useMessagesAdvanced } from '@/hooks/useMessagesAdvanced';
+import { supabase } from '@/shared/lib/supabase/client';
+import { useSession } from '@/shared/providers/SessionContext';
+import ScribbleDivider from '@/shared/ui/ScribbleDivider';
 
+// import PollBlockLarge from "@/features/chat/components/PollBlockLarge";
+// import PollBlockCompact from "@/features/chat/components/PollBlockCompact";
+// import { usePollStore } from "@/hooks/usePollStore";
 interface ChatInfo {
   id: string;
   name?: string;
   is_group?: boolean;
   participants_count?: number;
 }
-
 export default function ConversationScreen() {
-  const route = useRoute();
-  const navigation = useNavigation();
-  const routeParams = route.params as RouteParams | undefined;
-  const chatId = routeParams?.chatId ?? "event";
+  const params = useLocalSearchParams<{ chatId?: string }>();
+  const chatId = params?.chatId ?? 'event';
   const { session } = useSession();
   const { messages, sendMessage, loading } = useMessagesAdvanced(chatId);
-  const { getPoll, vote, userVotes } = usePollStore();
+  // const { getPoll, vote, userVotes } = usePollStore();
   const headerHeight = useHeaderHeight();
   const [chatInfo, setChatInfo] = useState<ChatInfo | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
-    if (chatId && chatId !== "event") {
-      fetchChatInfo();
+    if (chatId && chatId !== 'event') {
+      void fetchChatInfo();
     } else {
       // Fallback pour les anciens chats mock
       setChatInfo({
         id: chatId,
-        name: "Event Chat",
+        name: 'Event Chat',
         is_group: true,
         participants_count: 27,
       });
@@ -64,8 +58,9 @@ export default function ConversationScreen() {
   const fetchChatInfo = async () => {
     try {
       const { data: chat, error } = await supabase
-        .from("chats")
-        .select(`
+        .from('chats')
+        .select(
+          `
           id,
           name,
           is_group,
@@ -76,12 +71,13 @@ export default function ConversationScreen() {
               avatar_url
             )
           )
-        `)
-        .eq("id", chatId)
+        `
+        )
+        .eq('id', chatId)
         .single();
 
       if (error) {
-        console.error("Error fetching chat info:", error);
+        console.error('Error fetching chat info:', error);
         return;
       }
 
@@ -92,37 +88,37 @@ export default function ConversationScreen() {
         participants_count: chat.chat_participants?.length || 0,
       });
     } catch (error) {
-      console.error("Error in fetchChatInfo:", error);
+      console.error('Error in fetchChatInfo:', error);
     }
   };
 
   const handleSendMessage = async (text: string) => {
     if (!session?.user) {
-      Alert.alert("Erreur", "Vous devez être connecté pour envoyer des messages");
+      Alert.alert('Erreur', 'Vous devez être connecté pour envoyer des messages');
       return;
     }
 
-    await sendMessage(text, "text");
+    await sendMessage(text, 'text');
   };
 
   // Logique pour déterminer les props du header
-  const isGroup = chatInfo?.is_group ?? (chatId === "event");
+  const isGroup = chatInfo?.is_group ?? chatId === 'event';
   const headerProps: React.ComponentProps<typeof HeaderChat> = isGroup
     ? {
-        type: "group",
-        title: chatInfo?.name || "Event",
-        subtitle: `${chatInfo?.participants_count || 27} Members`
+        type: 'group',
+        title: chatInfo?.name || 'Event',
+        subtitle: `${chatInfo?.participants_count || 27} Members`,
       }
     : {
-        type: "1to1",
-        title: chatInfo?.name || "Martha Craig",
-        subtitle: "Online",
-        avatarUrl: "https://randomuser.me/api/portraits/women/44.jpg",
+        type: '1to1',
+        title: chatInfo?.name || 'Martha Craig',
+        subtitle: 'Online',
+        avatarUrl: 'https://randomuser.me/api/portraits/women/44.jpg',
       };
-  
-  const avatarUrl = isGroup
-    ? undefined
-    : "https://randomuser.me/api/portraits/women/44.jpg";
+
+  // const avatarUrl = isGroup
+  //   ? undefined
+  //   : "https://randomuser.me/api/portraits/women/44.jpg";
 
   if (loading) {
     return (
@@ -140,7 +136,7 @@ export default function ConversationScreen() {
       <ScribbleDivider />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={headerHeight}
       >
         <FlatList
@@ -149,38 +145,35 @@ export default function ConversationScreen() {
           keyExtractor={(item, idx) => item.id || String(idx)}
           renderItem={({ item }) => {
             const isMyMessage = item.is_own_message || item.user_id === session?.user?.id;
-            const messageTime = item.created_at ? new Date(item.created_at).toLocaleTimeString("fr-FR", {
-              hour: "2-digit",
-              minute: "2-digit"
-            }) : "";
-            
+            const messageTime = item.created_at
+              ? new Date(item.created_at).toLocaleTimeString('fr-FR', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })
+              : '';
+
             switch (item.message_type) {
-              case "text":
+              case 'text':
                 if (isMyMessage) {
-                  return (
-                    <BubbleRight
-                      text={item.content}
-                      time={messageTime}
-                    />
-                  );
+                  return <BubbleRight text={item.content} time={messageTime} />;
                 } else {
                   return (
                     <BubbleLeft
                       text={item.content}
                       avatarUrl={
                         item.sender?.avatar_url ||
-                        `https://ui-avatars.com/api/?name=${item.sender?.full_name || "U"}&size=40`
+                        `https://ui-avatars.com/api/?name=${item.sender?.full_name || 'U'}&size=40`
                       }
                       time={messageTime}
                     />
                   );
                 }
-              case "image":
+              case 'image':
                 return <LinkCard meta={item.metadata} />;
-              case "system":
+              case 'system':
                 return (
-                  <View style={{ padding: 8, alignItems: "center" }}>
-                    <Text style={{ fontSize: 12, color: "#888", fontStyle: "italic" }}>
+                  <View style={{ padding: 8, alignItems: 'center' }}>
+                    <Text style={{ fontSize: 12, color: '#888', fontStyle: 'italic' }}>
                       {item.content}
                     </Text>
                   </View>
@@ -191,7 +184,7 @@ export default function ConversationScreen() {
                     text={item.content}
                     avatarUrl={
                       item.sender?.avatar_url ||
-                      `https://ui-avatars.com/api/?name=${item.sender?.full_name || "U"}&size=40`
+                      `https://ui-avatars.com/api/?name=${item.sender?.full_name || 'U'}&size=40`
                     }
                     time={messageTime}
                   />
@@ -209,11 +202,11 @@ export default function ConversationScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#fff" },
+  safe: { flex: 1, backgroundColor: '#fff' },
   list: { padding: 16, paddingBottom: 8 },
   loadingContainer: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

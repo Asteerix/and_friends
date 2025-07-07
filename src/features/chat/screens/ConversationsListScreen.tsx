@@ -1,30 +1,23 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-  Image,
-  TextInput,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { formatDistanceToNow } from 'date-fns';
-import { useChats } from "@/hooks/useChats";
-import { useMessages } from "@/hooks/useMessages";
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+
+import { useChats } from '@/hooks/useChats';
+
+// import { useMessages } from "@/hooks/useMessages";
 
 interface ConversationGroup {
   title: string;
-  data: any[];
+  data: unknown[];
 }
-
 export default function ConversationsListScreen() {
-  const navigation = useNavigation();
+  const router = useRouter();
   const { chats } = useChats();
-  const { getLastMessage } = useMessages();
-  
+  // We don't need useMessages here - last message comes from the chats data
+
   const [searchQuery, setSearchQuery] = useState('');
   const [conversations, setConversations] = useState<ConversationGroup[]>([]);
 
@@ -34,9 +27,9 @@ export default function ConversationsListScreen() {
 
   const organizeConversations = () => {
     const groups = chats.reduce((acc: any, chat: any) => {
-      const lastMessage = getLastMessage(chat.id);
-      chat.lastMessage = lastMessage;
-      
+      // Last message should come from chat data
+      chat.lastMessage = chat.last_message || null;
+
       if (chat.type === 'group') {
         if (!acc.groups) acc.groups = [];
         acc.groups.push(chat);
@@ -47,12 +40,12 @@ export default function ConversationsListScreen() {
         if (!acc.friends) acc.friends = [];
         acc.friends.push(chat);
       }
-      
+
       return acc;
     }, {});
 
     const organized: ConversationGroup[] = [];
-    
+
     if (groups.groups?.length > 0) {
       organized.push({ title: 'Groups', data: groups.groups });
     }
@@ -66,13 +59,16 @@ export default function ConversationsListScreen() {
     setConversations(organized);
   };
 
-  const filteredConversations = conversations.map(group => ({
-    ...group,
-    data: group.data.filter(chat =>
-      chat.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      chat.lastMessage?.content?.toLowerCase().includes(searchQuery.toLowerCase())
-    ),
-  })).filter(group => group.data.length > 0);
+  const filteredConversations = conversations
+    .map((group) => ({
+      ...group,
+      data: group.data.filter(
+        (chat: any) =>
+          chat.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          chat.lastMessage?.content?.toLowerCase().includes(searchQuery.toLowerCase())
+      ),
+    }))
+    .filter((group) => group.data.length > 0);
 
   const renderConversation = ({ item }: { item: any }) => {
     const unreadCount = item.unread_count || 0;
@@ -81,19 +77,14 @@ export default function ConversationsListScreen() {
     return (
       <TouchableOpacity
         style={styles.conversationItem}
-        onPress={() => navigation.navigate('Conversation' as never, { chatId: item.id } as never)}
+        onPress={() => router.push(`/screens/conversation?chatId=${item.id}`)}
       >
         <View style={styles.avatarContainer}>
           {item.avatar_url ? (
             <Image source={{ uri: item.avatar_url }} style={styles.avatar} />
           ) : (
-            <LinearGradient
-              colors={['#45B7D1', '#3498DB']}
-              style={styles.avatarPlaceholder}
-            >
-              <Text style={styles.avatarText}>
-                {item.name?.charAt(0).toUpperCase()}
-              </Text>
+            <LinearGradient colors={['#45B7D1', '#3498DB']} style={styles.avatarPlaceholder}>
+              <Text style={styles.avatarText}>{item.name?.charAt(0).toUpperCase()}</Text>
             </LinearGradient>
           )}
           {isOnline && <View style={styles.onlineIndicator} />}
@@ -110,14 +101,12 @@ export default function ConversationsListScreen() {
               </Text>
             )}
           </View>
-          
+
           <View style={styles.messagePreview}>
             {item.lastMessage ? (
               <>
                 {item.type === 'group' && (
-                  <Text style={styles.senderName}>
-                    {item.lastMessage.sender_name}:{' '}
-                  </Text>
+                  <Text style={styles.senderName}>{item.lastMessage.sender_name}: </Text>
                 )}
                 <Text style={styles.lastMessage} numberOfLines={1}>
                   {item.lastMessage.content}
@@ -145,10 +134,7 @@ export default function ConversationsListScreen() {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <LinearGradient
-        colors={['#45B7D1', '#3498DB']}
-        style={styles.header}
-      >
+      <LinearGradient colors={['#45B7D1', '#3498DB']} style={styles.header}>
         <Text style={styles.headerTitle}>Messages</Text>
         <TouchableOpacity>
           <Ionicons name="create-outline" size={28} color="white" />
@@ -181,9 +167,7 @@ export default function ConversationsListScreen() {
           <>
             {renderSectionHeader({ section: item })}
             {item.data.map((conversation: any) => (
-              <View key={conversation.id}>
-                {renderConversation({ item: conversation })}
-              </View>
+              <View key={conversation.id}>{renderConversation({ item: conversation })}</View>
             ))}
           </>
         )}
@@ -194,9 +178,7 @@ export default function ConversationsListScreen() {
           <View style={styles.emptyState}>
             <Text style={styles.emptyStateEmoji}>💬</Text>
             <Text style={styles.emptyStateText}>No conversations yet</Text>
-            <Text style={styles.emptyStateSubtext}>
-              Start a chat with your friends!
-            </Text>
+            <Text style={styles.emptyStateSubtext}>Start a chat with your friends!</Text>
           </View>
         }
       />

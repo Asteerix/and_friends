@@ -1,70 +1,74 @@
-import React, { useEffect, useRef } from 'react';
-import {
-  View,
-  StyleSheet,
-  Animated,
-  TouchableOpacity,
-  Image,
-  Dimensions,
-  Platform,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation, useRoute } from '@react-navigation/native';
-import * as Haptics from 'expo-haptics';
 import * as Calendar from 'expo-calendar';
-import { Share } from 'react-native';
-import GradientBackground, { gradientPresets } from "@/components/common/GradientBackground";
-import CustomText, { AfterHoursText } from "@/components/common/CustomText";
+import * as Haptics from 'expo-haptics';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React from 'react';
+import { useEffect, useRef } from 'react';
+import {
+  Animated,
+  Dimensions,
+  Image,
+  Platform,
+  SafeAreaView,
+  Share,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
-const { width, height } = Dimensions.get('window');
+import CustomText, { AfterHoursText } from '@/shared/ui/CustomText';
+import GradientBackground from '@/shared/ui/GradientBackground';
+
+const { width } = Dimensions.get('window');
 
 const confirmationThemes = {
   beer: {
     gradient: ['#FFD93D', '#FFE873'] as [string, string],
-    illustration: require('../../../assets/images/relax.png'), // Replace with beer illustration
+    illustration: require('@/assets/images/relax.png'), // Replace with beer illustration
     color: '#FFD93D',
   },
   disco: {
     gradient: ['#FF6B9D', '#FFC4D6'] as [string, string],
-    illustration: require('../../../assets/images/relax.png'), // Replace with disco ball
+    illustration: require('@/assets/images/relax.png'), // Replace with disco ball
     color: '#FF6B9D',
   },
   wine: {
     gradient: ['#8B5CF6', '#A78BFA'] as [string, string],
-    illustration: require('../../../assets/images/register/wine.png'),
+    illustration: require('@/assets/images/register/wine.png'),
     color: '#8B5CF6',
   },
   birthday: {
     gradient: ['#6BCF7F', '#92E3A9'] as [string, string],
-    illustration: require('../../../assets/images/relax.png'), // Replace with cake
+    illustration: require('@/assets/images/relax.png'), // Replace with cake
     color: '#6BCF7F',
   },
   dance: {
     gradient: ['#45B7D1', '#3498DB'] as [string, string],
-    illustration: require('../../../assets/images/relax.png'), // Replace with dancing figure
+    illustration: require('@/assets/images/relax.png'), // Replace with dancing figure
     color: '#45B7D1',
   },
   geometric: {
     gradient: ['#FF6B6B', '#FF8787'] as [string, string],
-    illustration: require('../../../assets/images/scribble.png'),
+    illustration: require('@/assets/images/scribble.png'),
     color: '#FF6B6B',
   },
 };
 
 export default function RSVPConfirmationScreen() {
-  const navigation = useNavigation();
-  const route = useRoute();
-  const { eventName, eventDate, theme = 'beer' } = route.params as any;
-  
+  const router = useRouter();
+
+  const params = useLocalSearchParams<{ eventName: string; eventDate: string; theme?: string }>();
+  const { eventName, eventDate, theme = 'beer' } = params;
+
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const illustrationAnim = useRef(new Animated.Value(0)).current;
-  
-  const currentTheme = confirmationThemes[theme] || confirmationThemes.beer;
+
+  const currentTheme =
+    confirmationThemes[theme as keyof typeof confirmationThemes] || confirmationThemes.beer;
 
   useEffect(() => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
     Animated.sequence([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -92,8 +96,8 @@ export default function RSVPConfirmationScreen() {
       const { status } = await Calendar.requestCalendarPermissionsAsync();
       if (status === 'granted') {
         const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
-        const defaultCalendar = calendars.find(cal => cal.allowsModifications);
-        
+        const defaultCalendar = calendars.find((cal) => cal.allowsModifications);
+
         if (defaultCalendar) {
           await Calendar.createEventAsync(defaultCalendar.id, {
             title: eventName,
@@ -101,8 +105,8 @@ export default function RSVPConfirmationScreen() {
             endDate: new Date(eventDate),
             timeZone: 'GMT',
           });
-          
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         }
       }
     } catch (error) {
@@ -114,7 +118,7 @@ export default function RSVPConfirmationScreen() {
     try {
       await Share.share({
         message: `I'm going to ${eventName}! 🎉`,
-        url: 'https://andfriends.app/event/' + route.params?.eventId,
+        url: 'https://andfriends.app/event/',
       });
     } catch (error) {
       console.error('Error sharing:', error);
@@ -122,14 +126,16 @@ export default function RSVPConfirmationScreen() {
   };
 
   const handleClose = () => {
-    navigation.goBack();
+    void router.back();
   };
 
   return (
     <GradientBackground colors={currentTheme.gradient} animated>
       <SafeAreaView style={styles.container}>
         <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
-          <CustomText size="xl" color="#000">×</CustomText>
+          <CustomText size="xl" color="#000">
+            ×
+          </CustomText>
         </TouchableOpacity>
 
         <View style={styles.content}>
@@ -175,10 +181,14 @@ export default function RSVPConfirmationScreen() {
               styles.buttonsContainer,
               {
                 opacity: fadeAnim,
-                transform: [{ translateY: fadeAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [50, 0],
-                }) }],
+                transform: [
+                  {
+                    translateY: fadeAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [50, 0],
+                    }),
+                  },
+                ],
               },
             ]}
           >

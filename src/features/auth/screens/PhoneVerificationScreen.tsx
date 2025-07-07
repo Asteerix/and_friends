@@ -74,37 +74,26 @@ const PhoneVerificationScreen: React.FC<PhoneVerificationScreenProps> = React.me
     }
   );
 
-  // Clear user data when reaching this screen (user went back to start)
+  // Sign out when reaching this screen (user went back to start)
   useEffect(() => {
-    const clearUserData = async () => {
+    const resetUser = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          // Reset registration progress
-          await supabase
-            .from('profiles')
-            .update({
-              current_registration_step: 'phone_verification',
-              // Clear any partial data
-              username: null,
-              full_name: null,
-              avatar_url: null,
-              birth_date: null,
-              path: null,
-              jam: null,
-              restaurant_recommendations: null,
-              hobbies: null,
-              location_permission_granted: null,
-              contacts_permission_status: null,
-            })
-            .eq('id', user.id);
+        console.log('🔄 [PhoneVerification] User went back to start - signing out');
+        
+        // Sign out to completely reset the session
+        const { error } = await supabase.auth.signOut();
+        
+        if (error) {
+          console.error('❌ [PhoneVerification] Error signing out:', error);
+        } else {
+          console.log('✅ [PhoneVerification] User signed out successfully');
         }
       } catch (error) {
-        console.error('Error clearing user data:', error);
+        console.error('❌ [PhoneVerification] Error in resetUser:', error);
       }
     };
 
-    clearUserData();
+    resetUser();
   }, []);
 
   const handleCountrySelect = (country: Country) => {
@@ -164,6 +153,8 @@ const PhoneVerificationScreen: React.FC<PhoneVerificationScreenProps> = React.me
         // Avec Supabase, l'absence d'erreur signifie que l'OTP a été envoyé
         // même si data.user et data.session sont null (normal pour signInWithOtp)
         console.log('✅ [PhoneVerification] OTP envoyé avec succès');
+        
+        // No need to save step here since user is not logged in yet
         
         // Naviguer vers l'écran de vérification du code
         navigateNext('code-verification');

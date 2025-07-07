@@ -1,24 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
-  TextInput,
-  Animated,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation, useRoute } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
-import CustomText, { AfterHoursText } from "@/components/common/CustomText";
-import { usePollStore, Poll, PollOption } from "@/hooks/usePollStore";
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import React, { useState, useEffect } from 'react';
+import { Animated, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+
+import { usePollStore, PollOption } from '@/hooks/usePollStore';
+import CustomText, { AfterHoursText } from '@/shared/ui/CustomText';
 
 export default function PollScreen() {
-  const navigation = useNavigation();
-  const route = useRoute();
-  const { chatId, mode = 'create' } = route.params as any;
+  const router = useRouter();
+  
+  const params = useLocalSearchParams<{ chatId?: string; mode?: string; pollId?: string }>();
+  const { chatId = '', mode = 'create', pollId } = params;
   
   const [question, setQuestion] = useState('');
   const [options, setOptions] = useState<string[]>(['', '']);
@@ -27,8 +21,8 @@ export default function PollScreen() {
     Array(10).fill(0).map(() => new Animated.Value(0))
   );
   
-  const { createPoll, vote, polls, getPoll } = usePollStore();
-  const existingPoll = mode === 'vote' ? getPoll(route.params?.pollId) : null;
+  const { createPoll, vote, getPoll } = usePollStore();
+  const existingPoll = mode === 'vote' && pollId ? getPoll(pollId) : null;
 
   useEffect(() => {
     if (existingPoll) {
@@ -38,12 +32,14 @@ export default function PollScreen() {
 
   const animateVoteBars = () => {
     existingPoll?.options.forEach((option, index) => {
-      Animated.timing(animatedValues[index], {
-        toValue: getVotePercentage(option),
-        duration: 500,
-        delay: index * 100,
-        useNativeDriver: false,
-      }).start();
+      if (animatedValues[index]) {
+        Animated.timing(animatedValues[index], {
+          toValue: getVotePercentage(option),
+          duration: 500,
+          delay: index * 100,
+          useNativeDriver: false,
+        }).start();
+      }
     });
   };
 
@@ -83,11 +79,11 @@ export default function PollScreen() {
       type: 'single',
       expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours from now
       anonymous: false,
-      chat_id: chatId,
+      chat_id: chatId || '',
     });
 
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    navigation.goBack();
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    void router.back();
   };
 
   const handleVote = async (optionId: string) => {
@@ -95,7 +91,7 @@ export default function PollScreen() {
 
     const newSelection = new Set(selectedOptions);
     if (newSelection.has(optionId)) {
-      newSelection.delete(optionId);
+      void newSelection.delete(optionId);
     } else {
       newSelection.clear(); // Always clear for single choice polls
       newSelection.add(optionId);
@@ -103,14 +99,14 @@ export default function PollScreen() {
     
     setSelectedOptions(newSelection);
     vote(existingPoll.id, optionId);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
   if (mode === 'vote' && existingPoll) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
+          <TouchableOpacity onPress={() => router.back()}>
             <CustomText size="lg">✕</CustomText>
           </TouchableOpacity>
           <AfterHoursText size="lg">Poll</AfterHoursText>
@@ -124,7 +120,7 @@ export default function PollScreen() {
 
           <View style={styles.optionsContainer}>
             {existingPoll.options.map((option, index) => {
-              const percentage = getVotePercentage(option);
+              // const percentage = getVotePercentage(option);
               const isSelected = selectedOptions.has(option.id);
               
               return (
@@ -147,7 +143,7 @@ export default function PollScreen() {
                     style={[
                       styles.voteBar,
                       {
-                        width: animatedValues[index].interpolate({
+                        width: animatedValues[index]?.interpolate({
                           inputRange: [0, 100],
                           outputRange: ['0%', '100%'],
                         }),
@@ -176,7 +172,7 @@ export default function PollScreen() {
     >
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
+          <TouchableOpacity onPress={() => router.back()}>
             <CustomText size="lg">Cancel</CustomText>
           </TouchableOpacity>
           <AfterHoursText size="lg">Create Poll</AfterHoursText>

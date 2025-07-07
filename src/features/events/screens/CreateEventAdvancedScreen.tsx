@@ -1,26 +1,27 @@
-import React, { useState, useRef } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { format } from 'date-fns';
+import * as Haptics from 'expo-haptics';
+import * as ImagePicker from 'expo-image-picker';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+import React, { useRef, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
+  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
+  StyleSheet,
   Switch,
-  Alert,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
-import { LinearGradient } from 'expo-linear-gradient';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import * as ImagePicker from 'expo-image-picker';
-import { format } from 'date-fns';
-import { useEvents } from "@/hooks/useEvents";
-import { useSupabaseStorage } from "@/hooks/useSupabaseStorage";
-import * as Haptics from 'expo-haptics';
+
+import { useEvents } from '@/hooks/useEvents';
+import { useSupabaseStorage } from '@/shared/hooks/useSupabaseStorage';
 
 const categories = [
   { id: 'sports', name: 'Sports', icon: 'basketball', color: '#4CAF50' },
@@ -32,18 +33,18 @@ const categories = [
 ];
 
 const coverStyles = [
-  { id: 'gradient1', colors: ['#FF6B6B', '#FF8787'] },
-  { id: 'gradient2', colors: ['#4ECDC4', '#44A3AA'] },
-  { id: 'gradient3', colors: ['#45B7D1', '#3498DB'] },
-  { id: 'gradient4', colors: ['#96CEB4', '#88C999'] },
-  { id: 'gradient5', colors: ['#DDA0DD', '#BA55D3'] },
+  { id: 'gradient1', colors: ['#FF6B6B', '#FF8787'] as const },
+  { id: 'gradient2', colors: ['#4ECDC4', '#44A3AA'] as const },
+  { id: 'gradient3', colors: ['#45B7D1', '#3498DB'] as const },
+  { id: 'gradient4', colors: ['#96CEB4', '#88C999'] as const },
+  { id: 'gradient5', colors: ['#DDA0DD', '#BA55D3'] as const },
 ];
 
 export default function CreateEventAdvancedScreen() {
-  const navigation = useNavigation();
+  const router = useRouter();
   const { createEvent } = useEvents();
   const { uploadImage } = useSupabaseStorage();
-  
+
   const [step, setStep] = useState(1);
   const [title, setTitle] = useState('');
   const [subtitle, setSubtitle] = useState('');
@@ -57,7 +58,7 @@ export default function CreateEventAdvancedScreen() {
   const [selectedCoverStyle, setSelectedCoverStyle] = useState(coverStyles[0]);
   const [inviteOnly, setInviteOnly] = useState(false);
   const [maxParticipants, setMaxParticipants] = useState('');
-  const [coHosts, setCoHosts] = useState<string[]>([]);
+  const [coHosts] = useState<string[]>([]);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -73,7 +74,7 @@ export default function CreateEventAdvancedScreen() {
       Alert.alert('Missing Information', 'Please add a location for your event.');
       return;
     }
-    
+
     if (step < 4) {
       setStep(step + 1);
       scrollRef.current?.scrollTo({ x: 0, y: 0, animated: true });
@@ -102,10 +103,10 @@ export default function CreateEventAdvancedScreen() {
 
   const handleCreateEvent = async () => {
     setCreating(true);
-    
+
     try {
       let coverUrl = null;
-      
+
       if (coverImage && coverImage.startsWith('file://')) {
         const uploadResult = await uploadImage(coverImage, 'events');
         if (uploadResult) {
@@ -122,23 +123,26 @@ export default function CreateEventAdvancedScreen() {
         time: format(time, 'HH:mm'),
         location,
         address,
-        cover_url: coverUrl,
+        cover_url: coverUrl || undefined,
         invite_only: inviteOnly,
         max_participants: maxParticipants ? parseInt(maxParticipants) : undefined,
         co_hosts: coHosts,
       };
 
       const { error } = await createEvent(eventData);
-      
+
       if (error) {
         Alert.alert('Error', 'Failed to create event. Please try again.');
       } else {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        navigation.navigate('EventConfirmation' as never, { 
-          eventId: 'new',
-          eventTitle: title,
-          eventDate: format(date, 'PPP')
-        } as never);
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        router.push(
+          'EventConfirmation' as never,
+          {
+            eventId: 'new',
+            eventTitle: title,
+            eventDate: format(date, 'PPP'),
+          } as never
+        );
       }
     } catch (error) {
       Alert.alert('Error', 'Something went wrong. Please try again.');
@@ -151,28 +155,13 @@ export default function CreateEventAdvancedScreen() {
     <View style={styles.stepIndicator}>
       {[1, 2, 3, 4].map((stepNumber) => (
         <View key={stepNumber} style={styles.stepItem}>
-          <View
-            style={[
-              styles.stepCircle,
-              step >= stepNumber && styles.stepCircleActive,
-            ]}
-          >
-            <Text
-              style={[
-                styles.stepNumber,
-                step >= stepNumber && styles.stepNumberActive,
-              ]}
-            >
+          <View style={[styles.stepCircle, step >= stepNumber && styles.stepCircleActive]}>
+            <Text style={[styles.stepNumber, step >= stepNumber && styles.stepNumberActive]}>
               {stepNumber}
             </Text>
           </View>
           {stepNumber < 4 && (
-            <View
-              style={[
-                styles.stepLine,
-                step > stepNumber && styles.stepLineActive,
-              ]}
-            />
+            <View style={[styles.stepLine, step > stepNumber && styles.stepLineActive]} />
           )}
         </View>
       ))}
@@ -182,7 +171,7 @@ export default function CreateEventAdvancedScreen() {
   const renderStep1 = () => (
     <View style={styles.stepContent}>
       <Text style={styles.stepTitle}>Basic Information</Text>
-      
+
       <View style={styles.inputGroup}>
         <Text style={styles.label}>Event Title *</Text>
         <TextInput
@@ -223,12 +212,7 @@ export default function CreateEventAdvancedScreen() {
                 size={24}
                 color={category === cat.id ? 'white' : cat.color}
               />
-              <Text
-                style={[
-                  styles.categoryName,
-                  category === cat.id && styles.categoryNameActive,
-                ]}
-              >
+              <Text style={[styles.categoryName, category === cat.id && styles.categoryNameActive]}>
                 {cat.name}
               </Text>
             </TouchableOpacity>
@@ -254,13 +238,10 @@ export default function CreateEventAdvancedScreen() {
   const renderStep2 = () => (
     <View style={styles.stepContent}>
       <Text style={styles.stepTitle}>Date & Location</Text>
-      
+
       <View style={styles.inputGroup}>
         <Text style={styles.label}>Date *</Text>
-        <TouchableOpacity
-          style={styles.dateButton}
-          onPress={() => setShowDatePicker(true)}
-        >
+        <TouchableOpacity style={styles.dateButton} onPress={() => setShowDatePicker(true)}>
           <Ionicons name="calendar-outline" size={20} color="#666" />
           <Text style={styles.dateText}>{format(date, 'EEEE, MMMM d, yyyy')}</Text>
         </TouchableOpacity>
@@ -268,10 +249,7 @@ export default function CreateEventAdvancedScreen() {
 
       <View style={styles.inputGroup}>
         <Text style={styles.label}>Time *</Text>
-        <TouchableOpacity
-          style={styles.dateButton}
-          onPress={() => setShowTimePicker(true)}
-        >
+        <TouchableOpacity style={styles.dateButton} onPress={() => setShowTimePicker(true)}>
           <Ionicons name="time-outline" size={20} color="#666" />
           <Text style={styles.dateText}>{format(time, 'h:mm a')}</Text>
         </TouchableOpacity>
@@ -309,13 +287,13 @@ export default function CreateEventAdvancedScreen() {
   const renderStep3 = () => (
     <View style={styles.stepContent}>
       <Text style={styles.stepTitle}>Cover & Style</Text>
-      
+
       <View style={styles.coverPreview}>
         {coverImage ? (
           <Image source={{ uri: coverImage }} style={styles.coverImage} />
         ) : (
           <LinearGradient
-            colors={selectedCoverStyle.colors}
+            colors={selectedCoverStyle?.colors || ['#FF6B6B', '#FF8E53']}
             style={styles.coverPlaceholder}
           >
             <Text style={styles.coverTitle}>{title || 'Your Event'}</Text>
@@ -347,7 +325,7 @@ export default function CreateEventAdvancedScreen() {
                 colors={style.colors}
                 style={[
                   styles.gradientOption,
-                  selectedCoverStyle.id === style.id && styles.gradientOptionActive,
+                  selectedCoverStyle?.id === style.id && styles.gradientOptionActive,
                 ]}
               />
             </TouchableOpacity>
@@ -360,13 +338,11 @@ export default function CreateEventAdvancedScreen() {
   const renderStep4 = () => (
     <View style={styles.stepContent}>
       <Text style={styles.stepTitle}>Additional Settings</Text>
-      
+
       <View style={styles.settingItem}>
         <View style={styles.settingInfo}>
           <Text style={styles.settingLabel}>Invite-Only Event</Text>
-          <Text style={styles.settingDescription}>
-            Only people you invite can see and join
-          </Text>
+          <Text style={styles.settingDescription}>Only people you invite can see and join</Text>
         </View>
         <Switch
           value={inviteOnly}
@@ -395,7 +371,7 @@ export default function CreateEventAdvancedScreen() {
             <Image source={{ uri: coverImage }} style={styles.previewImage} />
           ) : (
             <LinearGradient
-              colors={selectedCoverStyle.colors}
+              colors={selectedCoverStyle?.colors || ['#FF6B6B', '#FF8E53']}
               style={styles.previewImage}
             />
           )}
@@ -416,12 +392,9 @@ export default function CreateEventAdvancedScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <LinearGradient
-        colors={['#45B7D1', '#3498DB']}
-        style={styles.header}
-      >
+      <LinearGradient colors={['#45B7D1', '#3498DB']} style={styles.header}>
         <View style={styles.headerContent}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
+          <TouchableOpacity onPress={() => router.back()}>
             <Ionicons name="close" size={28} color="white" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Create Event</Text>
@@ -449,7 +422,7 @@ export default function CreateEventAdvancedScreen() {
             <Text style={styles.backButtonText}>Back</Text>
           </TouchableOpacity>
         )}
-        
+
         {step < 4 ? (
           <TouchableOpacity style={styles.nextButton} onPress={handleNextStep}>
             <Text style={styles.nextButtonText}>Next</Text>
@@ -461,9 +434,7 @@ export default function CreateEventAdvancedScreen() {
             onPress={handleCreateEvent}
             disabled={creating}
           >
-            <Text style={styles.createButtonText}>
-              {creating ? 'Creating...' : 'Create Event'}
-            </Text>
+            <Text style={styles.createButtonText}>{creating ? 'Creating...' : 'Create Event'}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -473,7 +444,7 @@ export default function CreateEventAdvancedScreen() {
           value={date}
           mode="date"
           minimumDate={new Date()}
-          onChange={(event, selectedDate) => {
+          onChange={(_, selectedDate) => {
             setShowDatePicker(false);
             if (selectedDate) setDate(selectedDate);
           }}
@@ -484,7 +455,7 @@ export default function CreateEventAdvancedScreen() {
         <DateTimePicker
           value={time}
           mode="time"
-          onChange={(event, selectedTime) => {
+          onChange={(_, selectedTime) => {
             setShowTimePicker(false);
             if (selectedTime) setTime(selectedTime);
           }}

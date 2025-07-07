@@ -17,9 +17,9 @@ CREATE POLICY "Authenticated users can upload event covers" ON storage.objects
 -- Allow users to update their own uploads
 CREATE POLICY "Users can update their own event covers" ON storage.objects
   FOR UPDATE TO authenticated
-  USING (bucket_id = 'event-covers' AND auth.uid()::text = owner);
+  USING (bucket_id = 'event-covers' AND (owner IS NULL OR auth.uid()::text = owner::text));
 
 -- Allow users to delete their own uploads
 CREATE POLICY "Users can delete their own event covers" ON storage.objects
   FOR DELETE TO authenticated
-  USING (bucket_id = 'event-covers' AND auth.uid()::text = owner);
+  USING (bucket_id = 'event-covers' AND (owner IS NULL OR auth.uid()::text = owner::text));

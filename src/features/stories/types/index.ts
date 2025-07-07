@@ -1,9 +1,10 @@
+
 export interface Story {
   id: string;
   userId: string;
   eventId?: string;
   mediaUrl: string;
-  mediaType: 'image' | 'video';
+  type: 'photo' | 'video' | 'event_story';
   caption?: string;
   musicData?: {
     title: string;
@@ -22,8 +23,7 @@ export interface Story {
   expiresAt: Date;
   highlightId?: string;
   createdAt: Date;
-}
-
+};
 export interface StorySticker {
   id: string;
   type: 'emoji' | 'gif' | 'poll' | 'question' | 'location' | 'mention' | 'music';
@@ -31,8 +31,7 @@ export interface StorySticker {
   position: { x: number; y: number };
   size: { width: number; height: number };
   rotation?: number;
-}
-
+};
 export interface StoryHighlight {
   id: string;
   userId: string;
@@ -40,15 +39,13 @@ export interface StoryHighlight {
   coverUrl?: string;
   stories: string[];
   createdAt: Date;
-}
-
+};
 export interface StoryViewer {
   userId: string;
   userName: string;
   userAvatar?: string;
   viewedAt: Date;
-}
-
+};
 export interface CreateStoryData {
   mediaUrl: string;
   mediaType: 'image' | 'video';
