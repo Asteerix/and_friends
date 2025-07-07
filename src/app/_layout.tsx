@@ -12,6 +12,7 @@ import { NavigationErrorBoundary } from '@/shared/ui/NavigationErrorBoundary';
 import { NetworkErrorProvider } from '@/shared/providers/NetworkErrorProvider';
 import { StoriesProvider } from '@/shared/providers/StoriesContext';
 import { UploadProvider } from '@/shared/providers/UploadProvider';
+import { ProfileProvider } from '@/shared/providers/ProfileProvider';
 
 // import { PlayfairDisplay_700Bold } from '@expo-google-fonts/playfair-display';
 // Prevent auto-hiding splash screen
@@ -52,15 +53,16 @@ export default function RootLayout() {
         <SafeAreaProvider>
           <NetworkErrorProvider>
             <SessionProvider>
-              <StoriesProvider>
-                <UploadProvider>
-                  <StatusBar style="dark" />
-                  <Stack
-                  screenOptions={{
-                    headerShown: false,
-                    animation: 'slide_from_right',
-                  }}
-                >
+              <ProfileProvider>
+                <StoriesProvider>
+                  <UploadProvider>
+                    <StatusBar style="dark" />
+                    <Stack
+                    screenOptions={{
+                      headerShown: false,
+                      animation: 'slide_from_right',
+                    }}
+                  >
             <Stack.Screen name="index" />
             <Stack.Screen name="splash" options={{ animation: 'fade' }} />
             <Stack.Screen name="(auth)" options={{ animation: 'fade' }} />
@@ -91,8 +93,9 @@ export default function RootLayout() {
             <Stack.Screen name="screens/notifications-full" />
             <Stack.Screen name="screens/story-viewer" />
           </Stack>
-                </UploadProvider>
-              </StoriesProvider>
+                  </UploadProvider>
+                </StoriesProvider>
+              </ProfileProvider>
             </SessionProvider>
           </NetworkErrorProvider>
         </SafeAreaProvider>

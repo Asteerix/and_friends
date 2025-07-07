@@ -24,14 +24,17 @@ const perfectSize = create(designResolution);
 interface NameInputScreenProps {}
 
 const NameInputScreen: React.FC<NameInputScreenProps> = React.memo(() => {
-  const [fullName, setFullName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [handle, setHandle] = useState('');
-  const [fullNameError, setFullNameError] = useState('');
+  const [firstNameError, setFirstNameError] = useState('');
+  const [lastNameError, setLastNameError] = useState('');
   const [handleError, setHandleError] = useState('');
   const [checkingHandle, setCheckingHandle] = useState(false);
   const [handleTaken, setHandleTaken] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const insets = useSafeAreaInsets();
+  const lastNameInputRef = useRef<TextInput>(null);
   const handleInputRef = useRef<TextInput>(null);
   const { navigateBack, navigateNext, getProgress } = useAuthNavigation('name-input');
   const { updateProfile } = useProfile();
@@ -92,12 +95,21 @@ const NameInputScreen: React.FC<NameInputScreenProps> = React.memo(() => {
   };
 
   // Simple validation for demo
-  const validateFullName = (name: string) => {
+  const validateFirstName = (name: string) => {
     if (!name.trim()) {
-      setFullNameError('Full name is required.');
+      setFirstNameError('First name is required.');
       return false;
     }
-    setFullNameError('');
+    setFirstNameError('');
+    return true;
+  };
+  
+  const validateLastName = (name: string) => {
+    if (!name.trim()) {
+      setLastNameError('Last name is required.');
+      return false;
+    }
+    setLastNameError('');
     return true;
   };
   const validateHandle = async (h: string) => {
@@ -111,24 +123,27 @@ const NameInputScreen: React.FC<NameInputScreenProps> = React.memo(() => {
   };
 
   const canContinue =
-    !!fullName.trim() &&
+    !!firstName.trim() &&
+    !!lastName.trim() &&
     !!handle.trim() &&
-    !fullNameError &&
+    !firstNameError &&
+    !lastNameError &&
     !handleError &&
     !handleTaken &&
     !checkingHandle &&
     !isSubmitting;
 
   const onContinue = async () => {
-    const validName = validateFullName(fullName);
+    const validFirstName = validateFirstName(firstName);
+    const validLastName = validateLastName(lastName);
     const validHandle = await validateHandle(handle);
-    if (validName && validHandle) {
+    if (validFirstName && validLastName && validHandle) {
       setIsSubmitting(true);
       
       try {
         // Sauvegarder les données dans le profil
         const { error } = await updateProfile({
-          full_name: fullName.trim(),
+          full_name: `${firstName.trim()} ${lastName.trim()}`,
           username: handle.trim(),
         });
 
@@ -186,20 +201,38 @@ const NameInputScreen: React.FC<NameInputScreenProps> = React.memo(() => {
       >
         <View style={styles.inputWrapper}>
           <TextInput
-            style={[styles.input, fullNameError ? styles.inputError : undefined]}
-            placeholder="Enter your full name"
+            style={[styles.input, firstNameError ? styles.inputError : undefined]}
+            placeholder="Enter your first name"
             placeholderTextColor="#AEB0B4"
-            value={fullName}
-            onChangeText={setFullName}
-            onBlur={() => validateFullName(fullName)}
+            value={firstName}
+            onChangeText={setFirstName}
+            onBlur={() => validateFirstName(firstName)}
             returnKeyType="next"
             autoCapitalize="words"
             accessible
-            accessibilityLabel="Full name"
+            accessibilityLabel="First name"
+            accessibilityRole="text"
+            onSubmitEditing={() => lastNameInputRef.current?.focus()}
+          />
+          {!!firstNameError && <Text style={styles.errorText}>{firstNameError}</Text>}
+        </View>
+        <View style={styles.inputWrapper}>
+          <TextInput
+            ref={lastNameInputRef}
+            style={[styles.input, lastNameError ? styles.inputError : undefined]}
+            placeholder="Enter your last name"
+            placeholderTextColor="#AEB0B4"
+            value={lastName}
+            onChangeText={setLastName}
+            onBlur={() => validateLastName(lastName)}
+            returnKeyType="next"
+            autoCapitalize="words"
+            accessible
+            accessibilityLabel="Last name"
             accessibilityRole="text"
             onSubmitEditing={() => handleInputRef.current?.focus()}
           />
-          {!!fullNameError && <Text style={styles.errorText}>{fullNameError}</Text>}
+          {!!lastNameError && <Text style={styles.errorText}>{lastNameError}</Text>}
         </View>
         <View style={styles.inputWrapper}>
           <TextInput

@@ -13,6 +13,7 @@ import {
   Easing,
   LayoutChangeEvent,
   FlatList,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,6 +25,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useProfile } from '@/hooks/useProfile';
 import { useEventsAdvanced } from '@/hooks/useEventsAdvanced';
 import { useFriends } from '@/hooks/useFriends';
+import { useStories } from '@/shared/providers/StoriesContext';
 import EventCard from '@/features/home/components/EventCard';
 import MemoryItem from '@/features/stories/components/MemoryItem';
 import BackButton from '@/assets/svg/back-button.svg';
@@ -72,17 +74,54 @@ export default function ProfileScreen() {
   const [activeTab, setActiveTab] = useState<string>('about');
   const [userEvents, setUserEvents] = useState<any[]>([]);
   const [organizedEvents, setOrganizedEvents] = useState<any[]>([]);
-  const [memories, setMemories] = useState<{ id: string; imageUri?: string; avatarUri?: string }[]>(
-    []
-  );
+  const [userStories, setUserStories] = useState<any[]>([]);
   // const insets = useSafeAreaInsets();
   const isMyProfile = true; // MOCK: à remplacer par une vraie logique si besoin
   const [isPlaying, setIsPlaying] = useState(false);
+  const [jam, setJam] = useState({ 
+    track_id: '', 
+    title: '', 
+    artist: '', 
+    cover_url: '', 
+    preview_url: '' 
+  });
+  const [restaurant, setRestaurant] = useState({ 
+    id: '', 
+    name: '', 
+    address: '' 
+  });
+  const [locationDisplay, setLocationDisplay] = useState('');
+  const { getStoriesByUser } = useStories();
 
   useEffect(() => {
     if (profile) {
       // setEditedProfile(profile);
       loadProfileStats();
+      
+      // Load jam/music preference from individual fields
+      if (profile.jam_title || profile.jam_artist) {
+        setJam({ 
+          track_id: profile.jam_track_id || '', 
+          title: profile.jam_title || '', 
+          artist: profile.jam_artist || '',
+          cover_url: profile.jam_cover_url || '',
+          preview_url: profile.jam_preview_url || ''
+        });
+      }
+      
+      // Load restaurant preference from individual fields
+      if (profile.selected_restaurant_name) {
+        setRestaurant({ 
+          id: profile.selected_restaurant_id || '', 
+          name: profile.selected_restaurant_name || '', 
+          address: profile.selected_restaurant_address || '' 
+        });
+      }
+      
+      // Load location
+      if (profile.location) {
+        setLocationDisplay(profile.location);
+      }
     }
   }, [profile]);
 
@@ -94,17 +133,23 @@ export default function ProfileScreen() {
       setOrganizedEvents((allEvents || []).filter((e: any) => e.is_creator));
     })();
     // Friends are now fetched from useFriends hook
-    // Fetch memories (à adapter si tu as un hook global)
-    // setMemories(...)
   }, [profile?.id]);
 
-  // Dummy memories for now (à remplacer par hook réel)
+  // Fetch user stories (memories - they don't expire)
   useEffect(() => {
-    setMemories([
-      { id: '1', imageUri: profile?.avatar_url, avatarUri: profile?.avatar_url },
-      { id: '2', imageUri: profile?.avatar_url, avatarUri: profile?.avatar_url },
-    ]);
-  }, [profile?.avatar_url]);
+    if (profile?.id) {
+      (async () => {
+        const stories = await getStoriesByUser(profile.id);
+        // Sort stories by created_at to show most recent first
+        const sortedStories = (stories || []).sort((a, b) => {
+          const dateA = new Date(a.created_at).getTime();
+          const dateB = new Date(b.created_at).getTime();
+          return dateB - dateA; // Most recent first
+        });
+        setUserStories(sortedStories);
+      })();
+    }
+  }, [profile?.id, getStoriesByUser]);
 
   const loadProfileStats = async () => {
     await getProfileStats();
@@ -187,6 +232,103 @@ export default function ProfileScreen() {
     return age;
   };
 
+  // Helper function to get country ISO code from location string
+  const getCountryISOCode = (location: string) => {
+    if (!location) return 'US';
+    
+    // Common country mappings
+    const countryMappings: { [key: string]: string } = {
+      'USA': 'US',
+      'United States': 'US',
+      'United States of America': 'US',
+      'UK': 'GB',
+      'United Kingdom': 'GB',
+      'England': 'GB',
+      'Scotland': 'GB',
+      'Wales': 'GB',
+      'Canada': 'CA',
+      'Australia': 'AU',
+      'France': 'FR',
+      'Germany': 'DE',
+      'Italy': 'IT',
+      'Spain': 'ES',
+      'Japan': 'JP',
+      'Brazil': 'BR',
+      'Mexico': 'MX',
+      'India': 'IN',
+      'China': 'CN',
+      'South Korea': 'KR',
+      'Korea': 'KR',
+      'Netherlands': 'NL',
+      'Holland': 'NL',
+      'Sweden': 'SE',
+      'Norway': 'NO',
+      'Denmark': 'DK',
+      'Switzerland': 'CH',
+      'Belgium': 'BE',
+      'Argentina': 'AR',
+      'Chile': 'CL',
+      'Colombia': 'CO',
+      'Portugal': 'PT',
+      'Greece': 'GR',
+      'Poland': 'PL',
+      'Russia': 'RU',
+      'Turkey': 'TR',
+      'Egypt': 'EG',
+      'South Africa': 'ZA',
+      'New Zealand': 'NZ',
+      'Ireland': 'IE',
+      'Austria': 'AT',
+      'Finland': 'FI',
+      'Singapore': 'SG',
+      'Thailand': 'TH',
+      'Malaysia': 'MY',
+      'Indonesia': 'ID',
+      'Philippines': 'PH',
+      'Vietnam': 'VN',
+      'UAE': 'AE',
+      'United Arab Emirates': 'AE',
+      'Saudi Arabia': 'SA',
+      'Israel': 'IL',
+      'Czech Republic': 'CZ',
+      'Hungary': 'HU',
+      'Romania': 'RO',
+      'Ukraine': 'UA',
+    };
+    
+    // Try to extract country from location (handle "City, Country" format)
+    const parts = location.split(',');
+    
+    // Try last part first (usually country in "City, Country" format)
+    if (parts.length > 1) {
+      const lastPart = parts[parts.length - 1].trim();
+      
+      // Check if it's a known country
+      if (countryMappings[lastPart]) {
+        return countryMappings[lastPart];
+      }
+      
+      // If it's already a 2-letter code
+      if (lastPart.length === 2) {
+        return lastPart.toUpperCase();
+      }
+    }
+    
+    // Try first part (in case location is just country name)
+    const firstPart = parts[0].trim();
+    if (countryMappings[firstPart]) {
+      return countryMappings[firstPart];
+    }
+    
+    // If it's already a 2-letter code
+    if (firstPart.length === 2) {
+      return firstPart.toUpperCase();
+    }
+    
+    // Default to US
+    return 'US';
+  };
+
   const formatMemberSince = (dateString?: string) => {
     if (!dateString) return 'Recently';
     const date = new Date(dateString);
@@ -206,6 +348,23 @@ export default function ProfileScreen() {
       </SafeAreaView>
     );
   }
+
+  // Format time for stories
+  const formatStoryTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+    
+    if (diffInHours < 1) {
+      const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
+      return `${diffInMinutes}m ago`;
+    } else if (diffInHours < 24) {
+      return `${diffInHours}h ago`;
+    } else {
+      const diffInDays = Math.floor(diffInHours / 24);
+      return `${diffInDays}d ago`;
+    }
+  };
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: '#fff' }} showsVerticalScrollIndicator={false}>
@@ -287,14 +446,18 @@ export default function ProfileScreen() {
         {/* Infos en bas à gauche */}
         <View style={styles.infoOverlay}>
           <View style={styles.flagRow}>
-            <View style={styles.flagCircle}>
-              <CountryFlag
-                isoCode="FR"
-                size={32}
-                style={{ width: 32, height: 32, borderRadius: 16 }}
-              />
-            </View>
-            <Text style={{ color: '#fff', fontSize: 16, marginLeft: 8 }}>France, Paris</Text>
+            {locationDisplay && (
+              <>
+                <View style={styles.flagCircle}>
+                  <CountryFlag
+                    isoCode={getCountryISOCode(locationDisplay)}
+                    size={32}
+                    style={{ width: 32, height: 32, borderRadius: 16 }}
+                  />
+                </View>
+                <Text style={{ color: '#fff', fontSize: 16, marginLeft: 8 }}>{locationDisplay}</Text>
+              </>
+            )}
           </View>
           <Text style={styles.nameOverlay}>
             {profile?.full_name || profile?.display_name || 'User'}
@@ -308,16 +471,22 @@ export default function ProfileScreen() {
         </View>
         {/* Boutons Connect/Modifier et Paramètres en bas à gauche */}
         <View style={styles.bottomButtonsContainer}>
-          <TouchableOpacity style={styles.connectBtnOverlay}>
-            <Text style={styles.connectBtnTextOverlay}>{isMyProfile ? 'Modifier' : 'Connect'}</Text>
+          <TouchableOpacity 
+            style={styles.connectBtnOverlay}
+            onPress={() => {
+              if (isMyProfile) {
+                navigation.navigate('screens/profile/edit');
+              }
+            }}
+          >
+            <Text style={styles.connectBtnTextOverlay}>{isMyProfile ? 'Edit Profile' : 'Connect'}</Text>
           </TouchableOpacity>
           {isMyProfile && (
             <TouchableOpacity 
               style={styles.settingsBtnOverlay}
               onPress={() => navigation.navigate('screens/settings/index')}
             >
-              <Ionicons name="settings-outline" size={20} color="#000" />
-              <Text style={styles.settingsBtnTextOverlay}>Paramètres</Text>
+              <Text style={styles.settingsBtnTextOverlay}>Settings</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -397,177 +566,175 @@ export default function ProfileScreen() {
         <View style={{ minHeight: 300 }}>
           {activeTab === 'about' && (
             <View style={styles.aboutContainer}>
-              {/* Chips */}
-              <View style={styles.chipsRowAbout}>
-                {(
-                  profile?.hobbies || [
-                    'Photography 📸',
-                    'Running 🏃‍♂️',
-                    'Gaming 🎮',
-                    'Pottery 🏺',
-                    'Cooking 🔍',
-                  ]
-                ).map((chip, i) => (
-                  <View
-                    key={i}
-                    style={styles.chipAbout}
-                    accessibilityRole="text"
-                    accessibilityLabel={chip}
+              {/* Bio Section - First thing shown */}
+              {profile?.bio && (
+                <View style={styles.bioSection}>
+                  <Text style={styles.bioText}>{profile.bio}</Text>
+                </View>
+              )}
+              
+              {/* Profile Completion Card - Only show if profile is incomplete */}
+              {profile && (!profile.bio || !profile.hobbies || profile.hobbies.length < 3 || !profile.avatar_url) && (
+                <View style={styles.profileCompletionCard}>
+                  <View style={styles.profileCompletionHeader}>
+                    <Text style={styles.profileCompletionTitle}>Complete Your Profile</Text>
+                    <TouchableOpacity style={styles.dismissButton}>
+                      <Text style={styles.dismissButtonText}>×</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <Text style={styles.profileCompletionText}>
+                    {!profile.bio ? 'Add a bio to introduce yourself' : 'Drop a few more details — someone might just vibe with you.'}
+                  </Text>
+                  <TouchableOpacity 
+                    style={styles.completeProfileButton}
+                    onPress={() => navigation.navigate('screens/profile/edit')}
                   >
-                    <Text style={styles.chipTextAbout}>{chip}</Text>
-                  </View>
-                ))}
-              </View>
-
-              {/* Favorite Tune */}
-              <Text style={styles.sectionLabelAbout}>Favorite Tune</Text>
-              <View style={styles.tuneCardAbout} accessibilityLabel="Favorite Tune">
-                <Image
-                  source={require('@/assets/images/events/event_logo.png')}
-                  style={styles.tuneImageAbout}
-                  accessibilityLabel="Album cover"
-                />
-                <View style={{ flex: 1, justifyContent: 'center' }}>
-                  <Text style={styles.tuneTitleAbout}>Bluebird</Text>
-                  <Text style={styles.tuneArtistAbout}>Lana Del Rey</Text>
+                    <Text style={styles.completeProfileButtonText}>Complete Profile</Text>
+                  </TouchableOpacity>
                 </View>
-                <TouchableOpacity
-                  accessibilityRole="button"
-                  accessibilityLabel={isPlaying ? 'Pause' : 'Play'}
-                  style={styles.tunePlayButtonAbout}
-                  onPress={() => setIsPlaying((prev) => !prev)}
-                >
-                  <View style={styles.tunePlayIconAbout}>
-                    {isPlaying ? (
-                      <View style={{ flexDirection: 'row' }}>
-                        <View
-                          style={{ width: 5, height: 18, backgroundColor: '#111', borderRadius: 2 }}
-                        />
-                        <View
-                          style={{
-                            width: 5,
-                            height: 18,
-                            backgroundColor: '#111',
-                            borderRadius: 2,
-                            marginLeft: 4,
-                          }}
-                        />
-                      </View>
-                    ) : (
-                      <View
-                        style={{
-                          width: 0,
-                          height: 0,
-                          borderTopWidth: 9,
-                          borderBottomWidth: 9,
-                          borderLeftWidth: 14,
-                          borderTopColor: 'transparent',
-                          borderBottomColor: 'transparent',
-                          borderLeftColor: '#111',
-                          marginLeft: 2,
-                        }}
-                      />
-                    )}
-                  </View>
-                </TouchableOpacity>
-              </View>
+              )}
 
-              {/* Favorite Place */}
-              <Text style={styles.sectionLabelAbout}>Favorite Place</Text>
-              <View style={styles.tuneCardAbout} accessibilityLabel="Favorite Place">
-                <View style={{ flex: 1, justifyContent: 'center' }}>
-                  <Text style={styles.tuneTitleAbout}>Tartine Bakery</Text>
-                  <Text style={styles.tuneArtistAbout}>815 Valencia Street, San Francisco</Text>
-                </View>
-              </View>
-
-              {/* Friends in Common */}
-              <View style={styles.friendsRowAbout}>
-                <Text style={styles.sectionLabelAbout}>Friends in Common</Text>
-                <TouchableOpacity accessibilityRole="button" accessibilityLabel="View All">
-                  <Text style={styles.viewAllAbout}>View All</Text>
-                </TouchableOpacity>
-              </View>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={styles.friendsAvatarsRowAbout}
-              >
-                {[...Array(6)].map((_, i) => (
-                  <Image
-                    key={i}
-                    source={profile?.avatar_url ? { uri: profile.avatar_url } : DEFAULT_AVATAR}
-                    style={styles.friendAvatarAbout}
-                    accessibilityLabel={`Friend ${i + 1}`}
-                  />
-                ))}
-                <View
-                  style={styles.moreFriendsAbout}
-                  accessibilityRole="text"
-                  accessibilityLabel="5 more friends"
-                >
-                  <Text style={styles.moreFriendsTextAbout}>+5</Text>
-                </View>
-              </ScrollView>
-
-              {/* Recent Events */}
-              <Text style={styles.sectionLabelAbout}>Recent Events</Text>
-              <View style={styles.eventCardAbout} accessibilityLabel="Recent Event">
-                <View style={styles.eventImageAbout}>
-                  {/* Replace with real event image */}
-                  <View
-                    style={{
-                      flex: 1,
-                      backgroundColor: '#22B573',
-                      borderRadius: perfectSize(12),
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                    }}
-                  >
-                    <Text style={{ color: '#fff', fontSize: perfectSize(32) }}>🥤</Text>
-                  </View>
-                </View>
-                <View style={{ flex: 1, paddingLeft: perfectSize(12), justifyContent: 'center' }}>
-                  <Text style={styles.eventTitleAbout}>Gallery Opening: Colors of Tomorrow</Text>
-                  <Text style={styles.eventMetaAbout}>May 10, 6:00 PM – 9:00 PM</Text>
-                  <Text style={styles.eventMetaAbout}>Soho Art Space, New York</Text>
-                  <View style={styles.eventAvatarsRowAbout}>
-                    {[...Array(3)].map((_, i) => (
-                      <Image
+              {/* Talk to Me About Section */}
+              {profile?.hobbies && profile.hobbies.length > 0 && (
+                <>
+                  <Text style={styles.sectionTitle}>Talk to Me About</Text>
+                  <View style={styles.interestsContainer}>
+                    {profile.hobbies.map((interest, i) => (
+                      <TouchableOpacity
                         key={i}
-                        source={profile?.avatar_url ? { uri: profile.avatar_url } : DEFAULT_AVATAR}
-                        style={styles.eventAvatarAbout}
-                        accessibilityLabel={`Attendee ${i + 1}`}
-                      />
+                        style={styles.interestTag}
+                        accessibilityRole="button"
+                        accessibilityLabel={interest}
+                      >
+                        <Text style={styles.interestTagText}>{interest}</Text>
+                      </TouchableOpacity>
                     ))}
-                    <Text style={styles.eventGoingAbout}>+10 going</Text>
                   </View>
-                </View>
+                </>
+              )}
+
+              {/* On Repeat Section */}
+              {jam.title && (
+                <>
+                  <Text style={styles.sectionTitle}>On Repeat</Text>
+                  <TouchableOpacity style={styles.songCard} activeOpacity={0.8}>
+                    <View style={styles.songAlbumArt}>
+                      {jam.cover_url ? (
+                        <Image source={{ uri: jam.cover_url }} style={styles.albumCover} />
+                      ) : (
+                        <View style={styles.albumPlaceholder}>
+                          <Ionicons name="musical-note" size={24} color="#FFF" />
+                        </View>
+                      )}
+                    </View>
+                    <View style={styles.songInfo}>
+                      <Text style={styles.songTitle}>{jam.title}</Text>
+                      <Text style={styles.songArtist}>{jam.artist}</Text>
+                    </View>
+                    <TouchableOpacity
+                      style={styles.playButton}
+                      onPress={() => setIsPlaying(!isPlaying)}
+                      accessibilityRole="button"
+                      accessibilityLabel={isPlaying ? 'Pause' : 'Play'}
+                    >
+                      <Ionicons 
+                        name={isPlaying ? "pause" : "play"} 
+                        size={20} 
+                        color="#FFF" 
+                        style={isPlaying ? {} : { marginLeft: 2 }}
+                      />
+                    </TouchableOpacity>
+                  </TouchableOpacity>
+                </>
+              )}
+
+              {/* Go-To Spot Section */}
+              {restaurant.name && (
+                <>
+                  <Text style={styles.sectionTitle}>Go-To Spot</Text>
+                  <View style={styles.placeCard}>
+                    <View style={styles.placeIcon}>
+                      <Text style={styles.placeEmoji}>📍</Text>
+                    </View>
+                    <View style={styles.placeInfo}>
+                      <Text style={styles.placeName}>{restaurant.name}</Text>
+                      <Text style={styles.placeAddress}>{restaurant.address}</Text>
+                    </View>
+                  </View>
+                </>
+              )}
+
+              {/* Member Since - Moved before bio */}
+              <View style={styles.memberSinceContainer}>
+                <Text style={styles.memberSince}>{formatMemberSince(profile?.created_at)}</Text>
               </View>
             </View>
           )}
           {activeTab === 'memories' && (
-            <FlatList
-              data={memories}
-              keyExtractor={(item) => item.id}
-              numColumns={2}
-              contentContainerStyle={styles.memoriesGrid}
-              columnWrapperStyle={styles.memoriesRow}
-              renderItem={({ item }) => (
-                <View style={styles.memoryCard} accessible accessibilityLabel="Memory">
-                  <Image
-                    source={item.imageUri ? { uri: item.imageUri } : DEFAULT_AVATAR}
-                    style={styles.memoryImage}
-                    resizeMode="cover"
-                  />
-                  <Text style={styles.memoryTitle} numberOfLines={1} ellipsizeMode="tail">
-                    Weekend Trip
-                  </Text>
-                  <Text style={styles.memoryViews}>100 views</Text>
+            <View style={styles.memoriesContainer}>
+              {userStories.length === 0 ? (
+                <View style={styles.emptyMemories}>
+                  <Ionicons name="images-outline" size={48} color="#CCC" />
+                  <Text style={styles.emptyMemoriesText}>No memories yet</Text>
+                  <Text style={styles.emptyMemoriesSubtext}>Your stories will appear here</Text>
+                </View>
+              ) : (
+                <View style={styles.memoriesGrid}>
+                  {userStories.map((story) => {
+                    const storyHeight = (Dimensions.get('window').width - 32 - 16) / 3 * (16 / 9);
+                    const captionPosition = story.caption_position || (storyHeight * 0.5);
+                    const relativePosition = (captionPosition / Dimensions.get('window').height) * storyHeight;
+                    
+                    return (
+                      <TouchableOpacity
+                        key={story.id}
+                        style={styles.memoryCard}
+                        onPress={() => {
+                          // Navigate to story viewer
+                          navigation.navigate('screens/stories/viewer', {
+                            storyId: story.id,
+                            userId: story.user?.id || profile?.id,
+                          });
+                        }}
+                      >
+                        <Image
+                          source={{ uri: story.image_url || story.media_url }}
+                          style={styles.memoryImage}
+                          resizeMode="cover"
+                        />
+                        
+                        {/* Caption overlay - positioned like in the original story */}
+                        {(story.caption || story.text) && (
+                          <View
+                            style={[
+                              styles.memoryCaptionContainer,
+                              {
+                                top: relativePosition - 20, // Center the caption vertically
+                              }
+                            ]}
+                          >
+                            <View style={styles.memoryCaptionBox}>
+                              <Text style={styles.memoryCaptionText}>
+                                {story.caption || story.text}
+                              </Text>
+                            </View>
+                          </View>
+                        )}
+                        
+                        {/* Stats overlay at bottom */}
+                        <View style={styles.memoryBottomOverlay}>
+                          <View style={styles.memoryStats}>
+                            <Ionicons name="eye-outline" size={14} color="#FFF" />
+                            <Text style={styles.memoryViewCount}>{story.views_count || story.view_count || 0}</Text>
+                          </View>
+                          <Text style={styles.memoryTimeText}>{formatStoryTime(story.created_at)}</Text>
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
               )}
-              showsVerticalScrollIndicator={false}
-            />
+            </View>
           )}
           {activeTab === 'attended' && (
             <View style={styles.eventsList}>
@@ -747,7 +914,161 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   aboutContainer: {
+    padding: 20,
+  },
+  profileCompletionCard: {
+    backgroundColor: '#E8F3FF',
+    borderRadius: 12,
     padding: 16,
+    marginBottom: 24,
+  },
+  profileCompletionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
+  profileCompletionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+    flex: 1,
+  },
+  dismissButton: {
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
+  },
+  dismissButtonText: {
+    fontSize: 20,
+    color: '#007AFF',
+    fontWeight: '400',
+  },
+  profileCompletionText: {
+    fontSize: 14,
+    color: '#333',
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+  completeProfileButton: {
+    backgroundColor: '#007AFF',
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    alignSelf: 'flex-start',
+  },
+  completeProfileButtonText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 12,
+    marginTop: 8,
+  },
+  interestsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 24,
+  },
+  interestTag: {
+    backgroundColor: '#E8F3FF',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  interestTagText: {
+    color: '#007AFF',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  songCard: {
+    backgroundColor: '#F5F5F7',
+    borderRadius: 12,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  songAlbumArt: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    marginRight: 12,
+    overflow: 'hidden',
+  },
+  albumCover: {
+    width: '100%',
+    height: '100%',
+  },
+  albumPlaceholder: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#000',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  songInfo: {
+    flex: 1,
+  },
+  songTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 2,
+  },
+  songArtist: {
+    fontSize: 14,
+    color: '#666',
+  },
+  playButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#007AFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 12,
+  },
+  placeCard: {
+    backgroundColor: '#F5F5F7',
+    borderRadius: 12,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  placeIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    backgroundColor: '#FFE500',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  placeEmoji: {
+    fontSize: 24,
+  },
+  placeInfo: {
+    flex: 1,
+  },
+  placeName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 2,
+  },
+  placeAddress: {
+    fontSize: 14,
+    color: '#666',
   },
   chipsRowAbout: {
     flexDirection: 'row',
@@ -855,6 +1176,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginLeft: 4,
   },
+  bioText: {
+    fontSize: 16,
+    color: '#333',
+    lineHeight: 24,
+    marginBottom: 24,
+  },
+  albumCover: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 8,
+  },
+  memberSince: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 8,
+  },
   moreFriendsTextAbout: {
     color: '#888',
     fontWeight: '600',
@@ -899,43 +1236,104 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  memoriesGrid: {
-    paddingHorizontal: perfectSize(12),
-    paddingTop: perfectSize(12),
-    paddingBottom: perfectSize(24),
-  },
-  memoriesRow: {
+  memoriesContainer: {
     flex: 1,
-    justifyContent: 'space-between',
-    marginBottom: perfectSize(16),
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    minHeight: 400,
+  },
+  memoriesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginHorizontal: -4,
+  },
+  emptyMemories: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  emptyMemoriesText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+    marginTop: 16,
+  },
+  emptyMemoriesSubtext: {
+    fontSize: 14,
+    color: '#999',
+    marginTop: 4,
   },
   memoryCard: {
-    flex: 1,
-    marginHorizontal: perfectSize(4),
-    backgroundColor: '#fff',
-    borderRadius: perfectSize(16),
-    marginBottom: 0,
-    alignItems: 'flex-start',
-    minHeight: perfectSize(220),
+    width: (Dimensions.get('window').width - 32 - 16) / 3, // 3 columns with spacing
+    aspectRatio: 9 / 16, // Instagram story aspect ratio
+    marginHorizontal: 4,
+    marginBottom: 8,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#F0F0F0',
+    position: 'relative',
   },
   memoryImage: {
     width: '100%',
-    aspectRatio: 0.8,
-    borderRadius: perfectSize(16),
-    backgroundColor: '#eee',
+    height: '100%',
   },
-  memoryTitle: {
+  memoryCaptionContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    zIndex: 2,
+  },
+  memoryCaptionBox: {
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    maxWidth: '90%',
+  },
+  memoryCaptionText: {
+    color: '#FFF',
+    fontSize: 10,
     fontWeight: '600',
-    fontSize: perfectSize(16),
-    color: '#111',
-    marginTop: perfectSize(8),
-    marginLeft: perfectSize(2),
+    textAlign: 'center',
+    lineHeight: 14,
   },
-  memoryViews: {
-    color: '#888',
-    fontSize: perfectSize(14),
-    marginTop: perfectSize(2),
-    marginLeft: perfectSize(2),
+  memoryBottomOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    paddingBottom: 6,
+    paddingHorizontal: 6,
+    paddingTop: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  memoryStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+  },
+  memoryViewCount: {
+    color: '#FFF',
+    fontSize: 10,
+    fontWeight: '600',
+    marginLeft: 2,
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  memoryTimeText: {
+    color: '#FFF',
+    fontSize: 10,
+    fontWeight: '600',
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   eventsList: {
     padding: 16,
@@ -978,5 +1376,24 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.32)',
     zIndex: 1,
     ...(Platform.OS === 'web' ? { backdropFilter: 'blur(4px)' } : {}),
+  },
+  bioSection: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+  },
+  bioText: {
+    fontSize: 16,
+    color: '#333',
+    lineHeight: 24,
+  },
+  memberSinceContainer: {
+    marginTop: 24,
+  },
+  memberSince: {
+    fontSize: 14,
+    color: '#999',
+    textAlign: 'center',
   },
 });
