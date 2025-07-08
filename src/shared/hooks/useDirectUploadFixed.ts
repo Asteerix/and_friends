@@ -33,13 +33,17 @@ export const useDirectUploadFixed = () => {
 
       // Check file exists and get info
       const fileInfo = await FileSystem.getInfoAsync(uri);
+      if (!fileInfo.exists) {
+        throw new Error('File does not exist');
+      }
+      
       console.log('📁 [DirectUploadFixed] File info:', {
         exists: fileInfo.exists,
         size: fileInfo.size,
       });
 
-      if (!fileInfo.exists || fileInfo.size === 0) {
-        throw new Error('File does not exist or is empty');
+      if (fileInfo.size === 0) {
+        throw new Error('File is empty');
       }
 
       // Check authentication before upload
@@ -85,8 +89,6 @@ export const useDirectUploadFixed = () => {
         console.error('❌ [DirectUploadFixed] Upload error:', error);
         console.error('❌ [DirectUploadFixed] Error details:', {
           message: error.message,
-          statusCode: error.statusCode,
-          error: error.error,
           details: JSON.stringify(error)
         });
         throw error;

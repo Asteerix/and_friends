@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import React, { ReactNode } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View, StatusBar } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { rs, rf } from '@/shared/utils/responsive';
 
 
 export interface ScreenLayoutProps {
@@ -54,7 +55,7 @@ const ScreenLayout: React.FC<ScreenLayoutProps> = ({
       style={[
         styles.safeArea,
         {
-          paddingTop: Platform.OS === 'android' ? insets.top + 10 : insets.top,
+          paddingTop: Platform.OS === 'android' ? insets.top + rs(10) : insets.top,
         },
       ]}
       edges={['left', 'right', 'bottom']}
@@ -65,7 +66,7 @@ const ScreenLayout: React.FC<ScreenLayoutProps> = ({
       <View style={styles.headerRow}>
         {showBackButton ? (
           <Pressable
-            hitSlop={16}
+            hitSlop={rs(16)}
             onPress={() => {
               if (onBackPress) {
                 onBackPress();
@@ -113,8 +114,8 @@ const ScreenLayout: React.FC<ScreenLayoutProps> = ({
             {
               bottom:
                 insets.bottom > 0
-                  ? insets.bottom + (showAltLink ? 40 : 0)
-                  : 24 + (showAltLink ? 40 : 0),
+                  ? insets.bottom + (showAltLink ? rs(40) : 0)
+                  : rs(24) + (showAltLink ? rs(40) : 0),
             },
           ]}
         >
@@ -135,8 +136,8 @@ const ScreenLayout: React.FC<ScreenLayoutProps> = ({
                 insets.bottom > 0
                   ? insets.bottom
                   : Platform.OS === 'ios'
-                    ? 12
-                    : 20,
+                    ? rs(12)
+                    : rs(20),
             },
           ]}
         >
@@ -151,23 +152,23 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-    paddingHorizontal: 24,
+    paddingHorizontal: rs(24),
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
-    marginTop: Platform.OS === 'ios' ? 0 : 10, // Ajustement pour Android StatusBar
+    marginBottom: rs(12),
+    marginTop: Platform.OS === 'ios' ? 0 : rs(10), // Ajustement pour Android StatusBar
   },
   backButton: {
-    width: 44,
-    height: 44,
+    width: rs(44),
+    height: rs(44),
     justifyContent: 'center',
     alignItems: 'center',
   },
   backArrow: {
-    fontSize: 28,
+    fontSize: rf(28),
     color: COLORS.blue,
   },
   progressContainer: {
@@ -177,61 +178,61 @@ const styles = StyleSheet.create({
   },
   progressTrack: {
     width: '70%',
-    height: 2,
+    height: rs(2),
     backgroundColor: COLORS.grey0,
     overflow: 'hidden',
-    borderRadius: 1,
+    borderRadius: rs(1),
   },
   progressFill: {
-    height: 2,
+    height: rs(2),
     backgroundColor: COLORS.blue,
-    borderRadius: 1,
+    borderRadius: rs(1),
   },
   titleLine1: {
-    marginTop: 32,
-    fontSize: 34,
+    marginTop: rs(32),
+    fontSize: rf(34),
     fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
     color: COLORS.black,
     textAlign: 'center',
-    lineHeight: 38,
-    letterSpacing: 0.34,
+    lineHeight: rf(38),
+    letterSpacing: rs(0.34),
   },
   subtitle: {
-    marginTop: 20,
-    fontSize: 16,
+    marginTop: rs(20),
+    fontSize: rf(16),
     fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
     color: COLORS.grey3,
     textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: 20,
+    lineHeight: rf(24),
+    marginBottom: rs(20),
   },
   contentContainer: {
     flex: 1,
   },
   primaryButton: {
     position: 'absolute',
-    left: 24,
-    right: 24,
-    height: 60,
+    left: rs(24),
+    right: rs(24),
+    height: rs(60),
     backgroundColor: '#016fff',
-    borderRadius: 14,
+    borderRadius: rs(14),
     alignItems: 'center',
     justifyContent: 'center',
   },
   buttonText: {
-    fontSize: 20,
+    fontSize: rf(20),
     fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
     color: COLORS.white,
   },
   altLinkButton: {
     position: 'absolute',
-    left: 24,
-    right: 24,
+    left: rs(24),
+    right: rs(24),
     alignItems: 'center', // Centrer le texte du lien
     // marginBottom est géré par `bottom` pour le positionnement absolu
   },
   altLinkText: {
-    fontSize: 15,
+    fontSize: rf(15),
     fontWeight: '500',
     color: COLORS.grey3,
     textAlign: 'center',

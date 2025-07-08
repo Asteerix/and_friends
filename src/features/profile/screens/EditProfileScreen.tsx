@@ -130,7 +130,7 @@ const getCountryISOCode = (location: string) => {
   
   // Try last part first (usually country in "City, Country" format)
   if (parts.length > 1) {
-    const lastPart = parts[parts.length - 1].trim();
+    const lastPart = parts[parts.length - 1]?.trim() || '';
     
     // Check if it's a known country
     if (countryMappings[lastPart]) {
@@ -144,7 +144,7 @@ const getCountryISOCode = (location: string) => {
   }
   
   // Try first part (in case location is just country name)
-  const firstPart = parts[0].trim();
+  const firstPart = parts[0]?.trim() || '';
   if (countryMappings[firstPart]) {
     return countryMappings[firstPart];
   }
@@ -189,8 +189,6 @@ export default function EditProfileScreen() {
   const [avatarUri, setAvatarUri] = useState('');
   const [coverUri, setCoverUri] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [showAddInterest, setShowAddInterest] = useState(false);
-  const [newInterest, setNewInterest] = useState('');
   
   // Modal states
   const [showJamModal, setShowJamModal] = useState(false);
@@ -289,14 +287,6 @@ export default function EditProfileScreen() {
     }
   };
 
-  const handleAddInterest = () => {
-    if (newInterest.trim()) {
-      setInterests([...interests, newInterest.trim()]);
-      setNewInterest('');
-      setShowAddInterest(false);
-      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
-  };
 
   const handleRemoveInterest = (index: number) => {
     const newInterests = interests.filter((_, i) => i !== index);
@@ -802,7 +792,13 @@ export default function EditProfileScreen() {
             preview_url: song.preview || ''
           });
         }}
-        currentSong={jam.track_id ? jam : null}
+        currentSong={jam.track_id ? {
+          id: jam.track_id,
+          title: jam.title,
+          artist: jam.artist,
+          cover: jam.cover_url,
+          preview: jam.preview_url
+        } : null}
       />
       
       {/* Restaurant Picker Modal */}
@@ -816,7 +812,10 @@ export default function EditProfileScreen() {
             address: place.address
           });
         }}
-        currentPlace={restaurant.id ? restaurant : null}
+        currentPlace={restaurant.id ? {
+          ...restaurant,
+          distKm: 0
+        } : null}
       />
       
       {/* Location Picker Modal */}

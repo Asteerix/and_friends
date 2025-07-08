@@ -363,7 +363,7 @@ export const useFriends = () => {
       .subscribe();
 
     return () => {
-      void subscription.unsubscribe();
+      void supabase.removeChannel(subscription);
     };
   }, [user?.id, fetchFriends, fetchFriendRequests]);
 

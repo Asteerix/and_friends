@@ -296,7 +296,7 @@ export function useStories() {
     }, 60000); // Check every minute
 
     return () => {
-      void subscription.unsubscribe();
+      void supabase.removeChannel(subscription);
       clearInterval(interval);
     };
   }, [session?.user?.id]);

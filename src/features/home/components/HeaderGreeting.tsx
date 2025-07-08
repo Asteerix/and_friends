@@ -5,20 +5,14 @@ import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native
 import ChatButtonIcon from '@/assets/svg/chat-button.svg';
 import NotificationButtonIcon from '@/assets/svg/notification-button.svg';
 import NotificationBadge from '@/features/notifications/components/NotificationBadge';
-import { useNotifications } from '@/hooks/useNotifications';
+import { useNotifications } from '@/shared/providers/NotificationProvider';
 import { useProfile } from '@/hooks/useProfile';
 
 export default function HeaderGreeting() {
   const router = useRouter();
   const { profile } = useProfile();
-  const { unread } = useNotifications();
+  const { unreadCount } = useNotifications();
 
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Good Morning';
-    if (hour < 18) return 'Good Afternoon';
-    return 'Good Evening';
-  };
 
   const handleNotificationsPress = () => {
     void router.push('/screens/notifications');
@@ -40,7 +34,7 @@ export default function HeaderGreeting() {
         </TouchableOpacity>
         <TouchableOpacity onPress={handleNotificationsPress} style={styles.notificationButton}>
           <NotificationButtonIcon width={48} height={48} />
-          <NotificationBadge count={unread.length} />
+          <NotificationBadge count={unreadCount} />
         </TouchableOpacity>
       </View>
     </View>

@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-
   TouchableOpacity,
   Image,
   View,
@@ -8,6 +7,7 @@ import {
   StyleSheet,
   Platform,
 } from 'react-native';
+import { useResponsive } from '@/shared/hooks/useResponsive';
 
 type Props = {
   thumbnail: string;
@@ -28,6 +28,9 @@ export default function EventCard({
   goingText,
   onPress,
 }: Props) {
+  const responsive = useResponsive();
+  const styles = createStyles(responsive);
+  
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -47,7 +50,7 @@ export default function EventCard({
               <Image
                 key={uri + idx}
                 source={{ uri }}
-                style={[styles.avatar, { marginLeft: idx === 0 ? 0 : -8 }]}
+                style={[styles.avatar, { marginLeft: idx === 0 ? 0 : responsive.scaleWidth(-8) }]}
               />
             ))}
           </View>
@@ -58,25 +61,30 @@ export default function EventCard({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (responsive: ReturnType<typeof useResponsive>) => StyleSheet.create({
   container: {
     flexDirection: 'row',
-    marginBottom: 16,
+    marginBottom: responsive.scaleHeight(16),
     backgroundColor: '#FFF',
   },
   thumbnail: {
-    width: 160,
-    height: 160,
-    borderRadius: 16,
+    width: responsive.getResponsiveValue({
+      small: responsive.width * 0.35,
+      medium: responsive.width * 0.4,
+      large: 160,
+      default: responsive.width * 0.4,
+    }),
+    aspectRatio: 1,
+    borderRadius: responsive.scaleWidth(16),
     backgroundColor: '#EEE',
   },
   body: {
     flex: 1,
-    marginLeft: 16,
-    paddingVertical: 8,
+    marginLeft: responsive.scaleWidth(16),
+    paddingVertical: responsive.scaleHeight(8),
   },
   title: {
-    fontSize: 20,
+    fontSize: responsive.scaleFontSize(20),
     fontWeight: '600',
     color: '#000',
     fontFamily: Platform.select({
@@ -84,13 +92,13 @@ const styles = StyleSheet.create({
       android: 'Roboto',
       default: 'System',
     }),
-    marginBottom: 8,
-    lineHeight: 24,
+    marginBottom: responsive.scaleHeight(8),
+    lineHeight: responsive.scaleHeight(24),
   },
   date: {
-    fontSize: 16,
+    fontSize: responsive.scaleFontSize(16),
     color: '#666',
-    marginBottom: 4,
+    marginBottom: responsive.scaleHeight(4),
     fontFamily: Platform.select({
       ios: 'SF Pro Text',
       android: 'Roboto',
@@ -98,9 +106,9 @@ const styles = StyleSheet.create({
     }),
   },
   location: {
-    fontSize: 16,
+    fontSize: responsive.scaleFontSize(16),
     color: '#666',
-    marginBottom: 12,
+    marginBottom: responsive.scaleHeight(12),
     fontFamily: Platform.select({
       ios: 'SF Pro Text',
       android: 'Roboto',
@@ -110,24 +118,24 @@ const styles = StyleSheet.create({
   participantsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: responsive.scaleHeight(8),
   },
   avatarsStack: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   avatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: responsive.scaleWidth(32),
+    height: responsive.scaleWidth(32),
+    borderRadius: responsive.scaleWidth(16),
     borderWidth: 2,
     borderColor: '#FFF',
     backgroundColor: '#EEE',
   },
   goingText: {
-    fontSize: 16,
+    fontSize: responsive.scaleFontSize(16),
     color: '#666',
-    marginLeft: 12,
+    marginLeft: responsive.scaleWidth(12),
     fontWeight: '500',
     fontFamily: Platform.select({
       ios: 'SF Pro Text',

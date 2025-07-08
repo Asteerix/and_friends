@@ -32,13 +32,17 @@ export const useDirectUploadDebug = () => {
 
       // Check file exists and get info
       const fileInfo = await FileSystem.getInfoAsync(uri);
+      if (!fileInfo.exists) {
+        throw new Error('File does not exist');
+      }
+      
       console.log('📁 [DirectUploadDebug] File info:', {
         exists: fileInfo.exists,
         size: fileInfo.size,
       });
 
-      if (!fileInfo.exists || fileInfo.size === 0) {
-        throw new Error('File does not exist or is empty');
+      if (fileInfo.size === 0) {
+        throw new Error('File is empty');
       }
 
       // Read file as base64

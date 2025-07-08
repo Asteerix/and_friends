@@ -144,7 +144,7 @@ export default function StoriesScreen() {
         {...panResponder.panHandlers}
       >
         {/* Story Content */}
-        {currentStory.mediaType === 'image' ? (
+        {currentStory.type === 'photo' ? (
           <Image source={{ uri: currentStory.mediaUrl }} style={styles.media} />
         ) : (
           <Video

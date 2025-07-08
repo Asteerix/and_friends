@@ -1,4 +1,3 @@
-import { BlurView } from 'expo-blur';
 import { Camera, CameraView, CameraType } from 'expo-camera';
 import * as Haptics from 'expo-haptics';
 import * as ImageManipulator from 'expo-image-manipulator';
@@ -6,14 +5,11 @@ import * as ImagePicker from 'expo-image-picker';
 import * as MediaLibrary from 'expo-media-library';
 import * as FileSystem from 'expo-file-system';
 import { useRouter } from 'expo-router';
-import { Video, ResizeMode } from 'expo-av';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { captureRef } from 'react-native-view-shot';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
   Animated,
   Dimensions,
-  Image,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
@@ -21,22 +17,17 @@ import {
   TouchableOpacity,
   View,
   ActivityIndicator,
-  ScrollView,
   Alert,
-  PanResponder,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 import { useStories } from '@/shared/providers/StoriesContext';
-import { useSupabaseStorage } from '@/shared/hooks/useSupabaseStorage';
-import { useUpload } from '@/shared/providers/UploadProvider';
 import { useDirectUpload } from '@/shared/hooks/useDirectUpload';
 import CustomText from '@/shared/ui/CustomText';
-import { StoryFrame, DraggableStoryFrame } from '../components';
+import { DraggableStoryFrame } from '../components';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
-const STORY_ASPECT_RATIO = 9 / 16; // 16:9 in portrait
 
 type MediaType = 'image' | 'video';
 
@@ -52,26 +43,18 @@ export default function CreateStoryScreen() {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [type, setType] = useState<CameraType>('back');
   const [selectedMedia, setSelectedMedia] = useState<SelectedMedia | null>(null);
-  const [processedUri, setProcessedUri] = useState<string | null>(null);
   const [caption, setCaption] = useState('');
-  const [isUploading, setIsUploading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showCaption, setShowCaption] = useState(false);
-  const [hideUIForCapture, setHideUIForCapture] = useState(false);
-  const [isImageLoaded, setIsImageLoaded] = useState(false);
+  const [hideUIForCapture] = useState(false);
   const [captionPosition, setCaptionPosition] = useState(screenHeight * 0.5); // Default position - center of screen
-  const [mediaSource, setMediaSource] = useState<'camera' | 'gallery' | null>(null);
 
   const cameraRef = useRef<CameraView>(null);
-  const storyViewRef = useRef<View>(null);
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const recordingProgress = useRef(new Animated.Value(0)).current;
-  const captionPan = useRef(new Animated.Value(0)).current;
 
   const { createStory } = useStories();
-  const { uploadImage, uploadVideo } = useSupabaseStorage();
-  const { createUploadTask } = useUpload();
   const { uploadFile } = useDirectUpload();
 
   useEffect(() => {
@@ -109,7 +92,6 @@ export default function CreateStoryScreen() {
           height: photo.height,
         });
         
-        setMediaSource('camera');
         
         // Sauvegarder l'image dans un répertoire temporaire pour s'assurer qu'elle est bien écrite
         const tempDir = `${FileSystem.documentDirectory}temp/`;
@@ -213,7 +195,7 @@ export default function CreateStoryScreen() {
 
   const handlePickFromGallery = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      mediaTypes: 'images' as const,
       allowsEditing: false,
       quality: 0.9,
     });
@@ -228,7 +210,6 @@ export default function CreateStoryScreen() {
         width: asset.width || screenWidth,
         height: asset.height || screenHeight,
       });
-      setMediaSource('gallery');
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
   };
@@ -367,9 +348,6 @@ export default function CreateStoryScreen() {
   }
 
   if (selectedMedia) {
-    const aspectRatio = selectedMedia.width / selectedMedia.height;
-    const targetAspectRatio = 9 / 16;
-    const needsBlur = Math.abs(aspectRatio - targetAspectRatio) > 0.01;
 
     return (
       <View style={styles.container}>
@@ -391,10 +369,8 @@ export default function CreateStoryScreen() {
               <TouchableOpacity 
                 onPress={() => {
                   setSelectedMedia(null);
-                  setProcessedUri(null);
                   setCaption('');
                   setCaptionPosition(screenHeight * 0.5);
-                  setMediaSource(null);
                 }}
                 style={styles.headerButton}
               >
@@ -444,7 +420,7 @@ export default function CreateStoryScreen() {
                   onPress={() => setShowCaption(false)}
                   style={styles.captionDoneButton}
                 >
-                  <CustomText size="md" color="#FFF" weight="semibold">
+                  <CustomText size="md" color="#FFF" weight="bold">
                     Done
                   </CustomText>
                 </TouchableOpacity>

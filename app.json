@@ -18,6 +18,10 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.andfriends.app",
+      "associatedDomains": [
+        "applinks:andfriends.app",
+        "applinks:*.andfriends.app"
+      ],
       "infoPlist": {
         "NSContactsUsageDescription": "& friends needs access to your contacts to help you find and connect with friends who are already using the app.",
         "NSLocationWhenInUseUsageDescription": "& friends uses your location to show you events happening nearby and connect you with friends in your area.",
@@ -34,6 +38,23 @@
         "backgroundColor": "#FF6B6B"
       },
       "package": "com.andfriends.app",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "andfriends.app",
+              "pathPrefix": "/story"
+            },
+            {
+              "scheme": "andfriends"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ],
       "permissions": [
         "READ_CONTACTS",
         "ACCESS_FINE_LOCATION",

@@ -10,7 +10,6 @@ import {
   Text,
   TextInput,
   View,
-  Alert,
 } from 'react-native';
 import 'react-native-get-random-values';
 import * as Location from 'expo-location';

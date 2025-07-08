@@ -8,7 +8,6 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Image,
-  AccessibilityRole,
   Alert,
 } from 'react-native';
 import { create } from 'react-native-pixel-perfect';

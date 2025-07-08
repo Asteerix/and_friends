@@ -7,7 +7,6 @@ import {
   Platform,
   Animated,
   PanResponder,
-  Text,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import CustomText from '@/shared/ui/CustomText';
@@ -27,7 +26,6 @@ interface DraggableStoryFrameProps {
 export const DraggableStoryFrame: React.FC<DraggableStoryFrameProps> = ({ 
   uri, 
   caption, 
-  type = 'image',
   aspectRatio,
   captionPosition = screenHeight * 0.5,
   onCaptionPositionChange,
@@ -53,7 +51,7 @@ export const DraggableStoryFrame: React.FC<DraggableStoryFrameProps> = ({
       onPanResponderGrant: () => {
         setIsDragging(true);
       },
-      onPanResponderMove: (evt, gestureState) => {
+      onPanResponderMove: (_, gestureState) => {
         // Calculate new position with constraints
         const newPosition = currentPosition + gestureState.dy;
         

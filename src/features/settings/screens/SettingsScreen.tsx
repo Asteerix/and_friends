@@ -41,7 +41,7 @@ const SETTINGS_STORAGE_KEY = '@andfriends_settings';
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { profile, updateProfile, loading } = useProfile();
+  const { profile, updateProfile } = useProfile();
   const { session } = useSession();
   
   // Notification settings

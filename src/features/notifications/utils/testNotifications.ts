@@ -1,4 +1,3 @@
-import type { NotificationType } from '@/hooks/useNotifications';
 import { supabase } from '@/shared/lib/supabase/client';
 
 // Test function to create sample notifications
@@ -6,7 +5,7 @@ export async function createTestNotifications(userId: string) {
   const testNotifications = [
     {
       user_id: userId,
-      type: 'event_invite' as NotificationType,
+      type: 'event_invite',
       title: 'New Event Invitation',
       body: 'John Doe invited you to Movie Night this Friday!',
       data: { event_name: 'Movie Night' },
@@ -15,7 +14,7 @@ export async function createTestNotifications(userId: string) {
     },
     {
       user_id: userId,
-      type: 'new_message' as NotificationType,
+      type: 'new_message',
       title: 'New Message',
       body: 'Sarah sent you a message in the party chat',
       data: { chat_name: 'Party Planning' },
@@ -24,7 +23,7 @@ export async function createTestNotifications(userId: string) {
     },
     {
       user_id: userId,
-      type: 'friend_request' as NotificationType,
+      type: 'friend_request',
       title: 'Friend Request',
       body: 'Mike sent you a friend request',
       data: {},
@@ -33,7 +32,7 @@ export async function createTestNotifications(userId: string) {
     },
     {
       user_id: userId,
-      type: 'rsvp_update' as NotificationType,
+      type: 'rsvp_update',
       title: 'RSVP Update',
       body: '5 more people are attending your Birthday Party!',
       data: { attendee_count: 5 },

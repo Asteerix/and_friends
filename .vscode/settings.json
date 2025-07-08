@@ -1,0 +1,100 @@
+{
+  // ========== CONFIGURATION POUR ANALYSER TOUT LE PROJET ==========
+
+  // 🔴 ESSENTIEL : Active l'analyse de TOUS les fichiers TypeScript
+  "typescript.tsserver.experimental.enableProjectDiagnostics": true,
+
+  // 🔴 ESSENTIEL : Active l'extension ESLint pour analyser tout
+  "eslint.enable": false,
+  "eslint.validate": [],
+
+  // ========== TYPESCRIPT CONFIGURATION ==========
+
+  // Augmente la mémoire allouée à TypeScript (8GB)
+  "typescript.tsserver.maxTsServerMemory": 8192,
+
+  // Active la validation TypeScript
+  "typescript.validate.enable": true,
+  "javascript.validate.enable": false,
+
+  // Force TypeScript à analyser tous les fichiers
+  "typescript.tsserver.includeCompletionsForModuleExports": true,
+  "typescript.tsserver.autoImportFileExcludePatterns": [],
+
+  // Optimise les performances de surveillance des fichiers
+  "typescript.tsserver.watchOptions": {
+    "watchFile": "useFsEvents",
+    "watchDirectory": "useFsEvents",
+    "fallbackPolling": "dynamicPriority",
+    "synchronousWatchDirectory": false
+  },
+
+  // ========== ESLINT CONFIGURATION ==========
+
+  // 🔴 ESSENTIEL : Configure ESLint pour analyser TOUT le projet
+  "eslint.lintTask.enable": false,
+  "eslint.lintTask.options": "",
+  "eslint.run": "off",
+  "eslint.workingDirectories": [],
+  "eslint.codeActionsOnSave.mode": "never",
+
+  // ========== PROBLEMS PANEL CONFIGURATION ==========
+
+  // Affiche automatiquement les nouveaux problèmes
+  "problems.autoReveal": true,
+  "problems.showCurrentInStatus": true,
+
+  // Trie les problèmes par sévérité
+  "problems.sortOrder": "severity",
+
+  // ========== EDITOR CONFIGURATION ==========
+
+  // Active les actions de code au save
+  "editor.codeActionsOnSave": {},
+
+  // ========== FILES CONFIGURATION ==========
+
+  // Exclut les dossiers inutiles de l'analyse
+  "files.watcherExclude": {
+    "**/.git/objects/**": true,
+    "**/.git/subtree-cache/**": true,
+    "**/node_modules/*/**": true,
+    "**/.expo/**": true,
+    "**/dist/**": true,
+    "**/build/**": true,
+    "**/.next/**": true
+  },
+
+  // ========== SEARCH CONFIGURATION ==========
+
+  // Exclut ces dossiers de la recherche
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/.expo": true,
+    "**/dist": true,
+    "**/build": true,
+    "**/.git": true,
+    "**/ios/Pods": true,
+    "**/android/build": true
+  },
+
+  // ========== TYPESCRIPT IMPORTS ==========
+
+  // Configure les imports automatiques
+  "typescript.preferences.includePackageJsonAutoImports": "auto",
+  "typescript.suggest.autoImports": true,
+  "typescript.updateImportsOnFileMove.enabled": "always",
+
+  // ========== PERFORMANCE OPTIMIZATIONS ==========
+
+  // Désactive les fonctionnalités inutiles pour de meilleures perfs
+  "typescript.disableAutomaticTypeAcquisition": true,
+  "typescript.surveys.enabled": false,
+
+  // ========== ADDITIONAL SETTINGS ==========
+
+  // Active les diagnostics sémantiques (pour voir plus d'erreurs)
+  "typescript.preferences.enablePromptUseWorkspaceTsdk": true,
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "cSpell.enabled": false
+}

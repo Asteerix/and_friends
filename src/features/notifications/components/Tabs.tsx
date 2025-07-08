@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 
-import { t } from '@/shared/locales';
 import LongUnderlineDecoration from '@/features/home/components/LongUnderlineDecoration.svg';
 
 interface TabsProps {

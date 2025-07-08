@@ -1,0 +1,48 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "TypeScript: Check All Files",
+      "type": "shell",
+      "command": "npx",
+      "args": ["tsc", "--noEmit", "--pretty"],
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "problemMatcher": "$tsc",
+      "presentation": {
+        "echo": true,
+        "reveal": "never",
+        "focus": false,
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "ESLint: Check All Files",
+      "type": "shell",
+      "command": "npx",
+      "args": ["eslint", "src", "--ext", ".js,.jsx,.ts,.tsx", "--format", "stylish"],
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "problemMatcher": "$eslint-stylish",
+      "presentation": {
+        "echo": true,
+        "reveal": "never",
+        "focus": false,
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Check All: TypeScript + ESLint",
+      "dependsOn": ["TypeScript: Check All Files", "ESLint: Check All Files"],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": []
+    }
+  ]
+}

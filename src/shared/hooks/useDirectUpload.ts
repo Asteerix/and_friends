@@ -40,13 +40,18 @@ export const useDirectUpload = () => {
 
       // Check file exists and get info
       const fileInfo = await FileSystem.getInfoAsync(uri);
+      
+      if (!fileInfo.exists) {
+        throw new Error('File does not exist');
+      }
+      
       console.log('📁 [DirectUpload] File info:', {
         exists: fileInfo.exists,
         size: fileInfo.size,
       });
 
-      if (!fileInfo.exists || fileInfo.size === 0) {
-        throw new Error('File does not exist or is empty');
+      if (fileInfo.size === 0) {
+        throw new Error('File is empty');
       }
 
       // Always compress images to ensure optimal size and format
@@ -80,16 +85,17 @@ export const useDirectUpload = () => {
         uploadUri = manipResult.uri;
         
         const compressedInfo = await FileSystem.getInfoAsync(uploadUri);
-        console.log('✅ [DirectUpload] Image processed:', {
-          originalSize: fileInfo.size,
-          compressedSize: compressedInfo.size,
-          reduction: `${Math.round((1 - (compressedInfo.size || 0) / (fileInfo.size || 1)) * 100)}%`,
-          quality: `${quality * 100}%`
-        });
-        
-        // If still too large after compression, try again with lower quality
-        if (compressedInfo.size && compressedInfo.size > 800 * 1024) {
-          console.log('⚠️ [DirectUpload] Still too large, compressing further...');
+        if (compressedInfo.exists) {
+          console.log('✅ [DirectUpload] Image processed:', {
+            originalSize: fileInfo.size,
+            compressedSize: compressedInfo.size,
+            reduction: `${Math.round((1 - compressedInfo.size / fileInfo.size) * 100)}%`,
+            quality: `${quality * 100}%`
+          });
+          
+          // If still too large after compression, try again with lower quality
+          if (compressedInfo.size > 800 * 1024) {
+            console.log('⚠️ [DirectUpload] Still too large, compressing further...');
           
           const furtherCompressed = await ImageManipulator.manipulateAsync(
             uploadUri,
@@ -100,13 +106,16 @@ export const useDirectUpload = () => {
             }
           );
           
-          uploadUri = furtherCompressed.uri;
-          
-          const finalInfo = await FileSystem.getInfoAsync(uploadUri);
-          console.log('✅ [DirectUpload] Final compression:', {
-            size: finalInfo.size,
-            totalReduction: `${Math.round((1 - (finalInfo.size || 0) / (fileInfo.size || 1)) * 100)}%`
-          });
+            uploadUri = furtherCompressed.uri;
+            
+            const finalInfo = await FileSystem.getInfoAsync(uploadUri);
+            if (finalInfo.exists) {
+              console.log('✅ [DirectUpload] Final compression:', {
+                size: finalInfo.size,
+                totalReduction: `${Math.round((1 - finalInfo.size / fileInfo.size) * 100)}%`
+              });
+            }
+          }
         }
       } catch (compressionError) {
         console.error('⚠️ [DirectUpload] Compression failed, using original:', compressionError);

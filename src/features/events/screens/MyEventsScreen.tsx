@@ -6,8 +6,6 @@ import {
   TouchableOpacity,
   FlatList,
   Platform,
-  Image,
-  AccessibilityRole,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';

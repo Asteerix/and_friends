@@ -13,6 +13,10 @@ import { NetworkErrorProvider } from '@/shared/providers/NetworkErrorProvider';
 import { StoriesProvider } from '@/shared/providers/StoriesContext';
 import { UploadProvider } from '@/shared/providers/UploadProvider';
 import { ProfileProvider } from '@/shared/providers/ProfileProvider';
+import { NotificationProvider } from '@/shared/providers/NotificationProvider';
+import { MemoriesProvider } from '@/shared/providers/MemoriesProvider';
+import { UploadProgressBar } from '@/shared/ui/UploadProgressBar';
+import { NetworkErrorModal } from '@/shared/ui/NetworkErrorModal';
 
 // import { PlayfairDisplay_700Bold } from '@expo-google-fonts/playfair-display';
 // Prevent auto-hiding splash screen
@@ -53,16 +57,20 @@ export default function RootLayout() {
         <SafeAreaProvider>
           <NetworkErrorProvider>
             <SessionProvider>
-              <ProfileProvider>
-                <StoriesProvider>
-                  <UploadProvider>
-                    <StatusBar style="dark" />
-                    <Stack
-                    screenOptions={{
-                      headerShown: false,
-                      animation: 'slide_from_right',
-                    }}
-                  >
+              <UploadProvider>
+                <NotificationProvider>
+                  <ProfileProvider>
+                    <StoriesProvider>
+                      <MemoriesProvider>
+                        <StatusBar style="dark" />
+                        <UploadProgressBar />
+                        <NetworkErrorModal />
+                        <Stack
+                      screenOptions={{
+                        headerShown: false,
+                        animation: 'slide_from_right',
+                      }}
+                    >
             <Stack.Screen name="index" />
             <Stack.Screen name="splash" options={{ animation: 'fade' }} />
             <Stack.Screen name="(auth)" options={{ animation: 'fade' }} />
@@ -93,9 +101,11 @@ export default function RootLayout() {
             <Stack.Screen name="screens/notifications-full" />
             <Stack.Screen name="screens/story-viewer" />
           </Stack>
-                  </UploadProvider>
-                </StoriesProvider>
-              </ProfileProvider>
+                      </MemoriesProvider>
+                    </StoriesProvider>
+                  </ProfileProvider>
+                </NotificationProvider>
+              </UploadProvider>
             </SessionProvider>
           </NetworkErrorProvider>
         </SafeAreaProvider>

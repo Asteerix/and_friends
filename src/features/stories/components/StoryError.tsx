@@ -55,7 +55,7 @@ export const StoryError: React.FC<StoryErrorProps> = ({
                 onPress={handleRetry}
               >
                 <Ionicons name="refresh" size={20} color="#FFF" />
-                <CustomText size="md" color="#FFF" weight="semibold" style={styles.buttonText}>
+                <CustomText size="md" color="#FFF" weight="bold" style={styles.buttonText}>
                   Réessayer
                 </CustomText>
               </TouchableOpacity>
@@ -65,7 +65,7 @@ export const StoryError: React.FC<StoryErrorProps> = ({
               style={[styles.button, styles.dismissButton]} 
               onPress={handleDismiss}
             >
-              <CustomText size="md" color="#666" weight="semibold">
+              <CustomText size="md" color="#666" weight="bold">
                 {onRetry ? 'Annuler' : 'OK'}
               </CustomText>
             </TouchableOpacity>

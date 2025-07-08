@@ -1,6 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
 import * as tus from 'tus-js-client';
-import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system';
 
@@ -28,7 +27,6 @@ const UPLOAD_QUEUE_KEY = '@and_friends/upload_queue';
 
 export const useResumableUploadDebug = () => {
   const [uploadQueue, setUploadQueue] = useState<Map<string, UploadTask>>(new Map());
-  const [isProcessing, setIsProcessing] = useState(false);
   const activeUploads = useRef<Map<string, tus.Upload>>(new Map());
 
   // Charger la file d'attente depuis AsyncStorage au démarrage
@@ -110,6 +108,11 @@ export const useResumableUploadDebug = () => {
     // Vérifier que le fichier existe et obtenir sa taille
     try {
       const fileInfo = await FileSystem.getInfoAsync(uri);
+      if (!fileInfo.exists) {
+        console.error('❌ [DEBUG] File does not exist!');
+        throw new Error('File does not exist');
+      }
+      
       console.log('📁 [DEBUG] File info:', {
         exists: fileInfo.exists,
         size: fileInfo.size,
@@ -117,9 +120,9 @@ export const useResumableUploadDebug = () => {
         uri: fileInfo.uri?.substring(0, 50) + '...',
       });
 
-      if (!fileInfo.exists || fileInfo.size === 0) {
-        console.error('❌ [DEBUG] File does not exist or is empty!');
-        throw new Error('File does not exist or is empty');
+      if (fileInfo.size === 0) {
+        console.error('❌ [DEBUG] File is empty!');
+        throw new Error('File is empty');
       }
     } catch (error) {
       console.error('❌ [DEBUG] Error checking file:', error);
@@ -208,7 +211,7 @@ export const useResumableUploadDebug = () => {
           const blobParts = [`data:${mimeType};base64,${base64}`];
           
           // Convert base64 to blob
-          const response = await fetch(blobParts[0]);
+          const response = await fetch(blobParts[0] as string);
           blob = await response.blob();
           
           console.log('✅ [DEBUG] Base64 blob created:', {
@@ -306,15 +309,15 @@ export const useResumableUploadDebug = () => {
         },
         onBeforeRequest: (req) => {
           console.log('🔄 [DEBUG] TUS request:', {
-            method: req._method,
-            url: req._url,
-            headers: Object.keys(req._headers),
+            method: (req as any)._method || 'unknown',
+            url: (req as any)._url || 'unknown',
+            headers: Object.keys((req as any)._headers || {}),
           });
         },
-        onAfterResponse: (req, res) => {
+        onAfterResponse: (_req, res) => {
           console.log('📨 [DEBUG] TUS response:', {
             status: res.getStatus(),
-            headers: res.getAllHeaders(),
+            headers: res.getHeader ? res.getHeader('Upload-Offset') : 'N/A',
           });
         },
       });

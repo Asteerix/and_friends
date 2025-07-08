@@ -24,7 +24,7 @@ import { Colors } from '@/shared/config/Colors';
 
 const designResolution = { width: 375, height: 812 };
 const perfectSize = create(designResolution);
-const { width: W, height: H } = Dimensions.get('window');
+const { height: H } = Dimensions.get('window');
 
 const MONTHS = [
   'January',

@@ -4,8 +4,6 @@ import React, { useRef, useEffect } from 'react';
 import { View, Image, StyleSheet, TouchableOpacity, Text, Animated } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
-import AddStoryButton from '@/assets/svg/add-story-button.svg';
-import StoryBorder from '@/assets/svg/story-border.svg';
 import { useSession } from '@/shared/providers/SessionContext';
 
 type Props = {

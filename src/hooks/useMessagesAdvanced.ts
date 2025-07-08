@@ -454,7 +454,7 @@ export function useMessagesAdvanced(chatId?: string) {
 
     // Unsubscribe from previous subscription
     if (subscriptionRef.current) {
-      void subscriptionRef.current.unsubscribe();
+      void supabase.removeChannel(subscriptionRef.current);
     }
 
     const subscription = supabase
@@ -499,7 +499,7 @@ export function useMessagesAdvanced(chatId?: string) {
 
     return () => {
       if (subscriptionRef.current) {
-        void subscriptionRef.current.unsubscribe();
+        void supabase.removeChannel(subscriptionRef.current);
         subscriptionRef.current = null;
       }
     };

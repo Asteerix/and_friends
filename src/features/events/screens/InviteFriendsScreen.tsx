@@ -51,7 +51,7 @@ export default function InviteFriendsScreen() {
       // Load app users
       const result = await fetchAllProfiles();
       if (result) {
-        const appFriends = result.profiles.map((profile) => ({
+        const appFriends = result.profiles.map((profile: any) => ({
           id: profile.id,
           name: profile.display_name || profile.full_name || 'Unknown',
           username: profile.username,

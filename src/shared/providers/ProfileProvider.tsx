@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import type { PostgrestError } from '@supabase/supabase-js';
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import type { PostgrestError, RealtimeChannel } from '@supabase/supabase-js';
 import * as FileSystem from 'expo-file-system';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { supabase } from '@/shared/lib/supabase/client';
@@ -24,9 +24,12 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<PostgrestError | null>(null);
+  const channelRef = useRef<RealtimeChannel | null>(null);
+  const isMountedRef = useRef(true);
+  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const fetchProfile = useCallback(async () => {
-    if (!session?.user) {
+  const fetchProfile = useCallback(async (retryCount = 0) => {
+    if (!session?.user || !isMountedRef.current) {
       setProfile(null);
       return;
     }
@@ -43,7 +46,15 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
 
       if (error) {
         console.error('Error fetching profile:', error);
-        setError(error);
+        if (isMountedRef.current) {
+          setError(error);
+          // Retry logic for transient errors
+          if (retryCount < 3 && error.code !== 'PGRST116') {
+            retryTimeoutRef.current = setTimeout(() => {
+              fetchProfile(retryCount + 1);
+            }, Math.pow(2, retryCount) * 1000);
+          }
+        }
         return;
       }
 
@@ -84,12 +95,18 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
         settings: data.settings,
       };
 
-      setProfile(profileData);
+      if (isMountedRef.current) {
+        setProfile(profileData);
+      }
     } catch (err: unknown) {
       console.error('Unexpected error fetching profile:', err);
-      setError(err as PostgrestError);
+      if (isMountedRef.current) {
+        setError(err as PostgrestError);
+      }
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
   }, [session?.user]);
 
@@ -235,7 +252,9 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
         last_username_change: data.last_username_change,
         settings: data.settings,
       };
-      setProfile(updatedProfile);
+      if (isMountedRef.current) {
+        setProfile(updatedProfile);
+      }
 
       return { data: updatedProfile, error: null };
     } catch (err: unknown) {
@@ -255,8 +274,12 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     try {
       // Get file info to ensure it exists
       const fileInfo = await FileSystem.getInfoAsync(avatarUri);
-      if (!fileInfo.exists || fileInfo.size === 0) {
-        return { data: null, error: { message: 'File does not exist or is empty' } };
+      if (!fileInfo.exists) {
+        return { data: null, error: { message: 'File does not exist' } };
+      }
+      
+      if (fileInfo.size === 0) {
+        return { data: null, error: { message: 'File is empty' } };
       }
 
       console.log('Avatar file info:', { size: fileInfo.size, uri: avatarUri });
@@ -275,10 +298,12 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
         uploadUri = manipResult.uri;
         
         const compressedInfo = await FileSystem.getInfoAsync(uploadUri);
-        console.log('Compressed avatar:', { 
-          originalSize: fileInfo.size, 
-          compressedSize: compressedInfo.size 
-        });
+        if (compressedInfo.exists) {
+          console.log('Compressed avatar:', { 
+            originalSize: fileInfo.size, 
+            compressedSize: compressedInfo.size 
+          });
+        }
       } catch (compressionError) {
         console.error('Failed to compress avatar, using original:', compressionError);
       }
@@ -335,8 +360,12 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     try {
       // Get file info to ensure it exists
       const fileInfo = await FileSystem.getInfoAsync(coverUri);
-      if (!fileInfo.exists || fileInfo.size === 0) {
-        return { data: null, error: { message: 'File does not exist or is empty' } };
+      if (!fileInfo.exists) {
+        return { data: null, error: { message: 'File does not exist' } };
+      }
+      
+      if (fileInfo.size === 0) {
+        return { data: null, error: { message: 'File is empty' } };
       }
 
       console.log('Cover file info:', { size: fileInfo.size, uri: coverUri });
@@ -355,10 +384,12 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
         uploadUri = manipResult.uri;
         
         const compressedInfo = await FileSystem.getInfoAsync(uploadUri);
-        console.log('Compressed cover:', { 
-          originalSize: fileInfo.size, 
-          compressedSize: compressedInfo.size 
-        });
+        if (compressedInfo.exists) {
+          console.log('Compressed cover:', { 
+            originalSize: fileInfo.size, 
+            compressedSize: compressedInfo.size 
+          });
+        }
       } catch (compressionError) {
         console.error('Failed to compress cover, using original:', compressionError);
       }
@@ -446,13 +477,18 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     if (session?.user?.id) {
       fetchProfile();
     }
-  }, [session?.user?.id, fetchProfile]);
+  }, [session?.user?.id]);
 
   // Set up real-time subscription for profile changes
   useEffect(() => {
     if (!session?.user?.id) return;
 
-    const subscription = supabase
+    // Clean up previous channel if exists
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+    }
+
+    const channel = supabase
       .channel(`profile:${session.user.id}`)
       .on(
         'postgres_changes',
@@ -463,6 +499,8 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
           filter: `id=eq.${session.user.id}`,
         },
         (payload) => {
+          if (!isMountedRef.current) return;
+          
           console.log('Profile updated in real-time:', payload);
           // Update profile with the new data directly
           if (payload.new && typeof payload.new === 'object') {
@@ -503,30 +541,70 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
               last_username_change: newData.last_username_change,
               settings: newData.settings,
             };
-            setProfile(updatedProfile);
+            if (isMountedRef.current) {
+              setProfile(updatedProfile);
+            }
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('Profile subscription active');
+        } else if (status === 'CLOSED') {
+          console.log('Profile subscription closed');
+          // Attempt to reconnect after a delay
+          if (isMountedRef.current) {
+            setTimeout(() => {
+              if (isMountedRef.current && session?.user?.id) {
+                fetchProfile();
+              }
+            }, 5000);
+          }
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('Profile subscription error');
+        }
+      });
+
+    channelRef.current = channel;
 
     return () => {
-      void subscription.unsubscribe();
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
     };
-  }, [session?.user?.id, session?.user?.phone, session?.user?.email]);
+  }, [session?.user?.id]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+      }
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+      }
+    };
+  }, []);
+
+  // Memoize context value to prevent unnecessary re-renders
+  const contextValue = useMemo(
+    () => ({
+      profile,
+      loading,
+      error,
+      fetchProfile: () => fetchProfile(0),
+      updateProfile,
+      uploadAvatar,
+      uploadCover,
+      getProfileStats,
+    }),
+    [profile, loading, error, fetchProfile, updateProfile, uploadAvatar, uploadCover, getProfileStats]
+  );
 
   return (
-    <ProfileContext.Provider
-      value={{
-        profile,
-        loading,
-        error,
-        fetchProfile,
-        updateProfile,
-        uploadAvatar,
-        uploadCover,
-        getProfileStats,
-      }}
-    >
+    <ProfileContext.Provider value={contextValue}>
       {children}
     </ProfileContext.Provider>
   );

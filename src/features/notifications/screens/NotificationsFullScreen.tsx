@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Alert,
   FlatList,
@@ -12,55 +12,18 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
-import { supabase } from '@/shared/lib/supabase/client';
-import { useSession } from '@/shared/providers/SessionContext';
-
-interface Notification {
-  id: string;
-  type: string;
-  title: string;
-  message?: string;
-  data?: Record<string, unknown>;
-  read: boolean;
-  created_at: string;
-}
+import { useNotifications, type Notification } from '@/shared/providers/NotificationProvider';
 export default function NotificationsFullScreen() {
   const router = useRouter();
-  const { session } = useSession();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [, setLoading] = useState(false);
+  const {
+    notifications,
+    fetchNotifications,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification,
+    unreadCount,
+  } = useNotifications();
   const [refreshing, setRefreshing] = useState(false);
-
-  useEffect(() => {
-    if (session?.user) {
-      void fetchNotifications();
-    }
-  }, [session]);
-
-  const fetchNotifications = async () => {
-    if (!session?.user) return;
-
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching notifications:', error);
-        Alert.alert('Erreur', 'Impossible de charger les notifications');
-        return;
-      }
-
-      setNotifications(data || []);
-    } catch (error) {
-      console.error('Unexpected error:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -68,39 +31,17 @@ export default function NotificationsFullScreen() {
     setRefreshing(false);
   };
 
-  const markAsRead = async (notificationId: string) => {
-    try {
-      const { error } = await supabase
-        .from('notifications')
-        .update({ read: true })
-        .eq('id', notificationId);
-
-      if (error) {
-        console.error('Error marking notification as read:', error);
-        return;
-      }
-
-      setNotifications((prev) =>
-        prev.map((notif) => (notif.id === notificationId ? { ...notif, read: true } : notif))
-      );
-    } catch (error) {
-      console.error('Unexpected error:', error);
+  const handleMarkAsRead = async (notificationId: string) => {
+    const { error } = await markAsRead(notificationId);
+    if (error) {
+      Alert.alert('Erreur', 'Impossible de marquer la notification comme lue');
     }
   };
 
-  const deleteNotification = async (notificationId: string) => {
-    try {
-      const { error } = await supabase.from('notifications').delete().eq('id', notificationId);
-
-      if (error) {
-        console.error('Error deleting notification:', error);
-        Alert.alert('Erreur', 'Impossible de supprimer la notification');
-        return;
-      }
-
-      setNotifications((prev) => prev.filter((notif) => notif.id !== notificationId));
-    } catch (error) {
-      console.error('Unexpected error:', error);
+  const handleDeleteNotification = async (notificationId: string) => {
+    const { error } = await deleteNotification(notificationId);
+    if (error) {
+      Alert.alert('Erreur', 'Impossible de supprimer la notification');
     }
   };
 
@@ -122,14 +63,14 @@ export default function NotificationsFullScreen() {
   const renderNotification = ({ item }: { item: Notification }) => (
     <TouchableOpacity
       style={[styles.notificationItem, !item.read && styles.unreadNotification]}
-      onPress={() => markAsRead(item.id)}
+      onPress={() => handleMarkAsRead(item.id)}
       onLongPress={() => {
         Alert.alert('Supprimer', 'Voulez-vous supprimer cette notification ?', [
           { text: 'Annuler', style: 'cancel' },
           {
             text: 'Supprimer',
             onPress: () => {
-              void deleteNotification(item.id);
+              void handleDeleteNotification(item.id);
             },
           },
         ]);
@@ -146,7 +87,7 @@ export default function NotificationsFullScreen() {
         <Text style={[styles.notificationTitle, !item.read && styles.unreadTitle]}>
           {item.title}
         </Text>
-        {item.message && <Text style={styles.notificationMessage}>{item.message}</Text>}
+        {item.body && <Text style={styles.notificationMessage}>{item.body}</Text>}
         <Text style={styles.notificationTime}>
           {new Date(item.created_at).toLocaleDateString('fr-FR', {
             day: 'numeric',
@@ -160,28 +101,13 @@ export default function NotificationsFullScreen() {
     </TouchableOpacity>
   );
 
-  const markAllAsRead = async () => {
-    if (!session?.user) return;
-
-    try {
-      const { error } = await supabase
-        .from('notifications')
-        .update({ read: true })
-        .eq('user_id', session.user.id)
-        .eq('read', false);
-
-      if (error) {
-        console.error('Error marking all as read:', error);
-        return;
-      }
-
-      setNotifications((prev) => prev.map((notif) => ({ ...notif, read: true })));
-    } catch (error) {
-      console.error('Unexpected error:', error);
+  const handleMarkAllAsRead = async () => {
+    const { error } = await markAllAsRead();
+    if (error) {
+      Alert.alert('Erreur', 'Impossible de marquer toutes les notifications comme lues');
     }
   };
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -191,7 +117,7 @@ export default function NotificationsFullScreen() {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Notifications</Text>
         {unreadCount > 0 && (
-          <TouchableOpacity style={styles.markAllButton} onPress={markAllAsRead}>
+          <TouchableOpacity style={styles.markAllButton} onPress={handleMarkAllAsRead}>
             <Text style={styles.markAllText}>Tout lire</Text>
           </TouchableOpacity>
         )}

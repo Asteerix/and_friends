@@ -5,9 +5,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Dimensions,
-  Platform,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 
 interface CalendarEvent {
@@ -44,7 +42,6 @@ export default function CalendarGrid({
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
     const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
     
     // Get the first day of the week (Sunday = 0)
     const startDate = new Date(firstDay);

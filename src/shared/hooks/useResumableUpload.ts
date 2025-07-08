@@ -1,6 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
 import * as tus from 'tus-js-client';
-import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { supabase } from '@/shared/lib/supabase/client';
@@ -27,7 +26,6 @@ const UPLOAD_QUEUE_KEY = '@and_friends/upload_queue';
 
 export const useResumableUpload = () => {
   const [uploadQueue, setUploadQueue] = useState<Map<string, UploadTask>>(new Map());
-  const [isProcessing, setIsProcessing] = useState(false);
   const activeUploads = useRef<Map<string, tus.Upload>>(new Map());
 
   // Charger la file d'attente depuis AsyncStorage au démarrage

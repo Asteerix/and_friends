@@ -1,4 +1,3 @@
-import type { PostgrestError } from '@supabase/supabase-js';
 import { useProfileContext } from '@/shared/providers/ProfileProvider';
 
 export interface UserProfile {

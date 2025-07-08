@@ -121,7 +121,7 @@ export function useStories() {
       .subscribe();
 
     return () => {
-      void subscription.unsubscribe();
+      void supabase.removeChannel(subscription);
     };
   };
 

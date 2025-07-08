@@ -6,18 +6,13 @@ import {
   Platform,
   TouchableOpacity,
   ScrollView,
-  Dimensions,
-  SafeAreaView as SafeAreaViewRN,
-  Pressable,
-  AccessibilityRole,
 } from 'react-native';
 import { create } from 'react-native-pixel-perfect';
 import {
   SafeAreaView as SafeAreaViewContext,
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
-import MapView, { Region, Marker, Callout } from 'react-native-maps';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import MapView, { Marker, Callout } from 'react-native-maps';
 // import { SharedElement } from 'react-navigation-shared-element';
 import { useRouter } from 'expo-router';
 
@@ -29,7 +24,7 @@ import { useMapStore } from '@/store/mapStore';
 import ChatButtonIcon from '@/assets/svg/chat-button.svg';
 import NotificationButtonIcon from '@/assets/svg/notification-button.svg';
 import NotificationBadge from '@/features/notifications/components/NotificationBadge';
-import { useNotifications } from '@/hooks/useNotifications';
+import { useNotifications } from '@/shared/providers/NotificationProvider';
 import BackButtonIcon from '@/assets/svg/back-button.svg';
 
 const designResolution = { width: 375, height: 812 };
@@ -44,8 +39,7 @@ const MapScreen: React.FC = React.memo(() => {
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState(0);
   const insets = useSafeAreaInsets();
-  const [sheetOpen, setSheetOpen] = useState(true);
-  const { unread } = useNotifications();
+  const { unreadCount } = useNotifications();
 
   // Parse coordinates from location string
   const getCoordinates = (location: string | undefined) => {
@@ -83,7 +77,7 @@ const MapScreen: React.FC = React.memo(() => {
           // fallback: si pas de category, tout dans All
           const cat = (e as any).category;
           if (!cat) return false;
-          return String(cat).toLowerCase() === CATEGORIES[activeCategory].toLowerCase();
+          return String(cat).toLowerCase() === CATEGORIES[activeCategory]?.toLowerCase();
         });
 
   // Header buttons
@@ -96,7 +90,6 @@ const MapScreen: React.FC = React.memo(() => {
 
   // Bottom sheet height
   const SHEET_HEIGHT = perfectSize(320) + insets.bottom;
-  const windowHeight = Dimensions.get('window').height;
 
   return (
     <SafeAreaViewContext style={styles.safeArea} edges={['top', 'left', 'right']}>
@@ -131,7 +124,7 @@ const MapScreen: React.FC = React.memo(() => {
               style={styles.notificationButton}
             >
               <NotificationButtonIcon width={48} height={48} />
-              <NotificationBadge count={unread.length} />
+              <NotificationBadge count={unreadCount} />
             </TouchableOpacity>
           </View>
         </View>

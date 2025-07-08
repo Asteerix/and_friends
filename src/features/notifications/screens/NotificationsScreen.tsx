@@ -17,7 +17,7 @@ import NotificationButtonIcon from '@/assets/svg/notification-button.svg';
 import BackButtonIcon from '@/assets/svg/back-button.svg';
 import LongUnderlineDecoration from '@/features/home/components/LongUnderlineDecoration.svg';
 import NotificationBadge from '@/features/notifications/components/NotificationBadge';
-import { useNotifications } from '@/hooks/useNotifications';
+import { useNotifications } from '@/shared/providers/NotificationProvider';
 import type { Notification } from '@/hooks/useNotifications';
 import EmptyState from '../components/EmptyState';
 import NotificationItem from '../components/NotificationItem';
@@ -74,7 +74,8 @@ const SearchBar: React.FC = React.memo(() => (
 
 const NotificationsScreen: React.FC = React.memo(() => {
   const [activeTab, setActiveTab] = useState<string>('all');
-  const { notifications, loading, markRead, unread } = useNotifications();
+  const { notifications, loading, markAsRead, unreadCount } = useNotifications();
+  const unreadNotifications = notifications.filter(n => !n.read);
   const router = useRouter();
 
   const filteredData = useMemo(() => {
@@ -82,27 +83,27 @@ const NotificationsScreen: React.FC = React.memo(() => {
       case 'all':
         return notifications;
       case 'unread':
-        return unread;
+        return unreadNotifications;
       default:
         return notifications;
     }
-  }, [notifications, unread, activeTab]);
+  }, [notifications, unreadNotifications, activeTab]);
 
   const handleNotificationPress = async (notification: Notification) => {
     if (!notification.read) {
-      await markRead(notification.id);
+      await markAsRead(notification.id);
     }
     if (notification.type === 'event_invite' || notification.type === 'rsvp_update') {
-      if (notification.related_id) {
-        void router.push(`/screens/event-details?eventId=${notification.related_id}`);
+      if (notification.related_event_id) {
+        void router.push(`/screens/event-details?eventId=${notification.related_event_id}`);
       }
     } else if (notification.type === 'new_message') {
-      if (notification.related_id) {
-        void router.push(`/screens/conversation?chatId=${notification.related_id}`);
+      if (notification.related_chat_id) {
+        void router.push(`/screens/conversation?chatId=${notification.related_chat_id}`);
       }
     } else if (notification.type === 'friend_request' || notification.type === 'friend_accepted') {
-      if (notification.related_id) {
-        void router.push(`/screens/person-card?userId=${notification.related_id}`);
+      if (notification.related_user_id) {
+        void router.push(`/screens/person-card?userId=${notification.related_user_id}`);
       }
     }
   };
@@ -139,7 +140,7 @@ const NotificationsScreen: React.FC = React.memo(() => {
             style={styles.iconBtn}
           >
             <NotificationButtonIcon width={perfectSize(40)} height={perfectSize(40)} />
-            <NotificationBadge count={unread.length} />
+            <NotificationBadge count={unreadCount} />
           </TouchableOpacity>
         </View>
       </View>

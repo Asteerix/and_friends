@@ -207,7 +207,7 @@ export function useMessages(chatId: string) {
       .subscribe();
 
     return () => {
-      void subscription.unsubscribe();
+      void supabase.removeChannel(subscription);
     };
   }, [chatId, session?.user?.id]);
 

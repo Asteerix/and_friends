@@ -22,7 +22,6 @@ interface StoryFrameProps {
 export const StoryFrame: React.FC<StoryFrameProps> = ({ 
   uri, 
   caption, 
-  type = 'image',
   aspectRatio,
   captionPosition = screenHeight * 0.5
 }) => {

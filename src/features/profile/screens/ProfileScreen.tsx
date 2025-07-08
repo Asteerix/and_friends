@@ -9,11 +9,6 @@ import {
   View,
   Platform,
   Pressable,
-  Animated,
-  Easing,
-  LayoutChangeEvent,
-  FlatList,
-  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -23,16 +18,15 @@ import { create } from 'react-native-pixel-perfect';
 import { useNavigation } from '@react-navigation/native';
 
 import { useProfile } from '@/hooks/useProfile';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import { useEventsAdvanced } from '@/hooks/useEventsAdvanced';
 import { useFriends } from '@/hooks/useFriends';
 import { useStories } from '@/shared/providers/StoriesContext';
 import EventCard from '@/features/home/components/EventCard';
-import MemoryItem from '@/features/stories/components/MemoryItem';
 import BackButton from '@/assets/svg/back-button.svg';
 import ChatButton from '@/assets/svg/chat-button.svg';
 import NotificationButton from '@/assets/svg/notification-button.svg';
-
-const HEADER_HEIGHT = 700;
+import { useResponsive } from '@/shared/hooks/useResponsive';
 
 const TABS = [
   { key: 'about', label: 'About' },
@@ -58,9 +52,14 @@ function isValidAvatar(url?: string | null) {
 const designResolution = { width: 375, height: 812 };
 const perfectSize = create(designResolution);
 
-export default function ProfileScreen() {
+interface ProfileScreenProps {
+  userId?: string;
+}
+
+export default function ProfileScreen({ userId }: ProfileScreenProps = {}) {
   const navigation = useNavigation<any>();
-  const { profile, loading, getProfileStats } = useProfile();
+  const { profile: currentUserProfile, loading: currentUserLoading, getProfileStats } = useProfile();
+  const { profile: otherUserProfile, loading: otherUserLoading } = useUserProfile(userId && userId !== currentUserProfile?.id ? userId : null);
   const { getUserEvents } = useEventsAdvanced();
   const { friends: userFriends } = useFriends();
   // const [editing, setEditing] = useState(false);
@@ -76,7 +75,9 @@ export default function ProfileScreen() {
   const [organizedEvents, setOrganizedEvents] = useState<any[]>([]);
   const [userStories, setUserStories] = useState<any[]>([]);
   // const insets = useSafeAreaInsets();
-  const isMyProfile = true; // MOCK: à remplacer par une vraie logique si besoin
+  const isMyProfile = !userId || userId === currentUserProfile?.id;
+  const profile = isMyProfile ? currentUserProfile : otherUserProfile;
+  const loading = isMyProfile ? currentUserLoading : otherUserLoading;
   const [isPlaying, setIsPlaying] = useState(false);
   const [jam, setJam] = useState({ 
     track_id: '', 
@@ -92,11 +93,16 @@ export default function ProfileScreen() {
   });
   const [locationDisplay, setLocationDisplay] = useState('');
   const { getStoriesByUser } = useStories();
+  const responsive = useResponsive();
+  const styles = createStyles(responsive);
+
 
   useEffect(() => {
     if (profile) {
       // setEditedProfile(profile);
-      loadProfileStats();
+      if (isMyProfile) {
+        loadProfileStats();
+      }
       
       // Load jam/music preference from individual fields
       if (profile.jam_title || profile.jam_artist) {
@@ -123,7 +129,7 @@ export default function ProfileScreen() {
         setLocationDisplay(profile.location);
       }
     }
-  }, [profile]);
+  }, [profile, isMyProfile]);
 
   useEffect(() => {
     // Fetch events attended and organized
@@ -301,7 +307,7 @@ export default function ProfileScreen() {
     
     // Try last part first (usually country in "City, Country" format)
     if (parts.length > 1) {
-      const lastPart = parts[parts.length - 1].trim();
+      const lastPart = parts[parts.length - 1]?.trim() || '';
       
       // Check if it's a known country
       if (countryMappings[lastPart]) {
@@ -315,7 +321,7 @@ export default function ProfileScreen() {
     }
     
     // Try first part (in case location is just country name)
-    const firstPart = parts[0].trim();
+    const firstPart = parts[0]?.trim() || '';
     if (countryMappings[firstPart]) {
       return countryMappings[firstPart];
     }
@@ -371,7 +377,7 @@ export default function ProfileScreen() {
       {/* HEADER bloc avec image et overlays */}
       <View
         style={{
-          height: HEADER_HEIGHT,
+          height: responsive.headerHeight,
           width: '100%',
           position: 'relative',
           backgroundColor: '#222',
@@ -402,7 +408,12 @@ export default function ProfileScreen() {
             },
           ]}
         >
-          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back">
+          <TouchableOpacity 
+            accessibilityRole="button" 
+            accessibilityLabel="Go back"
+            onPress={() => navigation.goBack()}
+            disabled={isMyProfile}
+          >
             <View style={{ opacity: isMyProfile ? 0 : 1 }}>
               <BackButton width={24} height={24} fill="#FFF" color="#FFF" stroke="#FFF" />
             </View>
@@ -426,22 +437,24 @@ export default function ProfileScreen() {
               @{profile?.username || 'user'}
             </Text>
           </View>
-          <View style={{ flexDirection: 'row', marginLeft: 'auto' }}>
-            <TouchableOpacity
-              accessibilityRole="button"
-              accessibilityLabel="Messages"
-              style={{ paddingHorizontal: 4 }}
-            >
-              <ChatButton width={40} height={40} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              accessibilityRole="button"
-              accessibilityLabel="Notifications"
-              style={{ paddingHorizontal: 4 }}
-            >
-              <NotificationButton width={40} height={40} />
-            </TouchableOpacity>
-          </View>
+          {isMyProfile && (
+            <View style={{ flexDirection: 'row', marginLeft: 'auto' }}>
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel="Messages"
+                style={{ paddingHorizontal: 4 }}
+              >
+                <ChatButton width={40} height={40} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel="Notifications"
+                style={{ paddingHorizontal: 4 }}
+              >
+                <NotificationButton width={40} height={40} />
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
         {/* Infos en bas à gauche */}
         <View style={styles.infoOverlay}>
@@ -573,8 +586,8 @@ export default function ProfileScreen() {
                 </View>
               )}
               
-              {/* Profile Completion Card - Only show if profile is incomplete */}
-              {profile && (!profile.bio || !profile.hobbies || profile.hobbies.length < 3 || !profile.avatar_url) && (
+              {/* Profile Completion Card - Only show if profile is incomplete and it's my profile */}
+              {isMyProfile && profile && (!profile.bio || !profile.hobbies || profile.hobbies.length < 3 || !profile.avatar_url) && (
                 <View style={styles.profileCompletionCard}>
                   <View style={styles.profileCompletionHeader}>
                     <Text style={styles.profileCompletionTitle}>Complete Your Profile</Text>
@@ -599,7 +612,7 @@ export default function ProfileScreen() {
                 <>
                   <Text style={styles.sectionTitle}>Talk to Me About</Text>
                   <View style={styles.interestsContainer}>
-                    {profile.hobbies.map((interest, i) => (
+                    {profile.hobbies.map((interest: any, i: any) => (
                       <TouchableOpacity
                         key={i}
                         style={styles.interestTag}
@@ -681,9 +694,9 @@ export default function ProfileScreen() {
               ) : (
                 <View style={styles.memoriesGrid}>
                   {userStories.map((story) => {
-                    const storyHeight = (Dimensions.get('window').width - 32 - 16) / 3 * (16 / 9);
+                    const storyHeight = (responsive.width - 32 - 16) / 3 * (16 / 9);
                     const captionPosition = story.caption_position || (storyHeight * 0.5);
-                    const relativePosition = (captionPosition / Dimensions.get('window').height) * storyHeight;
+                    const relativePosition = (captionPosition / responsive.height) * storyHeight;
                     
                     return (
                       <TouchableOpacity
@@ -778,7 +791,7 @@ export default function ProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (responsive: ReturnType<typeof useResponsive>) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFF',
@@ -1182,16 +1195,6 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     marginBottom: 24,
   },
-  albumCover: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 8,
-  },
-  memberSince: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 8,
-  },
   moreFriendsTextAbout: {
     color: '#888',
     fontWeight: '600',
@@ -1265,11 +1268,11 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   memoryCard: {
-    width: (Dimensions.get('window').width - 32 - 16) / 3, // 3 columns with spacing
+    width: (responsive.width - 32 - 16) / 3, // 3 columns with spacing
     aspectRatio: 9 / 16, // Instagram story aspect ratio
     marginHorizontal: 4,
-    marginBottom: 8,
-    borderRadius: 12,
+    marginBottom: responsive.scaleHeight(8),
+    borderRadius: responsive.scaleWidth(12),
     overflow: 'hidden',
     backgroundColor: '#F0F0F0',
     position: 'relative',
@@ -1382,11 +1385,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginBottom: 20,
-  },
-  bioText: {
-    fontSize: 16,
-    color: '#333',
-    lineHeight: 24,
   },
   memberSinceContainer: {
     marginTop: 24,

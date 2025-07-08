@@ -142,9 +142,9 @@ export default function BirthDatePickerModal({
   React.useEffect(() => {
     if (visible && currentDate) {
       const [y, m, d] = currentDate.split('-');
-      setYear(y);
-      setMonth(MONTHS[parseInt(m, 10) - 1] || null);
-      setDay(String(parseInt(d, 10)));
+      setYear(y || null);
+      setMonth(m ? MONTHS[parseInt(m, 10) - 1] || null : null);
+      setDay(d ? String(parseInt(d, 10)) : null);
     }
   }, [visible, currentDate]);
 

@@ -792,9 +792,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 40,
   },
-  noEventsText: {
-    fontSize: 16,
-    color: '#888',
-    marginTop: 12,
-  },
 });

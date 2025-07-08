@@ -13,10 +13,9 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
+  Share,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Video, ResizeMode } from 'expo-av';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -27,11 +26,11 @@ import CustomText from '@/shared/ui/CustomText';
 import { StoryFrame } from '../components/StoryFrame';
 import { supabase } from '@/shared/lib/supabase/client';
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+const { height: screenHeight } = Dimensions.get('window');
 
 export default function StoryViewerScreen() {
   const router = useRouter();
-  const { userId } = useLocalSearchParams<{ userId: string }>();
+  const { userId, storyId } = useLocalSearchParams<{ userId: string; storyId?: string }>();
   const { session } = useSession();
   const { getStoriesByUser, viewStory, deleteStory } = useStories();
   
@@ -48,6 +47,8 @@ export default function StoryViewerScreen() {
   const [hasLiked, setHasLiked] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [sendingComment, setSendingComment] = useState(false);
+  const [showReplyInput, setShowReplyInput] = useState(false);
+  const [replyText, setReplyText] = useState('');
   
   const progressAnim = useRef(new Animated.Value(0)).current;
   const animationRef = useRef<Animated.CompositeAnimation | null>(null);
@@ -74,9 +75,20 @@ export default function StoryViewerScreen() {
       setStories(userStories);
       
       if (userStories.length > 0) {
-        // Mark first story as viewed
-        console.log('👁️ [StoryViewerScreen] Marking first story as viewed:', userStories[0].id);
-        await viewStory(userStories[0].id);
+        // If a specific storyId is provided, find its index
+        if (storyId) {
+          const targetIndex = userStories.findIndex(s => s.id === storyId);
+          if (targetIndex !== -1) {
+            setCurrentIndex(targetIndex);
+          }
+        }
+        
+        // Mark first (or target) story as viewed
+        const initialStoryId = storyId && userStories.find(s => s.id === storyId) 
+          ? storyId 
+          : userStories[0].id;
+        console.log('👁️ [StoryViewerScreen] Marking story as viewed:', initialStoryId);
+        await viewStory(initialStoryId);
         startProgress();
       }
     } catch (error) {
@@ -351,6 +363,59 @@ export default function StoryViewerScreen() {
     }
   };
 
+  const handleSendReply = async () => {
+    if (!replyText.trim() || !session?.user?.id || !currentStory) return;
+    
+    try {
+      // Create a direct message with story reference
+      const { error } = await supabase
+        .from('messages')
+        .insert({
+          sender_id: session.user.id,
+          receiver_id: currentStory.user.id,
+          content: replyText.trim(),
+          story_id: currentStory.id,
+          message_type: 'story_reply'
+        });
+      
+      if (error) throw error;
+      
+      setReplyText('');
+      setShowReplyInput(false);
+      
+      // Show success feedback
+      Alert.alert('Envoyé!', 'Votre réponse a été envoyée');
+    } catch (error) {
+      console.error('Error sending reply:', error);
+      Alert.alert('Erreur', 'Impossible d\'envoyer la réponse');
+    }
+  };
+
+  const handleShare = async () => {
+    if (!currentStory) return;
+
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    try {
+      const baseUrl = process.env.EXPO_PUBLIC_APP_URL || 'https://andfriends.app';
+      const shareUrl = `${baseUrl}/story/${currentStory.id}`;
+      
+      const shareMessage = Platform.select({
+        ios: `Check out @${currentStory.user?.username || 'Someone'}'s story${currentStory.text ? `: ${currentStory.text}` : ''}\n\n${shareUrl}`,
+        android: `Check out @${currentStory.user?.username || 'Someone'}'s story${currentStory.text ? `: ${currentStory.text}` : ''}\n\n${shareUrl}`,
+        default: `Check out @${currentStory.user?.username || 'Someone'}'s story${currentStory.text ? `: ${currentStory.text}` : ''}\n\n${shareUrl}`
+      });
+
+      await Share.share({
+        message: shareMessage,
+        url: Platform.OS === 'ios' ? shareUrl : undefined,
+        title: `Story by @${currentStory.user?.username || 'Unknown'}`,
+      });
+    } catch (error) {
+      console.error('Error sharing:', error);
+    }
+  };
+
   const handleReport = () => {
     Alert.alert(
       'Signaler cette story',
@@ -489,57 +554,89 @@ export default function StoryViewerScreen() {
 
       {/* Bottom interaction bar */}
       <View style={styles.bottomBar}>
-        {isOwnStory ? (
-          // Own story - show viewers
-          <TouchableOpacity 
-            style={styles.viewersButton}
-            onPress={() => setShowViewers(true)}
-          >
-            <Ionicons name="eye-outline" size={20} color="#FFF" />
-            <CustomText size="sm" color="#FFF" style={{ marginLeft: 6 }}>
-              {viewers.length} {viewers.length === 1 ? 'vue' : 'vues'}
-            </CustomText>
-          </TouchableOpacity>
-        ) : (
-          // Others' story - show like button
-          <TouchableOpacity 
-            style={styles.likeButton}
-            onPress={handleLike}
-          >
-            <Ionicons 
-              name={hasLiked ? "heart" : "heart-outline"} 
-              size={24} 
-              color={hasLiked ? "#FF0000" : "#FFF"} 
-            />
-          </TouchableOpacity>
-        )}
-        
-        {/* Comments button */}
-        <View style={styles.rightButtons}>
-          <TouchableOpacity 
-            style={styles.actionButton}
-            onPress={() => setShowComments(true)}
-          >
-            <Ionicons name="chatbubble-outline" size={24} color="#FFF" />
-            {comments.length > 0 && (
-              <View style={styles.badge}>
-                <CustomText size="xs" color="#FFF">{comments.length}</CustomText>
-              </View>
-            )}
-          </TouchableOpacity>
-          
+        <View style={styles.leftActions}>
           {isOwnStory ? (
+            // Own story - show viewers
             <TouchableOpacity 
-              style={[styles.actionButton, deleting && styles.deleteButtonDisabled]} 
-              onPress={handleDeleteStory}
-              disabled={deleting}
+              style={styles.viewersButton}
+              onPress={() => setShowViewers(true)}
             >
-              {deleting ? (
-                <ActivityIndicator size="small" color="#FFF" />
-              ) : (
-                <Ionicons name="trash-outline" size={24} color="#FFF" />
-              )}
+              <Ionicons name="eye-outline" size={20} color="#FFF" />
+              <CustomText size="sm" color="#FFF" style={{ marginLeft: 6 }}>
+                {viewers.length} {viewers.length === 1 ? 'vue' : 'vues'}
+              </CustomText>
             </TouchableOpacity>
+          ) : (
+            // Others' story - show action buttons
+            <>
+              <TouchableOpacity 
+                style={styles.actionButton}
+                onPress={handleLike}
+              >
+                <Ionicons 
+                  name={hasLiked ? "heart" : "heart-outline"} 
+                  size={24} 
+                  color={hasLiked ? "#FF0000" : "#FFF"} 
+                />
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.actionButton}
+                onPress={() => setShowComments(true)}
+              >
+                <Ionicons name="chatbubble-outline" size={24} color="#FFF" />
+                {comments.length > 0 && (
+                  <View style={styles.badge}>
+                    <CustomText size="xs" color="#FFF">{comments.length}</CustomText>
+                  </View>
+                )}
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.actionButton}
+                onPress={() => setShowReplyInput(true)}
+              >
+                <Ionicons name="send-outline" size={24} color="#FFF" />
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.actionButton}
+                onPress={handleShare}
+              >
+                <Ionicons name="share-outline" size={24} color="#FFF" />
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+        
+        {/* Right side buttons */}
+        <View style={styles.rightButtons}>
+          {isOwnStory ? (
+            <>
+              <TouchableOpacity 
+                style={styles.actionButton}
+                onPress={() => setShowComments(true)}
+              >
+                <Ionicons name="chatbubble-outline" size={24} color="#FFF" />
+                {comments.length > 0 && (
+                  <View style={styles.badge}>
+                    <CustomText size="xs" color="#FFF">{comments.length}</CustomText>
+                  </View>
+                )}
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.actionButton, deleting && styles.deleteButtonDisabled]} 
+                onPress={handleDeleteStory}
+                disabled={deleting}
+              >
+                {deleting ? (
+                  <ActivityIndicator size="small" color="#FFF" />
+                ) : (
+                  <Ionicons name="trash-outline" size={24} color="#FFF" />
+                )}
+              </TouchableOpacity>
+            </>
           ) : (
             <TouchableOpacity 
               style={styles.actionButton}
@@ -575,7 +672,7 @@ export default function StoryViewerScreen() {
                     style={styles.viewerAvatar}
                   />
                   <View style={styles.viewerInfo}>
-                    <CustomText size="md" weight="semibold">
+                    <CustomText size="md" weight="bold">
                       {view.viewer?.username || view.viewer?.full_name || 'Utilisateur'}
                     </CustomText>
                     <CustomText size="sm" color="#666">
@@ -627,7 +724,7 @@ export default function StoryViewerScreen() {
                         style={styles.commentAvatar}
                       />
                       <View style={styles.commentContent}>
-                        <CustomText size="sm" weight="semibold">
+                        <CustomText size="sm" weight="bold">
                           {comment.user?.username || comment.user?.full_name}
                         </CustomText>
                         <CustomText size="sm" style={styles.commentText}>
@@ -664,6 +761,74 @@ export default function StoryViewerScreen() {
                 </TouchableOpacity>
               </View>
             </Animated.View>
+        </KeyboardAvoidingView>
+      )}
+
+      {/* Reply Input Modal */}
+      {showReplyInput && (
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+        >
+          <TouchableOpacity 
+            style={StyleSheet.absoluteFillObject} 
+            activeOpacity={1}
+            onPress={() => {
+              setShowReplyInput(false);
+              setReplyText('');
+            }}
+          />
+          <View style={styles.replyInputContainer}>
+            <View style={styles.replyHeader}>
+              <View style={styles.storyPreview}>
+                {currentStory.image_url?.includes('.mp4') ? (
+                  <View style={styles.videoPreview}>
+                    <Ionicons name="play-circle" size={24} color="#FFF" />
+                  </View>
+                ) : (
+                  <Image 
+                    source={{ uri: currentStory.image_url }} 
+                    style={styles.previewImage}
+                  />
+                )}
+              </View>
+              <View style={styles.replyInfo}>
+                <CustomText size="sm" color="#666">Répondre à</CustomText>
+                <CustomText size="md" weight="bold">@{currentStory.user?.username || 'Unknown'}</CustomText>
+              </View>
+              <TouchableOpacity 
+                onPress={() => {
+                  setShowReplyInput(false);
+                  setReplyText('');
+                }}
+              >
+                <Ionicons name="close" size={24} color="#000" />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.replyInputWrapper}>
+              <TextInput
+                style={styles.replyTextInput}
+                placeholder="Envoyer une réponse..."
+                value={replyText}
+                onChangeText={setReplyText}
+                multiline
+                maxLength={500}
+                autoFocus
+              />
+              <TouchableOpacity 
+                onPress={handleSendReply}
+                disabled={!replyText.trim()}
+                style={[styles.replySendButton, !replyText.trim() && styles.sendButtonDisabled]}
+              >
+                <Ionicons 
+                  name="send" 
+                  size={20} 
+                  color={replyText.trim() ? "#007AFF" : "#999"} 
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
         </KeyboardAvoidingView>
       )}
     </View>
@@ -791,6 +956,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.5)',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  leftActions: {
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'center',
   },
   rightButtons: {
     flexDirection: 'row',
@@ -924,5 +1094,61 @@ const styles = StyleSheet.create({
   },
   rightTouchArea: {
     flex: 1,
+  },
+  replyInputContainer: {
+    backgroundColor: '#FFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 16,
+    paddingBottom: Platform.OS === 'ios' ? 30 : 16,
+  },
+  replyHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  storyPreview: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    marginRight: 12,
+    overflow: 'hidden',
+  },
+  previewImage: {
+    width: '100%',
+    height: '100%',
+  },
+  videoPreview: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#000',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  replyInfo: {
+    flex: 1,
+  },
+  replyInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 8,
+  },
+  replyTextInput: {
+    flex: 1,
+    backgroundColor: '#F5F5F5',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    maxHeight: 120,
+    minHeight: 44,
+  },
+  replySendButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#007AFF',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

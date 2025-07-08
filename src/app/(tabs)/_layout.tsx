@@ -1,6 +1,7 @@
-import { Tabs } from 'expo-router';
-import { Platform, View } from 'react-native';
-import Svg, { Path, G, Rect, Circle } from 'react-native-svg';
+import { Tabs, useRouter } from 'expo-router';
+import { Platform, TouchableOpacity } from 'react-native';
+import Svg, { Path, Rect, Circle } from 'react-native-svg';
+import { rs, rf } from '@/shared/utils/responsive';
 
 // SVG components for tab icons
 const HomeIcon = ({ color }: { color: string }) => (
@@ -73,6 +74,8 @@ const ProfileIcon = ({ color }: { color: string }) => (
 );
 
 export default function TabLayout() {
+  const router = useRouter();
+  
   return (
     <Tabs
       screenOptions={{
@@ -82,16 +85,16 @@ export default function TabLayout() {
         tabBarStyle: {
           backgroundColor: '#E8F4E8',
           borderTopWidth: 0,
-          height: Platform.OS === 'ios' ? 88 : 64,
-          paddingBottom: Platform.OS === 'ios' ? 24 : 8,
-          paddingTop: 8,
+          height: Platform.OS === 'ios' ? rs(88) : rs(64),
+          paddingBottom: Platform.OS === 'ios' ? rs(24) : rs(8),
+          paddingTop: rs(8),
           elevation: 0,
           shadowOpacity: 0,
         },
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: rf(12),
           fontFamily: Platform.OS === 'ios' ? 'System' : 'Roboto',
-          marginTop: 4,
+          marginTop: rs(4),
         },
       }}
     >
@@ -107,6 +110,20 @@ export default function TabLayout() {
         options={{
           title: 'Memories',
           tabBarIcon: ({ color }) => <MemoriesIcon color={color} />,
+          tabBarButton: (props) => {
+            const { delayLongPress, disabled, onBlur, ...restProps } = props;
+            return (
+              <TouchableOpacity
+                {...restProps}
+                disabled={disabled ?? undefined}
+                delayLongPress={delayLongPress ?? undefined}
+                onBlur={onBlur ?? undefined}
+                onPress={() => {
+                  router.push('/screens/memories');
+                }}
+              />
+            );
+          },
         }}
       />
       <Tabs.Screen

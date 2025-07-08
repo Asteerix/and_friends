@@ -435,7 +435,7 @@ export const useEventMemories = (eventId: string) => {
       .subscribe();
 
     return () => {
-      void subscription.unsubscribe();
+      void supabase.removeChannel(subscription);
     };
   }, [user?.id, eventId, fetchMemories]);
 

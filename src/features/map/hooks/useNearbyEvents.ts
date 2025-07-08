@@ -93,7 +93,7 @@ export function useNearbyEvents(latitude?: number, longitude?: number, radiusKm:
       .subscribe();
 
     return () => {
-      void subscription.unsubscribe();
+      void supabase.removeChannel(subscription);
     };
   };
 

@@ -12,15 +12,12 @@ import {
   Text,
   TextInput,
   View,
-  SafeAreaView,
 } from 'react-native';
 import { create } from 'react-native-pixel-perfect';
-import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { supabase } from '@/shared/lib/supabase/client';
 import { getDeviceLanguage, t } from '@/shared/locales';
-import ScreenLayout from '@/shared/ui/ScreenLayout';
 import { useOnboardingStatus } from '@/hooks/useOnboardingStatus';
 import { useAuthNavigation } from '@/shared/hooks/useAuthNavigation';
 import { useRegistrationStep } from '@/shared/hooks/useRegistrationStep';
@@ -72,8 +69,6 @@ const DEFAULT_HOBBIES = [
   'Gardening',
 ];
 
-const CHIP_MARGIN_H = perfectSize(6);
-const CHIP_MARGIN_V = perfectSize(8);
 
 // ---------------------------------------------------------------------------
 // Component
@@ -240,13 +235,6 @@ const HobbyPickerScreen: React.FC = React.memo(() => {
     }
   };
 
-  const handleSkip = async () => {
-    if (isSaving) return;
-    const success = await updateProfileHobbies([]); // Save empty array for skip
-    if (success) {
-      navigateNext('loading');
-    }
-  };
 
   const isLoading = isSaving || isFetchingInitialData;
 
@@ -312,7 +300,7 @@ const HobbyPickerScreen: React.FC = React.memo(() => {
         </Text>
         <Text style={styles.subtitle}>This helps you find people who get it. Select up to 5.</Text>
         <View style={styles.gridContainer}>
-          {allHobbies.map((hobby, index) => {
+          {allHobbies.map((hobby) => {
             const isSelected = selectedHobbies.includes(hobby.text);
             if (hobby.isAdd) {
               return (

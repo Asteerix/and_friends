@@ -13,7 +13,6 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
   withSequence,
-  withDelay,
   Easing,
   FadeIn,
   FadeInDown,
@@ -31,8 +30,8 @@ export default function OnboardingScreen() {
   useEffect(() => {
     // Animate the ampersand
     ampersandScale.value = withSequence(
-      withTiming(1.2, { duration: 600, easing: Easing.out(Easing.back) }),
-      withTiming(1, { duration: 300, easing: Easing.inOut(Easing.ease) })
+      withTiming(1.2, { duration: 600, easing: Easing.out(Easing.back(1.5)) }),
+      withTiming(1, { duration: 300, easing: Easing.ease })
     );
     ampersandOpacity.value = withTiming(1, { duration: 400 });
   }, []);

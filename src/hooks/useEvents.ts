@@ -85,6 +85,59 @@ export function useEvents() {
 
   useEffect(() => {
     void fetchEvents();
+
+    // Set up real-time subscription for events
+    const eventsChannel = supabase
+      .channel('events:changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'events',
+        },
+        (payload) => {
+          console.log('🔔 [useEvents] Realtime update received:', payload.eventType);
+          
+          if (payload.eventType === 'INSERT' && payload.new) {
+            setEvents((prev) => [...prev, payload.new as Event]);
+          } else if (payload.eventType === 'UPDATE' && payload.new) {
+            setEvents((prev) => 
+              prev.map((event) => 
+                event.id === payload.new.id ? payload.new as Event : event
+              )
+            );
+          } else if (payload.eventType === 'DELETE' && payload.old) {
+            setEvents((prev) => 
+              prev.filter((event) => event.id !== (payload.old as any).id)
+            );
+          }
+        }
+      )
+      .subscribe();
+
+    // Set up real-time subscription for event participants
+    const participantsChannel = supabase
+      .channel('event_participants:changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'event_participants',
+        },
+        (payload) => {
+          console.log('🔔 [useEvents] Participants update received:', payload.eventType);
+          // Refetch events to get updated participant counts and RSVP statuses
+          void fetchEvents();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(eventsChannel);
+      void supabase.removeChannel(participantsChannel);
+    };
   }, []);
 
   return { events, loading, error, fetchEvents, createEvent, joinEvent, updateRSVP };

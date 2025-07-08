@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
-import { Notification } from '@/hooks/useNotifications';
+import { Notification } from '@/shared/providers/NotificationProvider';
 
 interface NotificationItemProps {
   notification: Notification;
@@ -47,7 +47,7 @@ export default function NotificationItem({ notification, onPress }: Notification
       </View>
       <View style={styles.content}>
         <Text style={styles.title}>{notification.title}</Text>
-        <Text style={styles.description}>{notification.message}</Text>
+        <Text style={styles.description}>{notification.body}</Text>
         <Text style={styles.time}>{formatTime(notification.created_at)}</Text>
       </View>
       {notification.user?.avatar_url && (

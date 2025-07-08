@@ -6,7 +6,6 @@ import {
   ScrollView,
   TextInput,
   TouchableOpacity,
-  Dimensions,
   Platform,
   Animated,
 } from 'react-native';
@@ -21,10 +20,9 @@ import { useEventsAdvanced } from '@/hooks/useEventsAdvanced';
 import { useSession } from '@/shared/providers/SessionContext';
 import { supabase } from '@/shared/lib/supabase/client';
 
-const { width } = Dimensions.get('window');
 
 // Gradient presets
-const gradientPresets = [
+const gradientPresets: [string, string, string][] = [
   ['#FFE5E5', '#FFD4A3', '#FFEAA7'], // rose-orange-yellow sunset
   ['#D1E7FF', '#FFFBF0', '#FFF4D6'], // blue-cream-yellow cloudy sky
   ['#E8D5FF', '#E8D5FF', '#E8D5FF'], // violet uni
@@ -232,7 +230,7 @@ export default function CalendarScreenNew() {
           {/* Gradient Header */}
           <Animated.View style={{ opacity: gradientOpacity }}>
             <LinearGradient
-              colors={gradientPresets[gradientIndex]}
+              colors={gradientPresets[gradientIndex % gradientPresets.length] || ['#FFE5E5', '#FFD4A3', '#FFEAA7']}
               style={styles.gradientHeader}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}

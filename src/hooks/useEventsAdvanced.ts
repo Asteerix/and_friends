@@ -51,19 +51,20 @@ export function useEventsAdvanced() {
 
     try {
       // Fetch all public events + events user is participating in
-      const { data: eventsData, error: eventsError } = await supabaseQuery(() => supabase
-        .from('events')
-        .select(
+      const { data: eventsData, error: eventsError } = await supabaseQuery(async () => 
+        await supabase
+          .from('events')
+          .select(
+            `
+            *,
+            profiles:created_by (
+              id,
+              full_name,
+              avatar_url
+            )
           `
-          *,
-          profiles:created_by (
-            id,
-            full_name,
-            avatar_url
           )
-        `
-        )
-        .order('date', { ascending: true })
+          .order('date', { ascending: true })
       );
 
       if (eventsError) {
@@ -83,7 +84,7 @@ export function useEventsAdvanced() {
 
       // For each event, get participation data
       const enrichedEvents: EventAdvanced[] = await Promise.all(
-        (eventsData || []).map(async (event) => {
+        ((eventsData as any[]) || []).map(async (event: any) => {
           // Get participants count
           const { count: participantsCount } = await supabase
             .from('event_participants')
@@ -535,7 +536,7 @@ export function useEventsAdvanced() {
       .subscribe();
 
     return () => {
-      void subscription.unsubscribe();
+      void supabase.removeChannel(subscription);
     };
   }, []);
 

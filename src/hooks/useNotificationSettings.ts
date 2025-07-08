@@ -1,6 +1,5 @@
 import { supabase } from '@/shared/lib/supabase/client';
 import { useProfile } from './useProfile';
-import type { NotificationType } from './useNotifications';
 
 export function useNotificationSettings() {
   const { profile } = useProfile();
@@ -11,7 +10,7 @@ export function useNotificationSettings() {
    */
   const createNotificationWithSettings = async (notification: {
     user_id: string;
-    type: NotificationType;
+    type: string;
     title: string;
     message?: string;
     data?: Record<string, unknown>;

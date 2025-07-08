@@ -95,7 +95,7 @@ const CodeVerificationScreen: React.FC<CodeVerificationScreenProps> = React.memo
         const testEmail = `test_${Date.now()}@testapp.local`;
         const testPassword = 'TestPassword123!';
         
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        const { error: signUpError } = await supabase.auth.signUp({
           email: testEmail,
           password: testPassword,
           options: {

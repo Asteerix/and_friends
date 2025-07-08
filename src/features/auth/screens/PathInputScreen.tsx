@@ -9,7 +9,6 @@ import {
   Platform,
   SafeAreaView,
   Pressable,
-  AccessibilityRole,
   Alert,
   ActivityIndicator,
 } from 'react-native';

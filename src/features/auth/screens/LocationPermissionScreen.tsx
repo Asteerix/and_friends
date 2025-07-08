@@ -10,7 +10,6 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { create } from 'react-native-pixel-perfect';
-import { useRouter } from 'expo-router';
 import * as Location from 'expo-location';
 import { supabase } from '@/shared/lib/supabase/client';
 import { useAuthNavigation } from '@/shared/hooks/useAuthNavigation';
@@ -23,7 +22,6 @@ const illustration = require('@/assets/images/register/localisation.png');
 
 const LocationPermissionScreen: React.FC = React.memo(() => {
   const insets = useSafeAreaInsets();
-  const router = useRouter();
   const { navigateBack, navigateNext, getProgress } = useAuthNavigation('location-permission');
   useRegistrationStep('location_permission');
   const [isLoading, setIsLoading] = useState(false);

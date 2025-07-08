@@ -1,5 +1,4 @@
 import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system';
 import { useState } from 'react';
 import { Alert, Platform } from 'react-native';
 import { decode } from 'base64-arraybuffer';
@@ -74,7 +73,7 @@ export const useSupabaseStorage = () => {
           // Méthode 1: Upload direct du blob
           console.log('[useSupabaseStorage] Attempting direct blob upload...');
           
-          const { data, error } = await supabase.storage
+          const { error } = await supabase.storage
             .from(bucket)
             .upload(fileName, blob, {
               contentType: `image/${ext === 'jpg' ? 'jpeg' : ext}`,
@@ -101,7 +100,7 @@ export const useSupabaseStorage = () => {
             
             const base64 = await base64Promise as string;
             
-            const { data: base64UploadData, error: base64Error } = await supabase.storage
+            const { error: base64Error } = await supabase.storage
               .from(bucket)
               .upload(fileName, decode(base64), {
                 contentType: `image/${ext === 'jpg' ? 'jpeg' : ext}`,
@@ -116,7 +115,7 @@ export const useSupabaseStorage = () => {
             
             console.log('[useSupabaseStorage] Base64 upload successful');
           } else {
-            console.log('[useSupabaseStorage] Direct blob upload successful:', data);
+            console.log('[useSupabaseStorage] Direct blob upload successful');
           }
 
           const { data: { publicUrl } } = supabase.storage
@@ -138,7 +137,7 @@ export const useSupabaseStorage = () => {
       const response = await fetch(uri);
       const blob = await response.blob();
       
-      const { data, error } = await supabase.storage
+      const { error } = await supabase.storage
         .from(bucket)
         .upload(fileName, blob, {
           contentType: blob.type || `image/${ext}`,
@@ -208,7 +207,7 @@ export const useSupabaseStorage = () => {
                       cacheControl: '3600',
                       upsert: false,
                     })
-                    .then(({ data, error }) => {
+                    .then(({ error }) => {
                       if (error) {
                         reject(error);
                       } else {
@@ -236,7 +235,7 @@ export const useSupabaseStorage = () => {
           }
 
           // Si le blob est valide
-          const { data, error } = await supabase.storage
+          const { error } = await supabase.storage
             .from(bucket)
             .upload(fileName, blob, {
               contentType: blob.type || `video/${ext}`,
@@ -249,7 +248,7 @@ export const useSupabaseStorage = () => {
             throw error;
           }
 
-          console.log('[useSupabaseStorage] Video upload successful:', data);
+          console.log('[useSupabaseStorage] Video upload successful');
 
           const { data: { publicUrl } } = supabase.storage
             .from(bucket)
@@ -269,7 +268,7 @@ export const useSupabaseStorage = () => {
       const response = await fetch(uri);
       const blob = await response.blob();
       
-      const { data, error } = await supabase.storage
+      const { error } = await supabase.storage
         .from(bucket)
         .upload(fileName, blob, {
           contentType: blob.type || `video/${ext}`,
