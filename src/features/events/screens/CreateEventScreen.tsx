@@ -1,6 +1,6 @@
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -15,12 +15,13 @@ import {
   Switch,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import DateTimePicker from '@react-native-community/datetimepicker';
 
 import { useProfile } from '@/hooks/useProfile';
 import BackButton from '@/assets/svg/back-button.svg';
 import ChatButton from '@/assets/svg/chat-button.svg';
 import NotificationButton from '@/assets/svg/notification-button.svg';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useEventCover } from '../context/EventCoverContext';
 
 // Import all modals
 import CostPerPersonModal from '../components/CostPerPersonModal';
@@ -30,25 +31,77 @@ import RSVPDeadlineModal from '../components/RSVPDeadlineModal';
 import GuestQuestionnaireModal from '../components/GuestQuestionnaireModal';
 import PlaylistModal from '../components/PlaylistModal';
 import ManageCoHostsModal from '../components/ManageCoHostsModal';
+import EventDatePickerModal from '../components/EventDatePickerModal';
 
 // Default event cover image
 const DEFAULT_EVENT_COVER = require('../../../assets/default_avatar.png');
 
+// Import fonts and backgrounds data
+import { FONTS as IMPORTED_FONTS, BACKGROUNDS as IMPORTED_BACKGROUNDS } from '../data/eventTemplates';
+
+// Map fonts with their styles
+const FONTS = IMPORTED_FONTS.map(font => ({
+  ...font,
+  style: {
+    fontFamily: font.value,
+    fontWeight: font.name === 'AFTERPARTY' ? 'bold' as const : font.name === 'Bold Impact' ? '900' as const : font.name === 'Modern' ? '300' as const : font.name === 'Elegant' ? '500' as const : 'normal' as const,
+    fontStyle: font.name === 'Classic Invite' || font.name === 'Fun Script' ? 'italic' as const : 'normal' as const
+  }
+}));
+
+const BACKGROUNDS = IMPORTED_BACKGROUNDS.map(bg => ({
+  ...bg,
+  colors: bg.colors as [string, string]
+}));
+
 export default function CreateEventScreen() {
   const router = useRouter();
   const { profile } = useProfile();
+  const { coverData, loadCoverData } = useEventCover();
   
   // State for event details
   const [coverUri] = useState('');
-  const [eventDate, setEventDate] = useState(new Date());
-  const [eventTime, setEventTime] = useState(new Date());
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showTimePicker, setShowTimePicker] = useState(false);
+  // Initialize event date to next Saturday at 8 PM
+  const getDefaultEventDate = () => {
+    const now = new Date();
+    const nextSaturday = new Date(now);
+    
+    // Calculate days until next Saturday (6 = Saturday)
+    const daysUntilSaturday = (6 - now.getDay() + 7) % 7 || 7;
+    nextSaturday.setDate(now.getDate() + daysUntilSaturday);
+    
+    // Set time to 8 PM
+    nextSaturday.setHours(20, 0, 0, 0);
+    
+    // Ensure it's at least 24 hours from now
+    const minimumDate = new Date(now.getTime() + (24 * 60 * 60 * 1000));
+    if (nextSaturday < minimumDate) {
+      // If next Saturday is too soon, go to the Saturday after
+      nextSaturday.setDate(nextSaturday.getDate() + 7);
+    }
+    
+    return nextSaturday;
+  };
+  
+  const [eventDate, setEventDate] = useState(getDefaultEventDate());
+  const [eventTime, setEventTime] = useState(getDefaultEventDate());
+  const [showDatePickerModal, setShowDatePickerModal] = useState(false);
   const [location, setLocation] = useState('');
   const [description, setDescription] = useState('');
   const [isPrivate, setIsPrivate] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [coHosts, setCoHosts] = useState<Array<{id: string, name: string, avatar: string}>>([]);
+  const [costs, setCosts] = useState<Array<{id: string, amount: string, currency: string, description: string}>>([]);
+  const [eventPhotos, setEventPhotos] = useState<string[]>([]);
+  const [rsvpDeadline, setRsvpDeadline] = useState<Date | null>(null);
+  const [rsvpReminderEnabled, setRsvpReminderEnabled] = useState(false);
+  const [rsvpReminderTiming, setRsvpReminderTiming] = useState('24h');
+  const [questionnaire, setQuestionnaire] = useState<Array<{id: string, text: string, type: string}>>([]);
+  
+  // Load saved cover data when component mounts
+  useEffect(() => {
+    loadCoverData();
+  }, []);
   
   // Modal states
   const [showCostModal, setShowCostModal] = useState(false);
@@ -118,12 +171,45 @@ export default function CreateEventScreen() {
       <ScrollView style={{ flex: 1, backgroundColor: '#fff' }} showsVerticalScrollIndicator={false}>
         {/* HEADER bloc with image and overlays */}
         <View style={styles.headerContainer}>
-          <Image
-            source={coverUri ? { uri: coverUri } : DEFAULT_EVENT_COVER}
-            style={styles.headerImage}
-          />
+          {/* Background image or gradient */}
+          {coverData.selectedBackground && !coverData.coverImage && !coverData.selectedTemplate ? (
+            <LinearGradient 
+              colors={BACKGROUNDS.find(bg => bg.id === coverData.selectedBackground)?.colors || ['#C8E6C9', '#C8E6C9']} 
+              style={styles.headerGradient} 
+            />
+          ) : coverData.selectedTemplate ? (
+            <Image
+              source={coverData.selectedTemplate.image}
+              style={styles.headerImage}
+            />
+          ) : (
+            <Image
+              source={coverData.coverImage ? { uri: coverData.coverImage } : DEFAULT_EVENT_COVER}
+              style={styles.headerImage}
+            />
+          )}
+          
           {/* Overlay for readability */}
           <View style={styles.headerOverlay} pointerEvents="none" />
+          
+          {/* Placed Stickers */}
+          <View style={styles.stickersLayer} pointerEvents="none">
+            {coverData.placedStickers.map((sticker) => (
+              <View
+                key={sticker.id}
+                style={[
+                  styles.staticSticker,
+                  {
+                    left: `${sticker.x}%`,
+                    top: `${sticker.y}%`,
+                    transform: [{ scale: sticker.scale }, { rotate: `${sticker.rotation}deg` }],
+                  },
+                ]}
+              >
+                <Text style={styles.stickerEmoji}>{sticker.emoji}</Text>
+              </View>
+            ))}
+          </View>
           
           {/* Top navigation bar */}
           <View style={styles.topNavBar}>
@@ -158,10 +244,19 @@ export default function CreateEventScreen() {
           
           {/* Event title overlay */}
           <View style={styles.eventTitleOverlay}>
-            <Text style={styles.eventTitleMainText}>Tap to add your</Text>
-            <Text style={styles.eventTitleMainText}>event title</Text>
-            <Text style={styles.eventSubtitle}>
-              Drop a punchline to get the crew{'\n'}hyped for what's coming.
+            <Text style={[
+              styles.eventTitleMainText, 
+              coverData.eventTitle ? FONTS.find(f => f.id === coverData.selectedTitleFont)?.style : {}
+            ]}>
+              {coverData.eventTitle ? coverData.eventTitle : (
+                <>Tap to add your{'\n'}event title</>
+              )}
+            </Text>
+            <Text style={[
+              styles.eventSubtitle,
+              coverData.eventSubtitle ? FONTS.find(f => f.id === coverData.selectedSubtitleFont)?.style : {}
+            ]}>
+              {coverData.eventSubtitle || "Drop a punchline to get the crew\nhyped for what's coming."}
             </Text>
           </View>
           
@@ -198,7 +293,7 @@ export default function CreateEventScreen() {
                   }
                   style={[styles.hostAvatar, { zIndex: 2 }]}
                 />
-                {coHosts.length === 1 && (
+                {coHosts.length === 1 && coHosts[0] && (
                   <Image
                     key={coHosts[0].id}
                     source={{ uri: coHosts[0].avatar }}
@@ -225,7 +320,7 @@ export default function CreateEventScreen() {
               </View>
               <Text style={styles.hostName}>
                 {profile?.full_name || 'Simira'}
-                {coHosts.length === 1 && ` and ${coHosts[0].name}`}
+                {coHosts.length === 1 && coHosts[0] && ` and ${coHosts[0].name}`}
                 {coHosts.length > 1 && ` and ${coHosts.length} others`}
               </Text>
               <TouchableOpacity onPress={handleAddCoHosts} style={styles.addCoHostsBtn}>
@@ -244,40 +339,20 @@ export default function CreateEventScreen() {
             
             <TouchableOpacity
               style={styles.datePickerField}
-              onPress={() => setShowDatePicker(true)}
+              onPress={() => setShowDatePickerModal(true)}
             >
-              <Text style={styles.datePickerText}>Pick a date & time</Text>
+              <Text style={styles.datePickerText}>
+                {eventDate.toLocaleDateString('en-US', { 
+                  weekday: 'short', 
+                  month: 'short', 
+                  day: 'numeric' 
+                })} at {eventTime.toLocaleTimeString([], { 
+                  hour: '2-digit', 
+                  minute: '2-digit' 
+                })}
+              </Text>
               <Ionicons name="chevron-forward" size={20} color="#999" />
             </TouchableOpacity>
-            
-            {showDatePicker && (
-              <DateTimePicker
-                value={eventDate}
-                mode="date"
-                display="default"
-                onChange={(event, selectedDate) => {
-                  setShowDatePicker(false);
-                  if (selectedDate) {
-                    setEventDate(selectedDate);
-                    setShowTimePicker(true);
-                  }
-                }}
-              />
-            )}
-            
-            {showTimePicker && (
-              <DateTimePicker
-                value={eventTime}
-                mode="time"
-                display="default"
-                onChange={(event, selectedTime) => {
-                  setShowTimePicker(false);
-                  if (selectedTime) {
-                    setEventTime(selectedTime);
-                  }
-                }}
-              />
-            )}
             
             <View style={styles.locationField}>
               <Ionicons name="search" size={20} color="#999" />
@@ -319,16 +394,40 @@ export default function CreateEventScreen() {
             
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.extrasScroll}>
               <View style={styles.extrasRow}>
-                <TouchableOpacity style={styles.extraPill} onPress={handleCostPerPerson}>
-                  <Ionicons name="ticket-outline" size={16} color="#007AFF" />
-                  <Text style={styles.extraPillText}>Cost per person</Text>
-                  <Ionicons name="add" size={16} color="#007AFF" />
+                <TouchableOpacity style={[styles.extraPill, costs.length > 0 && styles.extraPillConfigured]} onPress={handleCostPerPerson}>
+                  <Ionicons name="ticket-outline" size={16} color={costs.length > 0 ? "#FFF" : "#007AFF"} />
+                  <Text style={[styles.extraPillText, costs.length > 0 && styles.extraPillTextConfigured]}>
+                    {costs.length > 0 ? `${costs.length} cost${costs.length > 1 ? 's' : ''} added` : 'Cost per person'}
+                  </Text>
+                  {costs.length > 0 ? (
+                    <TouchableOpacity onPress={(e) => {
+                      e.stopPropagation();
+                      setCosts([]);
+                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    }}>
+                      <Ionicons name="close-circle" size={16} color="#FFF" />
+                    </TouchableOpacity>
+                  ) : (
+                    <Ionicons name="add" size={16} color="#007AFF" />
+                  )}
                 </TouchableOpacity>
                 
-                <TouchableOpacity style={styles.extraPill} onPress={handlePhotoAlbum}>
-                  <Ionicons name="images-outline" size={16} color="#007AFF" />
-                  <Text style={styles.extraPillText}>Photo Album</Text>
-                  <Ionicons name="add" size={16} color="#007AFF" />
+                <TouchableOpacity style={[styles.extraPill, eventPhotos.length > 0 && styles.extraPillConfigured]} onPress={handlePhotoAlbum}>
+                  <Ionicons name="images-outline" size={16} color={eventPhotos.length > 0 ? "#FFF" : "#007AFF"} />
+                  <Text style={[styles.extraPillText, eventPhotos.length > 0 && styles.extraPillTextConfigured]}>
+                    {eventPhotos.length > 0 ? `${eventPhotos.length} photo${eventPhotos.length > 1 ? 's' : ''}` : 'Photo Album'}
+                  </Text>
+                  {eventPhotos.length > 0 ? (
+                    <TouchableOpacity onPress={(e) => {
+                      e.stopPropagation();
+                      setEventPhotos([]);
+                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    }}>
+                      <Ionicons name="close-circle" size={16} color="#FFF" />
+                    </TouchableOpacity>
+                  ) : (
+                    <Ionicons name="add" size={16} color="#007AFF" />
+                  )}
                 </TouchableOpacity>
                 
                 <TouchableOpacity style={styles.extraPill} onPress={handleItemsToBring}>
@@ -337,16 +436,41 @@ export default function CreateEventScreen() {
                   <Ionicons name="add" size={16} color="#007AFF" />
                 </TouchableOpacity>
                 
-                <TouchableOpacity style={styles.extraPill} onPress={handleRSVPDeadline}>
-                  <Ionicons name="calendar-outline" size={16} color="#007AFF" />
-                  <Text style={styles.extraPillText}>RSVP deadline</Text>
-                  <Ionicons name="add" size={16} color="#007AFF" />
+                <TouchableOpacity style={[styles.extraPill, rsvpDeadline && styles.extraPillConfigured]} onPress={handleRSVPDeadline}>
+                  <Ionicons name="calendar-outline" size={16} color={rsvpDeadline ? "#FFF" : "#007AFF"} />
+                  <Text style={[styles.extraPillText, rsvpDeadline && styles.extraPillTextConfigured]}>
+                    {rsvpDeadline ? `RSVP by ${rsvpDeadline.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : 'RSVP deadline'}
+                  </Text>
+                  {rsvpDeadline ? (
+                    <TouchableOpacity onPress={(e) => {
+                      e.stopPropagation();
+                      setRsvpDeadline(null);
+                      setRsvpReminderEnabled(false);
+                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    }}>
+                      <Ionicons name="close-circle" size={16} color="#FFF" />
+                    </TouchableOpacity>
+                  ) : (
+                    <Ionicons name="add" size={16} color="#007AFF" />
+                  )}
                 </TouchableOpacity>
                 
-                <TouchableOpacity style={styles.extraPill} onPress={handleQuestionnaire}>
-                  <Ionicons name="clipboard-outline" size={16} color="#007AFF" />
-                  <Text style={styles.extraPillText}>Guest questionnaire</Text>
-                  <Ionicons name="add" size={16} color="#007AFF" />
+                <TouchableOpacity style={[styles.extraPill, questionnaire.length > 0 && styles.extraPillConfigured]} onPress={handleQuestionnaire}>
+                  <Ionicons name="clipboard-outline" size={16} color={questionnaire.length > 0 ? "#FFF" : "#007AFF"} />
+                  <Text style={[styles.extraPillText, questionnaire.length > 0 && styles.extraPillTextConfigured]}>
+                    {questionnaire.length > 0 ? `${questionnaire.length} question${questionnaire.length > 1 ? 's' : ''}` : 'Guest questionnaire'}
+                  </Text>
+                  {questionnaire.length > 0 ? (
+                    <TouchableOpacity onPress={(e) => {
+                      e.stopPropagation();
+                      setQuestionnaire([]);
+                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    }}>
+                      <Ionicons name="close-circle" size={16} color="#FFF" />
+                    </TouchableOpacity>
+                  ) : (
+                    <Ionicons name="add" size={16} color="#007AFF" />
+                  )}
                 </TouchableOpacity>
                 
                 <TouchableOpacity style={styles.extraPill} onPress={handlePlaylist}>
@@ -408,8 +532,9 @@ export default function CreateEventScreen() {
       <CostPerPersonModal
         visible={showCostModal}
         onClose={() => setShowCostModal(false)}
-        onSave={(amount, description) => {
-          console.log('Cost saved:', amount, description);
+        initialCosts={costs}
+        onSave={(newCosts) => {
+          setCosts(newCosts);
           void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         }}
       />
@@ -417,8 +542,10 @@ export default function CreateEventScreen() {
       <PhotoAlbumModal
         visible={showPhotoModal}
         onClose={() => setShowPhotoModal(false)}
+        initialPhotos={eventPhotos}
         onSave={(photos) => {
-          console.log('Photos saved:', photos);
+          setEventPhotos(photos);
+          setShowPhotoModal(false);
           void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         }}
       />
@@ -435,18 +562,26 @@ export default function CreateEventScreen() {
       <RSVPDeadlineModal
         visible={showRSVPModal}
         onClose={() => setShowRSVPModal(false)}
-        onSave={(deadline, reminderEnabled) => {
-          console.log('RSVP deadline saved:', deadline, reminderEnabled);
+        onSave={(deadline, reminderEnabled, reminderTiming) => {
+          setRsvpDeadline(deadline);
+          setRsvpReminderEnabled(reminderEnabled);
+          setRsvpReminderTiming(reminderTiming);
+          setShowRSVPModal(false);
           void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         }}
+        eventDate={eventDate}
+        initialDeadline={rsvpDeadline}
       />
       
       <GuestQuestionnaireModal
         visible={showQuestionnaireModal}
         onClose={() => setShowQuestionnaireModal(false)}
-        onSave={(questions) => {
-          console.log('Questions saved:', questions);
-          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        onSave={(questions, settings) => {
+          setQuestionnaire(questions);
+          setShowQuestionnaireModal(false);
+          if (questions.length > 0) {
+            void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          }
         }}
       />
       
@@ -467,6 +602,18 @@ export default function CreateEventScreen() {
           setCoHosts(newCoHosts);
           void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         }}
+      />
+      
+      <EventDatePickerModal
+        visible={showDatePickerModal}
+        onClose={() => setShowDatePickerModal(false)}
+        onSelect={(date, time) => {
+          setEventDate(date);
+          setEventTime(time);
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }}
+        currentDate={eventDate}
+        currentTime={eventTime}
       />
     </View>
   );
@@ -721,6 +868,13 @@ const styles = StyleSheet.create({
     color: '#007AFF',
     fontWeight: '500',
   },
+  extraPillConfigured: {
+    backgroundColor: '#007AFF',
+    borderColor: '#007AFF',
+  },
+  extraPillTextConfigured: {
+    color: '#FFF',
+  },
   privacyCard: {
     backgroundColor: '#FFF',
     borderRadius: 10,
@@ -775,5 +929,26 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 17,
     fontWeight: '600',
+  },
+  headerGradient: {
+    width: '100%',
+    height: '100%',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    zIndex: 0,
+  },
+  stickersLayer: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 2,
+  },
+  staticSticker: {
+    position: 'absolute',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 2,
+  },
+  stickerEmoji: {
+    fontSize: 40,
   },
 });

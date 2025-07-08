@@ -1,7 +1,7 @@
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -22,6 +22,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import BackButton from '@/assets/svg/back-button.svg';
 import ChatButton from '@/assets/svg/chat-button.svg';
 import NotificationButton from '@/assets/svg/notification-button.svg';
+import { useEventCover } from '../context/EventCoverContext';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -249,25 +250,40 @@ const DraggableSticker: React.FC<{
 
 export default function EditEventCoverScreen() {
   const router = useRouter();
+  const { coverData, updateCoverData, saveCoverData } = useEventCover();
+  
   const [activeTab, setActiveTab] = useState<TabType>('style');
-  const [selectedTitleFont, setSelectedTitleFont] = useState('1');
-  const [selectedSubtitleFont, setSelectedSubtitleFont] = useState('1');
-  const [selectedBackground, setSelectedBackground] = useState('');
-  const [eventTitle, setEventTitle] = useState('');
-  const [eventSubtitle, setEventSubtitle] = useState('');
+  const [selectedTitleFont, setSelectedTitleFont] = useState(coverData.selectedTitleFont || '1');
+  const [selectedSubtitleFont, setSelectedSubtitleFont] = useState(coverData.selectedSubtitleFont || '1');
+  const [selectedBackground, setSelectedBackground] = useState(coverData.selectedBackground || '');
+  const [eventTitle, setEventTitle] = useState(coverData.eventTitle || '');
+  const [eventSubtitle, setEventSubtitle] = useState(coverData.eventSubtitle || '');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [isEditingSubtitle, setIsEditingSubtitle] = useState(false);
-  const [coverImage, setCoverImage] = useState('');
-  const [uploadedImage, setUploadedImage] = useState('');
+  const [coverImage, setCoverImage] = useState(coverData.coverImage || '');
+  const [uploadedImage, setUploadedImage] = useState(coverData.uploadedImage || '');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('party');
-  const [placedStickers, setPlacedStickers] = useState<StickerType[]>([]);
+  const [placedStickers, setPlacedStickers] = useState<StickerType[]>(coverData.placedStickers || []);
   const [selectedStickerId, setSelectedStickerId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isDecorationMode, setIsDecorationMode] = useState(false);
   const [selectedTemplateCategory, setSelectedTemplateCategory] = useState('party');
   const [templateSearchQuery, setTemplateSearchQuery] = useState('');
-  const [selectedTemplate, setSelectedTemplate] = useState<{ id: string; name: string; image: any } | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<{ id: string; name: string; image: any } | null>(coverData.selectedTemplate || null);
+
+  // Load saved data when component mounts
+  useEffect(() => {
+    setSelectedTitleFont(coverData.selectedTitleFont || '1');
+    setSelectedSubtitleFont(coverData.selectedSubtitleFont || '1');
+    setSelectedBackground(coverData.selectedBackground || '');
+    setEventTitle(coverData.eventTitle || '');
+    setEventSubtitle(coverData.eventSubtitle || '');
+    setCoverImage(coverData.coverImage || '');
+    setUploadedImage(coverData.uploadedImage || '');
+    setPlacedStickers(coverData.placedStickers || []);
+    setSelectedTemplate(coverData.selectedTemplate || null);
+  }, [coverData]);
 
   const handleUploadImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -294,13 +310,47 @@ export default function EditEventCoverScreen() {
     setSelectedTitleFont('1');
     setSelectedSubtitleFont('1');
     setPlacedStickers([]);
+    setEventTitle('');
+    setEventSubtitle('');
+    
+    // Update context with default values
+    updateCoverData({
+      eventTitle: '',
+      eventSubtitle: '',
+      selectedTitleFont: '1',
+      selectedSubtitleFont: '1',
+      selectedBackground: '',
+      coverImage: '',
+      uploadedImage: '',
+      placedStickers: [],
+      selectedTemplate: null,
+    });
+    
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
   const handleSave = async () => {
     setIsLoading(true);
     try {
-      // Here you would save the cover configuration
+      // Create the cover data object
+      const newCoverData = {
+        eventTitle,
+        eventSubtitle,
+        selectedTitleFont,
+        selectedSubtitleFont,
+        selectedBackground,
+        coverImage,
+        uploadedImage,
+        placedStickers,
+        selectedTemplate,
+      };
+      
+      // Update the context with all the current data
+      updateCoverData(newCoverData);
+      
+      // Save to AsyncStorage with the new data
+      await saveCoverData(newCoverData);
+      
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.back();
     } catch (error) {

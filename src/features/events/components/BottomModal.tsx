@@ -68,10 +68,6 @@ export default function BottomModal({
     });
   };
 
-  const ContentWrapper = scrollable ? ScrollView : View;
-  const contentProps = scrollable
-    ? { showsVerticalScrollIndicator: false, bounces: false }
-    : {};
 
   return (
     <Modal
@@ -80,46 +76,57 @@ export default function BottomModal({
       animationType="none"
       onRequestClose={handleClose}
     >
-      <TouchableWithoutFeedback onPress={handleClose}>
-        <View style={styles.modalOverlay}>
-          <TouchableWithoutFeedback>
-            <KeyboardAvoidingView
-              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-              style={styles.keyboardAvoidingView}
-            >
-              <Animated.View
-                style={[
-                  styles.modalContent,
-                  { height, transform: [{ translateY: slideAnim }] },
-                ]}
+      <View style={styles.modalOverlay}>
+        <TouchableWithoutFeedback onPress={handleClose}>
+          <View style={StyleSheet.absoluteFillObject} />
+        </TouchableWithoutFeedback>
+        <Animated.View
+          style={[
+            styles.modalContent,
+            { height, transform: [{ translateY: slideAnim }] },
+          ]}
+        >
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={{ flex: 1 }}
+          >
+            <View style={styles.handle} />
+            
+            <View style={styles.header}>
+              <Text style={styles.title}>{title}</Text>
+              {showCloseButton && (
+                <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
+                  <Ionicons name="close" size={24} color="#000" />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {scrollable ? (
+              <ScrollView 
+                style={{ flex: 1 }}
+                contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 20 }}
+                showsVerticalScrollIndicator={true}
+                bounces={true}
+                scrollEventThrottle={16}
               >
-                <View style={styles.handle} />
-                
-                <View style={styles.header}>
-                  <Text style={styles.title}>{title}</Text>
-                  {showCloseButton && (
-                    <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-                      <Ionicons name="close" size={24} color="#000" />
-                    </TouchableOpacity>
-                  )}
-                </View>
+                {children}
+              </ScrollView>
+            ) : (
+              <View style={styles.content}>
+                {children}
+              </View>
+            )}
 
-                <ContentWrapper style={styles.content} {...contentProps}>
-                  {children}
-                </ContentWrapper>
-
-                {onSave && (
-                  <View style={styles.footer}>
-                    <TouchableOpacity style={styles.saveButton} onPress={onSave}>
-                      <Text style={styles.saveButtonText}>{saveButtonText}</Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-              </Animated.View>
-            </KeyboardAvoidingView>
-          </TouchableWithoutFeedback>
-        </View>
-      </TouchableWithoutFeedback>
+            {onSave && (
+              <View style={styles.footer}>
+                <TouchableOpacity style={styles.saveButton} onPress={onSave}>
+                  <Text style={styles.saveButtonText}>{saveButtonText}</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </KeyboardAvoidingView>
+        </Animated.View>
+      </View>
     </Modal>
   );
 }
@@ -169,7 +176,6 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   content: {
-    flex: 1,
     paddingHorizontal: 20,
     paddingTop: 20,
   },

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,51 +7,138 @@ import {
   Image,
   ScrollView,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import * as Haptics from 'expo-haptics';
 import BottomModal from './BottomModal';
 
 interface PhotoAlbumModalProps {
   visible: boolean;
   onClose: () => void;
   onSave: (photos: string[]) => void;
+  initialPhotos?: string[];
 }
+
+const MAX_PHOTOS = 12; // Limite maximale d'images
 
 export default function PhotoAlbumModal({
   visible,
   onClose,
   onSave,
+  initialPhotos = [],
 }: PhotoAlbumModalProps) {
-  const [photos, setPhotos] = useState<string[]>([]);
+  const [photos, setPhotos] = useState<string[]>(initialPhotos);
+  const [hasChanges, setHasChanges] = useState(false);
+  const [loadingImages, setLoadingImages] = useState<{ [key: string]: boolean }>({});
+
+  // Reset photos when modal opens with new initial photos
+  useEffect(() => {
+    if (visible) {
+      setPhotos(initialPhotos);
+      setHasChanges(false);
+    }
+  }, [visible, initialPhotos]);
 
   const pickImage = async () => {
+    if (photos.length >= MAX_PHOTOS) {
+      Alert.alert(
+        'Limite atteinte',
+        `Vous pouvez ajouter un maximum de ${MAX_PHOTOS} photos.`,
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsMultipleSelection: true,
       quality: 0.8,
+      selectionLimit: MAX_PHOTOS - photos.length,
     });
 
     if (!result.canceled && result.assets) {
-      const newPhotos = result.assets.map(asset => asset.uri);
+      const remainingSlots = MAX_PHOTOS - photos.length;
+      const newPhotos = result.assets.slice(0, remainingSlots).map(asset => asset.uri);
+      // Mark new photos as loading
+      const loadingState: { [key: string]: boolean } = {};
+      newPhotos.forEach(uri => {
+        loadingState[uri] = true;
+      });
+      setLoadingImages(prev => ({ ...prev, ...loadingState }));
+      
       setPhotos([...photos, ...newPhotos]);
+      setHasChanges(true);
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      
+      // Simulate image processing
+      setTimeout(() => {
+        setLoadingImages(prev => {
+          const updated = { ...prev };
+          newPhotos.forEach(uri => {
+            delete updated[uri];
+          });
+          return updated;
+        });
+      }, 800);
     }
   };
 
   const takePhoto = async () => {
+    if (photos.length >= MAX_PHOTOS) {
+      Alert.alert(
+        'Limite atteinte',
+        `Vous pouvez ajouter un maximum de ${MAX_PHOTOS} photos.`,
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
     const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       quality: 0.8,
     });
 
     if (!result.canceled && result.assets[0]) {
-      setPhotos([...photos, result.assets[0].uri]);
+      const newPhotoUri = result.assets[0].uri;
+      setLoadingImages(prev => ({ ...prev, [newPhotoUri]: true }));
+      setPhotos([...photos, newPhotoUri]);
+      setHasChanges(true);
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      
+      // Simulate image processing
+      setTimeout(() => {
+        setLoadingImages(prev => {
+          const updated = { ...prev };
+          delete updated[newPhotoUri];
+          return updated;
+        });
+      }, 800);
     }
   };
 
   const removePhoto = (index: number) => {
-    const newPhotos = photos.filter((_, i) => i !== index);
-    setPhotos(newPhotos);
+    Alert.alert(
+      'Supprimer la photo ?',
+      'Cette action est irréversible.',
+      [
+        {
+          text: 'Annuler',
+          style: 'cancel',
+        },
+        {
+          text: 'Supprimer',
+          style: 'destructive',
+          onPress: () => {
+            const newPhotos = photos.filter((_, i) => i !== index);
+            setPhotos(newPhotos);
+            setHasChanges(true);
+            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          },
+        },
+      ]
+    );
   };
 
   const handleAddPhotos = () => {
@@ -67,18 +154,50 @@ export default function PhotoAlbumModal({
   };
 
   const handleSave = () => {
-    onSave(photos);
+    if (hasChanges || photos.length !== initialPhotos.length) {
+      onSave(photos);
+    }
     onClose();
+  };
+
+  const handleClose = () => {
+    if (hasChanges) {
+      Alert.alert(
+        'Modifications non sauvegardées',
+        'Voulez-vous sauvegarder vos modifications ?',
+        [
+          {
+            text: 'Annuler',
+            style: 'cancel',
+          },
+          {
+            text: 'Ne pas sauvegarder',
+            style: 'destructive',
+            onPress: () => {
+              setPhotos(initialPhotos);
+              setHasChanges(false);
+              onClose();
+            },
+          },
+          {
+            text: 'Sauvegarder',
+            onPress: handleSave,
+          },
+        ]
+      );
+    } else {
+      onClose();
+    }
   };
 
   return (
     <BottomModal
       visible={visible}
-      onClose={onClose}
-      title="Photo Album"
-      height={500}
+      onClose={handleClose}
+      title="📸 Photo Album"
+      height={600}
       onSave={handleSave}
-      saveButtonText="Save Album"
+      saveButtonText={photos.length > 0 ? `Sauvegarder (${photos.length} photo${photos.length > 1 ? 's' : ''})` : 'Sauvegarder'}
     >
       <View style={styles.container}>
         {photos.length === 0 ? (
@@ -95,32 +214,59 @@ export default function PhotoAlbumModal({
           </View>
         ) : (
           <ScrollView showsVerticalScrollIndicator={false}>
+            <View style={styles.headerInfo}>
+              <Text style={styles.photoCountText}>
+                {photos.length} / {MAX_PHOTOS} photos
+              </Text>
+              {photos.length >= MAX_PHOTOS && (
+                <Text style={styles.limitWarning}>Limite atteinte</Text>
+              )}
+            </View>
+            
             <View style={styles.photosGrid}>
               {photos.map((photo, index) => (
-                <View key={index} style={styles.photoContainer}>
-                  <Image source={{ uri: photo }} style={styles.photo} />
+                <View key={`photo-${index}-${photo}`} style={styles.photoContainer}>
+                  <Image 
+                    source={{ uri: photo }} 
+                    style={styles.photo}
+                    onError={() => {
+                      Alert.alert('Erreur', 'Impossible de charger cette image');
+                      removePhoto(index);
+                    }}
+                  />
+                  {loadingImages[photo] && (
+                    <View style={styles.loadingOverlay}>
+                      <ActivityIndicator size="small" color="#FFF" />
+                    </View>
+                  )}
                   <TouchableOpacity
                     style={styles.removeButton}
                     onPress={() => removePhoto(index)}
+                    disabled={loadingImages[photo]}
                   >
                     <Ionicons name="close-circle" size={24} color="#FF3B30" />
                   </TouchableOpacity>
                 </View>
               ))}
               
-              <TouchableOpacity style={styles.addMoreButton} onPress={handleAddPhotos}>
-                <Ionicons name="add" size={32} color="#007AFF" />
-              </TouchableOpacity>
+              {photos.length < MAX_PHOTOS && (
+                <TouchableOpacity style={styles.addMoreButton} onPress={handleAddPhotos}>
+                  <Ionicons name="add" size={32} color="#007AFF" />
+                  <Text style={styles.addMoreText}>Ajouter</Text>
+                </TouchableOpacity>
+              )}
             </View>
           </ScrollView>
         )}
         
-        <View style={styles.centerContainer}>
-          <TouchableOpacity style={styles.addPhotosLink} onPress={handleAddPhotos}>
-            <Ionicons name="images-outline" size={20} color="#007AFF" />
-            <Text style={styles.addPhotosLinkText}>Add Photos</Text>
-          </TouchableOpacity>
-        </View>
+        {photos.length > 0 && photos.length < MAX_PHOTOS && (
+          <View style={styles.centerContainer}>
+            <TouchableOpacity style={styles.addPhotosLink} onPress={handleAddPhotos}>
+              <Ionicons name="images-outline" size={20} color="#007AFF" />
+              <Text style={styles.addPhotosLinkText}>Ajouter plus de photos</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
     </BottomModal>
   );
@@ -165,16 +311,34 @@ const styles = StyleSheet.create({
     color: '#666',
     marginTop: 12,
   },
+  headerInfo: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingHorizontal: 4,
+  },
+  photoCountText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+  },
+  limitWarning: {
+    fontSize: 14,
+    color: '#FF9500',
+    fontWeight: '500',
+  },
   photosGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
-    marginTop: 20,
+    justifyContent: 'space-between',
+    rowGap: 12,
   },
   photoContainer: {
     width: '31%',
     aspectRatio: 1,
     position: 'relative',
+    marginBottom: 4,
   },
   photo: {
     width: '100%',
@@ -188,6 +352,11 @@ const styles = StyleSheet.create({
     right: -8,
     backgroundColor: '#FFF',
     borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
   },
   addMoreButton: {
     width: '31%',
@@ -199,6 +368,13 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 4,
+  },
+  addMoreText: {
+    fontSize: 12,
+    color: '#007AFF',
+    marginTop: 4,
+    fontWeight: '500',
   },
   centerContainer: {
     alignItems: 'center',
@@ -214,5 +390,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#007AFF',
     fontWeight: '500',
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

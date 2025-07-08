@@ -17,6 +17,7 @@ import { NotificationProvider } from '@/shared/providers/NotificationProvider';
 import { MemoriesProvider } from '@/shared/providers/MemoriesProvider';
 import { UploadProgressBar } from '@/shared/ui/UploadProgressBar';
 import { NetworkErrorModal } from '@/shared/ui/NetworkErrorModal';
+import { EventCoverProvider } from '@/features/events/context/EventCoverContext';
 
 // import { PlayfairDisplay_700Bold } from '@expo-google-fonts/playfair-display';
 // Prevent auto-hiding splash screen
@@ -62,10 +63,11 @@ export default function RootLayout() {
                   <ProfileProvider>
                     <StoriesProvider>
                       <MemoriesProvider>
-                        <StatusBar style="dark" />
-                        <UploadProgressBar />
-                        <NetworkErrorModal />
-                        <Stack
+                        <EventCoverProvider>
+                          <StatusBar style="dark" />
+                          <UploadProgressBar />
+                          <NetworkErrorModal />
+                          <Stack
                       screenOptions={{
                         headerShown: false,
                         animation: 'slide_from_right',
@@ -101,6 +103,7 @@ export default function RootLayout() {
             <Stack.Screen name="screens/notifications-full" />
             <Stack.Screen name="screens/story-viewer" />
           </Stack>
+                        </EventCoverProvider>
                       </MemoriesProvider>
                     </StoriesProvider>
                   </ProfileProvider>
