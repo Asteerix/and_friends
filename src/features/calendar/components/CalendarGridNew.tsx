@@ -112,11 +112,18 @@ export default function CalendarGridNew({
         {calendarDays.map((date, index) => {
           const isInCurrentMonth = isCurrentMonth(date);
           const hasEventOnDate = hasEvent(date);
+          const isSelected = 
+            selectedDate.getDate() === date.getDate() &&
+            selectedDate.getMonth() === date.getMonth() &&
+            selectedDate.getFullYear() === date.getFullYear();
           
           return (
             <TouchableOpacity
               key={index}
-              style={styles.dayCell}
+              style={[
+                styles.dayCell,
+                isSelected && styles.selectedDayCell,
+              ]}
               onPress={() => onDateSelect(date)}
               activeOpacity={0.7}
             >
@@ -124,6 +131,7 @@ export default function CalendarGridNew({
                 style={[
                   styles.dayText,
                   !isInCurrentMonth && styles.inactiveDayText,
+                  isSelected && styles.selectedDayText,
                 ]}
               >
                 {date.getDate()}
@@ -203,5 +211,13 @@ const styles = StyleSheet.create({
     height: 6,
     borderRadius: 3,
     backgroundColor: '#000000',
+  },
+  selectedDayCell: {
+    backgroundColor: '#000000',
+    borderRadius: 20,
+  },
+  selectedDayText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
   },
 });

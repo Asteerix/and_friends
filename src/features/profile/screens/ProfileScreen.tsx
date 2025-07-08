@@ -703,10 +703,10 @@ export default function ProfileScreen({ userId }: ProfileScreenProps = {}) {
                         key={story.id}
                         style={styles.memoryCard}
                         onPress={() => {
-                          // Navigate to story viewer
-                          navigation.navigate('screens/stories/viewer', {
+                          // Navigate to user memories viewer
+                          navigation.navigate('screens/stories/userMemoriesViewer', {
+                            userId: profile?.id,
                             storyId: story.id,
-                            userId: story.user?.id || profile?.id,
                           });
                         }}
                       >

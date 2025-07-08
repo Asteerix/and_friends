@@ -1,0 +1,2671 @@
+import * as Haptics from 'expo-haptics';
+import * as ImagePicker from 'expo-image-picker';
+import { useRouter } from 'expo-router';
+import React, { useState, useRef } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  Dimensions,
+  PanResponder,
+  Animated,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+
+import BackButton from '@/assets/svg/back-button.svg';
+import ChatButton from '@/assets/svg/chat-button.svg';
+import NotificationButton from '@/assets/svg/notification-button.svg';
+
+const { width: screenWidth } = Dimensions.get('window');
+
+// Constants for sticker functionality
+const MAX_STICKERS = 10;
+const MIN_SCALE = 0.5;
+const MAX_SCALE = 3.0;
+
+// Default event cover image
+const DEFAULT_EVENT_COVER = require('../../../assets/default_avatar.png');
+
+// Sample data for different tabs
+const FONTS = [
+  { id: '1', name: 'Classic Invite', style: { fontFamily: 'System', fontStyle: 'italic' as const } },
+  { id: '2', name: 'Handwriting', style: { fontFamily: 'System', fontStyle: 'normal' as const } },
+  { id: '3', name: 'AFTERPARTY', style: { fontFamily: 'System', fontWeight: 'bold' as const } },
+  { id: '4', name: 'Modern', style: { fontFamily: 'System', fontWeight: '300' as const } },
+  { id: '5', name: 'Elegant', style: { fontFamily: 'System', fontWeight: '500' as const } },
+  { id: '6', name: 'Fun Script', style: { fontFamily: 'System', fontStyle: 'italic' as const } },
+  { id: '7', name: 'Bold Impact', style: { fontFamily: 'System', fontWeight: '900' as const } },
+];
+
+const BACKGROUNDS = [
+  { id: '1', colors: ['#FFB6C1', '#E6E6FA'] as [string, string] },
+  { id: '2', colors: ['#87CEEB', '#98FB98'] as [string, string] },
+  { id: '3', colors: ['#4169E1', '#00CED1'] as [string, string] },
+  { id: '4', colors: ['#90EE90', '#FFD700'] as [string, string] },
+  { id: '5', colors: ['#00CED1', '#FF69B4'] as [string, string] },
+  { id: '6', colors: ['#FF69B4', '#FFB6C1'] as [string, string] },
+  { id: '7', colors: ['#E6E6FA', '#D8BFD8'] as [string, string] },
+];
+
+
+// Using emojis directly as stickers - they will render natively
+const STICKER_CATEGORIES = [
+  {
+    id: 'birthday',
+    name: 'Birthdays & Celebrations',
+    stickers: [
+      { id: 'party-1', emoji: '🎉', name: 'Party Popper' },
+      { id: 'party-2', emoji: '🎂', name: 'Birthday Cake' },
+      { id: 'party-3', emoji: '🍾', name: 'Champagne' },
+      { id: 'party-4', emoji: '🎆', name: 'Fireworks' },
+      { id: 'party-5', emoji: '🎁', name: 'Gift' },
+      { id: 'party-6', emoji: '🎈', name: 'Balloon' },
+      { id: 'party-7', emoji: '🥳', name: 'Party Face' },
+      { id: 'party-8', emoji: '🎊', name: 'Confetti' },
+      { id: 'party-9', emoji: '🪩', name: 'Disco Ball' },
+      { id: 'party-10', emoji: '🍻', name: 'Cheers' },
+      { id: 'party-11', emoji: '🥂', name: 'Toast' },
+      { id: 'party-12', emoji: '🎪', name: 'Circus' },
+    ]
+  },
+  {
+    id: 'music',
+    name: 'Music',
+    stickers: [
+      { id: 'music-1', emoji: '🎤', name: 'Microphone' },
+      { id: 'music-2', emoji: '🎵', name: 'Musical Note' },
+      { id: 'music-3', emoji: '🎶', name: 'Multiple Notes' },
+      { id: 'music-4', emoji: '🎧', name: 'Headphones' },
+      { id: 'music-5', emoji: '🎸', name: 'Guitar' },
+      { id: 'music-6', emoji: '🥁', name: 'Drum' },
+      { id: 'music-7', emoji: '🎹', name: 'Piano' },
+      { id: 'music-8', emoji: '🎺', name: 'Trumpet' },
+      { id: 'music-9', emoji: '🎷', name: 'Saxophone' },
+      { id: 'music-10', emoji: '🎻', name: 'Violin' },
+      { id: 'music-11', emoji: '🎼', name: 'Musical Score' },
+      { id: 'music-12', emoji: '🎙️', name: 'Studio Mic' },
+    ]
+  },
+  {
+    id: 'food',
+    name: 'Food & Drink',
+    stickers: [
+      { id: 'food-1', emoji: '🍕', name: 'Pizza' },
+      { id: 'food-2', emoji: '🍔', name: 'Burger' },
+      { id: 'food-3', emoji: '🍹', name: 'Tropical Drink' },
+      { id: 'food-4', emoji: '☕', name: 'Coffee' },
+      { id: 'food-5', emoji: '🍺', name: 'Beer' },
+      { id: 'food-6', emoji: '🍰', name: 'Cake' },
+      { id: 'food-7', emoji: '🍿', name: 'Popcorn' },
+      { id: 'food-8', emoji: '🌮', name: 'Taco' },
+      { id: 'food-9', emoji: '🍝', name: 'Pasta' },
+      { id: 'food-10', emoji: '🍣', name: 'Sushi' },
+      { id: 'food-11', emoji: '🍷', name: 'Wine' },
+      { id: 'food-12', emoji: '🧁', name: 'Cupcake' },
+    ]
+  },
+  {
+    id: 'activities',
+    name: 'Activities',
+    stickers: [
+      { id: 'activities-1', emoji: '🏀', name: 'Basketball' },
+      { id: 'activities-2', emoji: '⚽', name: 'Soccer' },
+      { id: 'activities-3', emoji: '🎮', name: 'Gaming' },
+      { id: 'activities-4', emoji: '🎨', name: 'Art' },
+      { id: 'activities-5', emoji: '📸', name: 'Camera' },
+      { id: 'activities-6', emoji: '🎯', name: 'Target' },
+      { id: 'activities-7', emoji: '🎬', name: 'Movie' },
+      { id: 'activities-8', emoji: '🎭', name: 'Theater' },
+      { id: 'activities-9', emoji: '🏖️', name: 'Beach' },
+      { id: 'activities-10', emoji: '🎢', name: 'Roller Coaster' },
+      { id: 'activities-11', emoji: '🎳', name: 'Bowling' },
+      { id: 'activities-12', emoji: '🏕️', name: 'Camping' },
+    ]
+  },
+  {
+    id: 'decorative',
+    name: 'Decorative',
+    stickers: [
+      { id: 'deco-1', emoji: '✨', name: 'Sparkles' },
+      { id: 'deco-2', emoji: '💫', name: 'Dizzy Star' },
+      { id: 'deco-3', emoji: '⭐', name: 'Star' },
+      { id: 'deco-4', emoji: '💖', name: 'Sparkling Heart' },
+      { id: 'deco-5', emoji: '❤️', name: 'Red Heart' },
+      { id: 'deco-6', emoji: '🌟', name: 'Glowing Star' },
+      { id: 'deco-7', emoji: '🔥', name: 'Fire' },
+      { id: 'deco-8', emoji: '💥', name: 'Boom' },
+      { id: 'deco-9', emoji: '🌈', name: 'Rainbow' },
+      { id: 'deco-10', emoji: '☀️', name: 'Sun' },
+      { id: 'deco-11', emoji: '🌙', name: 'Moon' },
+      { id: 'deco-12', emoji: '💎', name: 'Diamond' },
+    ]
+  },
+];
+
+// Template categories organized by priority - public/social events first
+const TEMPLATE_CATEGORIES = [
+  // NIGHTLIFE & CLUBBING
+  {
+    id: 'nightlife',
+    name: 'Nightlife & Clubs',
+    templates: [
+      { id: 'night-1', name: 'After Hours', image: 'https://images.unsplash.com/photo-1574391884720-bbc3740c59d1?w=1200&q=80' },
+      { id: 'night-2', name: 'Bar Crawl', image: 'https://images.unsplash.com/photo-1543007630-9710e4a00a20?w=1200&q=80' },
+      { id: 'night-3', name: 'Beach Club', image: 'https://images.unsplash.com/photo-1551478547-2e3cc4827a1b?w=1200&q=80' },
+      { id: 'night-4', name: 'Bottle Service', image: 'https://images.unsplash.com/photo-1574634534894-89d7576c8259?w=1200&q=80' },
+      { id: 'night-5', name: 'Club Opening', image: 'https://images.unsplash.com/photo-1566737236500-c8ac43014a67?w=1200&q=80' },
+      { id: 'night-6', name: 'DJ Set', image: 'https://images.unsplash.com/photo-1571266028243-e4733b0f0bb0?w=1200&q=80' },
+      { id: 'night-7', name: 'Electro Night', image: 'https://images.unsplash.com/photo-1504680177321-2e6a879aac86?w=1200&q=80' },
+      { id: 'night-8', name: 'Friday Night Out', image: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&q=80' },
+      { id: 'night-9', name: 'Hip Hop Night', image: 'https://images.unsplash.com/photo-1547355253-ff0740f6e8c1?w=1200&q=80' },
+      { id: 'night-10', name: 'House Party', image: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&q=80' },
+      { id: 'night-11', name: 'Karaoke Night', image: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=1200&q=80' },
+      { id: 'night-12', name: 'Ladies Night', image: 'https://images.unsplash.com/photo-1519671845924-1fd18db430b8?w=1200&q=80' },
+      { id: 'night-13', name: 'Latin Night', image: 'https://images.unsplash.com/photo-1509824227185-9c5a01ceba0d?w=1200&q=80' },
+      { id: 'night-14', name: 'Live DJ', image: 'https://images.unsplash.com/photo-1574391884720-bbc3740c59d1?w=1200&q=80' },
+      { id: 'night-15', name: 'Lounge Night', image: 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=1200&q=80' },
+      { id: 'night-16', name: 'Night Out', image: 'https://images.unsplash.com/photo-1566417713940-fe7c737a9ef2?w=1200&q=80' },
+      { id: 'night-17', name: 'Pre Party', image: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=1200&q=80' },
+      { id: 'night-18', name: 'Pub Crawl', image: 'https://images.unsplash.com/photo-1436076863939-06870fe779c2?w=1200&q=80' },
+      { id: 'night-19', name: 'Rave Night', image: 'https://images.unsplash.com/photo-1576514129883-2b7c567d3baa?w=1200&q=80' },
+      { id: 'night-20', name: 'Rooftop Bar', image: 'https://images.unsplash.com/photo-1470337458703-46ad1756a187?w=1200&q=80' },
+      { id: 'night-21', name: 'Saturday Night', image: 'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1200&q=80' },
+      { id: 'night-22', name: 'Student Night', image: 'https://images.unsplash.com/photo-1571266028243-623bb9b62bfe?w=1200&q=80' },
+      { id: 'night-23', name: 'Techno Night', image: 'https://images.unsplash.com/photo-1528489096-c6ddc8e88e61?w=1200&q=80' },
+      { id: 'night-24', name: 'VIP Night', image: 'https://images.unsplash.com/photo-1571091655789-405eb7a3a3a8?w=1200&q=80' },
+      { id: 'night-25', name: 'Wine Bar', image: 'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=1200&q=80' },
+    ].sort((a, b) => a.name.localeCompare(b.name))
+  },
+  
+  // APARTMENT & HOME PARTIES
+  {
+    id: 'apartment',
+    name: 'Apartment & Home',
+    templates: [
+      { id: 'apt-1', name: 'Apartment Warming', image: 'https://images.unsplash.com/photo-1523301343968-6a6ebf63c672?w=1200&q=80' },
+      { id: 'apt-2', name: 'Balcony Party', image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200&q=80' },
+      { id: 'apt-3', name: 'Board Game Night', image: 'https://images.unsplash.com/photo-1529488127358-a8c782c24d81?w=1200&q=80' },
+      { id: 'apt-4', name: 'Book Club', image: 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=1200&q=80' },
+      { id: 'apt-5', name: 'Couch Party', image: 'https://images.unsplash.com/photo-1565799405267-5e58e3a8db56?w=1200&q=80' },
+      { id: 'apt-6', name: 'Cozy Night In', image: 'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?w=1200&q=80' },
+      { id: 'apt-7', name: 'Flatmate Party', image: 'https://images.unsplash.com/photo-1521543832500-49e69fb2bea2?w=1200&q=80' },
+      { id: 'apt-8', name: 'Friends Gathering', image: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=1200&q=80' },
+      { id: 'apt-9', name: 'Game Night', image: 'https://images.unsplash.com/photo-1577223625816-7546f13df25d?w=1200&q=80' },
+      { id: 'apt-10', name: 'Home Cinema', image: 'https://images.unsplash.com/photo-1522869635100-9f4c5e86aa37?w=1200&q=80' },
+      { id: 'apt-11', name: 'House Gathering', image: 'https://images.unsplash.com/photo-1521543832500-49e69fb2bea2?w=1200&q=80' },
+      { id: 'apt-12', name: 'House Party', image: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&q=80' },
+      { id: 'apt-13', name: 'Kitchen Party', image: 'https://images.unsplash.com/photo-1556911220-bff31c812dba?w=1200&q=80' },
+      { id: 'apt-14', name: 'Living Room Party', image: 'https://images.unsplash.com/photo-1565799405267-5e58e3a8db56?w=1200&q=80' },
+      { id: 'apt-15', name: 'Movie Marathon', image: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=1200&q=80' },
+      { id: 'apt-16', name: 'Netflix & Chill', image: 'https://images.unsplash.com/photo-1585647347217-0f9a0dc6dc6f?w=1200&q=80' },
+      { id: 'apt-17', name: 'Open House', image: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1200&q=80' },
+      { id: 'apt-18', name: 'Pajama Party', image: 'https://images.unsplash.com/photo-1567620905923-b8b43f8e8e9f?w=1200&q=80' },
+      { id: 'apt-19', name: 'Pizza Night', image: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=1200&q=80' },
+      { id: 'apt-20', name: 'Potluck Party', image: 'https://images.unsplash.com/photo-1543363136-85fef6d67b60?w=1200&q=80' },
+      { id: 'apt-21', name: 'Roommate Night', image: 'https://images.unsplash.com/photo-1521543832500-49e69fb2bea2?w=1200&q=80' },
+      { id: 'apt-22', name: 'Sleepover', image: 'https://images.unsplash.com/photo-1520003103560-eb4fd8cef81e?w=1200&q=80' },
+      { id: 'apt-23', name: 'Small Gathering', image: 'https://images.unsplash.com/photo-1523301343968-6a6ebf63c672?w=1200&q=80' },
+      { id: 'apt-24', name: 'Terrace Party', image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200&q=80' },
+      { id: 'apt-25', name: 'Wine Night', image: 'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=1200&q=80' },
+    ].sort((a, b) => a.name.localeCompare(b.name))
+  },
+  
+  // OUTDOOR & PARKS
+  {
+    id: 'outdoor',
+    name: 'Outdoor & Parks',
+    templates: [
+      { id: 'out-1', name: 'Beach Day', image: 'https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=1200&q=80' },
+      { id: 'out-2', name: 'Bike Ride', image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200&q=80' },
+      { id: 'out-3', name: 'Botanical Garden', image: 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=1200&q=80' },
+      { id: 'out-4', name: 'Camping Trip', image: 'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=1200&q=80' },
+      { id: 'out-5', name: 'City Walk', image: 'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?w=1200&q=80' },
+      { id: 'out-6', name: 'Forest Walk', image: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1200&q=80' },
+      { id: 'out-7', name: 'Hiking Adventure', image: 'https://images.unsplash.com/photo-1551632811-561732d1e306?w=1200&q=80' },
+      { id: 'out-8', name: 'Lake Day', image: 'https://images.unsplash.com/photo-1439066615861-d1af74d74000?w=1200&q=80' },
+      { id: 'out-9', name: 'Mountain Trip', image: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1200&q=80' },
+      { id: 'out-10', name: 'Nature Walk', image: 'https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?w=1200&q=80' },
+      { id: 'out-11', name: 'Outdoor Cinema', image: 'https://images.unsplash.com/photo-1505142468610-359e7d316be0?w=1200&q=80' },
+      { id: 'out-12', name: 'Park Hangout', image: 'https://images.unsplash.com/photo-1587271339292-b5bca8a616c4?w=1200&q=80' },
+      { id: 'out-13', name: 'Park Picnic', image: 'https://images.unsplash.com/photo-1532634922-8fe0b757fb13?w=1200&q=80' },
+      { id: 'out-14', name: 'Riverside Walk', image: 'https://images.unsplash.com/photo-1519331379826-f10be5486c6f?w=1200&q=80' },
+      { id: 'out-15', name: 'Running Group', image: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=1200&q=80' },
+      { id: 'out-16', name: 'Seine Banks', image: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=1200&q=80' },
+      { id: 'out-17', name: 'Sightseeing', image: 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1200&q=80' },
+      { id: 'out-18', name: 'Street Art Tour', image: 'https://images.unsplash.com/photo-1490650034439-fd184c3c86a5?w=1200&q=80' },
+      { id: 'out-19', name: 'Sunset Watching', image: 'https://images.unsplash.com/photo-1474552226712-ac0f0961a954?w=1200&q=80' },
+      { id: 'out-20', name: 'Urban Exploration', image: 'https://images.unsplash.com/photo-1514214246283-d427a95c5d2f?w=1200&q=80' },
+      { id: 'out-21', name: 'Walking Tour', image: 'https://images.unsplash.com/photo-1519150116223-7daf325644f7?w=1200&q=80' },
+      { id: 'out-22', name: 'Waterfront Walk', image: 'https://images.unsplash.com/photo-1445264918150-66a2371142a2?w=1200&q=80' },
+      { id: 'out-23', name: 'Weekend Getaway', image: 'https://images.unsplash.com/photo-1527004760037-364774e501e?w=1200&q=80' },
+      { id: 'out-24', name: 'Zoo Visit', image: 'https://images.unsplash.com/photo-1503919545889-aef636e10ad4?w=1200&q=80' },
+    ].sort((a, b) => a.name.localeCompare(b.name))
+  },
+  
+  // SPORTS & ACTIVITIES
+  {
+    id: 'activities',
+    name: 'Sports & Activities',
+    templates: [
+      { id: 'act-1', name: 'Badminton', image: 'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?w=1200&q=80' },
+      { id: 'act-2', name: 'Basketball Game', image: 'https://images.unsplash.com/photo-1546519638-68e109498ffc?w=1200&q=80' },
+      { id: 'act-3', name: 'Beach Volleyball', image: 'https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?w=1200&q=80' },
+      { id: 'act-4', name: 'Billiards Night', image: 'https://images.unsplash.com/photo-1598327105026-d8aaf6133562?w=1200&q=80' },
+      { id: 'act-5', name: 'Bowling Night', image: 'https://images.unsplash.com/photo-1545056453-f0359c3df6db?w=1200&q=80' },
+      { id: 'act-6', name: 'Boxing Class', image: 'https://images.unsplash.com/photo-1549719386-74dfcbf7dbed?w=1200&q=80' },
+      { id: 'act-7', name: 'Climbing Session', image: 'https://images.unsplash.com/photo-1522163182402-834f871fd851?w=1200&q=80' },
+      { id: 'act-8', name: 'Cycling Group', image: 'https://images.unsplash.com/photo-1517654443271-11c621d19e60?w=1200&q=80' },
+      { id: 'act-9', name: 'Dance Class', image: 'https://images.unsplash.com/photo-1524594152303-9fd13543fe6e?w=1200&q=80' },
+      { id: 'act-10', name: 'Darts Game', image: 'https://images.unsplash.com/photo-1563941433-b6a094653ed2?w=1200&q=80' },
+      { id: 'act-11', name: 'Football Match', image: 'https://images.unsplash.com/photo-1569863959165-56dae551d4fc?w=1200&q=80' },
+      { id: 'act-12', name: 'Go Karting', image: 'https://images.unsplash.com/photo-1593090361775-37f32e08c2b4?w=1200&q=80' },
+      { id: 'act-13', name: 'Golf Day', image: 'https://images.unsplash.com/photo-1535131749006-b7f58c99034b?w=1200&q=80' },
+      { id: 'act-14', name: 'Gym Session', image: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=1200&q=80' },
+      { id: 'act-15', name: 'Ice Skating', image: 'https://images.unsplash.com/photo-1578761499019-d71ff2d0e433?w=1200&q=80' },
+      { id: 'act-16', name: 'Laser Tag', image: 'https://images.unsplash.com/photo-1622751224642-2aefd5a60b68?w=1200&q=80' },
+      { id: 'act-17', name: 'Mini Golf', image: 'https://images.unsplash.com/photo-1593111774240-d529f12cf4bb?w=1200&q=80' },
+      { id: 'act-18', name: 'Paintball', image: 'https://images.unsplash.com/photo-1547347298-4074fc3086f0?w=1200&q=80' },
+      { id: 'act-19', name: 'Ping Pong', image: 'https://images.unsplash.com/photo-1558433916-90a36b44753f?w=1200&q=80' },
+      { id: 'act-20', name: 'Pool Game', image: 'https://images.unsplash.com/photo-1565843708714-52ecf69ab81f?w=1200&q=80' },
+      { id: 'act-21', name: 'Running Club', image: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=1200&q=80' },
+      { id: 'act-22', name: 'Skateboarding', image: 'https://images.unsplash.com/photo-1472746729193-36ad213ac4a5?w=1200&q=80' },
+      { id: 'act-23', name: 'Swimming', image: 'https://images.unsplash.com/photo-1530549572889-d68c7a37f550?w=1200&q=80' },
+      { id: 'act-24', name: 'Tennis Match', image: 'https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=1200&q=80' },
+      { id: 'act-25', name: 'Yoga Session', image: 'https://images.unsplash.com/photo-1599901860904-17e6ed7083a0?w=1200&q=80' },
+    ].sort((a, b) => a.name.localeCompare(b.name))
+  },
+  
+  // CULTURAL & ARTISTIC
+  {
+    id: 'cultural',
+    name: 'Cultural & Artistic',
+    templates: [
+      { id: 'cult-1', name: 'Art Exhibition', image: 'https://images.unsplash.com/photo-1551913902-c92207136625?w=1200&q=80' },
+      { id: 'cult-2', name: 'Art Gallery', image: 'https://images.unsplash.com/photo-1554907984-15263bfd63bd?w=1200&q=80' },
+      { id: 'cult-3', name: 'Art Workshop', image: 'https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=1200&q=80' },
+      { id: 'cult-4', name: 'Book Reading', image: 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=1200&q=80' },
+      { id: 'cult-5', name: 'Cinema Night', image: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=1200&q=80' },
+      { id: 'cult-6', name: 'Comedy Show', image: 'https://images.unsplash.com/photo-1527224857830-43a7acc85260?w=1200&q=80' },
+      { id: 'cult-7', name: 'Concert Hall', image: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&q=80' },
+      { id: 'cult-8', name: 'Dance Performance', image: 'https://images.unsplash.com/photo-1504609813442-a8924e83f76e?w=1200&q=80' },
+      { id: 'cult-9', name: 'Film Festival', image: 'https://images.unsplash.com/photo-1478720568477-152d9b164e26?w=1200&q=80' },
+      { id: 'cult-10', name: 'Gallery Opening', image: 'https://images.unsplash.com/photo-1565034946487-077786996e27?w=1200&q=80' },
+      { id: 'cult-11', name: 'Museum Visit', image: 'https://images.unsplash.com/photo-1554907984-15263bfd63bd?w=1200&q=80' },
+      { id: 'cult-12', name: 'Music Concert', image: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=1200&q=80' },
+      { id: 'cult-13', name: 'Opera Night', image: 'https://images.unsplash.com/photo-1580809361436-42a7ec204889?w=1200&q=80' },
+      { id: 'cult-14', name: 'Photography Walk', image: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=1200&q=80' },
+      { id: 'cult-15', name: 'Poetry Night', image: 'https://images.unsplash.com/photo-1515378960530-7c0da6231fb1?w=1200&q=80' },
+      { id: 'cult-16', name: 'Stand-up Comedy', image: 'https://images.unsplash.com/photo-1527224857830-43a7acc85260?w=1200&q=80' },
+      { id: 'cult-17', name: 'Theater Play', image: 'https://images.unsplash.com/photo-1507924538820-ede94a04019d?w=1200&q=80' },
+      { id: 'cult-18', name: 'Vernissage', image: 'https://images.unsplash.com/photo-1571115764595-644a1f56a55c?w=1200&q=80' },
+    ].sort((a, b) => a.name.localeCompare(b.name))
+  },
+  
+  // MEETUPS & SOCIAL
+  {
+    id: 'meetup',
+    name: 'Meetups & Social',
+    templates: [
+      { id: 'meet-1', name: 'After Work', image: 'https://images.unsplash.com/photo-1543007630-9710e4a00a20?w=1200&q=80' },
+      { id: 'meet-2', name: 'Coffee Meetup', image: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=1200&q=80' },
+      { id: 'meet-3', name: 'Community Meetup', image: 'https://images.unsplash.com/photo-1529070538774-1843cb3265df?w=1200&q=80' },
+      { id: 'meet-4', name: 'Expat Meetup', image: 'https://images.unsplash.com/photo-1523301343968-6a6ebf63c672?w=1200&q=80' },
+      { id: 'meet-5', name: 'Friend Reunion', image: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=1200&q=80' },
+      { id: 'meet-6', name: 'Happy Hour', image: 'https://images.unsplash.com/photo-1518791841217-8f162f1e1131?w=1200&q=80' },
+      { id: 'meet-7', name: 'Language Exchange', image: 'https://images.unsplash.com/photo-1453728013993-6d66e9c9123a?w=1200&q=80' },
+      { id: 'meet-8', name: 'Lunch Together', image: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1200&q=80' },
+      { id: 'meet-9', name: 'Neighborhood Meetup', image: 'https://images.unsplash.com/photo-1521543832500-49e69fb2bea2?w=1200&q=80' },
+      { id: 'meet-10', name: 'Networking', image: 'https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&q=80' },
+      { id: 'meet-11', name: 'New Friends', image: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1200&q=80' },
+      { id: 'meet-12', name: 'Singles Meetup', image: 'https://images.unsplash.com/photo-1519671845924-1fd18db430b8?w=1200&q=80' },
+      { id: 'meet-13', name: 'Social Mixer', image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=1200&q=80' },
+      { id: 'meet-14', name: 'Speed Dating', image: 'https://images.unsplash.com/photo-1527529482837-4698179dc6ce?w=1200&q=80' },
+      { id: 'meet-15', name: 'Student Meetup', image: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=1200&q=80' },
+    ].sort((a, b) => a.name.localeCompare(b.name))
+  },
+  
+  // CASUAL HANGOUTS
+  {
+    id: 'casual',
+    name: 'Casual Hangouts',
+    templates: [
+      { id: 'cas-1', name: 'Afternoon Tea', image: 'https://images.unsplash.com/photo-1547825407-2d060104b7f8?w=1200&q=80' },
+      { id: 'cas-2', name: 'Apéro Time', image: 'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=1200&q=80' },
+      { id: 'cas-3', name: 'Brunch', image: 'https://images.unsplash.com/photo-1504754524776-8f4f37790ca0?w=1200&q=80' },
+      { id: 'cas-4', name: 'Café Chat', image: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=1200&q=80' },
+      { id: 'cas-5', name: 'Chill Session', image: 'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?w=1200&q=80' },
+      { id: 'cas-6', name: 'Drink & Talk', image: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=1200&q=80' },
+      { id: 'cas-7', name: 'Ice Cream Date', image: 'https://images.unsplash.com/photo-1501443762994-82bd5dace89a?w=1200&q=80' },
+      { id: 'cas-8', name: 'Lazy Sunday', image: 'https://images.unsplash.com/photo-1520003103560-eb4fd8cef81e?w=1200&q=80' },
+      { id: 'cas-9', name: 'Lunch Break', image: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1200&q=80' },
+      { id: 'cas-10', name: 'Quick Catch Up', image: 'https://images.unsplash.com/photo-1521543832500-49e69fb2bea2?w=1200&q=80' },
+      { id: 'cas-11', name: 'Shopping Day', image: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1200&q=80' },
+      { id: 'cas-12', name: 'Study Session', image: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=1200&q=80' },
+      { id: 'cas-13', name: 'Sunset Drinks', image: 'https://images.unsplash.com/photo-1470337458703-46ad1756a187?w=1200&q=80' },
+      { id: 'cas-14', name: 'Weekend Vibes', image: 'https://images.unsplash.com/photo-1527529482837-4698179dc6ce?w=1200&q=80' },
+    ].sort((a, b) => a.name.localeCompare(b.name))
+  },
+  
+  // TECH & INNOVATION
+  {
+    id: 'tech',
+    name: 'Tech & Innovation',
+    templates: [
+      { id: 'tech-1', name: 'App Launch', image: 'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=1200&q=80' },
+      { id: 'tech-2', name: 'Blockchain Meetup', image: 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=1200&q=80' },
+      { id: 'tech-3', name: 'Code & Coffee', image: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=1200&q=80' },
+      { id: 'tech-4', name: 'Coding Bootcamp', image: 'https://images.unsplash.com/photo-1517180102446-f3ece451e9d8?w=1200&q=80' },
+      { id: 'tech-5', name: 'Demo Day', image: 'https://images.unsplash.com/photo-1560472355-536de3962603?w=1200&q=80' },
+      { id: 'tech-6', name: 'Dev Meetup', image: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&q=80' },
+      { id: 'tech-7', name: 'Gaming Tournament', image: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1200&q=80' },
+      { id: 'tech-8', name: 'Hackathon', image: 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=1200&q=80' },
+      { id: 'tech-9', name: 'Innovation Lab', image: 'https://images.unsplash.com/photo-1504384764586-bb4cdc1707b0?w=1200&q=80' },
+      { id: 'tech-10', name: 'LAN Party', image: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1200&q=80' },
+      { id: 'tech-11', name: 'Pitch Night', image: 'https://images.unsplash.com/photo-1559136555-9303baea8ebd?w=1200&q=80' },
+      { id: 'tech-12', name: 'Product Demo', image: 'https://images.unsplash.com/photo-1560472355-536de3962603?w=1200&q=80' },
+      { id: 'tech-13', name: 'Startup Meetup', image: 'https://images.unsplash.com/photo-1556761175-4b46a572b786?w=1200&q=80' },
+      { id: 'tech-14', name: 'Tech Talk', image: 'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&q=80' },
+      { id: 'tech-15', name: 'VR Experience', image: 'https://images.unsplash.com/photo-1617802690992-15d93263d3a9?w=1200&q=80' },
+    ].sort((a, b) => a.name.localeCompare(b.name))
+  },
+  
+  // RESTAURANT & DINING
+  {
+    id: 'dining',
+    name: 'Restaurant & Dining',
+    templates: [
+      { id: 'dine-1', name: 'BBQ Restaurant', image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=1200&q=80' },
+      { id: 'dine-2', name: 'Bistro Night', image: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1200&q=80' },
+      { id: 'dine-3', name: 'Buffet Dinner', image: 'https://images.unsplash.com/photo-1555244162-803834f70033?w=1200&q=80' },
+      { id: 'dine-4', name: 'Burger Joint', image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=1200&q=80' },
+      { id: 'dine-5', name: 'Chinese Restaurant', image: 'https://images.unsplash.com/photo-1559978137-8c560d91e9e1?w=1200&q=80' },
+      { id: 'dine-6', name: 'Dinner Date', image: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=1200&q=80' },
+      { id: 'dine-7', name: 'Fine Dining', image: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=1200&q=80' },
+      { id: 'dine-8', name: 'Food Court', image: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1200&q=80' },
+      { id: 'dine-9', name: 'French Restaurant', image: 'https://images.unsplash.com/photo-1550966871-3ed3cdb5ed0c?w=1200&q=80' },
+      { id: 'dine-10', name: 'Italian Dinner', image: 'https://images.unsplash.com/photo-1598023696416-0193a0bcd302?w=1200&q=80' },
+      { id: 'dine-11', name: 'Japanese Restaurant', image: 'https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=1200&q=80' },
+      { id: 'dine-12', name: 'Korean BBQ', image: 'https://images.unsplash.com/photo-1544378730-8b5104b38623?w=1200&q=80' },
+      { id: 'dine-13', name: 'Mexican Restaurant', image: 'https://images.unsplash.com/photo-1564758866811-4780aa0a1f49?w=1200&q=80' },
+      { id: 'dine-14', name: 'Pizza Place', image: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=1200&q=80' },
+      { id: 'dine-15', name: 'Ramen Shop', image: 'https://images.unsplash.com/photo-1557872943-16a5ac26437e?w=1200&q=80' },
+      { id: 'dine-16', name: 'Restaurant Opening', image: 'https://images.unsplash.com/photo-1555244162-803834f70033?w=1200&q=80' },
+      { id: 'dine-17', name: 'Seafood Restaurant', image: 'https://images.unsplash.com/photo-1551218808-94e220e084d2?w=1200&q=80' },
+      { id: 'dine-18', name: 'Steakhouse', image: 'https://images.unsplash.com/photo-1558030006-450675393462?w=1200&q=80' },
+      { id: 'dine-19', name: 'Street Food Tour', image: 'https://images.unsplash.com/photo-1565123409695-7b5ef63a2efb?w=1200&q=80' },
+      { id: 'dine-20', name: 'Sushi Bar', image: 'https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=1200&q=80' },
+      { id: 'dine-21', name: 'Tapas Night', image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=1200&q=80' },
+      { id: 'dine-22', name: 'Thai Restaurant', image: 'https://images.unsplash.com/photo-1559978137-8c560d91e9e1?w=1200&q=80' },
+      { id: 'dine-23', name: 'Vegan Restaurant', image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=1200&q=80' },
+    ].sort((a, b) => a.name.localeCompare(b.name))
+  },
+  
+  // LEARNING & WORKSHOPS
+  {
+    id: 'learning',
+    name: 'Learning & Workshops',
+    templates: [
+      { id: 'learn-1', name: 'Art Class', image: 'https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=1200&q=80' },
+      { id: 'learn-2', name: 'Book Club', image: 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=1200&q=80' },
+      { id: 'learn-3', name: 'Ceramics Class', image: 'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=1200&q=80' },
+      { id: 'learn-4', name: 'Cooking Workshop', image: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=1200&q=80' },
+      { id: 'learn-5', name: 'Dance Lesson', image: 'https://images.unsplash.com/photo-1524594152303-9fd13543fe6e?w=1200&q=80' },
+      { id: 'learn-6', name: 'DIY Workshop', image: 'https://images.unsplash.com/photo-1556760544-74068565f05c?w=1200&q=80' },
+      { id: 'learn-7', name: 'Language Class', image: 'https://images.unsplash.com/photo-1453728013993-6d66e9c9123a?w=1200&q=80' },
+      { id: 'learn-8', name: 'Music Lesson', image: 'https://images.unsplash.com/photo-1510915361894-db8b60106cb1?w=1200&q=80' },
+      { id: 'learn-9', name: 'Painting Class', image: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=1200&q=80' },
+      { id: 'learn-10', name: 'Photography Course', image: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=1200&q=80' },
+      { id: 'learn-11', name: 'Pottery Workshop', image: 'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=1200&q=80' },
+      { id: 'learn-12', name: 'Seminar', image: 'https://images.unsplash.com/photo-1560523159-4a9692d222ef?w=1200&q=80' },
+      { id: 'learn-13', name: 'Study Group', image: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=1200&q=80' },
+      { id: 'learn-14', name: 'Wine Course', image: 'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=1200&q=80' },
+      { id: 'learn-15', name: 'Writing Workshop', image: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?w=1200&q=80' },
+      { id: 'learn-16', name: 'Yoga Workshop', image: 'https://images.unsplash.com/photo-1599901860904-17e6ed7083a0?w=1200&q=80' },
+    ].sort((a, b) => a.name.localeCompare(b.name))
+  },
+  
+  // ENTERTAINMENT
+  {
+    id: 'entertainment',
+    name: 'Entertainment',
+    templates: [
+      { id: 'ent-1', name: 'Amusement Park', image: 'https://images.unsplash.com/photo-1505731110654-681d9e53b4e2?w=1200&q=80' },
+      { id: 'ent-2', name: 'Arcade Night', image: 'https://images.unsplash.com/photo-1511882150382-421056c89033?w=1200&q=80' },
+      { id: 'ent-3', name: 'Bingo Night', image: 'https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?w=1200&q=80' },
+      { id: 'ent-4', name: 'Board Game Café', image: 'https://images.unsplash.com/photo-1610890716171-6b1bb98ffd09?w=1200&q=80' },
+      { id: 'ent-5', name: 'Bowling Alley', image: 'https://images.unsplash.com/photo-1545056453-f0359c3df6db?w=1200&q=80' },
+      { id: 'ent-6', name: 'Casino Night', image: 'https://images.unsplash.com/photo-1511193311914-0346f16efe90?w=1200&q=80' },
+      { id: 'ent-7', name: 'Circus Show', image: 'https://images.unsplash.com/photo-1552411185-ce2ff2844b1f?w=1200&q=80' },
+      { id: 'ent-8', name: 'Comedy Club', image: 'https://images.unsplash.com/photo-1527224857830-43a7acc85260?w=1200&q=80' },
+      { id: 'ent-9', name: 'Escape Room', image: 'https://images.unsplash.com/photo-1619371208876-23e105602515?w=1200&q=80' },
+      { id: 'ent-10', name: 'Game Show', image: 'https://images.unsplash.com/photo-1606924735276-fbb5b325e933?w=1200&q=80' },
+      { id: 'ent-11', name: 'Improv Night', image: 'https://images.unsplash.com/photo-1527224857830-43a7acc85260?w=1200&q=80' },
+      { id: 'ent-12', name: 'Magic Show', image: 'https://images.unsplash.com/photo-1509824227185-9c5a01ceba0d?w=1200&q=80' },
+      { id: 'ent-13', name: 'Movie Marathon', image: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=1200&q=80' },
+      { id: 'ent-14', name: 'Murder Mystery', image: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=1200&q=80' },
+      { id: 'ent-15', name: 'Open Mic', image: 'https://images.unsplash.com/photo-1598387993441-a364f854c3e1?w=1200&q=80' },
+      { id: 'ent-16', name: 'Quiz Night', image: 'https://images.unsplash.com/photo-1606924735276-fbb5b325e933?w=1200&q=80' },
+      { id: 'ent-17', name: 'Talent Show', image: 'https://images.unsplash.com/photo-1493225255756-d9584f8606e9?w=1200&q=80' },
+      { id: 'ent-18', name: 'Theme Park', image: 'https://images.unsplash.com/photo-1505731110654-681d9e53b4e2?w=1200&q=80' },
+      { id: 'ent-19', name: 'Trivia Night', image: 'https://images.unsplash.com/photo-1606924735276-fbb5b325e933?w=1200&q=80' },
+    ].sort((a, b) => a.name.localeCompare(b.name))
+  },
+  
+  // WELLNESS & HEALTH
+  {
+    id: 'wellness',
+    name: 'Wellness & Health',
+    templates: [
+      { id: 'well-1', name: 'Beach Yoga', image: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=1200&q=80' },
+      { id: 'well-2', name: 'Bootcamp', image: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=1200&q=80' },
+      { id: 'well-3', name: 'CrossFit Session', image: 'https://images.unsplash.com/photo-1534368270820-9de3d8053204?w=1200&q=80' },
+      { id: 'well-4', name: 'Group Fitness', image: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=1200&q=80' },
+      { id: 'well-5', name: 'Gym Workout', image: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=1200&q=80' },
+      { id: 'well-6', name: 'Health Talk', image: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=1200&q=80' },
+      { id: 'well-7', name: 'Meditation', image: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=1200&q=80' },
+      { id: 'well-8', name: 'Mindfulness Session', image: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=1200&q=80' },
+      { id: 'well-9', name: 'Nutrition Workshop', image: 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=1200&q=80' },
+      { id: 'well-10', name: 'Pilates Class', image: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=1200&q=80' },
+      { id: 'well-11', name: 'Running Group', image: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=1200&q=80' },
+      { id: 'well-12', name: 'Spa Day', image: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=1200&q=80' },
+      { id: 'well-13', name: 'Spin Class', image: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=1200&q=80' },
+      { id: 'well-14', name: 'Wellness Retreat', image: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=1200&q=80' },
+      { id: 'well-15', name: 'Yoga Session', image: 'https://images.unsplash.com/photo-1599901860904-17e6ed7083a0?w=1200&q=80' },
+      { id: 'well-16', name: 'Zumba Class', image: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=1200&q=80' },
+    ].sort((a, b) => a.name.localeCompare(b.name))
+  },
+  
+  // TRAVEL & TOURISM
+  {
+    id: 'travel',
+    name: 'Travel & Tourism',
+    templates: [
+      { id: 'trav-1', name: 'Adventure Trip', image: 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1200&q=80' },
+      { id: 'trav-2', name: 'Airport Meetup', image: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=1200&q=80' },
+      { id: 'trav-3', name: 'Beach Vacation', image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200&q=80' },
+      { id: 'trav-4', name: 'Bus Tour', image: 'https://images.unsplash.com/photo-1570125909517-53cb21c89ff2?w=1200&q=80' },
+      { id: 'trav-5', name: 'City Break', image: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=1200&q=80' },
+      { id: 'trav-6', name: 'City Tour', image: 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1200&q=80' },
+      { id: 'trav-7', name: 'Cruise Trip', image: 'https://images.unsplash.com/photo-1599640842225-85d111c60e6b?w=1200&q=80' },
+      { id: 'trav-8', name: 'Day Trip', image: 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=1200&q=80' },
+      { id: 'trav-9', name: 'Group Travel', image: 'https://images.unsplash.com/photo-1527631746610-bca00a040d60?w=1200&q=80' },
+      { id: 'trav-10', name: 'Guided Tour', image: 'https://images.unsplash.com/photo-1533104816931-20fa691ff6ca?w=1200&q=80' },
+      { id: 'trav-11', name: 'Hostel Meetup', image: 'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=1200&q=80' },
+      { id: 'trav-12', name: 'Island Hopping', image: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=1200&q=80' },
+      { id: 'trav-13', name: 'Road Trip', image: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=1200&q=80' },
+      { id: 'trav-14', name: 'Safari Adventure', image: 'https://images.unsplash.com/photo-1516426122078-c23e76319801?w=1200&q=80' },
+      { id: 'trav-15', name: 'Sightseeing Tour', image: 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1200&q=80' },
+      { id: 'trav-16', name: 'Train Journey', image: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=1200&q=80' },
+      { id: 'trav-17', name: 'Travel Planning', image: 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1200&q=80' },
+      { id: 'trav-18', name: 'Weekend Trip', image: 'https://images.unsplash.com/photo-1527004760037-364774e501e?w=1200&q=80' },
+    ].sort((a, b) => a.name.localeCompare(b.name))
+  },
+  
+  // COMMUNITY & NEIGHBORHOOD
+  {
+    id: 'community',
+    name: 'Community & Neighborhood',
+    templates: [
+      { id: 'comm-1', name: 'Block Party', image: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&q=80' },
+      { id: 'comm-2', name: 'Car Boot Sale', image: 'https://images.unsplash.com/photo-1556742111-a301076d9d18?w=1200&q=80' },
+      { id: 'comm-3', name: 'Charity Event', image: 'https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=1200&q=80' },
+      { id: 'comm-4', name: 'Clean Up Day', image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200&q=80' },
+      { id: 'comm-5', name: 'Community BBQ', image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=1200&q=80' },
+      { id: 'comm-6', name: 'Community Garden', image: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=1200&q=80' },
+      { id: 'comm-7', name: 'Farmers Market', image: 'https://images.unsplash.com/photo-1488459716781-31db52582fe9?w=1200&q=80' },
+      { id: 'comm-8', name: 'Flea Market', image: 'https://images.unsplash.com/photo-1556742111-a301076d9d18?w=1200&q=80' },
+      { id: 'comm-9', name: 'Fundraiser', image: 'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=1200&q=80' },
+      { id: 'comm-10', name: 'Garage Sale', image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200&q=80' },
+      { id: 'comm-11', name: 'Local Fair', image: 'https://images.unsplash.com/photo-1533900369890-afdd6c77d1c3?w=1200&q=80' },
+      { id: 'comm-12', name: 'Neighborhood Watch', image: 'https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=1200&q=80' },
+      { id: 'comm-13', name: 'Open Air Market', image: 'https://images.unsplash.com/photo-1488459716781-31db52582fe9?w=1200&q=80' },
+      { id: 'comm-14', name: 'Street Fair', image: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=1200&q=80' },
+      { id: 'comm-15', name: 'Swap Meet', image: 'https://images.unsplash.com/photo-1556742111-a301076d9d18?w=1200&q=80' },
+      { id: 'comm-16', name: 'Volunteer Day', image: 'https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=1200&q=80' },
+    ].sort((a, b) => a.name.localeCompare(b.name))
+  },
+  
+  // SHOPPING & FASHION
+  {
+    id: 'shopping',
+    name: 'Shopping & Fashion',
+    templates: [
+      { id: 'shop-1', name: 'Black Friday', image: 'https://images.unsplash.com/photo-1607083681678-996d81ca6e6a?w=1200&q=80' },
+      { id: 'shop-2', name: 'Boutique Opening', image: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1200&q=80' },
+      { id: 'shop-3', name: 'Fashion Show', image: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=1200&q=80' },
+      { id: 'shop-4', name: 'Mall Day', image: 'https://images.unsplash.com/photo-1519567241046-7f570eee3ce6?w=1200&q=80' },
+      { id: 'shop-5', name: 'Market Day', image: 'https://images.unsplash.com/photo-1488459716781-31db52582fe9?w=1200&q=80' },
+      { id: 'shop-6', name: 'Pop Up Shop', image: 'https://images.unsplash.com/photo-1528698827591-e19ccd7bc23d?w=1200&q=80' },
+      { id: 'shop-7', name: 'Private Sale', image: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1200&q=80' },
+      { id: 'shop-8', name: 'Sample Sale', image: 'https://images.unsplash.com/photo-1555529669-2269763671c0?w=1200&q=80' },
+      { id: 'shop-9', name: 'Shopping Spree', image: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1200&q=80' },
+      { id: 'shop-10', name: 'Store Launch', image: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1200&q=80' },
+      { id: 'shop-11', name: 'Style Workshop', image: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=1200&q=80' },
+      { id: 'shop-12', name: 'Thrift Shopping', image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200&q=80' },
+      { id: 'shop-13', name: 'Trunk Show', image: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=1200&q=80' },
+      { id: 'shop-14', name: 'VIP Shopping', image: 'https://images.unsplash.com/photo-1555529669-2269763671c0?w=1200&q=80' },
+      { id: 'shop-15', name: 'Warehouse Sale', image: 'https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=1200&q=80' },
+    ].sort((a, b) => a.name.localeCompare(b.name))
+  },
+  
+  // FOOD & DRINKS EXPERIENCES  
+  {
+    id: 'food',
+    name: 'Food & Drinks',
+    templates: [
+      { id: 'food-1', name: 'Afternoon Tea', image: 'https://images.unsplash.com/photo-1547825407-2d060104b7f8?w=1200&q=80' },
+      { id: 'food-2', name: 'Apéro Time', image: 'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=1200&q=80' },
+      { id: 'food-3', name: 'BBQ Party', image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=1200&q=80' },
+      { id: 'food-4', name: 'Beer Tasting', image: 'https://images.unsplash.com/photo-1535958636474-b021ee887b13?w=1200&q=80' },
+      { id: 'food-5', name: 'Brunch', image: 'https://images.unsplash.com/photo-1504754524776-8f4f37790ca0?w=1200&q=80' },
+      { id: 'food-6', name: 'Champagne Tasting', image: 'https://images.unsplash.com/photo-1558022104-355cfd68a9ad?w=1200&q=80' },
+      { id: 'food-7', name: 'Cheese & Wine', image: 'https://images.unsplash.com/photo-1558736139-fd3522daa18f?w=1200&q=80' },
+      { id: 'food-8', name: 'Chocolate Tasting', image: 'https://images.unsplash.com/photo-1481391319762-47dff72954d9?w=1200&q=80' },
+      { id: 'food-9', name: 'Cocktail Hour', image: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=1200&q=80' },
+      { id: 'food-10', name: 'Cooking Class', image: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=1200&q=80' },
+      { id: 'food-11', name: 'Dessert Party', image: 'https://images.unsplash.com/photo-1488477181946-6428a0291777?w=1200&q=80' },
+      { id: 'food-12', name: 'Dinner Party', image: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1200&q=80' },
+      { id: 'food-13', name: 'Food Festival', image: 'https://images.unsplash.com/photo-1555244162-803834f70033?w=1200&q=80' },
+      { id: 'food-14', name: 'Food Truck Party', image: 'https://images.unsplash.com/photo-1565123409695-7b5ef63a2efb?w=1200&q=80' },
+      { id: 'food-15', name: 'Happy Hour', image: 'https://images.unsplash.com/photo-1518791841217-8f162f1e1131?w=1200&q=80' },
+      { id: 'food-16', name: 'Picnic', image: 'https://images.unsplash.com/photo-1532634922-8fe0b757fb13?w=1200&q=80' },
+      { id: 'food-17', name: 'Potluck', image: 'https://images.unsplash.com/photo-1543363136-85fef6d67b60?w=1200&q=80' },
+      { id: 'food-18', name: 'Street Food Tour', image: 'https://images.unsplash.com/photo-1567129937968-cdad8f07e2f8?w=1200&q=80' },
+      { id: 'food-19', name: 'Sushi Night', image: 'https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=1200&q=80' },
+      { id: 'food-20', name: 'Taco Tuesday', image: 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=1200&q=80' },
+      { id: 'food-21', name: 'Tapas Evening', image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=1200&q=80' },
+      { id: 'food-22', name: 'Tea Party', image: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=1200&q=80' },
+      { id: 'food-23', name: 'Wine Night', image: 'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=1200&q=80' },
+      { id: 'food-24', name: 'Wine Tasting', image: 'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=1200&q=80' },
+    ].sort((a, b) => a.name.localeCompare(b.name))
+  },
+  
+  // MUSIC & CONCERTS
+  {
+    id: 'music',
+    name: 'Music & Concerts',
+    templates: [
+      { id: 'music-1', name: 'Acoustic Night', image: 'https://images.unsplash.com/photo-1511192336575-5a79af67a629?w=1200&q=80' },
+      { id: 'music-2', name: 'Band Practice', image: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=1200&q=80' },
+      { id: 'music-3', name: 'Classical Concert', image: 'https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=1200&q=80' },
+      { id: 'music-4', name: 'Concert Night', image: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=1200&q=80' },
+      { id: 'music-5', name: 'DJ Set', image: 'https://images.unsplash.com/photo-1571266028243-e4733b0f0bb0?w=1200&q=80' },
+      { id: 'music-6', name: 'Festival', image: 'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1200&q=80' },
+      { id: 'music-7', name: 'Jazz Night', image: 'https://images.unsplash.com/photo-1415201364774-f6f0bb35f28f?w=1200&q=80' },
+      { id: 'music-8', name: 'Karaoke Night', image: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=1200&q=80' },
+      { id: 'music-9', name: 'Live Band', image: 'https://images.unsplash.com/photo-1501612780327-45045538702b?w=1200&q=80' },
+      { id: 'music-10', name: 'Music Jam', image: 'https://images.unsplash.com/photo-1508854710579-5cecc3a9ff17?w=1200&q=80' },
+      { id: 'music-11', name: 'Open Mic', image: 'https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?w=1200&q=80' },
+      { id: 'music-12', name: 'Orchestra', image: 'https://images.unsplash.com/photo-1521547418549-6a31aad7c177?w=1200&q=80' },
+      { id: 'music-13', name: 'Piano Recital', image: 'https://images.unsplash.com/photo-1552422535-c45813c61732?w=1200&q=80' },
+      { id: 'music-14', name: 'Rock Concert', image: 'https://images.unsplash.com/photo-1444927714506-8492d94b4e3d?w=1200&q=80' },
+      { id: 'music-15', name: 'Studio Session', image: 'https://images.unsplash.com/photo-1519892300165-cb5542fb47c7?w=1200&q=80' },
+    ].sort((a, b) => a.name.localeCompare(b.name))
+  },
+  
+  // GAMES & FUN
+  {
+    id: 'games',
+    name: 'Games & Fun',
+    templates: [
+      { id: 'game-1', name: 'Board Game Night', image: 'https://images.unsplash.com/photo-1529488127358-a8c782c24d81?w=1200&q=80' },
+      { id: 'game-2', name: 'Card Games', image: 'https://images.unsplash.com/photo-1541278107931-e006523892df?w=1200&q=80' },
+      { id: 'game-3', name: 'Chess Tournament', image: 'https://images.unsplash.com/photo-1528819622765-d6bcf132f793?w=1200&q=80' },
+      { id: 'game-4', name: 'Game Night', image: 'https://images.unsplash.com/photo-1577223625816-7546f13df25d?w=1200&q=80' },
+      { id: 'game-5', name: 'Poker Night', image: 'https://images.unsplash.com/photo-1596451190630-186aff535bf2?w=1200&q=80' },
+      { id: 'game-6', name: 'Quiz Night', image: 'https://images.unsplash.com/photo-1606924735276-fbb5b325e933?w=1200&q=80' },
+      { id: 'game-7', name: 'Trivia Night', image: 'https://images.unsplash.com/photo-1606924735276-fbb5b325e933?w=1200&q=80' },
+      { id: 'game-8', name: 'Video Games', image: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1200&q=80' },
+    ].sort((a, b) => a.name.localeCompare(b.name))
+  },
+  
+  // ===== PRIVATE EVENTS BELOW (less common on the app) =====
+  
+  // BIRTHDAYS
+  {
+    id: 'birthdays',
+    name: 'Birthdays',
+    templates: [
+      { id: 'bday-1', name: '1st Birthday', image: 'https://images.unsplash.com/photo-1607345366928-199ea26cfe3e?w=1200&q=80' },
+      { id: 'bday-2', name: '16th Birthday', image: 'https://images.unsplash.com/photo-1527529482837-4698179dc6ce?w=1200&q=80' },
+      { id: 'bday-3', name: '18th Birthday', image: 'https://images.unsplash.com/photo-1513151233558-d860c5398176?w=1200&q=80' },
+      { id: 'bday-4', name: '21st Birthday', image: 'https://images.unsplash.com/photo-1523438885200-e635ba2c371e?w=1200&q=80' },
+      { id: 'bday-5', name: '30th Birthday', image: 'https://images.unsplash.com/photo-1558636508-e0db3814bd1d?w=1200&q=80' },
+      { id: 'bday-6', name: '40th Birthday', image: 'https://images.unsplash.com/photo-1530029536652-e6e5b862dbb8?w=1200&q=80' },
+      { id: 'bday-7', name: '50th Birthday', image: 'https://images.unsplash.com/photo-1513151233558-d860c5398176?w=1200&q=80' },
+      { id: 'bday-8', name: 'Adult Birthday', image: 'https://images.unsplash.com/photo-1502086223501-7ea6ecd79368?w=1200&q=80' },
+      { id: 'bday-9', name: 'Baby Shower', image: 'https://images.unsplash.com/photo-1549831243-a69a0b3d39e0?w=1200&q=80' },
+      { id: 'bday-10', name: 'Birthday Brunch', image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1200&q=80' },
+      { id: 'bday-11', name: 'Birthday Celebration', image: 'https://images.unsplash.com/photo-1523438885200-e635ba2c371e?w=1200&q=80' },
+      { id: 'bday-12', name: 'Birthday Dinner', image: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=1200&q=80' },
+      { id: 'bday-13', name: 'Birthday Party', image: 'https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=1200&q=80' },
+      { id: 'bday-14', name: 'Birthday Surprise', image: 'https://images.unsplash.com/photo-1527529482837-4698179dc6ce?w=1200&q=80' },
+      { id: 'bday-15', name: 'Gender Reveal', image: 'https://images.unsplash.com/photo-1519340241574-2cec6aef0c01?w=1200&q=80' },
+      { id: 'bday-16', name: 'Kids Birthday', image: 'https://images.unsplash.com/photo-1561489396-888724a1543d?w=1200&q=80' },
+      { id: 'bday-17', name: 'Milestone Birthday', image: 'https://images.unsplash.com/photo-1558636508-e0db3814bd1d?w=1200&q=80' },
+      { id: 'bday-18', name: 'Princess Party', image: 'https://images.unsplash.com/photo-1546450270-aaa6e5def093?w=1200&q=80' },
+      { id: 'bday-19', name: 'Quinceañera', image: 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=1200&q=80' },
+      { id: 'bday-20', name: 'Superhero Party', image: 'https://images.unsplash.com/photo-1513151233558-d860c5398176?w=1200&q=80' },
+      { id: 'bday-21', name: 'Surprise Party', image: 'https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=1200&q=80' },
+      { id: 'bday-22', name: 'Sweet 16', image: 'https://images.unsplash.com/photo-1527529482837-4698179dc6ce?w=1200&q=80' },
+      { id: 'bday-23', name: 'Teenage Birthday', image: 'https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=1200&q=80' },
+    ].sort((a, b) => a.name.localeCompare(b.name))
+  },
+  
+  // CORPORATE EVENTS
+  {
+    id: 'corporate',
+    name: 'Corporate Events',
+    templates: [
+      { id: 'corp-1', name: 'Annual Meeting', image: 'https://images.unsplash.com/photo-1560439514-4e9645039924?w=1200&q=80' },
+      { id: 'corp-2', name: 'Award Ceremony', image: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&q=80' },
+      { id: 'corp-3', name: 'Board Meeting', image: 'https://images.unsplash.com/photo-1556761175-b413da4baf72?w=1200&q=80' },
+      { id: 'corp-4', name: 'Business Lunch', image: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1200&q=80' },
+      { id: 'corp-5', name: 'Company Picnic', image: 'https://images.unsplash.com/photo-1532635241-17e820acc59f?w=1200&q=80' },
+      { id: 'corp-6', name: 'Company Retreat', image: 'https://images.unsplash.com/photo-1571863533956-01c88e79957e?w=1200&q=80' },
+      { id: 'corp-7', name: 'Conference', image: 'https://images.unsplash.com/photo-1587825140708-dfaf72ae4b04?w=1200&q=80' },
+      { id: 'corp-8', name: 'Executive Dinner', image: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=1200&q=80' },
+      { id: 'corp-9', name: 'Farewell Party', image: 'https://images.unsplash.com/photo-1519671282429-b44660ead0a7?w=1200&q=80' },
+      { id: 'corp-10', name: 'Fundraiser', image: 'https://images.unsplash.com/photo-1559136555-9303baea8ebd?w=1200&q=80' },
+      { id: 'corp-11', name: 'Gala Dinner', image: 'https://images.unsplash.com/photo-1464699908537-0954e50791ee?w=1200&q=80' },
+      { id: 'corp-12', name: 'Holiday Party', image: 'https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?w=1200&q=80' },
+      { id: 'corp-13', name: 'Launch Event', image: 'https://images.unsplash.com/photo-1559136555-9303baea8ebd?w=1200&q=80' },
+      { id: 'corp-14', name: 'Leadership Summit', image: 'https://images.unsplash.com/photo-1560523159-4a9692d222ef?w=1200&q=80' },
+      { id: 'corp-15', name: 'Networking Event', image: 'https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=1200&q=80' },
+      { id: 'corp-16', name: 'Office Opening', image: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=1200&q=80' },
+      { id: 'corp-17', name: 'Office Party', image: 'https://images.unsplash.com/photo-1519671282429-b44660ead0a7?w=1200&q=80' },
+      { id: 'corp-18', name: 'Product Launch', image: 'https://images.unsplash.com/photo-1559136555-9303baea8ebd?w=1200&q=80' },
+      { id: 'corp-19', name: 'Retirement Party', image: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=1200&q=80' },
+      { id: 'corp-20', name: 'Sales Meeting', image: 'https://images.unsplash.com/photo-1556761175-b413da4baf72?w=1200&q=80' },
+      { id: 'corp-21', name: 'Seminar', image: 'https://images.unsplash.com/photo-1560439514-4e9645039924?w=1200&q=80' },
+      { id: 'corp-22', name: 'Team Building', image: 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=1200&q=80' },
+      { id: 'corp-23', name: 'Town Hall', image: 'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1200&q=80' },
+      { id: 'corp-24', name: 'Trade Show', image: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&q=80' },
+      { id: 'corp-25', name: 'Training Workshop', image: 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?w=1200&q=80' },
+      { id: 'corp-26', name: 'Welcome Party', image: 'https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?w=1200&q=80' },
+      { id: 'corp-27', name: 'Year End Party', image: 'https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?w=1200&q=80' },
+    ].sort((a, b) => a.name.localeCompare(b.name))
+  },
+  
+  // WEDDINGS
+  {
+    id: 'weddings',
+    name: 'Weddings',
+    templates: [
+      { id: 'wed-1', name: 'Anniversary Party', image: 'https://images.unsplash.com/photo-1530023367847-a683933f4172?w=1200&q=80' },
+      { id: 'wed-2', name: 'Bachelor Party', image: 'https://images.unsplash.com/photo-1534604973900-c43ab4c2e0ab?w=1200&q=80' },
+      { id: 'wed-3', name: 'Bachelorette Party', image: 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=1200&q=80' },
+      { id: 'wed-4', name: 'Beach Wedding', image: 'https://images.unsplash.com/photo-1529636798458-92182e662485?w=1200&q=80' },
+      { id: 'wed-5', name: 'Bridal Shower', image: 'https://images.unsplash.com/photo-1502635385003-ee1e6a1a742d?w=1200&q=80' },
+      { id: 'wed-6', name: 'Church Wedding', image: 'https://images.unsplash.com/photo-1606800052052-a08af7148866?w=1200&q=80' },
+      { id: 'wed-7', name: 'City Wedding', image: 'https://images.unsplash.com/photo-1516435209827-920f9f3b7e53?w=1200&q=80' },
+      { id: 'wed-8', name: 'Destination Wedding', image: 'https://images.unsplash.com/photo-1452901569789-2a1dbd0f0c96?w=1200&q=80' },
+      { id: 'wed-9', name: 'Engagement Party', image: 'https://images.unsplash.com/photo-1522673607200-164d1b6ce486?w=1200&q=80' },
+      { id: 'wed-10', name: 'Garden Wedding', image: 'https://images.unsplash.com/photo-1478146896981-b80fe463b330?w=1200&q=80' },
+      { id: 'wed-11', name: 'Intimate Wedding', image: 'https://images.unsplash.com/photo-1520854221256-17451cc331bf?w=1200&q=80' },
+      { id: 'wed-12', name: 'Outdoor Wedding', image: 'https://images.unsplash.com/photo-1431576901776-e539bd916ba2?w=1200&q=80' },
+      { id: 'wed-13', name: 'Reception', image: 'https://images.unsplash.com/photo-1511795409834-432f7b1728dd?w=1200&q=80' },
+      { id: 'wed-14', name: 'Rehearsal Dinner', image: 'https://images.unsplash.com/photo-1533854775446-95c4609da544?w=1200&q=80' },
+      { id: 'wed-15', name: 'Rustic Wedding', image: 'https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?w=1200&q=80' },
+      { id: 'wed-16', name: 'Traditional Wedding', image: 'https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?w=1200&q=80' },
+      { id: 'wed-17', name: 'Wedding Ceremony', image: 'https://images.unsplash.com/photo-1516435209827-920f9f3b7e53?w=1200&q=80' },
+      { id: 'wed-18', name: 'Wedding Reception', image: 'https://images.unsplash.com/photo-1511795409834-432f7b1728dd?w=1200&q=80' },
+    ].sort((a, b) => a.name.localeCompare(b.name))
+  },
+];
+
+type TabType = 'style' | 'decorate' | 'template';
+
+interface StickerType {
+  id: string;
+  emoji: string;
+  x: number;
+  y: number;
+  scale: number;
+  rotation: number;
+}
+
+// Instagram/Snapchat style Draggable Sticker Component
+const DraggableSticker: React.FC<{
+  sticker: StickerType;
+  isSelected: boolean;
+  onSelect: () => void;
+  onUpdate: (sticker: StickerType) => void;
+  onRemove: () => void;
+}> = ({ sticker, isSelected, onSelect, onUpdate, onRemove }) => {
+  const pan = useRef(new Animated.ValueXY({
+    x: (sticker.x / 100) * screenWidth,
+    y: (sticker.y / 100) * 700,
+  })).current;
+  
+  const scale = useRef(new Animated.Value(sticker.scale)).current;
+  const rotation = useRef(new Animated.Value(sticker.rotation)).current;
+  const lastScale = useRef(sticker.scale);
+  const lastRotation = useRef(sticker.rotation);
+  const baseScale = useRef(new Animated.Value(1)).current;
+  const pinchScale = useRef(new Animated.Value(1)).current;
+  const lastDistance = useRef(0);
+  const lastAngle = useRef(0);
+  
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      { id: 'wed-13', name: 'Destination Wedding', image: 'https://images.unsplash.com/photo-1452901569789-2a1dbd0f0c96?w=1200&q=80' },
+      { id: 'wed-14', name: 'Engagement Party', image: 'https://images.unsplash.com/photo-1522673607200-164d1b6ce486?w=1200&q=80' },
+      { id: 'wed-15', name: 'Fairytale Wedding', image: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=1200&q=80' },
+      { id: 'wed-16', name: 'Fall Wedding', image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=1200&q=80' },
+      { id: 'wed-17', name: 'Garden Wedding', image: 'https://images.unsplash.com/photo-1478146896981-b80fe463b330?w=1200&q=80' },
+      { id: 'wed-18', name: 'Glamorous Wedding', image: 'https://images.unsplash.com/photo-1505932049984-db368d92fa63?w=1200&q=80' },
+      { id: 'wed-19', name: 'Hotel Wedding', image: 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=1200&q=80' },
+      { id: 'wed-20', name: 'Indoor Wedding', image: 'https://images.unsplash.com/photo-1510076857177-7470076d4098?w=1200&q=80' },
+      { id: 'wed-21', name: 'Intimate Wedding', image: 'https://images.unsplash.com/photo-1520854221256-17451cc331bf?w=1200&q=80' },
+      { id: 'wed-22', name: 'Luxury Wedding', image: 'https://images.unsplash.com/photo-1469371670807-013ccf25f16a?w=1200&q=80' },
+      { id: 'wed-23', name: 'Modern Wedding', image: 'https://images.unsplash.com/photo-1464699908537-0954e50791ee?w=1200&q=80' },
+      { id: 'wed-24', name: 'Mountain Wedding', image: 'https://images.unsplash.com/photo-1522199710521-72d69614c702?w=1200&q=80' },
+      { id: 'wed-25', name: 'Outdoor Wedding', image: 'https://images.unsplash.com/photo-1431576901776-e539bd916ba2?w=1200&q=80' },
+      { id: 'wed-26', name: 'Reception', image: 'https://images.unsplash.com/photo-1511795409834-432f7b1728dd?w=1200&q=80' },
+      { id: 'wed-27', name: 'Rehearsal Dinner', image: 'https://images.unsplash.com/photo-1533854775446-95c4609da544?w=1200&q=80' },
+      { id: 'wed-28', name: 'Romantic Wedding', image: 'https://images.unsplash.com/photo-1522333323-32663f141b57?w=1200&q=80' },
+      { id: 'wed-29', name: 'Rustic Wedding', image: 'https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?w=1200&q=80' },
+      { id: 'wed-30', name: 'Spring Wedding', image: 'https://images.unsplash.com/photo-1519741347686-c1e0aadf4611?w=1200&q=80' },
+      { id: 'wed-31', name: 'Summer Wedding', image: 'https://images.unsplash.com/photo-1420819453217-57b6badd9e19?w=1200&q=80' },
+      { id: 'wed-32', name: 'Traditional Wedding', image: 'https://images.unsplash.com/photo-1511285605577-4d62fb50d2f7?w=1200&q=80' },
+      { id: 'wed-33', name: 'Tropical Wedding', image: 'https://images.unsplash.com/photo-1515934751635-c81c6bc9a2d8?w=1200&q=80' },
+      { id: 'wed-34', name: 'Vintage Wedding', image: 'https://images.unsplash.com/photo-1519741347686-c1e0aadf4611?w=1200&q=80' },
+      { id: 'wed-35', name: 'Vineyard Wedding', image: 'https://images.unsplash.com/photo-1510076857177-7470076d4098?w=1200&q=80' },
+      { id: 'wed-36', name: 'Wedding Ceremony', image: 'https://images.unsplash.com/photo-1550005809-91ad75fb315f?w=1200&q=80' },
+      { id: 'wed-37', name: 'Wedding Proposal', image: 'https://images.unsplash.com/photo-1522057384400-681b421cfebc?w=1200&q=80' },
+      { id: 'wed-38', name: 'Winter Wedding', image: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=1200&q=80' },
+    ].sort((a, b) => a.name.localeCompare(b.name))
+  },
+  {
+    id: 'music',
+    name: 'Music & Concert',
+    templates: [
+      { id: 'music-1', name: 'Acoustic Night', image: 'https://images.unsplash.com/photo-1511192336575-5a79af67a629?w=1200&q=80' },
+      { id: 'music-2', name: 'Album Launch', image: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=1200&q=80' },
+      { id: 'music-3', name: 'Battle of Bands', image: 'https://images.unsplash.com/photo-1517263904808-5dc91e3e7044?w=1200&q=80' },
+      { id: 'music-4', name: 'Blues Night', image: 'https://images.unsplash.com/photo-1493676304819-0d7a8d026dcf?w=1200&q=80' },
+      { id: 'music-5', name: 'Classical Concert', image: 'https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=1200&q=80' },
+      { id: 'music-6', name: 'Concert Night', image: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=1200&q=80' },
+      { id: 'music-7', name: 'Country Music Night', image: 'https://images.unsplash.com/photo-1508854710579-5cecc3a9ff17?w=1200&q=80' },
+      { id: 'music-8', name: 'DJ Battle', image: 'https://images.unsplash.com/photo-1571266028243-e4733b0f0bb0?w=1200&q=80' },
+      { id: 'music-9', name: 'DJ Night', image: 'https://images.unsplash.com/photo-1574391884720-bbc3740c59d1?w=1200&q=80' },
+      { id: 'music-10', name: 'Drum Circle', image: 'https://images.unsplash.com/photo-1519892300165-cb5542fb47c7?w=1200&q=80' },
+      { id: 'music-11', name: 'EDM Festival', image: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1200&q=80' },
+      { id: 'music-12', name: 'Electronic Night', image: 'https://images.unsplash.com/photo-1504680177321-2e6a879aac86?w=1200&q=80' },
+      { id: 'music-13', name: 'Folk Music Night', image: 'https://images.unsplash.com/photo-1506157786151-b8491531f063?w=1200&q=80' },
+      { id: 'music-14', name: 'Hip Hop Night', image: 'https://images.unsplash.com/photo-1547355253-ff0740f6e8c1?w=1200&q=80' },
+      { id: 'music-15', name: 'House Music Night', image: 'https://images.unsplash.com/photo-1566737236500-c8ac43014a67?w=1200&q=80' },
+      { id: 'music-16', name: 'Indie Band Night', image: 'https://images.unsplash.com/photo-1509824227185-9c5a01ceba0d?w=1200&q=80' },
+      { id: 'music-17', name: 'Jazz Night', image: 'https://images.unsplash.com/photo-1415201364774-f6f0bb35f28f?w=1200&q=80' },
+      { id: 'music-18', name: 'Karaoke Night', image: 'https://images.unsplash.com/photo-1516280440614-37939bbacd81?w=1200&q=80' },
+      { id: 'music-19', name: 'Latin Music Night', image: 'https://images.unsplash.com/photo-1504680177321-2e6a879aac86?w=1200&q=80' },
+      { id: 'music-20', name: 'Live Band', image: 'https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?w=1200&q=80' },
+      { id: 'music-21', name: 'Music Festival', image: 'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1200&q=80' },
+      { id: 'music-22', name: 'Music Workshop', image: 'https://images.unsplash.com/photo-1510915361894-db8b60106cb1?w=1200&q=80' },
+      { id: 'music-23', name: 'Open Mic', image: 'https://images.unsplash.com/photo-1598387993441-a364f854c3e1?w=1200&q=80' },
+      { id: 'music-24', name: 'Orchestra Performance', image: 'https://images.unsplash.com/photo-1521547418549-6a31aad7c177?w=1200&q=80' },
+      { id: 'music-25', name: 'Piano Recital', image: 'https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?w=1200&q=80' },
+      { id: 'music-26', name: 'Pop Concert', image: 'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=1200&q=80' },
+      { id: 'music-27', name: 'Punk Rock Show', image: 'https://images.unsplash.com/photo-1506091403742-e3aa39518db5?w=1200&q=80' },
+      { id: 'music-28', name: 'R&B Night', image: 'https://images.unsplash.com/photo-1493225255756-d9584f8606e9?w=1200&q=80' },
+      { id: 'music-29', name: 'Rap Battle', image: 'https://images.unsplash.com/photo-1546708761-f0e3f2e47d1e?w=1200&q=80' },
+      { id: 'music-30', name: 'Reggae Night', image: 'https://images.unsplash.com/photo-1504509546545-e000b4a62425?w=1200&q=80' },
+      { id: 'music-31', name: 'Rock Concert', image: 'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=1200&q=80' },
+      { id: 'music-32', name: 'Singer Songwriter Night', image: 'https://images.unsplash.com/photo-1517230878791-4d28214057c2?w=1200&q=80' },
+      { id: 'music-33', name: 'Soul Music Night', image: 'https://images.unsplash.com/photo-1514533212735-5df27d970db0?w=1200&q=80' },
+      { id: 'music-34', name: 'Techno Party', image: 'https://images.unsplash.com/photo-1528489096-c6ddc8e88e61?w=1200&q=80' },
+      { id: 'music-35', name: 'Vinyl Night', image: 'https://images.unsplash.com/photo-1488376794858-19b0d09d87a6?w=1200&q=80' },
+    ].sort((a, b) => a.name.localeCompare(b.name))
+  },
+  {
+    id: 'food',
+    name: 'Food & Drinks',
+    templates: [
+      { id: 'food-1', name: 'Bake Off', image: 'https://images.unsplash.com/photo-1556909212-d5b604d0c90d?w=1200&q=80' },
+      { id: 'food-2', name: 'BBQ Party', image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=1200&q=80' },
+      { id: 'food-3', name: 'Beer Tasting', image: 'https://images.unsplash.com/photo-1436076863939-06870fe779c2?w=1200&q=80' },
+      { id: 'food-4', name: 'Breakfast Party', image: 'https://images.unsplash.com/photo-1533089860892-a7c6f0a88666?w=1200&q=80' },
+      { id: 'food-5', name: 'Brunch', image: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1200&q=80' },
+      { id: 'food-6', name: 'Buffet Party', image: 'https://images.unsplash.com/photo-1568625365131-079e026a927d?w=1200&q=80' },
+      { id: 'food-7', name: 'Cake Party', image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200&q=80' },
+      { id: 'food-8', name: 'Cheese & Wine', image: 'https://images.unsplash.com/photo-1543007630-9710e4a00a20?w=1200&q=80' },
+      { id: 'food-9', name: 'Chocolate Tasting', image: 'https://images.unsplash.com/photo-1481391319762-47dff72954d9?w=1200&q=80' },
+      { id: 'food-10', name: 'Cocktail Party', image: 'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=1200&q=80' },
+      { id: 'food-11', name: 'Coffee Tasting', image: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=1200&q=80' },
+      { id: 'food-12', name: 'Cooking Class', image: 'https://images.unsplash.com/photo-1556909114-44e3e70034e2?w=1200&q=80' },
+      { id: 'food-13', name: 'Cooking Competition', image: 'https://images.unsplash.com/photo-1466637574441-749b8f19452f?w=1200&q=80' },
+      { id: 'food-14', name: 'Dessert Party', image: 'https://images.unsplash.com/photo-1551024506-0bccd828d307?w=1200&q=80' },
+      { id: 'food-15', name: 'Dinner Party', image: 'https://images.unsplash.com/photo-1555244162-803834f70033?w=1200&q=80' },
+      { id: 'food-16', name: 'Farm to Table', image: 'https://images.unsplash.com/photo-1535891567255-54ae21b48f6a?w=1200&q=80' },
+      { id: 'food-17', name: 'Food Festival', image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=1200&q=80' },
+      { id: 'food-18', name: 'Food Truck Party', image: 'https://images.unsplash.com/photo-1567129937968-cdad8f07e2f8?w=1200&q=80' },
+      { id: 'food-19', name: 'Garden Party', image: 'https://images.unsplash.com/photo-1530062845289-9109b2c9c868?w=1200&q=80' },
+      { id: 'food-20', name: 'Gourmet Night', image: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1200&q=80' },
+      { id: 'food-21', name: 'Grill Party', image: 'https://images.unsplash.com/photo-1523301343968-6a6ebf63c672?w=1200&q=80' },
+      { id: 'food-22', name: 'Happy Hour', image: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=1200&q=80' },
+      { id: 'food-23', name: 'High Tea', image: 'https://images.unsplash.com/photo-1587049352846-4a222e784cf3?w=1200&q=80' },
+      { id: 'food-24', name: 'Ice Cream Social', image: 'https://images.unsplash.com/photo-1566478989037-eec170784d0b?w=1200&q=80' },
+      { id: 'food-25', name: 'Lunch Party', image: 'https://images.unsplash.com/photo-1476718406336-bb5a9690ee2a?w=1200&q=80' },
+      { id: 'food-26', name: 'Mixology Class', image: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=1200&q=80' },
+      { id: 'food-27', name: 'Pasta Night', image: 'https://images.unsplash.com/photo-1556909172-54557c7e4fb7?w=1200&q=80' },
+      { id: 'food-28', name: 'Picnic', image: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1200&q=80' },
+      { id: 'food-29', name: 'Pizza Party', image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=1200&q=80' },
+      { id: 'food-30', name: 'Potluck Dinner', image: 'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=1200&q=80' },
+      { id: 'food-31', name: 'Sake Tasting', image: 'https://images.unsplash.com/photo-1536599424071-0b215a388ba7?w=1200&q=80' },
+      { id: 'food-32', name: 'Seafood Feast', image: 'https://images.unsplash.com/photo-1539650116574-8efeb43e2750?w=1200&q=80' },
+      { id: 'food-33', name: 'Sushi Night', image: 'https://images.unsplash.com/photo-1553621042-f6e147245754?w=1200&q=80' },
+      { id: 'food-34', name: 'Taco Tuesday', image: 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=1200&q=80' },
+      { id: 'food-35', name: 'Tea Party', image: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=1200&q=80' },
+      { id: 'food-36', name: 'Tequila Tasting', image: 'https://images.unsplash.com/photo-1516535794938-6063878f08cc?w=1200&q=80' },
+      { id: 'food-37', name: 'Whiskey Tasting', image: 'https://images.unsplash.com/photo-1527281400683-1aae777175f8?w=1200&q=80' },
+      { id: 'food-38', name: 'Wine & Dine', image: 'https://images.unsplash.com/photo-1528823872057-9c018a7a7553?w=1200&q=80' },
+      { id: 'food-39', name: 'Wine Tasting', image: 'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=1200&q=80' },
+      { id: 'food-40', name: 'Afternoon Tea', image: 'https://images.unsplash.com/photo-1547825407-2d060104b7f8?w=1200&q=80' },
+      { id: 'food-41', name: 'All You Can Eat', image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1200&q=80' },
+      { id: 'food-42', name: 'Appetizer Night', image: 'https://images.unsplash.com/photo-1607013251379-e6eecfffe234?w=1200&q=80' },
+      { id: 'food-43', name: 'Asian Night', image: 'https://images.unsplash.com/photo-1512058564366-18510be2db19?w=1200&q=80' },
+      { id: 'food-44', name: 'Bar Crawl', image: 'https://images.unsplash.com/photo-1543007630-9710e4a00a20?w=1200&q=80' },
+      { id: 'food-45', name: 'Beer & Burgers', image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=1200&q=80' },
+      { id: 'food-46', name: 'Beer Garden', image: 'https://images.unsplash.com/photo-1535958636474-b021ee887b13?w=1200&q=80' },
+      { id: 'food-47', name: 'Bistro Night', image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1200&q=80' },
+      { id: 'food-48', name: 'Bottomless Brunch', image: 'https://images.unsplash.com/photo-1594179047519-f347310d3322?w=1200&q=80' },
+      { id: 'food-49', name: 'Bourbon Tasting', image: 'https://images.unsplash.com/photo-1514362452859-1b6a0e856c14?w=1200&q=80' },
+      { id: 'food-50', name: 'Breakfast Club', image: 'https://images.unsplash.com/photo-1525351484163-7529414344d8?w=1200&q=80' },
+      { id: 'food-51', name: 'Brewery Tour', image: 'https://images.unsplash.com/photo-1612528443702-f6741f70a049?w=1200&q=80' },
+      { id: 'food-52', name: 'Bubble Tea Party', image: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=1200&q=80' },
+      { id: 'food-53', name: 'Burger Night', image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=1200&q=80' },
+      { id: 'food-54', name: 'Cafe Hopping', image: 'https://images.unsplash.com/photo-1442512595331-e89e73853f31?w=1200&q=80' },
+      { id: 'food-55', name: 'Champagne Brunch', image: 'https://images.unsplash.com/photo-1549082284-802e06f1841b?w=1200&q=80' },
+      { id: 'food-56', name: 'Charcuterie Night', image: 'https://images.unsplash.com/photo-1541529086526-db283c563270?w=1200&q=80' },
+      { id: 'food-57', name: 'Chef\'s Table', image: 'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=1200&q=80' },
+      { id: 'food-58', name: 'Chinese Banquet', image: 'https://images.unsplash.com/photo-1526318896980-cf78c088247c?w=1200&q=80' },
+      { id: 'food-59', name: 'Cider Tasting', image: 'https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=1200&q=80' },
+      { id: 'food-60', name: 'Clambake', image: 'https://images.unsplash.com/photo-1559737709-fbb96241ab7f?w=1200&q=80' },
+      { id: 'food-61', name: 'Cocktail Making', image: 'https://images.unsplash.com/photo-1560508179-b2c9a3f8e92b?w=1200&q=80' },
+      { id: 'food-62', name: 'Coffee Morning', image: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=1200&q=80' },
+      { id: 'food-63', name: 'Cookie Exchange', image: 'https://images.unsplash.com/photo-1499636136210-6f4ee915583e?w=1200&q=80' },
+      { id: 'food-64', name: 'Craft Beer Night', image: 'https://images.unsplash.com/photo-1612528443702-f6741f70a049?w=1200&q=80' },
+      { id: 'food-65', name: 'Crawfish Boil', image: 'https://images.unsplash.com/photo-1625943553852-781c6dd46faa?w=1200&q=80' },
+      { id: 'food-66', name: 'Dim Sum Lunch', image: 'https://images.unsplash.com/photo-1563245372-f21724e3856d?w=1200&q=80' },
+      { id: 'food-67', name: 'Dinner Club', image: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=1200&q=80' },
+      { id: 'food-68', name: 'Fondue Night', image: 'https://images.unsplash.com/photo-1522444452501-2dcf05db7d3f?w=1200&q=80' },
+      { id: 'food-69', name: 'Food Truck Rally', image: 'https://images.unsplash.com/photo-1565123409695-7b5ef63a2efb?w=1200&q=80' },
+      { id: 'food-70', name: 'French Dinner', image: 'https://images.unsplash.com/photo-1603073163308-9654c3fb70b5?w=1200&q=80' },
+      { id: 'food-71', name: 'Greek Night', image: 'https://images.unsplash.com/photo-1544124499-58912cbddaad?w=1200&q=80' },
+      { id: 'food-72', name: 'Harvest Dinner', image: 'https://images.unsplash.com/photo-1606923829579-0cb981a83e2e?w=1200&q=80' },
+      { id: 'food-73', name: 'Hot Pot Night', image: 'https://images.unsplash.com/photo-1596463989140-3b600dab72e0?w=1200&q=80' },
+      { id: 'food-74', name: 'Indian Feast', image: 'https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=1200&q=80' },
+      { id: 'food-75', name: 'Italian Night', image: 'https://images.unsplash.com/photo-1595295333158-4742f28fbd85?w=1200&q=80' },
+      { id: 'food-76', name: 'Korean BBQ', image: 'https://images.unsplash.com/photo-1590188230105-dd96bbb2bc7c?w=1200&q=80' },
+      { id: 'food-77', name: 'Mediterranean Night', image: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=1200&q=80' },
+      { id: 'food-78', name: 'Mexican Fiesta', image: 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=1200&q=80' },
+      { id: 'food-79', name: 'Midnight Feast', image: 'https://images.unsplash.com/photo-1481391243133-f96216dcb5d2?w=1200&q=80' },
+      { id: 'food-80', name: 'Mimosa Morning', image: 'https://images.unsplash.com/photo-1594179047519-f347310d3322?w=1200&q=80' },
+      { id: 'food-81', name: 'Molecular Gastronomy', image: 'https://images.unsplash.com/photo-1544148506-5963b3c46b1d?w=1200&q=80' },
+      { id: 'food-82', name: 'Noodle Night', image: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=1200&q=80' },
+      { id: 'food-83', name: 'Oktoberfest', image: 'https://images.unsplash.com/photo-1571030060693-3d8c90a4cd57?w=1200&q=80' },
+      { id: 'food-84', name: 'Oyster Bar', image: 'https://images.unsplash.com/photo-1560717845-968823efbee1?w=1200&q=80' },
+      { id: 'food-85', name: 'Paella Party', image: 'https://images.unsplash.com/photo-1515003197210-e0cd71810b5f?w=1200&q=80' },
+      { id: 'food-86', name: 'Pancake Breakfast', image: 'https://images.unsplash.com/photo-1565299543923-37dd37887442?w=1200&q=80' },
+      { id: 'food-87', name: 'Pasta Making', image: 'https://images.unsplash.com/photo-1556909212-d5b604d0c90d?w=1200&q=80' },
+      { id: 'food-88', name: 'Pie Contest', image: 'https://images.unsplash.com/photo-1535920527002-b35e96722eb9?w=1200&q=80' },
+      { id: 'food-89', name: 'Pub Night', image: 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=1200&q=80' },
+      { id: 'food-90', name: 'Ramen Night', image: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=1200&q=80' },
+      { id: 'food-91', name: 'Restaurant Week', image: 'https://images.unsplash.com/photo-1552566626-52f8b828add9?w=1200&q=80' },
+      { id: 'food-92', name: 'Rum Tasting', image: 'https://images.unsplash.com/photo-1569924995012-c4c706bfcd51?w=1200&q=80' },
+      { id: 'food-93', name: 'Spanish Tapas', image: 'https://images.unsplash.com/photo-1515003197210-e0cd71810b5f?w=1200&q=80' },
+      { id: 'food-94', name: 'Speakeasy Night', image: 'https://images.unsplash.com/photo-1575444758702-4a6b9222336e?w=1200&q=80' },
+      { id: 'food-95', name: 'Steak Night', image: 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=1200&q=80' },
+      { id: 'food-96', name: 'Street Food Fair', image: 'https://images.unsplash.com/photo-1567129937968-cdad8f07e2f8?w=1200&q=80' },
+      { id: 'food-97', name: 'Sunday Roast', image: 'https://images.unsplash.com/photo-1574484284002-952d92456975?w=1200&q=80' },
+      { id: 'food-98', name: 'Supper Club', image: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=1200&q=80' },
+      { id: 'food-99', name: 'Thai Night', image: 'https://images.unsplash.com/photo-1559314809-0d155014e29e?w=1200&q=80' },
+      { id: 'food-100', name: 'Vegan Feast', image: 'https://images.unsplash.com/photo-1543352634-a1c51d9f1fa7?w=1200&q=80' },
+      { id: 'food-101', name: 'Vineyard Tour', image: 'https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?w=1200&q=80' },
+      { id: 'food-102', name: 'Vodka Tasting', image: 'https://images.unsplash.com/photo-1514362452859-1b6a0e856c14?w=1200&q=80' },
+      { id: 'food-103', name: 'Waffle Brunch', image: 'https://images.unsplash.com/photo-1562376552-0d160a2f238d?w=1200&q=80' },
+      { id: 'food-104', name: 'Weekend BBQ', image: 'https://images.unsplash.com/photo-1529193591184-b1d58069ecdd?w=1200&q=80' },
+    ].sort((a, b) => a.name.localeCompare(b.name))
+  },
+  {
+    id: 'seasonal',
+    name: 'Seasonal',
+    templates: [
+      { id: 'season-1', name: '4th of July', image: 'https://images.unsplash.com/photo-1473186505569-9c61870c11f9?w=1200&q=80' },
+      { id: 'season-2', name: 'April Fools', image: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=1200&q=80' },
+      { id: 'season-3', name: 'Autumn Celebration', image: 'https://images.unsplash.com/photo-1473496169904-658ba7c44d8a?w=1200&q=80' },
+      { id: 'season-4', name: 'Black Friday', image: 'https://images.unsplash.com/photo-1607083206869-4c7672e72a8a?w=1200&q=80' },
+      { id: 'season-5', name: 'Canada Day', image: 'https://images.unsplash.com/photo-1564754943164-e83c08469116?w=1200&q=80' },
+      { id: 'season-6', name: 'Chinese New Year', image: 'https://images.unsplash.com/photo-1612036782180-6f0b6cd846fe?w=1200&q=80' },
+      { id: 'season-7', name: 'Christmas Eve', image: 'https://images.unsplash.com/photo-1512389142860-9c449e58a543?w=1200&q=80' },
+      { id: 'season-8', name: 'Christmas Party', image: 'https://images.unsplash.com/photo-1482517967863-0266176ba470?w=1200&q=80' },
+      { id: 'season-9', name: 'Cinco de Mayo', image: 'https://images.unsplash.com/photo-1559329007-40df8a9345d8?w=1200&q=80' },
+      { id: 'season-10', name: 'Day of the Dead', image: 'https://images.unsplash.com/photo-1570646317476-b29e5c3988d7?w=1200&q=80' },
+      { id: 'season-11', name: 'Diwali', image: 'https://images.unsplash.com/photo-1605639156481-244775d6f803?w=1200&q=80' },
+      { id: 'season-12', name: 'Earth Day', image: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=1200&q=80' },
+      { id: 'season-13', name: 'Easter', image: 'https://images.unsplash.com/photo-1521967663429-271bae24b5b1?w=1200&q=80' },
+      { id: 'season-14', name: 'Fall Harvest', image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=1200&q=80' },
+      { id: 'season-15', name: 'Fathers Day', image: 'https://images.unsplash.com/photo-1502086223501-7ea6ecd79368?w=1200&q=80' },
+      { id: 'season-16', name: 'Friendsgiving', image: 'https://images.unsplash.com/photo-1541614101331-1a5a3a194e92?w=1200&q=80' },
+      { id: 'season-17', name: 'Halloween', image: 'https://images.unsplash.com/photo-1509557965875-b88c97052f0e?w=1200&q=80' },
+      { id: 'season-18', name: 'Hanukkah', image: 'https://images.unsplash.com/photo-1544954862-d193faba3d77?w=1200&q=80' },
+      { id: 'season-19', name: 'Holi Festival', image: 'https://images.unsplash.com/photo-1558591710-4b4a1ae0f04d?w=1200&q=80' },
+      { id: 'season-20', name: 'Labor Day', image: 'https://images.unsplash.com/photo-1598522325074-042db73aa4e6?w=1200&q=80' },
+      { id: 'season-21', name: 'Mardi Gras', image: 'https://images.unsplash.com/photo-1550966871-3ed3cdb5ed0c?w=1200&q=80' },
+      { id: 'season-22', name: 'Memorial Day', image: 'https://images.unsplash.com/photo-1464207687429-7505649dae38?w=1200&q=80' },
+      { id: 'season-23', name: 'Mothers Day', image: 'https://images.unsplash.com/photo-1588072432836-e10032774350?w=1200&q=80' },
+      { id: 'season-24', name: 'New Year Eve', image: 'https://images.unsplash.com/photo-1467810563316-b5476525c0f9?w=1200&q=80' },
+      { id: 'season-25', name: 'Oktoberfest', image: 'https://images.unsplash.com/photo-1571167530149-c1105da4c2c7?w=1200&q=80' },
+      { id: 'season-26', name: 'Passover', image: 'https://images.unsplash.com/photo-1586614385892-f088b55f7a14?w=1200&q=80' },
+      { id: 'season-27', name: 'Pride Festival', image: 'https://images.unsplash.com/photo-1551818255-e6e10975bc17?w=1200&q=80' },
+      { id: 'season-28', name: 'Ramadan', image: 'https://images.unsplash.com/photo-1557678859-ccaa43e5389d?w=1200&q=80' },
+      { id: 'season-29', name: "St. Patrick's Day", image: 'https://images.unsplash.com/photo-1520942434488-a4c36640af47?w=1200&q=80' },
+      { id: 'season-30', name: 'Spring Break', image: 'https://images.unsplash.com/photo-1523309375637-b3f4f2347f6d?w=1200&q=80' },
+      { id: 'season-31', name: 'Spring Festival', image: 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=1200&q=80' },
+      { id: 'season-32', name: 'Summer BBQ', image: 'https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=1200&q=80' },
+      { id: 'season-33', name: 'Summer Beach', image: 'https://images.unsplash.com/photo-1527529482837-4698179dc6ce?w=1200&q=80' },
+      { id: 'season-34', name: 'Summer Solstice', image: 'https://images.unsplash.com/photo-1502472584811-0a2f2feb8968?w=1200&q=80' },
+      { id: 'season-35', name: 'Super Bowl Party', image: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=1200&q=80' },
+      { id: 'season-36', name: 'Thanksgiving', image: 'https://images.unsplash.com/photo-1541614101331-1a5a3a194e92?w=1200&q=80' },
+      { id: 'season-37', name: "Valentine's Day", image: 'https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=1200&q=80' },
+      { id: 'season-38', name: 'Winter Holiday', image: 'https://images.unsplash.com/photo-1483739086890-b89b8e210835?w=1200&q=80' },
+      { id: 'season-39', name: 'Winter Solstice', image: 'https://images.unsplash.com/photo-1516592398706-e76a3f8a6817?w=1200&q=80' },
+    ].sort((a, b) => a.name.localeCompare(b.name))
+  },
+  {
+    id: 'sports',
+    name: 'Sports & Games',
+    templates: [
+      { id: 'sport-1', name: 'Arcade Night', image: 'https://images.unsplash.com/photo-1511882150382-421056c89033?w=1200&q=80' },
+      { id: 'sport-2', name: 'Baseball Game', image: 'https://images.unsplash.com/photo-1566479179817-0ddb5fa87cd9?w=1200&q=80' },
+      { id: 'sport-3', name: 'Basketball Game', image: 'https://images.unsplash.com/photo-1519861531473-9200262188bf?w=1200&q=80' },
+      { id: 'sport-4', name: 'Beach Volleyball', image: 'https://images.unsplash.com/photo-1560272564-c83b66b1ad12?w=1200&q=80' },
+      { id: 'sport-5', name: 'Billiards Night', image: 'https://images.unsplash.com/photo-1564049489314-60d154ff107d?w=1200&q=80' },
+      { id: 'sport-6', name: 'Board Game Night', image: 'https://images.unsplash.com/photo-1610890716171-6b1bb98ffd09?w=1200&q=80' },
+      { id: 'sport-7', name: 'Bowling Night', image: 'https://images.unsplash.com/photo-1545056453-f0359c3df6db?w=1200&q=80' },
+      { id: 'sport-8', name: 'Boxing Match', image: 'https://images.unsplash.com/photo-1549719386-74dfcbf7dbed?w=1200&q=80' },
+      { id: 'sport-9', name: 'Card Game Night', image: 'https://images.unsplash.com/photo-1596451190630-186aff535bf2?w=1200&q=80' },
+      { id: 'sport-10', name: 'Casino Night', image: 'https://images.unsplash.com/photo-1596403309218-ae89fefe6b84?w=1200&q=80' },
+      { id: 'sport-11', name: 'Chess Tournament', image: 'https://images.unsplash.com/photo-1529699211952-734e80c4d42b?w=1200&q=80' },
+      { id: 'sport-12', name: 'Cricket Match', image: 'https://images.unsplash.com/photo-1531415074968-036ba1b575da?w=1200&q=80' },
+      { id: 'sport-13', name: 'Darts Night', image: 'https://images.unsplash.com/photo-1535131749006-b7f58c99034b?w=1200&q=80' },
+      { id: 'sport-14', name: 'E-Sports Tournament', image: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1200&q=80' },
+      { id: 'sport-15', name: 'Escape Room', image: 'https://images.unsplash.com/photo-1511882150382-421056c89033?w=1200&q=80' },
+      { id: 'sport-16', name: 'Fantasy Sports Draft', image: 'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=1200&q=80' },
+      { id: 'sport-17', name: 'Football Game', image: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=1200&q=80' },
+      { id: 'sport-18', name: 'Game Night', image: 'https://images.unsplash.com/photo-1511882150382-421056c89033?w=1200&q=80' },
+      { id: 'sport-19', name: 'Go Kart Racing', image: 'https://images.unsplash.com/photo-1572634522298-db60aeff3586?w=1200&q=80' },
+      { id: 'sport-20', name: 'Golf Tournament', image: 'https://images.unsplash.com/photo-1535131749006-b7f58c99034b?w=1200&q=80' },
+      { id: 'sport-21', name: 'Hockey Game', image: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=1200&q=80' },
+      { id: 'sport-22', name: 'Laser Tag', image: 'https://images.unsplash.com/photo-1566041510394-cf7c8fe21800?w=1200&q=80' },
+      { id: 'sport-23', name: 'Marathon', image: 'https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=1200&q=80' },
+      { id: 'sport-24', name: 'Mini Golf', image: 'https://images.unsplash.com/photo-1596727362302-b8d891c42ab8?w=1200&q=80' },
+      { id: 'sport-25', name: 'Olympics Watch Party', image: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=1200&q=80' },
+      { id: 'sport-26', name: 'Paintball', image: 'https://images.unsplash.com/photo-1563609159424-15f7b9e4f7b2?w=1200&q=80' },
+      { id: 'sport-27', name: 'Ping Pong Tournament', image: 'https://images.unsplash.com/photo-1609710228159-0fa9bd7c0827?w=1200&q=80' },
+      { id: 'sport-28', name: 'Poker Night', image: 'https://images.unsplash.com/photo-1541278107931-e006523892df?w=1200&q=80' },
+      { id: 'sport-29', name: 'Pool Party', image: 'https://images.unsplash.com/photo-1530549387789-4c1017266635?w=1200&q=80' },
+      { id: 'sport-30', name: 'Quiz Night', image: 'https://images.unsplash.com/photo-1606924735276-fbb5b325e933?w=1200&q=80' },
+      { id: 'sport-31', name: 'Rugby Match', image: 'https://images.unsplash.com/photo-1480099225005-2513c8947aec?w=1200&q=80' },
+      { id: 'sport-32', name: 'Soccer Match', image: 'https://images.unsplash.com/photo-1522778119026-d647f0596c20?w=1200&q=80' },
+      { id: 'sport-33', name: 'Sports Watch Party', image: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=1200&q=80' },
+      { id: 'sport-34', name: 'Tennis Match', image: 'https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=1200&q=80' },
+      { id: 'sport-35', name: 'Trivia Night', image: 'https://images.unsplash.com/photo-1632225485018-b83f09927f53?w=1200&q=80' },
+      { id: 'sport-36', name: 'Video Game Tournament', image: 'https://images.unsplash.com/photo-1493711662062-fa541adb3fc8?w=1200&q=80' },
+      { id: 'sport-37', name: 'Volleyball Game', image: 'https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?w=1200&q=80' },
+      { id: 'sport-38', name: 'Wrestling Match', image: 'https://images.unsplash.com/photo-1582719188393-bb71ca45dbb9?w=1200&q=80' },
+      { id: 'sport-39', name: 'Yoga Session', image: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=1200&q=80' },
+    ].sort((a, b) => a.name.localeCompare(b.name))
+  },
+  {
+    id: 'corporate',
+    name: 'Corporate',
+    templates: [
+      { id: 'corp-1', name: 'Annual Meeting', image: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&q=80' },
+      { id: 'corp-2', name: 'Award Ceremony', image: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&q=80' },
+      { id: 'corp-3', name: 'Board Meeting', image: 'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1200&q=80' },
+      { id: 'corp-4', name: 'Brand Launch', image: 'https://images.unsplash.com/photo-1556761175-b413da4baf72?w=1200&q=80' },
+      { id: 'corp-5', name: 'Business Breakfast', image: 'https://images.unsplash.com/photo-1556761175-129418cb2dfe?w=1200&q=80' },
+      { id: 'corp-6', name: 'Business Lunch', image: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=1200&q=80' },
+      { id: 'corp-7', name: 'Client Meeting', image: 'https://images.unsplash.com/photo-1556761175-4b46a572b786?w=1200&q=80' },
+      { id: 'corp-8', name: 'Company Anniversary', image: 'https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?w=1200&q=80' },
+      { id: 'corp-9', name: 'Company Retreat', image: 'https://images.unsplash.com/photo-1523908511403-7fc7b25592f4?w=1200&q=80' },
+      { id: 'corp-10', name: 'Conference', image: 'https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&q=80' },
+      { id: 'corp-11', name: 'Corporate Dinner', image: 'https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&q=80' },
+      { id: 'corp-12', name: 'Corporate Training', image: 'https://images.unsplash.com/photo-1556761175-b413da4baf72?w=1200&q=80' },
+      { id: 'corp-13', name: 'Department Party', image: 'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1200&q=80' },
+      { id: 'corp-14', name: 'Executive Summit', image: 'https://images.unsplash.com/photo-1556761175-4b46a572b786?w=1200&q=80' },
+      { id: 'corp-15', name: 'Expo', image: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&q=80' },
+      { id: 'corp-16', name: 'Farewell Party', image: 'https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&q=80' },
+      { id: 'corp-17', name: 'Grand Opening', image: 'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1200&q=80' },
+      { id: 'corp-18', name: 'Hackathon', image: 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=1200&q=80' },
+      { id: 'corp-19', name: 'Holiday Party', image: 'https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?w=1200&q=80' },
+      { id: 'corp-20', name: 'Investor Meeting', image: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=1200&q=80' },
+      { id: 'corp-21', name: 'Job Fair', image: 'https://images.unsplash.com/photo-1556761175-4b46a572b786?w=1200&q=80' },
+      { id: 'corp-22', name: 'Kickoff Meeting', image: 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=1200&q=80' },
+      { id: 'corp-23', name: 'Leadership Summit', image: 'https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&q=80' },
+      { id: 'corp-24', name: 'Milestone Celebration', image: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&q=80' },
+      { id: 'corp-25', name: 'Networking Event', image: 'https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&q=80' },
+      { id: 'corp-26', name: 'Office Opening', image: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=1200&q=80' },
+      { id: 'corp-27', name: 'Office Party', image: 'https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?w=1200&q=80' },
+      { id: 'corp-28', name: 'Onboarding Session', image: 'https://images.unsplash.com/photo-1556761175-b413da4baf72?w=1200&q=80' },
+      { id: 'corp-29', name: 'Panel Discussion', image: 'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1200&q=80' },
+      { id: 'corp-30', name: 'Press Conference', image: 'https://images.unsplash.com/photo-1560439514-4e9645039924?w=1200&q=80' },
+      { id: 'corp-31', name: 'Product Demo', image: 'https://images.unsplash.com/photo-1560439514-e217e0e102e0?w=1200&q=80' },
+      { id: 'corp-32', name: 'Product Launch', image: 'https://images.unsplash.com/photo-1492538368677-f6e0afe31dcc?w=1200&q=80' },
+      { id: 'corp-33', name: 'Retirement Party', image: 'https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&q=80' },
+      { id: 'corp-34', name: 'Sales Kickoff', image: 'https://images.unsplash.com/photo-1556761175-4b46a572b786?w=1200&q=80' },
+      { id: 'corp-35', name: 'Seminar', image: 'https://images.unsplash.com/photo-1560439514-4e9645039924?w=1200&q=80' },
+      { id: 'corp-36', name: 'Shareholder Meeting', image: 'https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&q=80' },
+      { id: 'corp-37', name: 'Team Building', image: 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=1200&q=80' },
+      { id: 'corp-38', name: 'Town Hall', image: 'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1200&q=80' },
+      { id: 'corp-39', name: 'Trade Show', image: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&q=80' },
+      { id: 'corp-40', name: 'Training Workshop', image: 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?w=1200&q=80' },
+      { id: 'corp-41', name: 'Webinar', image: 'https://images.unsplash.com/photo-1587825140708-dfaf72ae4b04?w=1200&q=80' },
+      { id: 'corp-42', name: 'Welcome Party', image: 'https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?w=1200&q=80' },
+      { id: 'corp-43', name: 'Workshop', image: 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?w=1200&q=80' },
+      { id: 'corp-44', name: 'Year End Party', image: 'https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?w=1200&q=80' },
+    ].sort((a, b) => a.name.localeCompare(b.name))
+  },
+];
+
+type TabType = 'style' | 'decorate' | 'template';
+
+interface StickerType {
+  id: string;
+  emoji: string;
+  x: number;
+  y: number;
+  scale: number;
+  rotation: number;
+}
+
+// Instagram/Snapchat style Draggable Sticker Component
+const DraggableSticker: React.FC<{
+  sticker: StickerType;
+  isSelected: boolean;
+  onSelect: () => void;
+  onUpdate: (sticker: StickerType) => void;
+  onRemove: () => void;
+}> = ({ sticker, isSelected, onSelect, onUpdate, onRemove }) => {
+  const pan = useRef(new Animated.ValueXY({
+    x: (sticker.x / 100) * screenWidth,
+    y: (sticker.y / 100) * 700,
+  })).current;
+  
+  const scale = useRef(new Animated.Value(sticker.scale)).current;
+  const rotation = useRef(new Animated.Value(sticker.rotation)).current;
+  const lastScale = useRef(sticker.scale);
+  const lastRotation = useRef(sticker.rotation);
+  const baseScale = useRef(new Animated.Value(1)).current;
+  const pinchScale = useRef(new Animated.Value(1)).current;
+  const lastDistance = useRef(0);
+  const lastAngle = useRef(0);
+  
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      
+      onPanResponderGrant: () => {
+        onSelect();
+        
+        // Set offset for current position
+        pan.setOffset({
+          x: (pan.x as any)._value,
+          y: (pan.y as any)._value,
+        });
+        pan.setValue({ x: 0, y: 0 });
+        
+        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      },
+      
+      onPanResponderMove: (evt, gestureState) => {
+        const touches = evt.nativeEvent.touches;
+        
+        // Handle pinch to zoom and rotate
+        if (touches.length === 2) {
+          const touch1 = touches[0];
+          const touch2 = touches[1];
+          
+          if (touch1 && touch2) {
+            // Calculate distance for scaling
+            const distance = Math.sqrt(
+              Math.pow(touch2.pageX - touch1.pageX, 2) +
+              Math.pow(touch2.pageY - touch1.pageY, 2)
+            );
+            
+            // Calculate angle for rotation
+            const angle = Math.atan2(
+              touch2.pageY - touch1.pageY,
+              touch2.pageX - touch1.pageX
+            ) * (180 / Math.PI);
+            
+            // Handle scaling
+            if (lastDistance.current > 0) {
+              const delta = distance / lastDistance.current;
+              const newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, lastScale.current * delta));
+              scale.setValue(newScale);
+            }
+            
+            // Handle rotation
+            if (lastAngle.current !== 0) {
+              const angleDelta = angle - lastAngle.current;
+              const newRotation = lastRotation.current + angleDelta;
+              rotation.setValue(newRotation);
+            }
+            
+            lastDistance.current = distance;
+            lastAngle.current = angle;
+          }
+        } else {
+          // Normal drag
+          pan.x.setValue(gestureState.dx);
+          pan.y.setValue(gestureState.dy);
+        }
+      },
+      
+      onPanResponderRelease: () => {
+        pan.flattenOffset();
+        lastDistance.current = 0;
+        lastAngle.current = 0;
+        
+        // Update sticker position, scale and rotation
+        const currentX = ((pan.x as any)._value / screenWidth) * 100;
+        const currentY = ((pan.y as any)._value / 700) * 100;
+        const currentScale = (scale as any)._value;
+        const currentRotation = (rotation as any)._value;
+        
+        lastScale.current = currentScale;
+        lastRotation.current = currentRotation;
+        
+        onUpdate({
+          ...sticker,
+          x: Math.max(0, Math.min(100, currentX)),
+          y: Math.max(0, Math.min(100, currentY)),
+          scale: currentScale,
+          rotation: currentRotation,
+        });
+      },
+    })
+  ).current;
+  
+  const animatedStyle = {
+    transform: [
+      { translateX: pan.x },
+      { translateY: pan.y },
+      { scale: Animated.multiply(baseScale, pinchScale) },
+      { scale },
+      { rotate: rotation.interpolate({
+          inputRange: [-360, 360],
+          outputRange: ['-360deg', '360deg'],
+        })
+      },
+    ],
+  };
+  
+  return (
+    <Animated.View
+      style={[
+        {
+          position: 'absolute',
+          width: 60,
+          height: 60,
+          zIndex: isSelected ? 11 : 10,
+        },
+        animatedStyle,
+      ]}
+      {...panResponder.panHandlers}
+    >
+      <View style={{ alignItems: 'center', justifyContent: 'center', flex: 1 }}>
+        <Text style={{ fontSize: 40 }}>{sticker.emoji}</Text>
+      </View>
+      
+      {isSelected && (
+        <TouchableOpacity
+          style={{
+            position: 'absolute',
+            width: 20,
+            height: 20,
+            borderRadius: 10,
+            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+            top: -8,
+            right: -8,
+            alignItems: 'center',
+            justifyContent: 'center',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.25,
+            shadowRadius: 3.84,
+            elevation: 5,
+          }}
+          onPress={onRemove}
+        >
+          <Ionicons name="close" size={14} color="#000" />
+        </TouchableOpacity>
+      )}
+    </Animated.View>
+  );
+};
+
+export default function EditEventCoverScreen() {
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState<TabType>('style');
+  const [selectedTitleFont, setSelectedTitleFont] = useState('1');
+  const [selectedSubtitleFont, setSelectedSubtitleFont] = useState('1');
+  const [selectedBackground, setSelectedBackground] = useState('');
+  const [eventTitle, setEventTitle] = useState('');
+  const [eventSubtitle, setEventSubtitle] = useState('');
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [isEditingSubtitle, setIsEditingSubtitle] = useState(false);
+  const [coverImage, setCoverImage] = useState('');
+  const [uploadedImage, setUploadedImage] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('party');
+  const [placedStickers, setPlacedStickers] = useState<StickerType[]>([]);
+  const [selectedStickerId, setSelectedStickerId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isDecorationMode, setIsDecorationMode] = useState(false);
+  const [selectedTemplateCategory, setSelectedTemplateCategory] = useState('party');
+  const [templateSearchQuery, setTemplateSearchQuery] = useState('');
+
+  const handleUploadImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [16, 9],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      setUploadedImage(result.assets[0].uri);
+      setCoverImage(result.assets[0].uri);
+      setSelectedBackground('');
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+  };
+
+
+  const handleResetToDefault = () => {
+    setCoverImage('');
+    setUploadedImage('');
+    setSelectedBackground('');
+    setSelectedTitleFont('1');
+    setSelectedSubtitleFont('1');
+    setPlacedStickers([]);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
+  const handleSave = async () => {
+    setIsLoading(true);
+    try {
+      // Here you would save the cover configuration
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      router.back();
+    } catch (error) {
+      Alert.alert('Error', 'Failed to save cover');
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleEnterDecorationMode = () => {
+    setIsDecorationMode(true);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  };
+
+  const handleExitDecorationMode = (save: boolean) => {
+    if (save) {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+    setIsDecorationMode(false);
+  };
+
+  const handleBackgroundSelect = (bgId: string) => {
+    setSelectedBackground(bgId);
+    setCoverImage(''); // Désélectionner l'image quand on choisit un background
+  };
+
+  const handleImageSelect = () => {
+    if (uploadedImage) {
+      setCoverImage(uploadedImage);
+      setSelectedBackground(''); // Désélectionner le background quand on choisit l'image
+    }
+  };
+
+  const getTitleFontStyle = () => {
+    const font = FONTS.find(f => f.id === selectedTitleFont);
+    return font ? font.style : {};
+  };
+
+  const getSubtitleFontStyle = () => {
+    const font = FONTS.find(f => f.id === selectedSubtitleFont);
+    return font ? font.style : {};
+  };
+
+  const renderStyleTab = () => (
+    <ScrollView showsVerticalScrollIndicator={false}>
+      {/* Event Title Section */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Event Title</Text>
+        <TextInput
+          style={styles.titleInput}
+          value={eventTitle.replace('\n', ' ')}
+          onChangeText={(text) => {
+            if (text.length <= 50) {
+              setEventTitle(text.includes(' ') && text.length > 20 ? text.replace(' ', '\n') : text);
+            }
+          }}
+          placeholder="Tap to add your event title"
+          placeholderTextColor="#999"
+          maxLength={50}
+        />
+        <Text style={styles.characterCount}>{eventTitle.length}/50</Text>
+      </View>
+
+      {/* Event Subtitle Section */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Event Subtitle</Text>
+        <TextInput
+          style={[styles.titleInput, styles.subtitleInput]}
+          value={eventSubtitle.replace('\n', ' ')}
+          onChangeText={(text) => {
+            if (text.length <= 80) {
+              setEventSubtitle(text);
+            }
+          }}
+          placeholder="Drop a punchline to get the crew hyped for what's coming"
+          placeholderTextColor="#999"
+          multiline
+          numberOfLines={2}
+          maxLength={80}
+        />
+        <Text style={styles.characterCount}>{eventSubtitle.length}/80</Text>
+      </View>
+
+      {/* Title Font Section */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Title Font</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.fontsScroll}>
+          <View style={styles.fontsRow}>
+            {FONTS.map((font) => (
+              <TouchableOpacity
+                key={font.id}
+                style={[
+                  styles.fontOption,
+                  selectedTitleFont === font.id && styles.selectedFontOption,
+                ]}
+                onPress={() => setSelectedTitleFont(font.id)}
+              >
+                <Text style={[styles.fontText, font.style, selectedTitleFont === font.id && styles.selectedFontText]}>
+                  {font.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ScrollView>
+      </View>
+
+      {/* Subtitle Font Section */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Subtitle Font</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.fontsScroll}>
+          <View style={styles.fontsRow}>
+            {FONTS.map((font) => (
+              <TouchableOpacity
+                key={font.id}
+                style={[
+                  styles.fontOption,
+                  selectedSubtitleFont === font.id && styles.selectedFontOption,
+                ]}
+                onPress={() => setSelectedSubtitleFont(font.id)}
+              >
+                <Text style={[styles.fontText, font.style, selectedSubtitleFont === font.id && styles.selectedFontText]}>
+                  {font.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ScrollView>
+      </View>
+
+      {/* Background Section */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Background</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.backgroundsScroll}>
+          <View style={styles.backgroundsRow}>
+            {BACKGROUNDS.map((bg) => (
+              <TouchableOpacity
+                key={bg.id}
+                style={styles.backgroundOption}
+                onPress={() => handleBackgroundSelect(bg.id)}
+              >
+                <LinearGradient
+                  colors={bg.colors}
+                  style={[
+                    styles.backgroundGradient,
+                    selectedBackground === bg.id && styles.selectedBackground,
+                  ]}
+                />
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity
+              style={styles.backgroundOption}
+              onPress={handleUploadImage}
+            >
+              <View style={styles.addBackgroundBtn}>
+                <Ionicons name="add" size={24} color="#007AFF" />
+              </View>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </View>
+
+
+      {/* Upload Media Section */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Cover Image</Text>
+        {uploadedImage ? (
+          <View style={styles.uploadedImageContainer}>
+            <TouchableOpacity 
+              style={[styles.uploadedImageWrapper, coverImage === uploadedImage && styles.selectedUploadedImage]}
+              onPress={handleImageSelect}
+            >
+              <Image source={{ uri: uploadedImage }} style={styles.uploadedImageThumb} />
+              {coverImage === uploadedImage && (
+                <View style={styles.selectedCheckmark}>
+                  <Ionicons name="checkmark-circle" size={24} color="#007AFF" />
+                </View>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.changeImageBtn} onPress={handleUploadImage}>
+              <Ionicons name="camera-outline" size={20} color="#007AFF" />
+              <Text style={styles.changeImageText}>Change Image</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <TouchableOpacity style={styles.uploadOption} onPress={handleUploadImage}>
+            <Ionicons name="image-outline" size={24} color="#666" />
+            <Text style={styles.uploadText}>Upload Image</Text>
+            <Ionicons name="chevron-forward" size={20} color="#999" />
+          </TouchableOpacity>
+        )}
+      </View>
+    </ScrollView>
+  );
+
+  const handleStickerSelect = (sticker: any) => {
+    if (placedStickers.length >= MAX_STICKERS) {
+      Alert.alert('Limit Reached', `You can only add up to ${MAX_STICKERS} stickers`);
+      return;
+    }
+    
+    const newSticker = {
+      id: `placed-${Date.now()}`,
+      emoji: sticker.emoji,
+      x: 50, // Center X %
+      y: 30, // Upper center Y %
+      scale: 1.2,
+      rotation: 0,
+    };
+    setPlacedStickers([...placedStickers, newSticker]);
+    setSelectedStickerId(newSticker.id);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    
+    // Automatically enter decoration mode when adding a new sticker
+    setIsDecorationMode(true);
+  };
+
+  const handleRemoveSticker = (stickerId: string) => {
+    setPlacedStickers(placedStickers.filter(s => s.id !== stickerId));
+  };
+
+  const renderDecorateTab = () => {
+    const currentCategory = STICKER_CATEGORIES.find(cat => cat.id === selectedCategory);
+    const filteredStickers = currentCategory?.stickers.filter(sticker => 
+      searchQuery === '' || sticker.name.toLowerCase().includes(searchQuery.toLowerCase())
+    ) || [];
+
+    return (
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Category Tabs */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
+          <View style={styles.categoryRow}>
+            {STICKER_CATEGORIES.map((category) => (
+              <TouchableOpacity
+                key={category.id}
+                style={[
+                  styles.categoryTab,
+                  selectedCategory === category.id && styles.selectedCategoryTab,
+                ]}
+                onPress={() => setSelectedCategory(category.id)}
+              >
+                <Text style={[
+                  styles.categoryTabText,
+                  selectedCategory === category.id && styles.selectedCategoryTabText,
+                ]}>
+                  {category.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ScrollView>
+
+        {/* Search Bar */}
+        <View style={styles.searchContainer}>
+          <Ionicons name="search" size={20} color="#999" />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search stickers"
+            placeholderTextColor="#999"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </View>
+        
+        {/* Stickers Grid */}
+        <View style={styles.stickersGrid}>
+          {filteredStickers.map((sticker) => (
+            <TouchableOpacity 
+              key={sticker.id} 
+              style={styles.stickerOption}
+              onPress={() => handleStickerSelect(sticker)}
+            >
+              <Text style={styles.stickerEmoji}>{sticker.emoji}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Placed Stickers Info */}
+        {placedStickers.length > 0 && (
+          <View style={styles.placedStickersSection}>
+            <View style={styles.placedStickersInfo}>
+              <Text style={styles.placedStickersText}>
+                {placedStickers.length} sticker{placedStickers.length > 1 ? 's' : ''} added
+              </Text>
+              <TouchableOpacity onPress={() => setPlacedStickers([])}>
+                <Text style={styles.clearAllText}>Clear All</Text>
+              </TouchableOpacity>
+            </View>
+            
+            {/* Reposition Stickers button in Decorate panel */}
+            <TouchableOpacity 
+              style={styles.repositionPanelButton} 
+              onPress={handleEnterDecorationMode}
+            >
+              <Ionicons name="move-outline" size={20} color="#007AFF" />
+              <Text style={styles.repositionPanelButtonText}>Reposition Stickers</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </ScrollView>
+    );
+  };
+
+  const handleTemplateSelect = (template: { id: string; name: string; image: string }) => {
+    setCoverImage(template.image);
+    setUploadedImage('');
+    setSelectedBackground('');
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
+  const renderTemplateTab = () => {
+    const currentCategory = TEMPLATE_CATEGORIES.find(cat => cat.id === selectedTemplateCategory);
+    const filteredTemplates = currentCategory?.templates.filter(template => 
+      templateSearchQuery === '' || template.name.toLowerCase().includes(templateSearchQuery.toLowerCase())
+    ) || [];
+
+    return (
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Category Tabs */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
+          <View style={styles.categoryRow}>
+            {TEMPLATE_CATEGORIES.map((category) => (
+              <TouchableOpacity
+                key={category.id}
+                style={[
+                  styles.categoryTab,
+                  selectedTemplateCategory === category.id && styles.selectedCategoryTab,
+                ]}
+                onPress={() => setSelectedTemplateCategory(category.id)}
+              >
+                <Text style={[
+                  styles.categoryTabText,
+                  selectedTemplateCategory === category.id && styles.selectedCategoryTabText,
+                ]}>
+                  {category.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ScrollView>
+
+        {/* Search Bar */}
+        <View style={styles.searchContainer}>
+          <Ionicons name="search" size={20} color="#999" />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search templates"
+            placeholderTextColor="#999"
+            value={templateSearchQuery}
+            onChangeText={setTemplateSearchQuery}
+          />
+        </View>
+        
+        {/* Templates Grid */}
+        <View style={styles.templatesGrid}>
+          {filteredTemplates.length > 0 ? (
+            filteredTemplates.map((template) => (
+              <TouchableOpacity
+                key={template.id}
+                style={styles.templateOption}
+                onPress={() => handleTemplateSelect(template)}
+                activeOpacity={0.9}
+              >
+                <Image
+                  source={{ uri: template.image }}
+                  style={styles.templateImage}
+                />
+                <View style={styles.templateOverlay}>
+                  <LinearGradient
+                    colors={['transparent', 'rgba(0,0,0,0.7)']}
+                    style={styles.templateGradient}
+                  />
+                  <Text style={styles.templateName}>{template.name}</Text>
+                </View>
+                {coverImage === template.image && (
+                  <View style={styles.templateSelectedBadge}>
+                    <Ionicons name="checkmark-circle" size={26} color="#FFF" />
+                  </View>
+                )}
+              </TouchableOpacity>
+            ))
+          ) : (
+            <View style={styles.noTemplatesContainer}>
+              <Ionicons name="image-outline" size={48} color="#999" />
+              <Text style={styles.noTemplatesText}>No templates found</Text>
+              <Text style={styles.noTemplatesSubtext}>Try another search term</Text>
+            </View>
+          )}
+        </View>
+      </ScrollView>
+    );
+  };
+
+  const getBackgroundStyle = () => {
+    if (selectedBackground) {
+      const bg = BACKGROUNDS.find(b => b.id === selectedBackground);
+      if (bg) {
+        return { colors: bg.colors };
+      }
+    }
+    return { colors: ['#C8E6C9', '#C8E6C9'] as [string, string] };
+  };
+
+  // Decoration mode screen
+  if (isDecorationMode) {
+    return (
+      <View style={styles.container}>
+        {/* Header with preview - no scroll */}
+        <View style={styles.decorationModeContainer}>
+          <View style={styles.headerContainer}>
+            {selectedBackground && !coverImage ? (
+              <LinearGradient colors={getBackgroundStyle().colors} style={styles.headerGradient} />
+            ) : (
+              <Image
+                source={coverImage ? { uri: coverImage } : DEFAULT_EVENT_COVER}
+                style={styles.coverImage}
+              />
+            )}
+            
+            {/* Overlay for readability */}
+            <View style={styles.headerOverlay} pointerEvents="none" />
+            
+            {/* Placed Stickers - Draggable in decoration mode */}
+            <View style={styles.stickersLayer} pointerEvents="box-none">
+              {placedStickers.map((sticker) => (
+                <DraggableSticker
+                  key={sticker.id}
+                  sticker={sticker}
+                  isSelected={selectedStickerId === sticker.id}
+                  onSelect={() => setSelectedStickerId(sticker.id)}
+                  onUpdate={(updatedSticker) => {
+                    setPlacedStickers(placedStickers.map(s => 
+                      s.id === updatedSticker.id ? updatedSticker : s
+                    ));
+                  }}
+                  onRemove={() => {
+                    handleRemoveSticker(sticker.id);
+                    if (selectedStickerId === sticker.id) {
+                      setSelectedStickerId(null);
+                    }
+                  }}
+                />
+              ))}
+            </View>
+            
+            {/* Decoration mode header */}
+            <View style={styles.decorationHeader}>
+              <TouchableOpacity 
+                onPress={() => handleExitDecorationMode(false)} 
+                style={styles.decorationButton}
+              >
+                <Ionicons name="close" size={24} color="#FFF" />
+              </TouchableOpacity>
+              
+              <Text style={styles.decorationTitle}>Position Stickers</Text>
+              
+              <TouchableOpacity 
+                onPress={() => handleExitDecorationMode(true)} 
+                style={styles.decorationButton}
+              >
+                <Ionicons name="checkmark" size={24} color="#FFF" />
+              </TouchableOpacity>
+            </View>
+            
+            {/* Event title and subtitle - always visible but not interactive in decoration mode */}
+            <View style={styles.eventTitleContainer} pointerEvents="none">
+              <Text style={[styles.eventTitle, getTitleFontStyle()]}>
+                {eventTitle || 'Tap to add your\nevent title'}
+              </Text>
+              <Text style={[styles.eventSubtitle, getSubtitleFontStyle()]}>
+                {eventSubtitle || 'Drop a punchline to get the crew\nhyped for what\'s coming.'}
+              </Text>
+            </View>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      <ScrollView style={{ flex: 1, backgroundColor: '#fff' }} showsVerticalScrollIndicator={false}>
+        {/* Header with preview */}
+        <View style={styles.headerContainer}>
+        {selectedBackground && !coverImage ? (
+          <LinearGradient colors={getBackgroundStyle().colors} style={styles.headerGradient} />
+        ) : (
+          <Image
+            source={coverImage ? { uri: coverImage } : DEFAULT_EVENT_COVER}
+            style={styles.coverImage}
+          />
+        )}
+        
+        {/* Overlay for readability */}
+        <View style={styles.headerOverlay} pointerEvents="none" />
+        
+        {/* Placed Stickers - Static in normal mode */}
+        <View style={styles.stickersLayer} pointerEvents="none">
+          {placedStickers.map((sticker) => (
+            <View
+              key={sticker.id}
+              style={[
+                styles.staticSticker,
+                {
+                  left: `${sticker.x}%`,
+                  top: `${sticker.y}%`,
+                  transform: [
+                    { scale: sticker.scale },
+                    { rotate: `${sticker.rotation}deg` },
+                  ],
+                },
+              ]}
+            >
+              <Text style={styles.stickerEmoji}>{sticker.emoji}</Text>
+            </View>
+          ))}
+        </View>
+        
+        {/* Top navigation bar */}
+        <View style={styles.topNavBar}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <BackButton width={24} height={24} fill="#FFF" color="#FFF" stroke="#FFF" />
+          </TouchableOpacity>
+          
+          <Text style={styles.headerTitle}>Edit Cover</Text>
+          
+          <View style={styles.rightIcons}>
+            <TouchableOpacity style={{ paddingHorizontal: 4 }}>
+              <ChatButton width={40} height={40} />
+            </TouchableOpacity>
+            <TouchableOpacity style={{ paddingHorizontal: 4 }}>
+              <NotificationButton width={40} height={40} />
+            </TouchableOpacity>
+          </View>
+        </View>
+        
+        {/* Event title and subtitle - always visible */}
+        <View style={styles.eventTitleContainer}>
+          <TouchableOpacity onPress={() => setIsEditingTitle(true)}>
+            <Text style={[styles.eventTitle, getTitleFontStyle()]}>
+              {eventTitle || 'Tap to add your\nevent title'}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setIsEditingSubtitle(true)}>
+            <Text style={[styles.eventSubtitle, getSubtitleFontStyle()]}>
+              {eventSubtitle || 'Drop a punchline to get the crew\nhyped for what\'s coming.'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+        
+        {/* Title Edit Modal */}
+        {isEditingTitle && (
+          <View style={styles.editOverlay}>
+            <View style={styles.editModal}>
+              <Text style={styles.editModalTitle}>Edit Title</Text>
+              <TextInput
+                style={styles.editModalInput}
+                value={eventTitle.replace('\n', ' ')}
+                onChangeText={(text) => {
+                  if (text.length <= 50) {
+                    setEventTitle(text.includes(' ') && text.length > 20 ? text.replace(' ', '\n') : text);
+                  }
+                }}
+                placeholder="Tap to add your event title"
+                placeholderTextColor="#999"
+                autoFocus
+                maxLength={50}
+              />
+              <Text style={styles.modalCharacterCount}>{eventTitle.length}/50</Text>
+              <View style={styles.editModalButtons}>
+                <TouchableOpacity style={styles.cancelButton} onPress={() => setIsEditingTitle(false)}>
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.doneButton} onPress={() => setIsEditingTitle(false)}>
+                  <Text style={styles.doneButtonText}>Done</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        )}
+        
+        {/* Subtitle Edit Modal */}
+        {isEditingSubtitle && (
+          <View style={styles.editOverlay}>
+            <View style={styles.editModal}>
+              <Text style={styles.editModalTitle}>Edit Subtitle</Text>
+              <TextInput
+                style={[styles.editModalInput, { height: 80 }]}
+                value={eventSubtitle.replace('\n', ' ')}
+                onChangeText={(text) => {
+                  if (text.length <= 80) {
+                    setEventSubtitle(text);
+                  }
+                }}
+                placeholder="Drop a punchline to get the crew hyped for what's coming"
+                placeholderTextColor="#999"
+                autoFocus
+                multiline
+                numberOfLines={3}
+                maxLength={80}
+              />
+              <Text style={styles.modalCharacterCount}>{eventSubtitle.length}/80</Text>
+              <View style={styles.editModalButtons}>
+                <TouchableOpacity style={styles.cancelButton} onPress={() => setIsEditingSubtitle(false)}>
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.doneButton} onPress={() => setIsEditingSubtitle(false)}>
+                  <Text style={styles.doneButtonText}>Done</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        )}
+        
+        {/* Reset to Default button */}
+        <TouchableOpacity style={styles.resetButton} onPress={handleResetToDefault}>
+          <Ionicons name="trash-outline" size={20} color="#666" />
+          <Text style={styles.resetButtonText}>Reset to Default</Text>
+        </TouchableOpacity>
+        
+      </View>
+
+      {/* Bottom sheet with tabs */}
+      <View style={styles.bottomSheet}>
+        {/* Tabs */}
+        <View style={styles.tabsContainer}>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'style' && styles.activeTab]}
+            onPress={() => setActiveTab('style')}
+          >
+            <Text style={[styles.tabText, activeTab === 'style' && styles.activeTabText]}>
+              Style
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'decorate' && styles.activeTab]}
+            onPress={() => setActiveTab('decorate')}
+          >
+            <Text style={[styles.tabText, activeTab === 'decorate' && styles.activeTabText]}>
+              Decorate
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'template' && styles.activeTab]}
+            onPress={() => setActiveTab('template')}
+          >
+            <Text style={[styles.tabText, activeTab === 'template' && styles.activeTabText]}>
+              Template
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Tab content */}
+        <View style={styles.tabContent}>
+          {activeTab === 'style' && renderStyleTab()}
+          {activeTab === 'decorate' && renderDecorateTab()}
+          {activeTab === 'template' && renderTemplateTab()}
+        </View>
+
+        {/* Action buttons */}
+        <View style={styles.actionsContainer}>
+          <TouchableOpacity
+            style={styles.saveButton}
+            onPress={handleSave}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <ActivityIndicator color="#FFF" />
+            ) : (
+              <Text style={styles.saveButtonText}>Save</Text>
+            )}
+          </TouchableOpacity>
+          
+          <TouchableOpacity onPress={() => router.back()}>
+            <Text style={styles.discardText}>Discard Changes</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+      </ScrollView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#FFF',
+  },
+  headerContainer: {
+    height: 700,
+    width: '100%',
+    position: 'relative',
+    backgroundColor: '#222',
+    overflow: 'hidden',
+  },
+  coverImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    zIndex: 0,
+  },
+  headerGradient: {
+    width: '100%',
+    height: '100%',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    zIndex: 0,
+  },
+  headerOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    zIndex: 1,
+  },
+  topNavBar: {
+    position: 'absolute',
+    top: 64,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    zIndex: 10,
+    height: 48,
+  },
+  backButton: {
+    padding: 8,
+  },
+  headerTitle: {
+    flex: 1,
+    color: '#FFF',
+    fontWeight: '600',
+    fontSize: 22,
+    textAlign: 'center',
+  },
+  rightIcons: {
+    flexDirection: 'row',
+  },
+  eventTitleContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: '50%',
+    transform: [{ translateY: -50 }],
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    zIndex: 50,
+  },
+  eventTitle: {
+    color: '#FFF',
+    fontSize: 38,
+    fontWeight: '300',
+    textAlign: 'center',
+    lineHeight: 44,
+  },
+  eventSubtitle: {
+    color: '#FFF',
+    fontSize: 16,
+    textAlign: 'center',
+    marginTop: 16,
+    lineHeight: 22,
+    opacity: 0.85,
+  },
+  resetButton: {
+    position: 'absolute',
+    alignSelf: 'center',
+    bottom: 80,
+    backgroundColor: '#FFF',
+    borderRadius: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    zIndex: 100,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  resetButtonText: {
+    fontSize: 16,
+    color: '#666',
+  },
+  bottomSheet: {
+    backgroundColor: '#FFF',
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    marginTop: -24,
+    paddingTop: 32,
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+    zIndex: 20,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  tabsContainer: {
+    flexDirection: 'row',
+    marginBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5EA',
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  activeTab: {
+    borderBottomWidth: 2,
+    borderBottomColor: '#007AFF',
+  },
+  tabText: {
+    fontSize: 16,
+    color: '#999',
+  },
+  activeTabText: {
+    color: '#007AFF',
+    fontWeight: '600',
+  },
+  tabContent: {
+    minHeight: 400,
+  },
+  section: {
+    marginBottom: 32,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 12,
+  },
+  viewAllLink: {
+    fontSize: 16,
+    color: '#007AFF',
+  },
+  fontsScroll: {
+    marginHorizontal: -20,
+    paddingHorizontal: 20,
+  },
+  fontsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    paddingRight: 20,
+  },
+  fontOption: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    backgroundColor: '#FFF',
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+    minWidth: 120,
+  },
+  selectedFontOption: {
+    backgroundColor: '#007AFF',
+    borderColor: '#007AFF',
+  },
+  fontText: {
+    fontSize: 16,
+    color: '#000',
+    textAlign: 'center',
+  },
+  selectedFontText: {
+    color: '#FFF',
+  },
+  backgroundsScroll: {
+    marginHorizontal: -20,
+    paddingHorizontal: 20,
+  },
+  backgroundsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    paddingRight: 20,
+  },
+  backgroundOption: {
+    width: 50,
+    height: 50,
+  },
+  backgroundGradient: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 25,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  selectedBackground: {
+    borderWidth: 3,
+    borderColor: '#007AFF',
+  },
+  addBackgroundBtn: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    borderWidth: 2,
+    borderColor: '#007AFF',
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFF',
+  },
+  uploadOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5EA',
+  },
+  uploadText: {
+    flex: 1,
+    fontSize: 16,
+    color: '#000',
+    marginLeft: 12,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F7',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 20,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    marginLeft: 8,
+    color: '#000',
+  },
+  categoryScroll: {
+    marginHorizontal: -20,
+    paddingHorizontal: 20,
+    marginBottom: 16,
+  },
+  categoryRow: {
+    flexDirection: 'row',
+    gap: 12,
+    paddingRight: 20,
+  },
+  categoryTab: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: '#F5F5F7',
+  },
+  selectedCategoryTab: {
+    backgroundColor: '#007AFF',
+  },
+  categoryTabText: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '500',
+  },
+  selectedCategoryTabText: {
+    color: '#FFF',
+  },
+  stickersGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    paddingTop: 16,
+  },
+  stickerOption: {
+    width: (screenWidth - 60) / 4,
+    height: (screenWidth - 60) / 4,
+    backgroundColor: '#F5F5F7',
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+    padding: 8,
+  },
+  stickerEmoji: {
+    fontSize: 36,
+  },
+  placedStickersInfo: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 24,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E5EA',
+  },
+  placedStickersText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  clearAllText: {
+    fontSize: 14,
+    color: '#FF3B30',
+    fontWeight: '600',
+  },
+  placedSticker: {
+    position: 'absolute',
+    width: 60,
+    height: 60,
+    zIndex: 200,
+  },
+  placedStickerEmoji: {
+    fontSize: 40,
+    textAlign: 'center',
+  },
+  removeStickerBtn: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    backgroundColor: '#FFF',
+    borderRadius: 10,
+  },
+  stickersLayer: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 2,
+  },
+  stickerControlBtn: {
+    position: 'absolute',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  removeBtn: {
+    backgroundColor: '#FF3B30',
+    top: -10,
+    right: -10,
+  },
+  scaleUpBtn: {
+    backgroundColor: '#007AFF',
+    bottom: -10,
+    right: -10,
+  },
+  scaleDownBtn: {
+    backgroundColor: '#007AFF',
+    bottom: -10,
+    left: -10,
+  },
+  templatesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 12,
+    paddingBottom: 20,
+    marginTop: 8,
+    gap: 12, // espace entre les éléments
+  },
+  noTemplatesContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  noTemplatesText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+    marginTop: 16,
+  },
+  noTemplatesSubtext: {
+    fontSize: 14,
+    color: '#999',
+    marginTop: 4,
+  },
+  templateOption: {
+    // Réduit de 10% : multiplié par 0.90
+    width: ((screenWidth - 24 - 12) / 2) * 0.90,
+    height: (((screenWidth - 24 - 12) / 2) * 1.4) * 0.90, // ratio portrait réduit de 10%
+    marginBottom: 12,
+    borderRadius: 10,
+    overflow: 'hidden',
+    backgroundColor: '#F5F5F7',
+  },
+  templateImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  templateOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '40%',
+    justifyContent: 'flex-end',
+    paddingBottom: 12,
+    paddingHorizontal: 12,
+  },
+  templateGradient: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '100%',
+  },
+  templateName: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '700',
+    textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+    letterSpacing: 0.5,
+  },
+  templateSelectedBadge: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    backgroundColor: '#007AFF',
+    borderRadius: 16,
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#007AFF',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  actionsContainer: {
+    paddingVertical: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E5EA',
+  },
+  saveButton: {
+    backgroundColor: '#007AFF',
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  saveButtonText: {
+    color: '#FFF',
+    fontSize: 17,
+    fontWeight: '600',
+  },
+  discardText: {
+    fontSize: 16,
+    color: '#007AFF',
+    textAlign: 'center',
+  },
+  uploadedImageContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  uploadedImageWrapper: {
+    width: 100,
+    height: 100,
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: 'transparent',
+    position: 'relative',
+  },
+  selectedUploadedImage: {
+    borderColor: '#007AFF',
+  },
+  uploadedImageThumb: {
+    width: '100%',
+    height: '100%',
+  },
+  selectedCheckmark: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+  },
+  changeImageBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    backgroundColor: '#E3F2FD',
+    borderRadius: 20,
+  },
+  changeImageText: {
+    color: '#007AFF',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  titleInput: {
+    backgroundColor: '#FFF',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 16,
+    color: '#000',
+  },
+  subtitleInput: {
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+  characterCount: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 4,
+    textAlign: 'right',
+  },
+  editOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  editModal: {
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    padding: 24,
+    width: '90%',
+    maxWidth: 350,
+  },
+  editModalTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  editModalInput: {
+    backgroundColor: '#F5F5F7',
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 16,
+    color: '#000',
+    marginBottom: 8,
+  },
+  modalCharacterCount: {
+    fontSize: 12,
+    color: '#999',
+    marginBottom: 20,
+    textAlign: 'right',
+  },
+  editModalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  cancelButton: {
+    flex: 1,
+    backgroundColor: '#F5F5F7',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    color: '#000',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  doneButton: {
+    flex: 1,
+    backgroundColor: '#007AFF',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  doneButtonText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  // Decoration mode styles
+  decorationModeContainer: {
+    flex: 1,
+  },
+  decorationHeader: {
+    position: 'absolute',
+    top: 64,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    zIndex: 20,
+  },
+  decorationButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  decorationTitle: {
+    color: '#FFF',
+    fontSize: 20,
+    fontWeight: '600',
+  },
+  staticSticker: {
+    position: 'absolute',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 2,
+  },
+  repositionButton: {
+    position: 'absolute',
+    bottom: 80,
+    alignSelf: 'center',
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    zIndex: 100,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  repositionButtonText: {
+    color: '#007AFF',
+    fontWeight: '500',
+    fontSize: 16,
+  },
+  placedStickersSection: {
+    marginTop: 24,
+  },
+  repositionPanelButton: {
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#007AFF',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 12,
+  },
+  repositionPanelButtonText: {
+    color: '#007AFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+});

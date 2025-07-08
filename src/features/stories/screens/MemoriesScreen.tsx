@@ -610,34 +610,55 @@ export default function MemoriesScreen() {
 
         {/* Right Side Actions */}
         <View style={styles.rightActions}>
-          <TouchableOpacity onPress={handleLike} style={styles.actionButton}>
-            <Ionicons 
-              name={item.liked_by_me ? "heart" : "heart-outline"} 
-              size={32} 
-              color={item.liked_by_me ? "#FF4458" : "#FFF"} 
-            />
-            <TouchableOpacity onPress={handleShowLikes}>
-              <Text style={styles.actionText}>
-                {item.likes_count || 0}
-              </Text>
+          <View style={styles.actionContainer}>
+            <TouchableOpacity onPress={handleLike} style={styles.actionButton}>
+              <Ionicons 
+                name={item.liked_by_me ? "heart" : "heart-outline"} 
+                size={32} 
+                color={item.liked_by_me ? "#FF4458" : "#FFF"} 
+              />
             </TouchableOpacity>
-          </TouchableOpacity>
+            {item.likes_count > 0 && (
+              <TouchableOpacity onPress={handleShowLikes} style={styles.actionCountButton}>
+                <Text style={styles.actionText}>
+                  {item.likes_count}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
 
-          <TouchableOpacity 
-            onPress={async () => {
-              setShowComments(true);
-              setLoadingComments(true);
-              const currentMemory = memories[currentIndex];
-              if (currentMemory?.id) {
-                await fetchReplies(currentMemory.id);
-              }
-              setLoadingComments(false);
-            }} 
-            style={styles.actionButton}
-          >
-            <Ionicons name="chatbubble-outline" size={30} color="#FFF" />
-            <Text style={styles.actionText}>{item.replies_count || 0}</Text>
-          </TouchableOpacity>
+          <View style={styles.actionContainer}>
+            <TouchableOpacity 
+              onPress={async () => {
+                setShowComments(true);
+                setLoadingComments(true);
+                const currentMemory = memories[currentIndex];
+                if (currentMemory?.id) {
+                  await fetchReplies(currentMemory.id);
+                }
+                setLoadingComments(false);
+              }} 
+              style={styles.actionButton}
+            >
+              <Ionicons name="chatbubble-outline" size={30} color="#FFF" />
+            </TouchableOpacity>
+            {item.replies_count > 0 && (
+              <TouchableOpacity 
+                onPress={async () => {
+                  setShowComments(true);
+                  setLoadingComments(true);
+                  const currentMemory = memories[currentIndex];
+                  if (currentMemory?.id) {
+                    await fetchReplies(currentMemory.id);
+                  }
+                  setLoadingComments(false);
+                }} 
+                style={styles.actionCountButton}
+              >
+                <Text style={styles.actionText}>{item.replies_count}</Text>
+              </TouchableOpacity>
+            )}
+          </View>
 
           <TouchableOpacity onPress={handleShare} style={styles.actionButton}>
             <Ionicons name="share-outline" size={30} color="#FFF" />
@@ -1047,18 +1068,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     zIndex: 20,
   },
+  actionContainer: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
   actionButton: {
     alignItems: 'center',
     justifyContent: 'center',
     width: 48,
     height: 48,
-    marginBottom: 16,
+  },
+  actionCountButton: {
+    marginTop: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    minWidth: 30,
+    alignItems: 'center',
   },
   actionText: {
     color: '#FFF',
     fontSize: 13,
     fontWeight: '600',
-    marginTop: 4,
     textShadowColor: 'rgba(0, 0, 0, 0.75)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,

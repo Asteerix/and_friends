@@ -1,478 +1,779 @@
-import React from 'react';
+import * as Haptics from 'expo-haptics';
+import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
 import {
-  View,
+  ActivityIndicator,
+  Alert,
+  Image,
+  Platform,
+  ScrollView,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
-  Platform,
+  View,
   Switch,
-  Image,
-  ScrollView,
-  Dimensions,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { create } from 'react-native-pixel-perfect';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
-const designResolution = { width: 375, height: 812 };
-const perfectSize = create(designResolution);
+import { useProfile } from '@/hooks/useProfile';
+import BackButton from '@/assets/svg/back-button.svg';
+import ChatButton from '@/assets/svg/chat-button.svg';
+import NotificationButton from '@/assets/svg/notification-button.svg';
 
-const DISCO_IMAGE = require('@/assets/images/events/event_logo.png');
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const COVER_HEIGHT = perfectSize(540); // Ajuste selon besoin
+// Import all modals
+import CostPerPersonModal from '../components/CostPerPersonModal';
+import PhotoAlbumModal from '../components/PhotoAlbumModal';
+import ItemsToBringModal from '../components/ItemsToBringModal';
+import RSVPDeadlineModal from '../components/RSVPDeadlineModal';
+import GuestQuestionnaireModal from '../components/GuestQuestionnaireModal';
+import PlaylistModal from '../components/PlaylistModal';
+import ManageCoHostsModal from '../components/ManageCoHostsModal';
 
-const CreateEventScreen: React.FC = React.memo(() => {
-  const [inviteOnly, setInviteOnly] = React.useState(true);
-  const insets = useSafeAreaInsets();
+// Default event cover image
+const DEFAULT_EVENT_COVER = require('../../../assets/default_avatar.png');
+
+export default function CreateEventScreen() {
+  const router = useRouter();
+  const { profile } = useProfile();
+  
+  // State for event details
+  const [coverUri] = useState('');
+  const [eventDate, setEventDate] = useState(new Date());
+  const [eventTime, setEventTime] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [location, setLocation] = useState('');
+  const [description, setDescription] = useState('');
+  const [isPrivate, setIsPrivate] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [coHosts, setCoHosts] = useState<Array<{id: string, name: string, avatar: string}>>([]);
+  
+  // Modal states
+  const [showCostModal, setShowCostModal] = useState(false);
+  const [showPhotoModal, setShowPhotoModal] = useState(false);
+  const [showItemsModal, setShowItemsModal] = useState(false);
+  const [showRSVPModal, setShowRSVPModal] = useState(false);
+  const [showQuestionnaireModal, setShowQuestionnaireModal] = useState(false);
+  const [showPlaylistModal, setShowPlaylistModal] = useState(false);
+  const [showCoHostsModal, setShowCoHostsModal] = useState(false);
+
+  const handleEditCover = () => {
+    router.push('/screens/edit-event-cover');
+  };
+
+  const handleAddCoHosts = () => {
+    setShowCoHostsModal(true);
+  };
+
+  const handleCostPerPerson = () => {
+    setShowCostModal(true);
+  };
+
+  const handlePhotoAlbum = () => {
+    setShowPhotoModal(true);
+  };
+  
+  const handleItemsToBring = () => {
+    setShowItemsModal(true);
+  };
+  
+  const handleRSVPDeadline = () => {
+    setShowRSVPModal(true);
+  };
+  
+  const handleQuestionnaire = () => {
+    setShowQuestionnaireModal(true);
+  };
+  
+  const handlePlaylist = () => {
+    setShowPlaylistModal(true);
+  };
+
+  const handleSaveAsDraft = async () => {
+    Alert.alert('Save as Draft', 'Event saved as draft');
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    router.back();
+  };
+
+  const handlePublish = async () => {
+    setIsLoading(true);
+    
+    try {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert('Success', 'Event published successfully');
+      router.back();
+    } catch (error) {
+      console.error('Error publishing event:', error);
+      Alert.alert('Error', 'Failed to publish event');
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['left', 'right', 'bottom']}>
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        {/* Cover section */}
-        <View style={styles.coverContainer}>
-          <View style={[styles.headerRow, { paddingTop: insets.top + perfectSize(8) }]}>
-            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back">
-              <Ionicons name="arrow-back" size={perfectSize(24)} color="#222" />
+    <View style={styles.container}>
+      <ScrollView style={{ flex: 1, backgroundColor: '#fff' }} showsVerticalScrollIndicator={false}>
+        {/* HEADER bloc with image and overlays */}
+        <View style={styles.headerContainer}>
+          <Image
+            source={coverUri ? { uri: coverUri } : DEFAULT_EVENT_COVER}
+            style={styles.headerImage}
+          />
+          {/* Overlay for readability */}
+          <View style={styles.headerOverlay} pointerEvents="none" />
+          
+          {/* Top navigation bar */}
+          <View style={styles.topNavBar}>
+            <TouchableOpacity 
+              onPress={() => router.back()} 
+              style={styles.backButton}
+              accessibilityRole="button" 
+              accessibilityLabel="Go back"
+            >
+              <BackButton width={24} height={24} fill="#FFF" color="#FFF" stroke="#FFF" />
             </TouchableOpacity>
+            
             <Text style={styles.headerTitle}>Create Event</Text>
-            <View style={styles.headerIcons}>
+            
+            <View style={styles.rightIcons}>
               <TouchableOpacity
-                style={styles.headerCircle}
                 accessibilityRole="button"
-                accessibilityLabel="Chat"
+                accessibilityLabel="Messages"
+                style={{ paddingHorizontal: 4 }}
               >
-                <Ionicons name="chatbubble-ellipses-outline" size={perfectSize(20)} color="#222" />
+                <ChatButton width={40} height={40} />
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.headerCircle}
                 accessibilityRole="button"
                 accessibilityLabel="Notifications"
+                style={{ paddingHorizontal: 4 }}
               >
-                <Ionicons name="notifications-outline" size={perfectSize(20)} color="#222" />
+                <NotificationButton width={40} height={40} />
               </TouchableOpacity>
             </View>
           </View>
-          <View style={styles.blueCardContent}>
-            <Text style={styles.title} accessibilityRole="header">
-              Add Your Title
+          
+          {/* Event title overlay */}
+          <View style={styles.eventTitleOverlay}>
+            <Text style={styles.eventTitleMainText}>Tap to add your</Text>
+            <Text style={styles.eventTitleMainText}>event title</Text>
+            <Text style={styles.eventSubtitle}>
+              Drop a punchline to get the crew{'\n'}hyped for what's coming.
             </Text>
-            <Text style={styles.subtitle}>
-              Drop a fun little punchline to get the crew hyped for what's coming.
-            </Text>
-            <View style={styles.discoWrap}>
-              <Image
-                source={DISCO_IMAGE}
-                style={styles.discoImg}
-                resizeMode="contain"
-                accessibilityLabel="Disco Ball"
-              />
-              <Ionicons
-                name="sparkles"
-                size={perfectSize(24)}
-                color="#222"
-                style={styles.sparkle1}
-              />
-              <Ionicons
-                name="sparkles"
-                size={perfectSize(20)}
-                color="#222"
-                style={styles.sparkle2}
-              />
-            </View>
-            <TouchableOpacity
-              style={styles.editCoverBtn}
+          </View>
+          
+          {/* Edit Cover button */}
+          <View style={styles.editCoverContainer}>
+            <TouchableOpacity 
+              style={styles.editCoverBtn} 
+              onPress={handleEditCover}
               accessibilityRole="button"
               accessibilityLabel="Edit Cover"
             >
-              <Ionicons
-                name="pencil-outline"
-                size={perfectSize(18)}
-                color="#222"
-                style={{ marginRight: perfectSize(6) }}
-              />
-              <Text style={styles.editCoverText}>Edit Cover</Text>
+              <Ionicons name="pencil-outline" size={16} color="#000" />
+              <Text style={styles.editCoverBtnText}>Edit Cover</Text>
             </TouchableOpacity>
           </View>
         </View>
-        {/* White form section */}
-        <View style={styles.formSectionWrapper}>
-          <View style={styles.formSection}>
-            <Text style={styles.label}>Date & Time</Text>
-            <View style={styles.rowGap}>
-              <TouchableOpacity
-                style={styles.inputBtn}
-                accessibilityRole="button"
-                accessibilityLabel="Select date"
-              >
-                <Text style={styles.inputBtnText}>Select date</Text>
-                <Ionicons name="calendar-outline" size={perfectSize(18)} color="#999" />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.inputBtn}
-                accessibilityRole="button"
-                accessibilityLabel="Select time"
-              >
-                <Text style={styles.inputBtnText}>Select time</Text>
-                <Ionicons name="time-outline" size={perfectSize(18)} color="#999" />
-              </TouchableOpacity>
+
+        {/* Form section */}
+        <View style={styles.formSheet}>
+          {/* Hosted By Section */}
+          <View style={styles.sectionContainer}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="person-outline" size={20} color="#666" />
+              <Text style={styles.sectionTitle}>Hosted By</Text>
             </View>
-            <Text style={styles.label}>Location</Text>
-            <View style={styles.inputIconWrap}>
-              <TextInput
-                style={styles.input}
-                placeholder="Add location"
-                placeholderTextColor="#999"
-                accessibilityLabel="Add location"
-              />
-              <Ionicons
-                name="location-outline"
-                size={perfectSize(18)}
-                color="#999"
-                style={styles.inputIcon}
-              />
-            </View>
-            <Text style={styles.label}>Description</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              placeholder="Add schedule, notes, or other details"
-              placeholderTextColor="#999"
-              multiline
-              numberOfLines={3}
-              accessibilityLabel="Add schedule, notes, or other details"
-            />
-            <Text style={styles.label}>Tags</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Add up to 3 tags to describe your event"
-              placeholderTextColor="#999"
-              accessibilityLabel="Add up to 3 tags to describe your event"
-            />
-            <Text style={styles.label}>Customize</Text>
-            <TouchableOpacity
-              style={styles.inputBtnFull}
-              accessibilityRole="button"
-              accessibilityLabel="Add Extra Details"
-            >
-              <Ionicons
-                name="reorder-three-outline"
-                size={perfectSize(18)}
-                color="#222"
-                style={{ marginRight: perfectSize(8) }}
-              />
-              <Text style={styles.inputBtnText}>Add Extra Details</Text>
-              <Ionicons
-                name="chevron-forward"
-                size={perfectSize(18)}
-                color="#999"
-                style={{ marginLeft: 'auto' }}
-              />
-            </TouchableOpacity>
-            <Text style={styles.label}>Privacy</Text>
-            <View style={styles.privacyRow}>
-              <View>
-                <Text style={styles.privacyTitle}>Invite-Only Event</Text>
-                <Text style={styles.privacyDesc}>Only invited guests can view</Text>
+            
+            <View style={styles.hostedByContent}>
+              <View style={styles.hostAvatarsContainer}>
+                <Image
+                  source={
+                    profile?.avatar_url 
+                      ? { uri: profile.avatar_url }
+                      : DEFAULT_EVENT_COVER
+                  }
+                  style={[styles.hostAvatar, { zIndex: 2 }]}
+                />
+                {coHosts.length === 1 && (
+                  <Image
+                    key={coHosts[0].id}
+                    source={{ uri: coHosts[0].avatar }}
+                    style={[
+                      styles.hostAvatar, 
+                      styles.overlappingAvatar,
+                      { 
+                        left: 24,
+                        zIndex: 1
+                      }
+                    ]}
+                  />
+                )}
+                {coHosts.length > 1 && (
+                  <View style={[
+                    styles.hostAvatar,
+                    styles.overlappingAvatar,
+                    styles.moreHostsIndicator,
+                    { left: 24, zIndex: 1 }
+                  ]}>
+                    <Text style={styles.moreHostsText}>+{coHosts.length}</Text>
+                  </View>
+                )}
               </View>
-              <Switch
-                value={inviteOnly}
-                onValueChange={setInviteOnly}
-                trackColor={{ false: '#E5E5E5', true: '#007AFF' }}
-                thumbColor={inviteOnly ? '#fff' : '#fff'}
-                ios_backgroundColor="#E5E5E5"
-                accessibilityLabel="Invite-Only Event"
+              <Text style={styles.hostName}>
+                {profile?.full_name || 'Simira'}
+                {coHosts.length === 1 && ` and ${coHosts[0].name}`}
+                {coHosts.length > 1 && ` and ${coHosts.length} others`}
+              </Text>
+              <TouchableOpacity onPress={handleAddCoHosts} style={styles.addCoHostsBtn}>
+                <Ionicons name="people-outline" size={16} color="#007AFF" />
+                <Text style={styles.addCoHostsText}>Add Co-Hosts</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+          
+          {/* When & Where Section */}
+          <View style={styles.sectionContainer}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="calendar-outline" size={20} color="#666" />
+              <Text style={styles.sectionTitle}>When & Where</Text>
+            </View>
+            
+            <TouchableOpacity
+              style={styles.datePickerField}
+              onPress={() => setShowDatePicker(true)}
+            >
+              <Text style={styles.datePickerText}>Pick a date & time</Text>
+              <Ionicons name="chevron-forward" size={20} color="#999" />
+            </TouchableOpacity>
+            
+            {showDatePicker && (
+              <DateTimePicker
+                value={eventDate}
+                mode="date"
+                display="default"
+                onChange={(event, selectedDate) => {
+                  setShowDatePicker(false);
+                  if (selectedDate) {
+                    setEventDate(selectedDate);
+                    setShowTimePicker(true);
+                  }
+                }}
+              />
+            )}
+            
+            {showTimePicker && (
+              <DateTimePicker
+                value={eventTime}
+                mode="time"
+                display="default"
+                onChange={(event, selectedTime) => {
+                  setShowTimePicker(false);
+                  if (selectedTime) {
+                    setEventTime(selectedTime);
+                  }
+                }}
+              />
+            )}
+            
+            <View style={styles.locationField}>
+              <Ionicons name="search" size={20} color="#999" />
+              <TextInput
+                style={styles.locationInput}
+                placeholder="Search location"
+                placeholderTextColor="#999"
+                value={location}
+                onChangeText={setLocation}
               />
             </View>
           </View>
-          <View style={styles.footerRow}>
-            <TouchableOpacity
-              style={styles.draftBtn}
-              accessibilityRole="button"
-              accessibilityLabel="Save as Draft"
+          
+          {/* Description Section */}
+          <View style={styles.sectionContainer}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="pencil-outline" size={20} color="#666" />
+              <Text style={styles.sectionTitle}>Description</Text>
+            </View>
+            
+            <TextInput
+              style={styles.descriptionField}
+              value={description}
+              onChangeText={setDescription}
+              placeholder="Add an event description — what to bring, logistics, etc."
+              placeholderTextColor="#999"
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
+            />
+          </View>
+          
+          {/* Add Extras Section */}
+          <View style={styles.sectionContainer}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="sparkles-outline" size={20} color="#666" />
+              <Text style={styles.sectionTitle}>Add Extras</Text>
+            </View>
+            
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.extrasScroll}>
+              <View style={styles.extrasRow}>
+                <TouchableOpacity style={styles.extraPill} onPress={handleCostPerPerson}>
+                  <Ionicons name="ticket-outline" size={16} color="#007AFF" />
+                  <Text style={styles.extraPillText}>Cost per person</Text>
+                  <Ionicons name="add" size={16} color="#007AFF" />
+                </TouchableOpacity>
+                
+                <TouchableOpacity style={styles.extraPill} onPress={handlePhotoAlbum}>
+                  <Ionicons name="images-outline" size={16} color="#007AFF" />
+                  <Text style={styles.extraPillText}>Photo Album</Text>
+                  <Ionicons name="add" size={16} color="#007AFF" />
+                </TouchableOpacity>
+                
+                <TouchableOpacity style={styles.extraPill} onPress={handleItemsToBring}>
+                  <Ionicons name="gift-outline" size={16} color="#007AFF" />
+                  <Text style={styles.extraPillText}>To Bring</Text>
+                  <Ionicons name="add" size={16} color="#007AFF" />
+                </TouchableOpacity>
+                
+                <TouchableOpacity style={styles.extraPill} onPress={handleRSVPDeadline}>
+                  <Ionicons name="calendar-outline" size={16} color="#007AFF" />
+                  <Text style={styles.extraPillText}>RSVP deadline</Text>
+                  <Ionicons name="add" size={16} color="#007AFF" />
+                </TouchableOpacity>
+                
+                <TouchableOpacity style={styles.extraPill} onPress={handleQuestionnaire}>
+                  <Ionicons name="clipboard-outline" size={16} color="#007AFF" />
+                  <Text style={styles.extraPillText}>Guest questionnaire</Text>
+                  <Ionicons name="add" size={16} color="#007AFF" />
+                </TouchableOpacity>
+                
+                <TouchableOpacity style={styles.extraPill} onPress={handlePlaylist}>
+                  <Ionicons name="musical-notes-outline" size={16} color="#007AFF" />
+                  <Text style={styles.extraPillText}>Playlist</Text>
+                  <Ionicons name="add" size={16} color="#007AFF" />
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+          
+          {/* Privacy Section */}
+          <View style={styles.sectionContainer}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="shield-checkmark-outline" size={20} color="#666" />
+              <Text style={styles.sectionTitle}>Privacy</Text>
+            </View>
+            
+            <View style={styles.privacyCard}>
+              <View style={styles.privacyLeft}>
+                <Text style={styles.privacyTitle}>Invite-Only Event</Text>
+                <Text style={styles.privacySubtitle}>Only invited guests can view</Text>
+              </View>
+              <Switch
+                value={isPrivate}
+                onValueChange={setIsPrivate}
+                trackColor={{ false: '#E5E5EA', true: '#007AFF' }}
+                thumbColor="#FFF"
+                ios_backgroundColor="#E5E5EA"
+              />
+            </View>
+          </View>
+          
+          {/* Action Buttons */}
+          <View style={styles.buttonsContainer}>
+            <TouchableOpacity 
+              style={styles.draftButton}
+              onPress={handleSaveAsDraft}
             >
-              <Text style={styles.draftBtnText}>Save as Draft</Text>
+              <Text style={styles.draftButtonText}>Save as Draft</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.publishBtn}
-              accessibilityRole="button"
-              accessibilityLabel="Publish"
+            
+            <TouchableOpacity 
+              style={styles.publishButton}
+              onPress={handlePublish}
+              disabled={isLoading}
             >
-              <Text style={styles.publishBtnText}>Publish</Text>
+              {isLoading ? (
+                <ActivityIndicator color="#FFF" />
+              ) : (
+                <Text style={styles.publishButtonText}>Publish</Text>
+              )}
             </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
-    </SafeAreaView>
+      
+      {/* Modals */}
+      <CostPerPersonModal
+        visible={showCostModal}
+        onClose={() => setShowCostModal(false)}
+        onSave={(amount, description) => {
+          console.log('Cost saved:', amount, description);
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }}
+      />
+      
+      <PhotoAlbumModal
+        visible={showPhotoModal}
+        onClose={() => setShowPhotoModal(false)}
+        onSave={(photos) => {
+          console.log('Photos saved:', photos);
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }}
+      />
+      
+      <ItemsToBringModal
+        visible={showItemsModal}
+        onClose={() => setShowItemsModal(false)}
+        onSave={(items) => {
+          console.log('Items saved:', items);
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }}
+      />
+      
+      <RSVPDeadlineModal
+        visible={showRSVPModal}
+        onClose={() => setShowRSVPModal(false)}
+        onSave={(deadline, reminderEnabled) => {
+          console.log('RSVP deadline saved:', deadline, reminderEnabled);
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }}
+      />
+      
+      <GuestQuestionnaireModal
+        visible={showQuestionnaireModal}
+        onClose={() => setShowQuestionnaireModal(false)}
+        onSave={(questions) => {
+          console.log('Questions saved:', questions);
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }}
+      />
+      
+      <PlaylistModal
+        visible={showPlaylistModal}
+        onClose={() => setShowPlaylistModal(false)}
+        onSave={(playlist, spotifyLink) => {
+          console.log('Playlist saved:', playlist, spotifyLink);
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }}
+      />
+      
+      <ManageCoHostsModal
+        visible={showCoHostsModal}
+        onClose={() => setShowCoHostsModal(false)}
+        currentCoHosts={coHosts}
+        onSave={(newCoHosts) => {
+          setCoHosts(newCoHosts);
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }}
+      />
+    </View>
   );
-});
+}
 
 const styles = StyleSheet.create({
-  safe: {
+  container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#FFF',
   },
-  scroll: {
-    paddingBottom: perfectSize(80),
-  },
-  coverContainer: {
-    width: SCREEN_WIDTH,
-    minHeight: COVER_HEIGHT,
-    backgroundColor: '#B3E0FF',
-    borderBottomLeftRadius: perfectSize(32),
-    borderBottomRightRadius: perfectSize(32),
+  headerContainer: {
+    height: 700,
+    width: '100%',
+    position: 'relative',
+    backgroundColor: '#222',
     overflow: 'hidden',
-    marginBottom: -perfectSize(32), // pour coller la section blanche
   },
-  headerRow: {
+  headerImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    zIndex: 0,
+  },
+  headerOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    zIndex: 1,
+  },
+  topNavBar: {
+    position: 'absolute',
+    top: 64,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: perfectSize(16),
-    marginBottom: perfectSize(8),
+    paddingHorizontal: 24,
+    zIndex: 10,
+    height: 48,
+  },
+  backButton: {
+    padding: 8,
   },
   headerTitle: {
-    fontSize: perfectSize(18),
-    fontFamily: Platform.select({ ios: 'Georgia', android: 'serif', default: 'System' }),
-    color: '#222',
-    fontWeight: '500',
+    flex: 1,
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 22,
+    textAlign: 'center',
+    fontFamily: Platform.select({ ios: 'System', android: 'System', default: 'System' }),
   },
-  headerIcons: {
+  rightIcons: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: perfectSize(8),
   },
-  headerCircle: {
-    width: perfectSize(32),
-    height: perfectSize(32),
-    borderRadius: perfectSize(16),
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: perfectSize(8),
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.08,
-        shadowRadius: 3,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
-  },
-  blueCardContent: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: perfectSize(12),
-    paddingHorizontal: perfectSize(12),
-  },
-  title: {
-    fontSize: perfectSize(28),
-    fontFamily: Platform.select({ ios: 'Georgia', android: 'serif', default: 'System' }),
-    color: '#222',
-    fontWeight: '700',
-    textAlign: 'center',
-    marginBottom: perfectSize(8),
-  },
-  subtitle: {
-    fontSize: perfectSize(14),
-    color: '#444',
-    textAlign: 'center',
-    marginBottom: perfectSize(16),
-  },
-  discoWrap: {
-    width: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: perfectSize(12),
-  },
-  discoImg: {
-    width: perfectSize(160),
-    height: perfectSize(160),
-  },
-  sparkle1: {
+  eventTitleOverlay: {
     position: 'absolute',
-    left: perfectSize(32),
-    top: perfectSize(24),
+    left: 0,
+    right: 0,
+    top: '50%',
+    transform: [{ translateY: -50 }],
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    zIndex: 100,
   },
-  sparkle2: {
+  eventTitleMainText: {
+    color: '#FFF',
+    fontSize: 38,
+    fontWeight: '300',
+    textAlign: 'center',
+    lineHeight: 44,
+    fontFamily: Platform.select({ ios: 'System', android: 'System', default: 'System' }),
+  },
+  eventSubtitle: {
+    color: '#FFF',
+    fontSize: 16,
+    textAlign: 'center',
+    marginTop: 16,
+    lineHeight: 22,
+    opacity: 0.85,
+  },
+  editCoverContainer: {
     position: 'absolute',
-    right: perfectSize(32),
-    bottom: perfectSize(32),
+    alignSelf: 'center',
+    bottom: 72,
+    zIndex: 100,
   },
   editCoverBtn: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: perfectSize(10),
-    paddingHorizontal: perfectSize(18),
-    paddingVertical: perfectSize(8),
-    alignSelf: 'center',
-    marginTop: perfectSize(8),
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.08,
-        shadowRadius: 2,
-      },
-      android: {
-        elevation: 1,
-      },
-    }),
+    gap: 8,
   },
-  editCoverText: {
-    fontSize: perfectSize(15),
-    color: '#222',
+  editCoverBtnText: {
+    color: '#000',
+    fontWeight: '500',
+    fontSize: 16,
+  },
+  formSheet: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    marginTop: -24,
+    paddingTop: 32,
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+    zIndex: 20,
+    minHeight: 600,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  sectionContainer: {
+    marginBottom: 28,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    gap: 8,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+  },
+  hostedByContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  hostAvatarsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 12,
+    width: 80,
+    height: 32,
+    position: 'relative',
+  },
+  hostAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: '#FFF',
+    position: 'absolute',
+    left: 0,
+  },
+  overlappingAvatar: {
+    position: 'absolute',
+  },
+  moreHostsIndicator: {
+    backgroundColor: '#E5E5EA',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  moreHostsText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#666',
+  },
+  hostName: {
+    fontSize: 16,
+    color: '#000',
+    flex: 1,
+  },
+  addCoHostsBtn: {
+    backgroundColor: '#E3F2FD',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  addCoHostsText: {
+    color: '#007AFF',
+    fontSize: 14,
     fontWeight: '500',
   },
-  formSectionWrapper: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: perfectSize(32),
-    borderTopRightRadius: perfectSize(32),
-    marginTop: 0,
-    paddingTop: perfectSize(32),
-    // shadow for iOS
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: -2 },
-        shadowOpacity: 0.04,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
-  },
-  formSection: {
-    marginHorizontal: perfectSize(16),
-    marginTop: perfectSize(8),
-    marginBottom: perfectSize(16),
-  },
-  label: {
-    fontSize: perfectSize(15),
-    color: '#222',
-    fontWeight: '600',
-    marginBottom: perfectSize(6),
-    marginTop: perfectSize(12),
-  },
-  rowGap: {
-    flexDirection: 'row',
-    gap: perfectSize(12),
-    marginBottom: perfectSize(8),
-  },
-  inputBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E5E5E5',
-    borderRadius: perfectSize(12),
-    backgroundColor: '#fff',
-    paddingHorizontal: perfectSize(14),
-    paddingVertical: perfectSize(14),
-    marginRight: perfectSize(4),
-  },
-  inputBtnText: {
-    fontSize: perfectSize(15),
-    color: '#222',
-    flex: 1,
-  },
-  inputIconWrap: {
-    position: 'relative',
-    marginBottom: perfectSize(8),
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#E5E5E5',
-    borderRadius: perfectSize(12),
-    backgroundColor: '#fff',
-    paddingHorizontal: perfectSize(14),
-    paddingVertical: perfectSize(14),
-    fontSize: perfectSize(15),
-    color: '#222',
-    width: '100%',
-  },
-  inputIcon: {
-    position: 'absolute',
-    right: perfectSize(16),
-    top: perfectSize(16),
-  },
-  textArea: {
-    minHeight: perfectSize(80),
-    textAlignVertical: 'top',
-    marginBottom: perfectSize(8),
-  },
-  inputBtnFull: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E5E5E5',
-    borderRadius: perfectSize(12),
-    backgroundColor: '#fff',
-    paddingHorizontal: perfectSize(14),
-    paddingVertical: perfectSize(14),
-    marginBottom: perfectSize(8),
-  },
-  privacyRow: {
+  datePickerField: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#fff',
-    borderRadius: perfectSize(12),
-    paddingHorizontal: perfectSize(14),
-    paddingVertical: perfectSize(14),
-    marginTop: perfectSize(8),
-    marginBottom: perfectSize(16),
+    backgroundColor: '#FFF',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginBottom: 12,
+  },
+  datePickerText: {
+    fontSize: 16,
+    color: '#000',
+  },
+  locationField: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 12,
+  },
+  locationInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#000',
+  },
+  descriptionField: {
+    backgroundColor: '#FFF',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 16,
+    color: '#000',
+    minHeight: 110,
+    textAlignVertical: 'top',
+  },
+  extrasScroll: {
+    marginHorizontal: -20,
+    paddingHorizontal: 20,
+  },
+  extrasRow: {
+    flexDirection: 'row',
+    gap: 10,
+    paddingRight: 20,
+  },
+  extraPill: {
+    backgroundColor: '#FFF',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    minWidth: 140,
+  },
+  extraPillText: {
+    fontSize: 14,
+    color: '#007AFF',
+    fontWeight: '500',
+  },
+  privacyCard: {
+    backgroundColor: '#FFF',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  privacyLeft: {
+    flex: 1,
   },
   privacyTitle: {
-    fontSize: perfectSize(15),
-    color: '#222',
+    fontSize: 17,
+    fontWeight: '500',
+    color: '#000',
+  },
+  privacySubtitle: {
+    fontSize: 15,
+    color: '#8E8E93',
+    marginTop: 2,
+  },
+  buttonsContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 32,
+  },
+  draftButton: {
+    flex: 1,
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  draftButtonText: {
+    color: '#000',
+    fontSize: 17,
     fontWeight: '600',
   },
-  privacyDesc: {
-    fontSize: perfectSize(13),
-    color: '#888',
-    marginTop: perfectSize(2),
-  },
-  footerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginHorizontal: perfectSize(16),
-    marginTop: perfectSize(8),
-    marginBottom: perfectSize(32),
-    gap: perfectSize(12),
-  },
-  draftBtn: {
-    flex: 1,
-    backgroundColor: '#F5F5F7',
-    borderRadius: perfectSize(12),
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: perfectSize(16),
-    marginRight: perfectSize(8),
-  },
-  draftBtnText: {
-    color: '#222',
-    fontSize: perfectSize(16),
-    fontWeight: '500',
-  },
-  publishBtn: {
+  publishButton: {
     flex: 1,
     backgroundColor: '#007AFF',
-    borderRadius: perfectSize(12),
+    borderRadius: 12,
+    paddingVertical: 16,
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: perfectSize(16),
-    marginLeft: perfectSize(8),
   },
-  publishBtnText: {
-    color: '#fff',
-    fontSize: perfectSize(16),
+  publishButtonText: {
+    color: '#FFF',
+    fontSize: 17,
     fontWeight: '600',
   },
 });
-
-export default CreateEventScreen;

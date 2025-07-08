@@ -57,7 +57,7 @@ export function useRealtimeManager(options: RealtimeManagerOptions = {}) {
 
   const reconnectAllChannels = useCallback(() => {
     channelsRef.current.forEach((channel, channelId) => {
-      if (channel.state !== REALTIME_SUBSCRIBE_STATES.SUBSCRIBED) {
+      if ((channel as any).state !== 'SUBSCRIBED') {
         reconnectChannel(channelId);
       }
     });

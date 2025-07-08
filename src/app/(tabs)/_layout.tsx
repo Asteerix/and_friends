@@ -111,13 +111,17 @@ export default function TabLayout() {
           title: 'Memories',
           tabBarIcon: ({ color }) => <MemoriesIcon color={color} />,
           tabBarButton: (props) => {
-            const { delayLongPress, disabled, onBlur, ...restProps } = props;
+            // Filter out null values from props
+            const cleanProps = Object.entries(props).reduce((acc, [key, value]) => {
+              if (value !== null) {
+                acc[key as keyof typeof props] = value;
+              }
+              return acc;
+            }, {} as any);
+            
             return (
               <TouchableOpacity
-                {...restProps}
-                disabled={disabled ?? undefined}
-                delayLongPress={delayLongPress ?? undefined}
-                onBlur={onBlur ?? undefined}
+                {...cleanProps}
                 onPress={() => {
                   router.push('/screens/memories');
                 }}
@@ -132,6 +136,24 @@ export default function TabLayout() {
           title: 'Create',
           tabBarIcon: ({ color }) => <CreateIcon color={color} />,
           tabBarLabel: 'Create',
+          tabBarButton: (props) => {
+            // Filter out null values from props
+            const cleanProps = Object.entries(props).reduce((acc, [key, value]) => {
+              if (value !== null) {
+                acc[key as keyof typeof props] = value;
+              }
+              return acc;
+            }, {} as any);
+            
+            return (
+              <TouchableOpacity
+                {...cleanProps}
+                onPress={() => {
+                  router.push('/screens/create-event');
+                }}
+              />
+            );
+          },
         }}
       />
       <Tabs.Screen

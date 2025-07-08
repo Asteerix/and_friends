@@ -85,7 +85,7 @@ export default function LocationPickerModal({
 }: LocationPickerModalProps) {
   const insets = useSafeAreaInsets();
   const [selectedCountry, setSelectedCountry] = useState<{ code: string; name: string }>(
-    POPULAR_COUNTRIES[0]
+    POPULAR_COUNTRIES[0]!
   );
   const [city, setCity] = useState('');
   const [showCountryPicker, setShowCountryPicker] = useState(false);
@@ -125,7 +125,7 @@ export default function LocationPickerModal({
 
   const handleCancel = () => {
     setCity('');
-    setSelectedCountry(POPULAR_COUNTRIES[0]);
+    setSelectedCountry(POPULAR_COUNTRIES[0]!);
     setShowCountryPicker(false);
     setShowCitySuggestions(false);
     setCustomCityMode(false);
