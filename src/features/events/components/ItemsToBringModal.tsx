@@ -369,7 +369,7 @@ export default function ItemsToBringModal({
                   style={styles.assigneeInput}
                   value={item.assignee}
                   onChangeText={(text) => updateAssignee(item.id, text)}
-                  placeholder={settings.requireSignup ? "Assigned to..." : "Who's bringing this?"}
+                  placeholder={settings.requireSignup ? "Assigned to... (optional)" : "Who's bringing this? (optional)"}
                   placeholderTextColor="#999"
                 />
                 {item.assignee === '' && (
@@ -398,7 +398,7 @@ export default function ItemsToBringModal({
                 style={styles.quantityInput}
                 value={item.quantity}
                 onChangeText={(text) => updateQuantity(item.id, text)}
-                placeholder="Qty"
+                placeholder="Quantity"
                 placeholderTextColor="#999"
                 keyboardType="default"
               />
@@ -615,11 +615,27 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  helperSection: {
+    backgroundColor: '#F0F8FF',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 20,
+  },
+  helperText: {
+    fontSize: 14,
+    color: '#007AFF',
+    lineHeight: 20,
+    textAlign: 'center',
+  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#000',
     marginBottom: 16,
+  },
+  required: {
+    color: '#FF3B30',
+    fontSize: 18,
   },
   settingsSection: {
     marginBottom: 32,

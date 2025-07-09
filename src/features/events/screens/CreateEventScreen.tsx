@@ -5,6 +5,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
@@ -42,60 +43,86 @@ import EventCapacityModal from '../components/EventCapacityModal';
 import ParkingInfoModal from '../components/ParkingInfoModal';
 import AccessibilityModal from '../components/AccessibilityModal';
 import EventCategoryModal from '../components/EventCategoryModal';
+import BottomModal from '../components/BottomModal';
 
 // Default event cover image
 const DEFAULT_EVENT_COVER = require('../../../assets/default_avatar.png');
 
 // Import fonts and backgrounds data
-import { FONTS as IMPORTED_FONTS, BACKGROUNDS as IMPORTED_BACKGROUNDS } from '../data/eventTemplates';
+import {
+  FONTS as IMPORTED_FONTS,
+  BACKGROUNDS as IMPORTED_BACKGROUNDS,
+} from '../data/eventTemplates';
 
 // Map fonts with their styles
-const FONTS = IMPORTED_FONTS.map(font => ({
+const FONTS = IMPORTED_FONTS.map((font) => ({
   ...font,
   style: {
     fontFamily: font.value,
-    fontWeight: font.name === 'AFTERPARTY' ? 'bold' as const : font.name === 'Bold Impact' ? '900' as const : font.name === 'Modern' ? '300' as const : font.name === 'Elegant' ? '500' as const : 'normal' as const,
-    fontStyle: font.name === 'Classic Invite' || font.name === 'Fun Script' ? 'italic' as const : 'normal' as const
-  }
+    fontWeight:
+      font.name === 'AFTERPARTY'
+        ? ('bold' as const)
+        : font.name === 'Bold Impact'
+          ? ('900' as const)
+          : font.name === 'Modern'
+            ? ('300' as const)
+            : font.name === 'Elegant'
+              ? ('500' as const)
+              : ('normal' as const),
+    fontStyle:
+      font.name === 'Classic Invite' || font.name === 'Fun Script'
+        ? ('italic' as const)
+        : ('normal' as const),
+  },
 }));
 
-const BACKGROUNDS = IMPORTED_BACKGROUNDS.map(bg => ({
+const BACKGROUNDS = IMPORTED_BACKGROUNDS.map((bg) => ({
   ...bg,
-  colors: bg.colors as [string, string]
+  colors: bg.colors as [string, string],
 }));
 
 export default function CreateEventScreen() {
   const router = useRouter();
   const { profile } = useProfile();
-  const { coverData, loadCoverData, resetCoverData } = useEventCover();
-  
+  const { coverData, loadCoverData, resetCoverData, updateCoverData } = useEventCover();
+
+  // Modal states for editing title and subtitle
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [isEditingSubtitle, setIsEditingSubtitle] = useState(false);
+  const [tempTitle, setTempTitle] = useState('');
+  const [tempSubtitle, setTempSubtitle] = useState('');
+
   // State for event details
   // Initialize event date to next Saturday at 8 PM
   const getDefaultEventDate = () => {
     const now = new Date();
     const nextSaturday = new Date(now);
-    
+
     // Calculate days until next Saturday (6 = Saturday)
     const daysUntilSaturday = (6 - now.getDay() + 7) % 7 || 7;
     nextSaturday.setDate(now.getDate() + daysUntilSaturday);
-    
+
     // Set time to 8 PM
     nextSaturday.setHours(20, 0, 0, 0);
-    
+
     // Ensure it's at least 24 hours from now
-    const minimumDate = new Date(now.getTime() + (24 * 60 * 60 * 1000));
+    const minimumDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
     if (nextSaturday < minimumDate) {
       // If next Saturday is too soon, go to the Saturday after
       nextSaturday.setDate(nextSaturday.getDate() + 7);
     }
-    
+
     return nextSaturday;
   };
-  
+
   const [eventDate, setEventDate] = useState(getDefaultEventDate());
   const [eventTime, setEventTime] = useState(getDefaultEventDate());
-  const [eventEndDate, setEventEndDate] = useState(new Date(getDefaultEventDate().getTime() + (3 * 60 * 60 * 1000)));
-  const [eventEndTime, setEventEndTime] = useState(new Date(getDefaultEventDate().getTime() + (3 * 60 * 60 * 1000)));
+  const [eventEndDate, setEventEndDate] = useState(
+    new Date(getDefaultEventDate().getTime() + 3 * 60 * 60 * 1000)
+  );
+  const [eventEndTime, setEventEndTime] = useState(
+    new Date(getDefaultEventDate().getTime() + 3 * 60 * 60 * 1000)
+  );
   const [showStartDateModal, setShowStartDateModal] = useState(false);
   const [showEndDateModal, setShowEndDateModal] = useState(false);
   const [location, setLocation] = useState('');
@@ -114,16 +141,36 @@ export default function CreateEventScreen() {
   const [description, setDescription] = useState('');
   const [isPrivate, setIsPrivate] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
-  const [coHosts, setCoHosts] = useState<Array<{id: string, name: string, avatar: string}>>([]);
-  const [costs, setCosts] = useState<Array<{id: string, amount: string, currency: string, description: string}>>([]);
+  const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
+  const [coHosts, setCoHosts] = useState<Array<{ id: string; name: string; avatar: string }>>([]);
+  const [costs, setCosts] = useState<
+    Array<{ id: string; amount: string; currency: string; description: string }>
+  >([]);
   const [eventPhotos, setEventPhotos] = useState<string[]>([]);
   const [rsvpDeadline, setRsvpDeadline] = useState<Date | null>(null);
   const [rsvpReminderEnabled, setRsvpReminderEnabled] = useState(false);
   const [rsvpReminderTiming, setRsvpReminderTiming] = useState('24h');
-  const [questionnaire, setQuestionnaire] = useState<Array<{id: string, text: string, type: string}>>([]);
-  const [itemsToBring, setItemsToBring] = useState<Array<{id: string, name: string, quantity: number, assignedTo?: string}>>([]);
-  const [playlist, setPlaylist] = useState<Array<{id: string, title: string, artist: string, spotifyUrl?: string, appleUrl?: string, youtubeUrl?: string}>>([]);
-  const [playlistSettings, setPlaylistSettings] = useState<{spotifyLink?: string, appleMusicLink?: string, acceptSuggestions: boolean}>({ acceptSuggestions: true });
+  const [questionnaire, setQuestionnaire] = useState<
+    Array<{ id: string; text: string; type: string }>
+  >([]);
+  const [itemsToBring, setItemsToBring] = useState<
+    Array<{ id: string; name: string; quantity: number; assignedTo?: string }>
+  >([]);
+  const [playlist, setPlaylist] = useState<
+    Array<{
+      id: string;
+      title: string;
+      artist: string;
+      spotifyUrl?: string;
+      appleUrl?: string;
+      youtubeUrl?: string;
+    }>
+  >([]);
+  const [playlistSettings, setPlaylistSettings] = useState<{
+    spotifyLink?: string;
+    appleMusicLink?: string;
+    acceptSuggestions: boolean;
+  }>({ acceptSuggestions: true });
   const [dressCode, setDressCode] = useState<string | null>(null);
   const [ageRestriction, setAgeRestriction] = useState<string>('');
   const [capacityLimit, setCapacityLimit] = useState<string>('');
@@ -133,12 +180,56 @@ export default function CreateEventScreen() {
   const [eventWebsite, setEventWebsite] = useState<string>('');
   const [contactInfo, setContactInfo] = useState<string>('');
   const [eventTheme, setEventTheme] = useState<string | null>(null);
-  
+
   // Load saved cover data when component mounts
   useEffect(() => {
     loadCoverData();
   }, []);
-  
+
+  // Set random gradient if no cover is set
+  useEffect(() => {
+    if (
+      !coverData.selectedBackground &&
+      !coverData.coverImage &&
+      !coverData.uploadedImage &&
+      !coverData.selectedTemplate
+    ) {
+      const randomBg = BACKGROUNDS[Math.floor(Math.random() * BACKGROUNDS.length)];
+      if (randomBg) {
+        updateCoverData({ selectedBackground: randomBg.id });
+      }
+    }
+  }, [
+    coverData.selectedBackground,
+    coverData.coverImage,
+    coverData.uploadedImage,
+    coverData.selectedTemplate,
+  ]);
+
+  // Helper function to get title font style
+  const getTitleFontStyle = () => {
+    const font = FONTS.find((f) => f.id === coverData.selectedTitleFont);
+    return font?.style || {};
+  };
+
+  // Helper function to get subtitle font style
+  const getSubtitleFontStyle = () => {
+    const font = FONTS.find((f) => f.id === coverData.selectedSubtitleFont);
+    return font?.style || {};
+  };
+
+  // Validation function to check if required fields are filled
+  const isFormValid = () => {
+    return !!(
+      coverData.eventTitle?.trim() && // Title is required
+      coverData.eventSubtitle?.trim() && // Subtitle is required
+      location?.trim() && // Location is required
+      eventDate && // Date is required
+      description?.trim() && // Description is required
+      eventCategory // Category is required
+    );
+  };
+
   // Modal states
   const [showCostModal, setShowCostModal] = useState(false);
   const [showPhotoModal, setShowPhotoModal] = useState(false);
@@ -154,6 +245,7 @@ export default function CreateEventScreen() {
   const [showParkingModal, setShowParkingModal] = useState(false);
   const [showAccessibilityModal, setShowAccessibilityModal] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [showCoverConfirmModal, setShowCoverConfirmModal] = useState(false);
 
   const handleEditCover = () => {
     router.push('/screens/edit-event-cover');
@@ -170,43 +262,43 @@ export default function CreateEventScreen() {
   const handlePhotoAlbum = () => {
     setShowPhotoModal(true);
   };
-  
+
   const handleItemsToBring = () => {
     setShowItemsModal(true);
   };
-  
+
   const handleRSVPDeadline = () => {
     setShowRSVPModal(true);
   };
-  
+
   const handleQuestionnaire = () => {
     setShowQuestionnaireModal(true);
   };
-  
+
   const handlePlaylist = () => {
     setShowPlaylistModal(true);
   };
-  
+
   const handleDressCode = () => {
     setShowDressCodeModal(true);
   };
-  
+
   const handleTheme = () => {
     setShowThemeModal(true);
   };
-  
+
   const handleAgeRestriction = () => {
     setShowAgeRestrictionModal(true);
   };
-  
+
   const handleCapacity = () => {
     setShowCapacityModal(true);
   };
-  
+
   const handleParking = () => {
     setShowParkingModal(true);
   };
-  
+
   const handleAccessibility = () => {
     setShowAccessibilityModal(true);
   };
@@ -217,24 +309,19 @@ export default function CreateEventScreen() {
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   };
 
-  const handlePublish = async () => {
+  const performPublish = async () => {
     console.log('🚀 [CreateEventScreen] ========================================');
-    console.log('🚀 [CreateEventScreen] DÉBUT DE LA PUBLICATION DE L\'ÉVÉNEMENT');
+    console.log("🚀 [CreateEventScreen] DÉBUT DE LA PUBLICATION DE L'ÉVÉNEMENT");
     console.log('🚀 [CreateEventScreen] ========================================');
     console.log('');
-    
-    // Validation des champs obligatoires
-    if (!coverData.eventTitle) {
-      console.warn('⚠️ [CreateEventScreen] Pas de titre personnalisé, utilisation du titre par défaut');
-    }
-    
+
     console.log('📋 [CreateEventScreen] DONNÉES COLLECTÉES:');
     console.log('  🎨 Cover Data:', {
       hasTitle: !!coverData.eventTitle,
       hasSubtitle: !!coverData.eventSubtitle,
       hasBackground: !!coverData.selectedBackground,
       hasImage: !!coverData.coverImage,
-      stickersCount: coverData.placedStickers?.length || 0
+      stickersCount: coverData.placedStickers?.length || 0,
     });
     console.log('  📅 Date/Heure:', eventDate.toLocaleString());
     console.log('  📍 Localisation:', location || 'Non spécifiée');
@@ -245,14 +332,19 @@ export default function CreateEventScreen() {
     console.log('  ⏰ RSVP Deadline:', rsvpDeadline ? rsvpDeadline.toLocaleString() : 'Non défini');
     console.log('  📋 Questionnaire:', questionnaire.length, 'questions');
     console.log('  🎁 Items à apporter:', itemsToBring.length, 'items');
-    console.log('  🎵 Playlist:', playlist.length, 'chansons', playlistSettings.spotifyLink ? '(avec lien Spotify)' : '');
+    console.log(
+      '  🎵 Playlist:',
+      playlist.length,
+      'chansons',
+      playlistSettings.spotifyLink ? '(avec lien Spotify)' : ''
+    );
     console.log('');
-    
+
     setIsLoading(true);
-    
+
     try {
-      console.log('📋 [CreateEventScreen] Préparation des données de l\'événement...');
-      
+      console.log("📋 [CreateEventScreen] Préparation des données de l'événement...");
+
       // Préparer les données pour la création
       const eventData: CreateEventData = {
         title: coverData.eventTitle || 'Nouvel événement',
@@ -265,6 +357,11 @@ export default function CreateEventScreen() {
         locationDetails: locationDetails || undefined,
         isPrivate: isPrivate,
         coverData: coverData,
+        host: profile ? {
+          id: profile.id,
+          name: profile.full_name || profile.username || 'Host',
+          avatar: profile.avatar_url
+        } : undefined,
         coHosts: coHosts,
         costs: costs,
         eventPhotos: eventPhotos,
@@ -283,70 +380,97 @@ export default function CreateEventScreen() {
         eventCategory: eventCategory,
         accessibilityInfo: accessibilityInfo,
         eventWebsite: eventWebsite,
-        contactInfo: contactInfo
+        contactInfo: contactInfo,
       };
-      
+
       console.log('📤 [CreateEventScreen] Envoi des données à EventService:', {
         title: eventData.title,
+        description: eventData.description,
         date: eventData.date,
         location: eventData.location,
+        host: eventData.host,
         hasExtras: {
           coHosts: coHosts.length,
           costs: costs.length,
           photos: eventPhotos.length,
           questionnaire: questionnaire.length,
           itemsToBring: itemsToBring.length,
-          playlist: playlist.length
-        }
+          playlist: playlist.length,
+        },
       });
-      
+
       // Utiliser le service complet avec gestion de TOUS les extras
-      console.log('🔄 [CreateEventScreen] Utilisation de EventServiceComplete pour une création COMPLÈTE avec TOUS les extras');
+      console.log(
+        '🔄 [CreateEventScreen] Utilisation de EventServiceComplete pour une création COMPLÈTE avec TOUS les extras'
+      );
       const result = await EventServiceComplete.createEvent(eventData);
-      
+
       if (result.success) {
         console.log('✅ [CreateEventScreen] Événement créé avec succès:', result.event.id);
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        
-        // Réinitialiser les données de couverture
+
+        // Réinitialiser les données de couverture et validation
         resetCoverData();
-        
-        Alert.alert(
-          'Succès! 🎉', 
-          'Votre événement a été créé avec succès!',
-          [
-            {
-              text: 'Voir l\'événement',
-              onPress: () => {
-                console.log('👁️ [CreateEventScreen] Navigation vers l\'événement:', result.event.id);
-                // Navigation vers l'événement créé
-                router.replace(`/event/${result.event.id}`);
-              }
+        setHasAttemptedSubmit(false);
+
+        Alert.alert('Succès! 🎉', 'Votre événement a été créé avec succès!', [
+          {
+            text: "Voir l'événement",
+            onPress: () => {
+              console.log("👁️ [CreateEventScreen] Navigation vers l'événement:", result.event.id);
+              // Navigation vers l'événement créé
+              // Utiliser un délai court pour s'assurer que la navigation fonctionne
+              setTimeout(() => {
+                router.replace(`/screens/event-details?id=${result.event.id}`);
+              }, 100);
             },
-            {
-              text: 'Retour',
-              onPress: () => {
-                router.back();
-              },
-              style: 'cancel'
-            }
-          ]
-        );
+          },
+          {
+            text: 'Retour',
+            onPress: () => {
+              router.back();
+            },
+            style: 'cancel',
+          },
+        ]);
       }
     } catch (error) {
       console.error('💥 [CreateEventScreen] Erreur lors de la publication:', error);
-      
-      let errorMessage = 'Une erreur est survenue lors de la création de l\'événement';
+
+      let errorMessage = "Une erreur est survenue lors de la création de l'événement";
       if (error instanceof Error) {
         errorMessage = error.message;
       }
-      
+
       Alert.alert('Erreur', errorMessage);
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
       setIsLoading(false);
       console.log('🏁 [CreateEventScreen] Fin du processus de publication');
     }
+  };
+
+  const handlePublish = async () => {
+    // Set validation attempt flag
+    setHasAttemptedSubmit(true);
+
+    // Check validation
+    if (!isFormValid()) {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      // Scroll to top to show the first error
+      return;
+    }
+
+    // Check if user has customized the cover
+    const hasCustomCover = !!(coverData.uploadedImage || coverData.coverImage || coverData.selectedTemplate);
+    if (!hasCustomCover) {
+      // Show confirmation modal for default cover
+      setShowCoverConfirmModal(true);
+      return;
+    }
+
+    // If has custom cover, publish directly
+    await performPublish();
   };
 
   return (
@@ -356,25 +480,35 @@ export default function CreateEventScreen() {
         <View style={styles.headerContainer}>
           {/* Background image or gradient */}
           {coverData.selectedBackground && !coverData.coverImage && !coverData.selectedTemplate ? (
-            <LinearGradient 
-              colors={BACKGROUNDS.find(bg => bg.id === coverData.selectedBackground)?.colors || ['#C8E6C9', '#C8E6C9']} 
-              style={styles.headerGradient} 
+            <LinearGradient
+              colors={
+                BACKGROUNDS.find((bg) => bg.id === coverData.selectedBackground)?.colors || [
+                  '#C8E6C9',
+                  '#C8E6C9',
+                ]
+              }
+              style={styles.headerGradient}
             />
           ) : coverData.selectedTemplate ? (
+            <Image source={coverData.selectedTemplate.image} style={styles.headerImage} />
+          ) : coverData.coverImage || coverData.uploadedImage ? (
             <Image
-              source={coverData.selectedTemplate.image}
+              source={{ uri: coverData.coverImage || coverData.uploadedImage }}
               style={styles.headerImage}
             />
           ) : (
-            <Image
-              source={coverData.coverImage ? { uri: coverData.coverImage } : DEFAULT_EVENT_COVER}
-              style={styles.headerImage}
-            />
+            <View style={styles.placeholderCover}>
+              <Ionicons name="image-outline" size={80} color="#FFF" style={{ opacity: 0.5 }} />
+              <Text style={styles.placeholderCoverText}>Default Event Cover</Text>
+              <Text style={styles.placeholderCoverSubtext}>
+                Tap "Edit Cover" to customize
+              </Text>
+            </View>
           )}
-          
+
           {/* Overlay for readability */}
           <View style={styles.headerOverlay} pointerEvents="none" />
-          
+
           {/* Placed Stickers */}
           <View style={styles.stickersLayer} pointerEvents="none">
             {coverData.placedStickers.map((sticker) => (
@@ -393,28 +527,28 @@ export default function CreateEventScreen() {
               </View>
             ))}
           </View>
-          
+
           {/* Top navigation bar */}
           <View style={styles.topNavBar}>
-            <TouchableOpacity 
-              onPress={() => router.back()} 
+            <TouchableOpacity
+              onPress={() => router.back()}
               style={styles.backButton}
-              accessibilityRole="button" 
+              accessibilityRole="button"
               accessibilityLabel="Go back"
             >
               <BackButton width={24} height={24} fill="#FFF" color="#FFF" stroke="#FFF" />
             </TouchableOpacity>
-            
+
             <Text style={styles.headerTitle}>Create Event</Text>
-            
+
             <View style={styles.rightIcons}>
               <TouchableOpacity
-                onPress={() => router.push('/debug-events')}
+                onPress={() => router.push('/screens/event-details?id=f0328675-03b0-4efb-bb4c-ce0f319dd4e6')}
                 accessibilityRole="button"
-                accessibilityLabel="Debug"
+                accessibilityLabel="Test Event"
                 style={{ paddingHorizontal: 4 }}
               >
-                <Ionicons name="bug-outline" size={24} color="#FFF" />
+                <Ionicons name="eye-outline" size={24} color="#FFF" />
               </TouchableOpacity>
               <TouchableOpacity
                 accessibilityRole="button"
@@ -432,147 +566,96 @@ export default function CreateEventScreen() {
               </TouchableOpacity>
             </View>
           </View>
-          
+
           {/* Event title overlay */}
-          <View style={styles.eventTitleOverlay}>
-            <Text style={[
-              styles.eventTitleMainText, 
-              coverData.eventTitle ? FONTS.find(f => f.id === coverData.selectedTitleFont)?.style : {}
-            ]}>
-              {coverData.eventTitle ? coverData.eventTitle : (
-                <>Tap to add your{'\n'}event title</>
-              )}
-            </Text>
-            <Text style={[
-              styles.eventSubtitle,
-              coverData.eventSubtitle ? FONTS.find(f => f.id === coverData.selectedSubtitleFont)?.style : {}
-            ]}>
-              {coverData.eventSubtitle || "Drop a punchline to get the crew\nhyped for what's coming."}
-            </Text>
+          <View style={styles.eventTitleContainer}>
+            <TouchableOpacity
+              onPress={() => {
+                setTempTitle(coverData.eventTitle || '');
+                setIsEditingTitle(true);
+              }}
+              style={styles.titleTouchArea}
+            >
+              <Text
+                style={[
+                  styles.eventTitle,
+                  getTitleFontStyle(),
+                  !coverData.eventTitle && styles.placeholderText,
+                ]}
+              >
+                {coverData.eventTitle || 'Tap to add your\nevent title'}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => {
+                setTempSubtitle(coverData.eventSubtitle || '');
+                setIsEditingSubtitle(true);
+              }}
+              style={styles.subtitleTouchArea}
+            >
+              <Text
+                style={[
+                  styles.eventSubtitle,
+                  getSubtitleFontStyle(),
+                  !coverData.eventSubtitle && styles.placeholderText,
+                ]}
+              >
+                {coverData.eventSubtitle ||
+                  "Drop a punchline to get the crew\nhyped for what's coming."}
+              </Text>
+            </TouchableOpacity>
           </View>
-          
+
           {/* Edit Cover button */}
           <View style={styles.editCoverContainer}>
-            <TouchableOpacity 
-              style={styles.editCoverBtn} 
+            <TouchableOpacity
+              style={[
+                styles.editCoverBtn,
+                hasAttemptedSubmit &&
+                  !coverData.uploadedImage &&
+                  !coverData.coverImage &&
+                  !coverData.selectedTemplate &&
+                  styles.editCoverBtnError,
+              ]}
               onPress={handleEditCover}
               accessibilityRole="button"
               accessibilityLabel="Edit Cover"
             >
               <Ionicons name="pencil-outline" size={16} color="#000" />
-              <Text style={styles.editCoverBtnText}>Edit Cover</Text>
+              <Text style={styles.editCoverBtnText}>
+                {!coverData.uploadedImage && !coverData.coverImage && !coverData.selectedTemplate
+                  ? 'Add Cover *'
+                  : 'Edit Cover'}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Form section */}
         <View style={styles.formSheet}>
-          {/* Description Section - Right after cover */}
-          <View style={styles.sectionContainer}>
-            <View style={styles.sectionHeader}>
-              <Ionicons name="document-text-outline" size={20} color="#666" />
-              <Text style={styles.sectionTitle}>About This Event</Text>
+          {/* Cover Recommendation Info Box */}
+          <View style={styles.coverInfoBox}>
+            <View style={styles.coverInfoIcon}>
+              <Ionicons name="sparkles" size={20} color="#007AFF" />
             </View>
-            
-            <TextInput
-              style={styles.descriptionField}
-              value={description}
-              onChangeText={setDescription}
-              placeholder="Tell guests what to expect, what to bring, special instructions..."
-              placeholderTextColor="#999"
-              multiline
-              numberOfLines={4}
-              textAlignVertical="top"
-            />
-          </View>
-          
-          {/* When Section */}
-          <View style={styles.sectionContainer}>
-            <View style={styles.sectionHeader}>
-              <Ionicons name="time-outline" size={20} color="#666" />
-              <Text style={styles.sectionTitle}>When</Text>
-            </View>
-            
-            <TouchableOpacity
-              style={styles.datePickerField}
-              onPress={() => setShowStartDateModal(true)}
-            >
-              <View style={styles.datePickerContent}>
-                <View>
-                  <Text style={styles.datePickerLabel}>Starts</Text>
-                  <Text style={styles.datePickerText}>
-                    {eventDate.toLocaleDateString('en-US', { 
-                      weekday: 'short', 
-                      month: 'short', 
-                      day: 'numeric' 
-                    })} at {eventTime.toLocaleTimeString([], { 
-                      hour: '2-digit', 
-                      minute: '2-digit' 
-                    })}
-                  </Text>
-                </View>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#999" />
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={styles.datePickerField}
-              onPress={() => setShowEndDateModal(true)}
-            >
-              <View style={styles.datePickerContent}>
-                <View>
-                  <Text style={styles.datePickerLabel}>Ends</Text>
-                  <Text style={styles.datePickerText}>
-                    {eventEndDate.toLocaleDateString('en-US', { 
-                      weekday: 'short', 
-                      month: 'short', 
-                      day: 'numeric' 
-                    })} at {eventEndTime.toLocaleTimeString([], { 
-                      hour: '2-digit', 
-                      minute: '2-digit' 
-                    })}
-                  </Text>
-                </View>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#999" />
-            </TouchableOpacity>
-            
-          </View>
-          
-          {/* Where Section */}
-          <View style={styles.sectionContainer}>
-            <View style={styles.sectionHeader}>
-              <Ionicons name="location-outline" size={20} color="#666" />
-              <Text style={styles.sectionTitle}>Where</Text>
-            </View>
-            
-            <TouchableOpacity
-              style={styles.locationField}
-              onPress={() => setShowLocationModal(true)}
-            >
-              <Ionicons name="search" size={20} color="#999" />
-              <Text style={[styles.locationInput, !location && { color: '#999' }]}>
-                {location || "Search for a venue or address"}
+            <View style={styles.coverInfoContent}>
+              <Text style={styles.coverInfoTitle}>Make Your Event Stand Out!</Text>
+              <Text style={styles.coverInfoText}>
+                A custom cover makes your event more attractive and memorable. Tap "Edit Cover" above to add photos, templates, or stickers!
               </Text>
-              <Ionicons name="chevron-forward" size={20} color="#999" />
-            </TouchableOpacity>
+            </View>
           </View>
-          
-          {/* Who's Hosting Section */}
+          {/* Event Hosts & Organizers Section - AT THE TOP */}
           <View style={styles.sectionContainer}>
             <View style={styles.sectionHeader}>
               <Ionicons name="people-outline" size={20} color="#666" />
-              <Text style={styles.sectionTitle}>Who's Hosting</Text>
+              <Text style={styles.sectionTitle}>Event Hosts & Organizers</Text>
             </View>
-            
+
             <View style={styles.hostedByContent}>
               <View style={styles.hostAvatarsContainer}>
                 <Image
-                  source={
-                    profile?.avatar_url 
-                      ? { uri: profile.avatar_url }
-                      : DEFAULT_EVENT_COVER
-                  }
+                  source={profile?.avatar_url ? { uri: profile.avatar_url } : DEFAULT_EVENT_COVER}
                   style={[styles.hostAvatar, { zIndex: 2 }]}
                 />
                 {coHosts.length === 1 && coHosts[0] && (
@@ -580,22 +663,24 @@ export default function CreateEventScreen() {
                     key={coHosts[0].id}
                     source={{ uri: coHosts[0].avatar }}
                     style={[
-                      styles.hostAvatar, 
+                      styles.hostAvatar,
                       styles.overlappingAvatar,
-                      { 
+                      {
                         left: 24,
-                        zIndex: 1
-                      }
+                        zIndex: 1,
+                      },
                     ]}
                   />
                 )}
                 {coHosts.length > 1 && (
-                  <View style={[
-                    styles.hostAvatar,
-                    styles.overlappingAvatar,
-                    styles.moreHostsIndicator,
-                    { left: 24, zIndex: 1 }
-                  ]}>
+                  <View
+                    style={[
+                      styles.hostAvatar,
+                      styles.overlappingAvatar,
+                      styles.moreHostsIndicator,
+                      { left: 24, zIndex: 1 },
+                    ]}
+                  >
                     <Text style={styles.moreHostsText}>+{coHosts.length}</Text>
                   </View>
                 )}
@@ -611,344 +696,206 @@ export default function CreateEventScreen() {
               </TouchableOpacity>
             </View>
           </View>
-          
-          {/* Event Details Section */}
+
+          {/* Required fields helper */}
+          <View style={styles.requiredFieldsHelper}>
+            <Text style={styles.requiredFieldsText}>
+              <Text style={styles.requiredAsterisk}>*</Text> Required fields
+            </Text>
+          </View>
+
+          {/* REQUIRED FIELDS SECTION */}
+
+          {/* Event Title Section - REQUIRED */}
           <View style={styles.sectionContainer}>
             <View style={styles.sectionHeader}>
-              <Ionicons name="list-outline" size={20} color="#666" />
-              <Text style={styles.sectionTitle}>Event Details</Text>
+              <Ionicons name="text-outline" size={20} color="#666" />
+              <Text style={styles.sectionTitle}>
+                Event Title <Text style={styles.requiredAsterisk}>*</Text>
+              </Text>
             </View>
-            
-            <View style={styles.additionalFieldsContainer}>
-              <View style={styles.fieldWrapper}>
-                <Text style={styles.fieldLabel}>Category</Text>
-                <TouchableOpacity 
-                  style={styles.selectField}
-                  onPress={() => setShowCategoryModal(true)}
-                >
-                  <Text style={[styles.selectFieldText, !eventCategory && styles.placeholderText]}>
-                    {eventCategory || "Social, Party, Wedding, Corporate..."}
-                  </Text>
-                  <Ionicons name="chevron-forward" size={20} color="#999" />
-                </TouchableOpacity>
-              </View>
-            </View>
+
+            <TextInput
+              style={[
+                styles.textField,
+                hasAttemptedSubmit && !coverData.eventTitle?.trim() && styles.fieldError,
+              ]}
+              value={coverData.eventTitle || ''}
+              onChangeText={(text) => updateCoverData({ eventTitle: text })}
+              placeholder="Enter your event title"
+              placeholderTextColor="#999"
+              maxLength={50}
+            />
+            <Text style={styles.characterCount}>{(coverData.eventTitle || '').length}/50</Text>
           </View>
-          
-          {/* Event Features Section */}
+
+          {/* Event Subtitle Section - REQUIRED */}
           <View style={styles.sectionContainer}>
             <View style={styles.sectionHeader}>
-              <Ionicons name="options-outline" size={20} color="#666" />
-              <Text style={styles.sectionTitle}>Event Features</Text>
+              <Ionicons name="chatbubble-outline" size={20} color="#666" />
+              <Text style={styles.sectionTitle}>
+                Event Subtitle <Text style={styles.requiredAsterisk}>*</Text>
+              </Text>
             </View>
-            
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.extrasScroll}>
-              <View style={styles.extrasRow}>
-                {/* Most frequently used extras first - Cost is #1 for nightlife events */}
-                <TouchableOpacity style={[styles.extraPill, costs.length > 0 && styles.extraPillConfigured]} onPress={handleCostPerPerson}>
-                  <Ionicons name="cash-outline" size={16} color={costs.length > 0 ? "#FFF" : "#007AFF"} />
-                  <Text style={[styles.extraPillText, costs.length > 0 && styles.extraPillTextConfigured]}>
-                    {costs.length > 0 ? `${costs.length} cost${costs.length > 1 ? 's' : ''} added` : 'Entry & Costs'}
-                  </Text>
-                  {costs.length > 0 ? (
-                    <TouchableOpacity onPress={(e) => {
-                      e.stopPropagation();
-                      setCosts([]);
-                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    }}>
-                      <Ionicons name="close-circle" size={16} color="#FFF" />
-                    </TouchableOpacity>
-                  ) : (
-                    <Ionicons name="add" size={16} color="#007AFF" />
-                  )}
-                </TouchableOpacity>
-                
-                <TouchableOpacity style={[styles.extraPill, capacityLimit && styles.extraPillConfigured]} onPress={handleCapacity}>
-                  <Ionicons name="people-outline" size={16} color={capacityLimit ? "#FFF" : "#007AFF"} />
-                  <Text style={[styles.extraPillText, capacityLimit && styles.extraPillTextConfigured]}>
-                    {capacityLimit ? `Max ${capacityLimit} guests` : 'Capacity Limit'}
-                  </Text>
-                  {capacityLimit ? (
-                    <TouchableOpacity onPress={(e) => {
-                      e.stopPropagation();
-                      setCapacityLimit('');
-                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    }}>
-                      <Ionicons name="close-circle" size={16} color="#FFF" />
-                    </TouchableOpacity>
-                  ) : (
-                    <Ionicons name="add" size={16} color="#007AFF" />
-                  )}
-                </TouchableOpacity>
-                
-                <TouchableOpacity style={[styles.extraPill, ageRestriction && styles.extraPillConfigured]} onPress={handleAgeRestriction}>
-                  <Ionicons name="person-circle-outline" size={16} color={ageRestriction ? "#FFF" : "#007AFF"} />
-                  <Text style={[styles.extraPillText, ageRestriction && styles.extraPillTextConfigured]}>
-                    {ageRestriction || 'Age Restriction'}
-                  </Text>
-                  {ageRestriction ? (
-                    <TouchableOpacity onPress={(e) => {
-                      e.stopPropagation();
-                      setAgeRestriction('');
-                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    }}>
-                      <Ionicons name="close-circle" size={16} color="#FFF" />
-                    </TouchableOpacity>
-                  ) : (
-                    <Ionicons name="add" size={16} color="#007AFF" />
-                  )}
-                </TouchableOpacity>
-                
-                <TouchableOpacity style={[styles.extraPill, dressCode && styles.extraPillConfigured]} onPress={handleDressCode}>
-                  <Ionicons name="shirt-outline" size={16} color={dressCode ? "#FFF" : "#007AFF"} />
-                  <Text style={[styles.extraPillText, dressCode && styles.extraPillTextConfigured]}>
-                    {dressCode ? `${dressCode}` : 'Dress Code'}
-                  </Text>
-                  {dressCode ? (
-                    <TouchableOpacity onPress={(e) => {
-                      e.stopPropagation();
-                      setDressCode(null);
-                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    }}>
-                      <Ionicons name="close-circle" size={16} color="#FFF" />
-                    </TouchableOpacity>
-                  ) : (
-                    <Ionicons name="add" size={16} color="#007AFF" />
-                  )}
-                </TouchableOpacity>
-                
-                <TouchableOpacity style={[styles.extraPill, rsvpDeadline && styles.extraPillConfigured]} onPress={handleRSVPDeadline}>
-                  <Ionicons name="calendar-outline" size={16} color={rsvpDeadline ? "#FFF" : "#007AFF"} />
-                  <Text style={[styles.extraPillText, rsvpDeadline && styles.extraPillTextConfigured]}>
-                    {rsvpDeadline ? `RSVP by ${rsvpDeadline.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : 'RSVP deadline'}
-                  </Text>
-                  {rsvpDeadline ? (
-                    <TouchableOpacity onPress={(e) => {
-                      e.stopPropagation();
-                      setRsvpDeadline(null);
-                      setRsvpReminderEnabled(false);
-                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    }}>
-                      <Ionicons name="close-circle" size={16} color="#FFF" />
-                    </TouchableOpacity>
-                  ) : (
-                    <Ionicons name="add" size={16} color="#007AFF" />
-                  )}
-                </TouchableOpacity>
-                
-                <TouchableOpacity style={[styles.extraPill, parkingInfo && styles.extraPillConfigured]} onPress={handleParking}>
-                  <Ionicons name="car-outline" size={16} color={parkingInfo ? "#FFF" : "#007AFF"} />
-                  <Text style={[styles.extraPillText, parkingInfo && styles.extraPillTextConfigured]}>
-                    {parkingInfo ? 'Parking Info Set' : 'Parking Info'}
-                  </Text>
-                  {parkingInfo ? (
-                    <TouchableOpacity onPress={(e) => {
-                      e.stopPropagation();
-                      setParkingInfo('');
-                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    }}>
-                      <Ionicons name="close-circle" size={16} color="#FFF" />
-                    </TouchableOpacity>
-                  ) : (
-                    <Ionicons name="add" size={16} color="#007AFF" />
-                  )}
-                </TouchableOpacity>
-                
-                <TouchableOpacity style={[styles.extraPill, eventPhotos.length > 0 && styles.extraPillConfigured]} onPress={handlePhotoAlbum}>
-                  <Ionicons name="images-outline" size={16} color={eventPhotos.length > 0 ? "#FFF" : "#007AFF"} />
-                  <Text style={[styles.extraPillText, eventPhotos.length > 0 && styles.extraPillTextConfigured]}>
-                    {eventPhotos.length > 0 ? `${eventPhotos.length} photo${eventPhotos.length > 1 ? 's' : ''}` : 'Photo Album'}
-                  </Text>
-                  {eventPhotos.length > 0 ? (
-                    <TouchableOpacity onPress={(e) => {
-                      e.stopPropagation();
-                      setEventPhotos([]);
-                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    }}>
-                      <Ionicons name="close-circle" size={16} color="#FFF" />
-                    </TouchableOpacity>
-                  ) : (
-                    <Ionicons name="add" size={16} color="#007AFF" />
-                  )}
-                </TouchableOpacity>
-                
-                <TouchableOpacity style={[styles.extraPill, itemsToBring.length > 0 && styles.extraPillConfigured]} onPress={handleItemsToBring}>
-                  <Ionicons name="gift-outline" size={16} color={itemsToBring.length > 0 ? "#FFF" : "#007AFF"} />
-                  <Text style={[styles.extraPillText, itemsToBring.length > 0 && styles.extraPillTextConfigured]}>
-                    {itemsToBring.length > 0 ? `${itemsToBring.length} item${itemsToBring.length > 1 ? 's' : ''}` : 'To Bring'}
-                  </Text>
-                  {itemsToBring.length > 0 ? (
-                    <TouchableOpacity onPress={(e) => {
-                      e.stopPropagation();
-                      setItemsToBring([]);
-                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    }}>
-                      <Ionicons name="close-circle" size={16} color="#FFF" />
-                    </TouchableOpacity>
-                  ) : (
-                    <Ionicons name="add" size={16} color="#007AFF" />
-                  )}
-                </TouchableOpacity>
-                
-                <TouchableOpacity style={[styles.extraPill, dressCode && styles.extraPillConfigured]} onPress={handleDressCode}>
-                  <Ionicons name="shirt-outline" size={16} color={dressCode ? "#FFF" : "#007AFF"} />
-                  <Text style={[styles.extraPillText, dressCode && styles.extraPillTextConfigured]}>
-                    {dressCode ? `${dressCode}` : 'Dress Code'}
-                  </Text>
-                  {dressCode ? (
-                    <TouchableOpacity onPress={(e) => {
-                      e.stopPropagation();
-                      setDressCode(null);
-                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    }}>
-                      <Ionicons name="close-circle" size={16} color="#FFF" />
-                    </TouchableOpacity>
-                  ) : (
-                    <Ionicons name="add" size={16} color="#007AFF" />
-                  )}
-                </TouchableOpacity>
-                
-                <TouchableOpacity style={[styles.extraPill, ageRestriction && styles.extraPillConfigured]} onPress={handleAgeRestriction}>
-                  <Ionicons name="people-circle-outline" size={16} color={ageRestriction ? "#FFF" : "#007AFF"} />
-                  <Text style={[styles.extraPillText, ageRestriction && styles.extraPillTextConfigured]}>
-                    {ageRestriction || 'Age Restriction'}
-                  </Text>
-                  {ageRestriction ? (
-                    <TouchableOpacity onPress={(e) => {
-                      e.stopPropagation();
-                      setAgeRestriction('');
-                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    }}>
-                      <Ionicons name="close-circle" size={16} color="#FFF" />
-                    </TouchableOpacity>
-                  ) : (
-                    <Ionicons name="add" size={16} color="#007AFF" />
-                  )}
-                </TouchableOpacity>
-                
-                <TouchableOpacity style={[styles.extraPill, eventTheme && styles.extraPillConfigured]} onPress={handleTheme}>
-                  <Ionicons name="color-palette-outline" size={16} color={eventTheme ? "#FFF" : "#007AFF"} />
-                  <Text style={[styles.extraPillText, eventTheme && styles.extraPillTextConfigured]}>
-                    {eventTheme ? `Theme: ${eventTheme}` : 'Event Theme'}
-                  </Text>
-                  {eventTheme ? (
-                    <TouchableOpacity onPress={(e) => {
-                      e.stopPropagation();
-                      setEventTheme(null);
-                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    }}>
-                      <Ionicons name="close-circle" size={16} color="#FFF" />
-                    </TouchableOpacity>
-                  ) : (
-                    <Ionicons name="add" size={16} color="#007AFF" />
-                  )}
-                </TouchableOpacity>
-                
-                <TouchableOpacity style={[styles.extraPill, accessibilityInfo && styles.extraPillConfigured]} onPress={handleAccessibility}>
-                  <Ionicons name="accessibility-outline" size={16} color={accessibilityInfo ? "#FFF" : "#007AFF"} />
-                  <Text style={[styles.extraPillText, accessibilityInfo && styles.extraPillTextConfigured]}>
-                    {accessibilityInfo ? 'Accessibility Set' : 'Accessibility'}
-                  </Text>
-                  {accessibilityInfo ? (
-                    <TouchableOpacity onPress={(e) => {
-                      e.stopPropagation();
-                      setAccessibilityInfo('');
-                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    }}>
-                      <Ionicons name="close-circle" size={16} color="#FFF" />
-                    </TouchableOpacity>
-                  ) : (
-                    <Ionicons name="add" size={16} color="#007AFF" />
-                  )}
-                </TouchableOpacity>
-                
-                <TouchableOpacity style={[styles.extraPill, questionnaire.length > 0 && styles.extraPillConfigured]} onPress={handleQuestionnaire}>
-                  <Ionicons name="clipboard-outline" size={16} color={questionnaire.length > 0 ? "#FFF" : "#007AFF"} />
-                  <Text style={[styles.extraPillText, questionnaire.length > 0 && styles.extraPillTextConfigured]}>
-                    {questionnaire.length > 0 ? `${questionnaire.length} question${questionnaire.length > 1 ? 's' : ''}` : 'Guest questionnaire'}
-                  </Text>
-                  {questionnaire.length > 0 ? (
-                    <TouchableOpacity onPress={(e) => {
-                      e.stopPropagation();
-                      setQuestionnaire([]);
-                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    }}>
-                      <Ionicons name="close-circle" size={16} color="#FFF" />
-                    </TouchableOpacity>
-                  ) : (
-                    <Ionicons name="add" size={16} color="#007AFF" />
-                  )}
-                </TouchableOpacity>
-                
-                <TouchableOpacity style={[styles.extraPill, playlist.length > 0 && styles.extraPillConfigured]} onPress={handlePlaylist}>
-                  <Ionicons name="musical-notes-outline" size={16} color={playlist.length > 0 ? "#FFF" : "#007AFF"} />
-                  <Text style={[styles.extraPillText, playlist.length > 0 && styles.extraPillTextConfigured]}>
-                    {playlist.length > 0 ? `${playlist.length} song${playlist.length > 1 ? 's' : ''}` : 'Playlist'}
-                  </Text>
-                  {playlist.length > 0 ? (
-                    <TouchableOpacity onPress={(e) => {
-                      e.stopPropagation();
-                      setPlaylist([]);
-                      setPlaylistSettings({ acceptSuggestions: true });
-                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    }}>
-                      <Ionicons name="close-circle" size={16} color="#FFF" />
-                    </TouchableOpacity>
-                  ) : (
-                    <Ionicons name="add" size={16} color="#007AFF" />
-                  )}
-                </TouchableOpacity>
-              </View>
-            </ScrollView>
+
+            <TextInput
+              style={[
+                styles.textField,
+                hasAttemptedSubmit && !coverData.eventSubtitle?.trim() && styles.fieldError,
+              ]}
+              value={coverData.eventSubtitle || ''}
+              onChangeText={(text) => updateCoverData({ eventSubtitle: text })}
+              placeholder="Add a catchy tagline for your event"
+              placeholderTextColor="#999"
+              maxLength={100}
+            />
+            <Text style={styles.characterCount}>{(coverData.eventSubtitle || '').length}/100</Text>
           </View>
-          
-          {/* Contact & Links Section */}
+
+          {/* Category Section - REQUIRED */}
           <View style={styles.sectionContainer}>
             <View style={styles.sectionHeader}>
-              <Ionicons name="link-outline" size={20} color="#666" />
-              <Text style={styles.sectionTitle}>Contact & Links</Text>
+              <Ionicons name="pricetag-outline" size={20} color="#666" />
+              <Text style={styles.sectionTitle}>
+                What Type of Event <Text style={styles.requiredAsterisk}>*</Text>
+              </Text>
             </View>
-            
-            <View style={styles.additionalFieldsContainer}>
-              <View style={styles.fieldWrapper}>
-                <Text style={styles.fieldLabel}>Contact Info</Text>
-                <TextInput
-                  style={styles.textField}
-                  value={contactInfo}
-                  onChangeText={setContactInfo}
-                  placeholder="Email or phone for guest questions"
-                  placeholderTextColor="#999"
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                />
-              </View>
-              
-              <View style={styles.fieldWrapper}>
-                <Text style={styles.fieldLabel}>Event Website</Text>
-                <TextInput
-                  style={styles.textField}
-                  value={eventWebsite}
-                  onChangeText={setEventWebsite}
-                  placeholder="https://your-event-website.com"
-                  placeholderTextColor="#999"
-                  keyboardType="url"
-                  autoCapitalize="none"
-                />
-              </View>
-            </View>
+
+            <TouchableOpacity
+              style={[
+                styles.selectField,
+                hasAttemptedSubmit && !eventCategory && styles.fieldError,
+              ]}
+              onPress={() => setShowCategoryModal(true)}
+            >
+              <Text style={[styles.selectFieldText, !eventCategory && styles.placeholderText]}>
+                {eventCategory || 'Choose a category'}
+              </Text>
+              <Ionicons name="chevron-forward" size={20} color="#999" />
+            </TouchableOpacity>
           </View>
-          
-          {/* Privacy Section */}
+
+          {/* Description Section */}
+          <View style={styles.sectionContainer}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="document-text-outline" size={20} color="#666" />
+              <Text style={styles.sectionTitle}>
+                Event Description <Text style={styles.requiredAsterisk}>*</Text>
+              </Text>
+            </View>
+
+            <TextInput
+              style={[
+                styles.descriptionField,
+                hasAttemptedSubmit && !description?.trim() && styles.fieldError,
+              ]}
+              value={description}
+              onChangeText={setDescription}
+              placeholder="Tell guests what to expect, what to bring, special instructions..."
+              placeholderTextColor="#999"
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
+            />
+          </View>
+
+          {/* When Section */}
+          <View style={styles.sectionContainer}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="time-outline" size={20} color="#666" />
+              <Text style={styles.sectionTitle}>
+                Date & Time <Text style={styles.requiredAsterisk}>*</Text>
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              style={styles.datePickerField}
+              onPress={() => setShowStartDateModal(true)}
+            >
+              <View style={styles.datePickerContent}>
+                <View>
+                  <Text style={styles.datePickerLabel}>Starts</Text>
+                  <Text style={styles.datePickerText}>
+                    {eventDate.toLocaleDateString('en-US', {
+                      weekday: 'short',
+                      month: 'short',
+                      day: 'numeric',
+                    })}{' '}
+                    at{' '}
+                    {eventTime.toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </Text>
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#999" />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.datePickerField}
+              onPress={() => setShowEndDateModal(true)}
+            >
+              <View style={styles.datePickerContent}>
+                <View>
+                  <Text style={styles.datePickerLabel}>Ends</Text>
+                  <Text style={styles.datePickerText}>
+                    {eventEndDate.toLocaleDateString('en-US', {
+                      weekday: 'short',
+                      month: 'short',
+                      day: 'numeric',
+                    })}{' '}
+                    at{' '}
+                    {eventEndTime.toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </Text>
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#999" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Where Section */}
+          <View style={styles.sectionContainer}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="location-outline" size={20} color="#666" />
+              <Text style={styles.sectionTitle}>
+                Location <Text style={styles.requiredAsterisk}>*</Text>
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              style={[
+                styles.locationField,
+                hasAttemptedSubmit && !location?.trim() && styles.fieldError,
+              ]}
+              onPress={() => setShowLocationModal(true)}
+            >
+              <Ionicons name="search" size={20} color="#999" />
+              <Text style={[styles.locationInput, !location && { color: '#999' }]}>
+                {location || 'Search for a venue or address'}
+              </Text>
+              <Ionicons name="chevron-forward" size={20} color="#999" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Privacy Settings - REQUIRED */}
           <View style={styles.sectionContainer}>
             <View style={styles.sectionHeader}>
               <Ionicons name="lock-closed-outline" size={20} color="#666" />
-              <Text style={styles.sectionTitle}>Privacy Settings</Text>
+              <Text style={styles.sectionTitle}>
+                Who Can See This Event <Text style={styles.requiredAsterisk}>*</Text>
+              </Text>
             </View>
-            
+
             <View style={styles.privacyCard}>
               <View style={styles.privacyLeft}>
                 <Text style={styles.privacyTitle}>Private Event</Text>
-                <Text style={styles.privacySubtitle}>Only people you invite can see this event</Text>
+                <Text style={styles.privacySubtitle}>
+                  Only people you invite can see this event
+                </Text>
               </View>
               <Switch
                 value={isPrivate}
@@ -959,17 +906,444 @@ export default function CreateEventScreen() {
               />
             </View>
           </View>
-          
+
+          {/* OPTIONAL FIELDS DIVIDER */}
+          <View style={styles.optionalFieldsDivider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.optionalFieldsText}>Optional Information</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          {/* Event Features Section */}
+          <View style={styles.sectionContainer}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="options-outline" size={20} color="#666" />
+              <Text style={styles.sectionTitle}>Add Special Features</Text>
+            </View>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.extrasScroll}
+            >
+              <View style={styles.extrasRow}>
+                {/* Most frequently used extras first - Cost is #1 for nightlife events */}
+                <TouchableOpacity
+                  style={[styles.extraPill, costs.length > 0 && styles.extraPillConfigured]}
+                  onPress={handleCostPerPerson}
+                >
+                  <Ionicons
+                    name="cash-outline"
+                    size={16}
+                    color={costs.length > 0 ? '#FFF' : '#007AFF'}
+                  />
+                  <Text
+                    style={[
+                      styles.extraPillText,
+                      costs.length > 0 && styles.extraPillTextConfigured,
+                    ]}
+                  >
+                    {costs.length > 0
+                      ? `${costs.length} cost${costs.length > 1 ? 's' : ''} added`
+                      : 'Entry & Costs'}
+                  </Text>
+                  {costs.length > 0 ? (
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        setCosts([]);
+                        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      }}
+                    >
+                      <Ionicons name="close-circle" size={16} color="#FFF" />
+                    </TouchableOpacity>
+                  ) : (
+                    <Ionicons name="add" size={16} color="#007AFF" />
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.extraPill, capacityLimit && styles.extraPillConfigured]}
+                  onPress={handleCapacity}
+                >
+                  <Ionicons
+                    name="people-outline"
+                    size={16}
+                    color={capacityLimit ? '#FFF' : '#007AFF'}
+                  />
+                  <Text
+                    style={[styles.extraPillText, capacityLimit && styles.extraPillTextConfigured]}
+                  >
+                    {capacityLimit ? `Max ${capacityLimit} guests` : 'Capacity Limit'}
+                  </Text>
+                  {capacityLimit ? (
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        setCapacityLimit('');
+                        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      }}
+                    >
+                      <Ionicons name="close-circle" size={16} color="#FFF" />
+                    </TouchableOpacity>
+                  ) : (
+                    <Ionicons name="add" size={16} color="#007AFF" />
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.extraPill, ageRestriction && styles.extraPillConfigured]}
+                  onPress={handleAgeRestriction}
+                >
+                  <Ionicons
+                    name="person-circle-outline"
+                    size={16}
+                    color={ageRestriction ? '#FFF' : '#007AFF'}
+                  />
+                  <Text
+                    style={[styles.extraPillText, ageRestriction && styles.extraPillTextConfigured]}
+                  >
+                    {ageRestriction || 'Age Restriction'}
+                  </Text>
+                  {ageRestriction ? (
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        setAgeRestriction('');
+                        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      }}
+                    >
+                      <Ionicons name="close-circle" size={16} color="#FFF" />
+                    </TouchableOpacity>
+                  ) : (
+                    <Ionicons name="add" size={16} color="#007AFF" />
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.extraPill, dressCode && styles.extraPillConfigured]}
+                  onPress={handleDressCode}
+                >
+                  <Ionicons name="shirt-outline" size={16} color={dressCode ? '#FFF' : '#007AFF'} />
+                  <Text style={[styles.extraPillText, dressCode && styles.extraPillTextConfigured]}>
+                    {dressCode ? `${dressCode}` : 'Dress Code'}
+                  </Text>
+                  {dressCode ? (
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        setDressCode(null);
+                        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      }}
+                    >
+                      <Ionicons name="close-circle" size={16} color="#FFF" />
+                    </TouchableOpacity>
+                  ) : (
+                    <Ionicons name="add" size={16} color="#007AFF" />
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.extraPill, rsvpDeadline && styles.extraPillConfigured]}
+                  onPress={handleRSVPDeadline}
+                >
+                  <Ionicons
+                    name="calendar-outline"
+                    size={16}
+                    color={rsvpDeadline ? '#FFF' : '#007AFF'}
+                  />
+                  <Text
+                    style={[styles.extraPillText, rsvpDeadline && styles.extraPillTextConfigured]}
+                  >
+                    {rsvpDeadline
+                      ? `RSVP by ${rsvpDeadline.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+                      : 'RSVP deadline'}
+                  </Text>
+                  {rsvpDeadline ? (
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        setRsvpDeadline(null);
+                        setRsvpReminderEnabled(false);
+                        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      }}
+                    >
+                      <Ionicons name="close-circle" size={16} color="#FFF" />
+                    </TouchableOpacity>
+                  ) : (
+                    <Ionicons name="add" size={16} color="#007AFF" />
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.extraPill, parkingInfo && styles.extraPillConfigured]}
+                  onPress={handleParking}
+                >
+                  <Ionicons name="car-outline" size={16} color={parkingInfo ? '#FFF' : '#007AFF'} />
+                  <Text
+                    style={[styles.extraPillText, parkingInfo && styles.extraPillTextConfigured]}
+                  >
+                    {parkingInfo ? 'Parking Info Set' : 'Parking Info'}
+                  </Text>
+                  {parkingInfo ? (
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        setParkingInfo('');
+                        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      }}
+                    >
+                      <Ionicons name="close-circle" size={16} color="#FFF" />
+                    </TouchableOpacity>
+                  ) : (
+                    <Ionicons name="add" size={16} color="#007AFF" />
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.extraPill, eventPhotos.length > 0 && styles.extraPillConfigured]}
+                  onPress={handlePhotoAlbum}
+                >
+                  <Ionicons
+                    name="images-outline"
+                    size={16}
+                    color={eventPhotos.length > 0 ? '#FFF' : '#007AFF'}
+                  />
+                  <Text
+                    style={[
+                      styles.extraPillText,
+                      eventPhotos.length > 0 && styles.extraPillTextConfigured,
+                    ]}
+                  >
+                    {eventPhotos.length > 0
+                      ? `${eventPhotos.length} photo${eventPhotos.length > 1 ? 's' : ''}`
+                      : 'Photo Album'}
+                  </Text>
+                  {eventPhotos.length > 0 ? (
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        setEventPhotos([]);
+                        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      }}
+                    >
+                      <Ionicons name="close-circle" size={16} color="#FFF" />
+                    </TouchableOpacity>
+                  ) : (
+                    <Ionicons name="add" size={16} color="#007AFF" />
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.extraPill, itemsToBring.length > 0 && styles.extraPillConfigured]}
+                  onPress={handleItemsToBring}
+                >
+                  <Ionicons
+                    name="gift-outline"
+                    size={16}
+                    color={itemsToBring.length > 0 ? '#FFF' : '#007AFF'}
+                  />
+                  <Text
+                    style={[
+                      styles.extraPillText,
+                      itemsToBring.length > 0 && styles.extraPillTextConfigured,
+                    ]}
+                  >
+                    {itemsToBring.length > 0
+                      ? `${itemsToBring.length} item${itemsToBring.length > 1 ? 's' : ''}`
+                      : 'To Bring'}
+                  </Text>
+                  {itemsToBring.length > 0 ? (
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        setItemsToBring([]);
+                        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      }}
+                    >
+                      <Ionicons name="close-circle" size={16} color="#FFF" />
+                    </TouchableOpacity>
+                  ) : (
+                    <Ionicons name="add" size={16} color="#007AFF" />
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.extraPill, eventTheme && styles.extraPillConfigured]}
+                  onPress={handleTheme}
+                >
+                  <Ionicons
+                    name="color-palette-outline"
+                    size={16}
+                    color={eventTheme ? '#FFF' : '#007AFF'}
+                  />
+                  <Text
+                    style={[styles.extraPillText, eventTheme && styles.extraPillTextConfigured]}
+                  >
+                    {eventTheme ? `Theme: ${eventTheme}` : 'Event Theme'}
+                  </Text>
+                  {eventTheme ? (
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        setEventTheme(null);
+                        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      }}
+                    >
+                      <Ionicons name="close-circle" size={16} color="#FFF" />
+                    </TouchableOpacity>
+                  ) : (
+                    <Ionicons name="add" size={16} color="#007AFF" />
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.extraPill, accessibilityInfo && styles.extraPillConfigured]}
+                  onPress={handleAccessibility}
+                >
+                  <Ionicons
+                    name="accessibility-outline"
+                    size={16}
+                    color={accessibilityInfo ? '#FFF' : '#007AFF'}
+                  />
+                  <Text
+                    style={[
+                      styles.extraPillText,
+                      accessibilityInfo && styles.extraPillTextConfigured,
+                    ]}
+                  >
+                    {accessibilityInfo ? 'Accessibility Set' : 'Accessibility'}
+                  </Text>
+                  {accessibilityInfo ? (
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        setAccessibilityInfo('');
+                        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      }}
+                    >
+                      <Ionicons name="close-circle" size={16} color="#FFF" />
+                    </TouchableOpacity>
+                  ) : (
+                    <Ionicons name="add" size={16} color="#007AFF" />
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.extraPill, questionnaire.length > 0 && styles.extraPillConfigured]}
+                  onPress={handleQuestionnaire}
+                >
+                  <Ionicons
+                    name="clipboard-outline"
+                    size={16}
+                    color={questionnaire.length > 0 ? '#FFF' : '#007AFF'}
+                  />
+                  <Text
+                    style={[
+                      styles.extraPillText,
+                      questionnaire.length > 0 && styles.extraPillTextConfigured,
+                    ]}
+                  >
+                    {questionnaire.length > 0
+                      ? `${questionnaire.length} question${questionnaire.length > 1 ? 's' : ''}`
+                      : 'Guest questionnaire'}
+                  </Text>
+                  {questionnaire.length > 0 ? (
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        setQuestionnaire([]);
+                        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      }}
+                    >
+                      <Ionicons name="close-circle" size={16} color="#FFF" />
+                    </TouchableOpacity>
+                  ) : (
+                    <Ionicons name="add" size={16} color="#007AFF" />
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.extraPill, playlist.length > 0 && styles.extraPillConfigured]}
+                  onPress={handlePlaylist}
+                >
+                  <Ionicons
+                    name="musical-notes-outline"
+                    size={16}
+                    color={playlist.length > 0 ? '#FFF' : '#007AFF'}
+                  />
+                  <Text
+                    style={[
+                      styles.extraPillText,
+                      playlist.length > 0 && styles.extraPillTextConfigured,
+                    ]}
+                  >
+                    {playlist.length > 0
+                      ? `${playlist.length} song${playlist.length > 1 ? 's' : ''}`
+                      : 'Playlist'}
+                  </Text>
+                  {playlist.length > 0 ? (
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        setPlaylist([]);
+                        setPlaylistSettings({ acceptSuggestions: true });
+                        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      }}
+                    >
+                      <Ionicons name="close-circle" size={16} color="#FFF" />
+                    </TouchableOpacity>
+                  ) : (
+                    <Ionicons name="add" size={16} color="#007AFF" />
+                  )}
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+
+          {/* Contact & Links Section */}
+          <View style={styles.sectionContainer}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="link-outline" size={20} color="#666" />
+              <Text style={styles.sectionTitle}>Contact Information</Text>
+            </View>
+
+            <View style={styles.additionalFieldsContainer}>
+              <View style={styles.fieldWrapper}>
+                <Text style={styles.fieldLabel}>Contact Info</Text>
+                <TextInput
+                  style={styles.textField}
+                  value={contactInfo}
+                  onChangeText={setContactInfo}
+                  placeholder="Email or phone for guest questions (optional)"
+                  placeholderTextColor="#999"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+              </View>
+
+              <View style={styles.fieldWrapper}>
+                <Text style={styles.fieldLabel}>Event Website</Text>
+                <TextInput
+                  style={styles.textField}
+                  value={eventWebsite}
+                  onChangeText={setEventWebsite}
+                  placeholder="https://your-event-website.com (optional)"
+                  placeholderTextColor="#999"
+                  keyboardType="url"
+                  autoCapitalize="none"
+                />
+              </View>
+            </View>
+          </View>
+
           {/* Action Buttons */}
           <View style={styles.buttonsContainer}>
-            <TouchableOpacity 
-              style={styles.draftButton}
-              onPress={handleSaveAsDraft}
-            >
+            <TouchableOpacity style={styles.draftButton} onPress={handleSaveAsDraft}>
               <Text style={styles.draftButtonText}>Save as Draft</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={styles.publishButton}
               onPress={handlePublish}
               disabled={isLoading}
@@ -983,7 +1357,7 @@ export default function CreateEventScreen() {
           </View>
         </View>
       </ScrollView>
-      
+
       {/* Modals */}
       <CostPerPersonModal
         visible={showCostModal}
@@ -994,7 +1368,7 @@ export default function CreateEventScreen() {
           void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         }}
       />
-      
+
       <PhotoAlbumModal
         visible={showPhotoModal}
         onClose={() => setShowPhotoModal(false)}
@@ -1005,25 +1379,25 @@ export default function CreateEventScreen() {
           void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         }}
       />
-      
+
       <ItemsToBringModal
         visible={showItemsModal}
         onClose={() => setShowItemsModal(false)}
         onSave={(items) => {
           console.log('📦 [CreateEventScreen] Items to bring sauvegardés:', items.length);
           // Convertir le format de la modal vers le format attendu par le service
-          const formattedItems = items.map(item => ({
+          const formattedItems = items.map((item) => ({
             id: item.id,
             name: item.name,
             quantity: item.quantity ? parseInt(item.quantity.toString()) : 1,
-            assignedTo: item.assignee || undefined
+            assignedTo: item.assignee || undefined,
           }));
           setItemsToBring(formattedItems);
           setShowItemsModal(false);
           void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         }}
       />
-      
+
       <RSVPDeadlineModal
         visible={showRSVPModal}
         onClose={() => setShowRSVPModal(false)}
@@ -1037,7 +1411,7 @@ export default function CreateEventScreen() {
         eventDate={eventDate}
         initialDeadline={rsvpDeadline}
       />
-      
+
       <GuestQuestionnaireModal
         visible={showQuestionnaireModal}
         onClose={() => setShowQuestionnaireModal(false)}
@@ -1049,17 +1423,17 @@ export default function CreateEventScreen() {
           }
         }}
       />
-      
+
       <PlaylistModal
         visible={showPlaylistModal}
         onClose={() => setShowPlaylistModal(false)}
         onSave={(songs, spotifyLink) => {
           console.log('🎵 [CreateEventScreen] Playlist sauvegardée:', songs.length, 'chansons');
           // Formater les chansons pour le service
-          const formattedPlaylist = songs.map(song => ({
+          const formattedPlaylist = songs.map((song) => ({
             id: song.id,
             title: song.title,
-            artist: song.artist
+            artist: song.artist,
           }));
           setPlaylist(formattedPlaylist);
           if (spotifyLink) {
@@ -1069,7 +1443,7 @@ export default function CreateEventScreen() {
           void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         }}
       />
-      
+
       <ManageCoHostsModal
         visible={showCoHostsModal}
         onClose={() => setShowCoHostsModal(false)}
@@ -1079,7 +1453,7 @@ export default function CreateEventScreen() {
           void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         }}
       />
-      
+
       <EventStartDateModal
         visible={showStartDateModal}
         onClose={() => setShowStartDateModal(false)}
@@ -1090,7 +1464,7 @@ export default function CreateEventScreen() {
           const endDateTime = new Date(eventEndTime);
           const startDateTime = new Date(startTime);
           if (endDateTime <= startDateTime) {
-            const newEndTime = new Date(startDateTime.getTime() + (3 * 60 * 60 * 1000)); // 3 hours later
+            const newEndTime = new Date(startDateTime.getTime() + 3 * 60 * 60 * 1000); // 3 hours later
             setEventEndDate(newEndTime);
             setEventEndTime(newEndTime);
           }
@@ -1101,7 +1475,7 @@ export default function CreateEventScreen() {
         currentDate={eventDate}
         currentTime={eventTime}
       />
-      
+
       <EventEndDateModal
         visible={showEndDateModal}
         onClose={() => setShowEndDateModal(false)}
@@ -1115,7 +1489,7 @@ export default function CreateEventScreen() {
         currentEndDate={eventEndDate}
         currentEndTime={eventEndTime}
       />
-      
+
       <EventLocationSearchModal
         visible={showLocationModal}
         onClose={() => setShowLocationModal(false)}
@@ -1131,7 +1505,7 @@ export default function CreateEventScreen() {
         }}
         currentLocation={location}
       />
-      
+
       <DressCodeModal
         visible={showDressCodeModal}
         onClose={() => setShowDressCodeModal(false)}
@@ -1141,7 +1515,7 @@ export default function CreateEventScreen() {
         }}
         initialDressCode={dressCode}
       />
-      
+
       <ThemeSelectionModal
         visible={showThemeModal}
         onClose={() => setShowThemeModal(false)}
@@ -1151,32 +1525,51 @@ export default function CreateEventScreen() {
         }}
         initialTheme={eventTheme}
       />
-      
+
       <AgeRestrictionModal
         visible={showAgeRestrictionModal}
         onClose={() => setShowAgeRestrictionModal(false)}
         onSave={(restriction) => {
           if (restriction) {
             const selectedOption = restriction.type;
-            setAgeRestriction(selectedOption === 'all_ages' ? 'All Ages' : 
-                           selectedOption === 'family_friendly' ? 'Family Friendly' :
-                           selectedOption === 'kids_only' ? 'Kids Only' :
-                           selectedOption === 'custom' && restriction.minAge ? `${restriction.minAge}+` :
-                           selectedOption.includes('+') ? selectedOption : 'All Ages');
+            setAgeRestriction(
+              selectedOption === 'all_ages'
+                ? 'All Ages'
+                : selectedOption === 'family_friendly'
+                  ? 'Family Friendly'
+                  : selectedOption === 'kids_only'
+                    ? 'Kids Only'
+                    : selectedOption === 'custom' && restriction.minAge
+                      ? `${restriction.minAge}+`
+                      : selectedOption.includes('+')
+                        ? selectedOption
+                        : 'All Ages'
+            );
           } else {
             setAgeRestriction('');
           }
           void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         }}
-        initialRestriction={ageRestriction ? {
-          type: ageRestriction.includes('+') ? ageRestriction : 
-                ageRestriction === 'All Ages' ? 'all_ages' :
-                ageRestriction === 'Family Friendly' ? 'family_friendly' :
-                ageRestriction === 'Kids Only' ? 'kids_only' : 'all_ages',
-          minAge: ageRestriction.includes('+') ? parseInt(ageRestriction.replace('+', '')) : undefined
-        } : null}
+        initialRestriction={
+          ageRestriction
+            ? {
+                type: ageRestriction.includes('+')
+                  ? ageRestriction
+                  : ageRestriction === 'All Ages'
+                    ? 'all_ages'
+                    : ageRestriction === 'Family Friendly'
+                      ? 'family_friendly'
+                      : ageRestriction === 'Kids Only'
+                        ? 'kids_only'
+                        : 'all_ages',
+                minAge: ageRestriction.includes('+')
+                  ? parseInt(ageRestriction.replace('+', ''))
+                  : undefined,
+              }
+            : null
+        }
       />
-      
+
       <EventCapacityModal
         visible={showCapacityModal}
         onClose={() => setShowCapacityModal(false)}
@@ -1190,7 +1583,7 @@ export default function CreateEventScreen() {
         }}
         initialCapacity={capacityLimit ? { maxAttendees: parseInt(capacityLimit) } : undefined}
       />
-      
+
       <ParkingInfoModal
         visible={showParkingModal}
         onClose={() => setShowParkingModal(false)}
@@ -1204,13 +1597,19 @@ export default function CreateEventScreen() {
           }
           void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         }}
-        initialParkingInfo={parkingInfo ? {
-          available: !parkingInfo.includes('No parking'),
-          instructions: parkingInfo.includes('No parking') ? '' : parkingInfo,
-          nearbyOptions: parkingInfo.includes('No parking') ? parkingInfo.replace('No parking - ', '') : ''
-        } : { available: true }}
+        initialParkingInfo={
+          parkingInfo
+            ? {
+                available: !parkingInfo.includes('No parking'),
+                instructions: parkingInfo.includes('No parking') ? '' : parkingInfo,
+                nearbyOptions: parkingInfo.includes('No parking')
+                  ? parkingInfo.replace('No parking - ', '')
+                  : '',
+              }
+            : { available: true }
+        }
       />
-      
+
       <AccessibilityModal
         visible={showAccessibilityModal}
         onClose={() => setShowAccessibilityModal(false)}
@@ -1222,26 +1621,32 @@ export default function CreateEventScreen() {
           if (info.accessibleRestrooms) features.push('Accessible restrooms');
           if (info.signLanguageInterpreter) features.push('Sign language interpreter');
           if (info.brailleAvailable) features.push('Braille materials');
-          
+
           let accessibilityText = features.join(', ');
           if (info.additionalInfo) {
-            accessibilityText = accessibilityText ? `${accessibilityText}. ${info.additionalInfo}` : info.additionalInfo;
+            accessibilityText = accessibilityText
+              ? `${accessibilityText}. ${info.additionalInfo}`
+              : info.additionalInfo;
           }
-          
+
           setAccessibilityInfo(accessibilityText);
           void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         }}
-        initialAccessibility={accessibilityInfo ? {
-          wheelchairAccessible: accessibilityInfo.includes('Wheelchair accessible'),
-          elevatorAvailable: accessibilityInfo.includes('Elevator available'),
-          accessibleParking: accessibilityInfo.includes('Accessible parking'),
-          accessibleRestrooms: accessibilityInfo.includes('Accessible restrooms'),
-          signLanguageInterpreter: accessibilityInfo.includes('Sign language'),
-          brailleAvailable: accessibilityInfo.includes('Braille'),
-          additionalInfo: accessibilityInfo
-        } : undefined}
+        initialAccessibility={
+          accessibilityInfo
+            ? {
+                wheelchairAccessible: accessibilityInfo.includes('Wheelchair accessible'),
+                elevatorAvailable: accessibilityInfo.includes('Elevator available'),
+                accessibleParking: accessibilityInfo.includes('Accessible parking'),
+                accessibleRestrooms: accessibilityInfo.includes('Accessible restrooms'),
+                signLanguageInterpreter: accessibilityInfo.includes('Sign language'),
+                brailleAvailable: accessibilityInfo.includes('Braille'),
+                additionalInfo: accessibilityInfo,
+              }
+            : undefined
+        }
       />
-      
+
       <EventCategoryModal
         visible={showCategoryModal}
         onClose={() => setShowCategoryModal(false)}
@@ -1251,6 +1656,127 @@ export default function CreateEventScreen() {
         }}
         initialCategory={eventCategory}
       />
+
+      {/* Title Edit Modal */}
+      <BottomModal
+        visible={isEditingTitle}
+        onClose={() => setIsEditingTitle(false)}
+        title="Edit Event Title"
+        height={300}
+        onSave={
+          tempTitle.trim()
+            ? () => {
+                updateCoverData({ eventTitle: tempTitle });
+                setIsEditingTitle(false);
+                void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              }
+            : undefined
+        }
+        saveButtonText="Save Title"
+      >
+        <View style={styles.editModalContent}>
+          <TextInput
+            style={styles.editModalInput}
+            value={tempTitle}
+            onChangeText={setTempTitle}
+            placeholder="Enter event title..."
+            placeholderTextColor="#999"
+            multiline
+            numberOfLines={2}
+            maxLength={50}
+            autoFocus
+          />
+          <Text style={styles.characterCount}>{tempTitle.length}/50</Text>
+        </View>
+      </BottomModal>
+
+      {/* Subtitle Edit Modal */}
+      <BottomModal
+        visible={isEditingSubtitle}
+        onClose={() => setIsEditingSubtitle(false)}
+        title="Edit Event Subtitle"
+        height={350}
+        onSave={
+          tempSubtitle.trim()
+            ? () => {
+                updateCoverData({ eventSubtitle: tempSubtitle });
+                setIsEditingSubtitle(false);
+                void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              }
+            : undefined
+        }
+        saveButtonText="Save Subtitle"
+      >
+        <View style={styles.editModalContent}>
+          <TextInput
+            style={styles.editModalInput}
+            value={tempSubtitle}
+            onChangeText={setTempSubtitle}
+            placeholder="Enter a catchy subtitle..."
+            placeholderTextColor="#999"
+            multiline
+            numberOfLines={3}
+            maxLength={100}
+            autoFocus
+          />
+          <Text style={styles.characterCount}>{tempSubtitle.length}/100</Text>
+          <View style={styles.subtitleHelper}>
+            <Text style={styles.subtitleHelperText}>
+              💡 Tip: Use a fun tagline to get people excited about your event!
+            </Text>
+          </View>
+        </View>
+      </BottomModal>
+
+      {/* Cover Confirmation Modal */}
+      <Modal
+        visible={showCoverConfirmModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowCoverConfirmModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.confirmModal}>
+            <View style={styles.confirmModalIcon}>
+              <Ionicons name="image-outline" size={48} color="#007AFF" />
+            </View>
+            
+            <Text style={styles.confirmModalTitle}>No Custom Cover?</Text>
+            
+            <Text style={styles.confirmModalMessage}>
+              You haven't customized your event cover yet. A personalized cover makes your event more attractive and helps guests recognize it easily.
+            </Text>
+            
+            <Text style={styles.confirmModalSubMessage}>
+              Would you like to customize your cover now?
+            </Text>
+            
+            <View style={styles.confirmModalButtons}>
+              <TouchableOpacity 
+                style={styles.confirmModalButton}
+                onPress={() => {
+                  setShowCoverConfirmModal(false);
+                  handleEditCover();
+                }}
+              >
+                <Text style={styles.confirmModalButtonText}>Customize Cover</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.confirmModalButton, styles.confirmModalSecondaryButton]}
+                onPress={async () => {
+                  setShowCoverConfirmModal(false);
+                  await performPublish();
+                }}
+              >
+                <Text style={[styles.confirmModalButtonText, styles.confirmModalSecondaryButtonText]}>
+                  Publish Anyway
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1306,7 +1832,7 @@ const styles = StyleSheet.create({
   rightIcons: {
     flexDirection: 'row',
   },
-  eventTitleOverlay: {
+  eventTitleContainer: {
     position: 'absolute',
     left: 0,
     right: 0,
@@ -1314,23 +1840,40 @@ const styles = StyleSheet.create({
     transform: [{ translateY: -50 }],
     alignItems: 'center',
     paddingHorizontal: 20,
-    zIndex: 100,
+    zIndex: 50,
   },
-  eventTitleMainText: {
+  titleTouchArea: {
+    width: '100%',
+    alignItems: 'center',
+  },
+  subtitleTouchArea: {
+    width: '100%',
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  eventTitle: {
     color: '#FFF',
     fontSize: 38,
     fontWeight: '300',
     textAlign: 'center',
     lineHeight: 44,
-    fontFamily: Platform.select({ ios: 'System', android: 'System', default: 'System' }),
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
   },
   eventSubtitle: {
     color: '#FFF',
     fontSize: 16,
     textAlign: 'center',
-    marginTop: 16,
     lineHeight: 22,
     opacity: 0.85,
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
+  },
+  placeholderText: {
+    opacity: 0.7,
+    fontStyle: 'italic',
   },
   editCoverContainer: {
     position: 'absolute',
@@ -1644,11 +2187,10 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   fieldLabel: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '600',
-    color: '#666',
+    color: '#000',
     marginBottom: 8,
-    textTransform: 'uppercase',
   },
   textField: {
     backgroundColor: '#FFF',
@@ -1666,7 +2208,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E5EA',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -1676,7 +2218,261 @@ const styles = StyleSheet.create({
     color: '#000',
     flex: 1,
   },
-  placeholderText: {
+  editCoverBtnError: {
+    borderWidth: 2,
+    borderColor: '#FF3B30',
+  },
+  fieldError: {
+    borderColor: '#FF3B30',
+    borderWidth: 2,
+  },
+  placeholderCover: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#333',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    zIndex: 0,
+  },
+  placeholderCoverText: {
+    color: '#FFF',
+    fontSize: 18,
+    fontWeight: '600',
+    marginTop: 16,
+    opacity: 0.7,
+  },
+  placeholderCoverSubtext: {
+    color: '#FFF',
+    fontSize: 14,
+    marginTop: 8,
+    opacity: 0.5,
+  },
+  characterCount: {
+    fontSize: 12,
+    color: '#8E8E93',
+    textAlign: 'right',
+    marginTop: 4,
+  },
+  requiredAsterisk: {
+    color: '#FF3B30',
+    fontSize: 16,
+    fontWeight: '400',
+  },
+  requiredFieldsHelper: {
+    paddingBottom: 16,
+    marginBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5EA',
+  },
+  requiredFieldsText: {
+    fontSize: 13,
+    color: '#8E8E93',
+    textAlign: 'center',
+  },
+  optionalFieldsDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 24,
+    paddingHorizontal: 20,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E5E5EA',
+  },
+  optionalFieldsText: {
+    fontSize: 14,
+    color: '#8E8E93',
+    fontWeight: '500',
+    marginHorizontal: 16,
+  },
+  coverInfoBox: {
+    flexDirection: 'row',
+    backgroundColor: '#F0F8FF',
+    borderRadius: 16,
+    padding: 16,
+    marginHorizontal: 20,
+    marginBottom: 20,
+    marginTop: -10,
+    gap: 12,
+  },
+  coverInfoIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#E3F2FD',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  coverInfoContent: {
+    flex: 1,
+  },
+  coverInfoTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 4,
+  },
+  coverInfoText: {
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 20,
+  },
+  editOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 1000,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  overlayBackground: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  editModal: {
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    padding: 24,
+    width: '90%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 10,
+  },
+  editModalTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  editModalInput: {
+    backgroundColor: '#F8F8F8',
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    marginBottom: 8,
+  },
+  modalCharacterCount: {
+    fontSize: 12,
     color: '#999',
+    textAlign: 'right',
+    marginBottom: 16,
+  },
+  editModalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  cancelButton: {
+    flex: 1,
+    backgroundColor: '#F0F0F0',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+  },
+  doneButton: {
+    flex: 1,
+    backgroundColor: '#007AFF',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  doneButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFF',
+  },
+  editModalContent: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+  },
+  subtitleHelper: {
+    backgroundColor: '#F0F8FF',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 16,
+  },
+  subtitleHelperText: {
+    fontSize: 14,
+    color: '#007AFF',
+    lineHeight: 20,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  confirmModal: {
+    backgroundColor: '#FFF',
+    borderRadius: 20,
+    padding: 24,
+    width: '85%',
+    maxWidth: 350,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 10,
+  },
+  confirmModalIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#F0F8FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  confirmModalTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#000',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  confirmModalMessage: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 16,
+  },
+  confirmModalSubMessage: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#000',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  confirmModalButtons: {
+    width: '100%',
+    gap: 12,
+  },
+  confirmModalButton: {
+    backgroundColor: '#007AFF',
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  confirmModalSecondaryButton: {
+    backgroundColor: '#F0F0F0',
+  },
+  confirmModalButtonText: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#FFF',
+  },
+  confirmModalSecondaryButtonText: {
+    color: '#666',
   },
 });

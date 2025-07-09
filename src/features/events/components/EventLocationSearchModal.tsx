@@ -14,7 +14,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
-import { hereApiService, type LocationSearchResult } from '../../../services/hereApi';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { hybridGeocodingService, type LocationSearchResult } from '../../../services/hybridGeocodingService';
 
 interface EventLocationSearchModalProps {
   visible: boolean;
@@ -32,6 +33,9 @@ const COLORS = {
   primary: '#007AFF',
   error: '#FF3B30',
 };
+
+const RECENT_LOCATIONS_KEY = '@EventLocations:recent';
+const MAX_RECENT_LOCATIONS = 10;
 
 export default function EventLocationSearchModal({
   visible,
@@ -53,6 +57,36 @@ export default function EventLocationSearchModal({
   const [manualPostalCode, setManualPostalCode] = useState('');
   const [manualCountry, setManualCountry] = useState('');
 
+  // Load recent locations from AsyncStorage on mount
+  useEffect(() => {
+    const loadRecentLocations = async () => {
+      try {
+        const stored = await AsyncStorage.getItem(RECENT_LOCATIONS_KEY);
+        if (stored) {
+          const locations = JSON.parse(stored) as LocationSearchResult[];
+          setRecentLocations(locations);
+          console.log('📍 Loaded', locations.length, 'recent locations from storage');
+        }
+      } catch (error) {
+        console.error('❌ Error loading recent locations:', error);
+      }
+    };
+
+    if (visible) {
+      void loadRecentLocations();
+    }
+  }, [visible]);
+
+  // Save recent locations to AsyncStorage
+  const saveRecentLocations = async (locations: LocationSearchResult[]) => {
+    try {
+      await AsyncStorage.setItem(RECENT_LOCATIONS_KEY, JSON.stringify(locations));
+      console.log('💾 Saved', locations.length, 'recent locations to storage');
+    } catch (error) {
+      console.error('❌ Error saving recent locations:', error);
+    }
+  };
+
   // Search for locations using HERE API
   const handleSearch = async (query: string) => {
     console.log('🔍 EventLocationSearchModal - Starting search for:', query);
@@ -63,14 +97,21 @@ export default function EventLocationSearchModal({
       return;
     }
 
+    // Require minimum 4 characters before searching
+    if (query.trim().length < 4) {
+      console.log('❌ Query too short (min 4 characters)');
+      setSearchResults([]);
+      return;
+    }
+
     setIsSearching(true);
     
     try {
-      console.log('📡 Calling HERE API...');
+      console.log('📡 Calling Geocoding API...');
       // Use HERE API to search for locations
       // You can optionally pass a location bias (e.g., user's current location)
-      const results = await hereApiService.searchLocations(query);
-      console.log('✅ HERE API returned', results.length, 'results:', results);
+      const results = await hybridGeocodingService.searchLocations(query);
+      console.log('✅ Geocoding API returned', results.length, 'results:', results);
       setSearchResults(results);
     } catch (error) {
       console.error('❌ Error searching locations:', error);
@@ -99,11 +140,19 @@ export default function EventLocationSearchModal({
     onSelect(location);
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     
-    // Add to recent locations
-    setRecentLocations(prev => {
-      const filtered = prev.filter(loc => loc.id !== location.id);
-      return [location, ...filtered].slice(0, 5);
-    });
+    // Add to recent locations and save
+    const newRecentLocations = (() => {
+      // Remove duplicate if it exists
+      const filtered = recentLocations.filter(loc => {
+        // Compare by address and city to avoid duplicates
+        return !(loc.address === location.address && loc.city === location.city);
+      });
+      // Add new location at the beginning and limit to MAX_RECENT_LOCATIONS
+      return [location, ...filtered].slice(0, MAX_RECENT_LOCATIONS);
+    })();
+    
+    setRecentLocations(newRecentLocations);
+    void saveRecentLocations(newRecentLocations);
     
     onClose();
   };
@@ -123,6 +172,21 @@ export default function EventLocationSearchModal({
     };
 
     handleSelectLocation(manualLocation);
+  };
+
+  const handleRemoveRecentLocation = (locationToRemove: LocationSearchResult) => {
+    const newRecentLocations = recentLocations.filter(
+      loc => !(loc.address === locationToRemove.address && loc.city === locationToRemove.city)
+    );
+    setRecentLocations(newRecentLocations);
+    void saveRecentLocations(newRecentLocations);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
+  const handleClearAllRecent = async () => {
+    setRecentLocations([]);
+    await AsyncStorage.removeItem(RECENT_LOCATIONS_KEY);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
   const handleClose = () => {
@@ -165,7 +229,7 @@ export default function EventLocationSearchModal({
           <View style={styles.header}>
             <Text style={styles.title}>Event Location</Text>
             <Text style={styles.subtitle}>Search for a place or enter an address</Text>
-            <Text style={styles.poweredBy}>Powered by HERE Maps</Text>
+            <Text style={styles.poweredBy}>Powered by government APIs & HERE Maps</Text>
           </View>
 
           {!showManualEntry ? (
@@ -176,7 +240,7 @@ export default function EventLocationSearchModal({
                   <Ionicons name="search" size={20} color={COLORS.grey2} />
                   <TextInput
                     style={styles.searchInput}
-                    placeholder="Search places, addresses, postal codes..."
+                    placeholder="Search places (min. 4 characters)..."
                     placeholderTextColor={COLORS.grey1}
                     value={searchQuery}
                     onChangeText={setSearchQuery}
@@ -201,7 +265,13 @@ export default function EventLocationSearchModal({
                     <ActivityIndicator size="small" color={COLORS.primary} />
                     <Text style={styles.loadingText}>Searching...</Text>
                   </View>
-                ) : searchQuery.length > 0 && searchResults.length === 0 ? (
+                ) : searchQuery.length > 0 && searchQuery.length < 4 ? (
+                  <View style={styles.emptyState}>
+                    <Ionicons name="information-circle-outline" size={48} color={COLORS.grey1} />
+                    <Text style={styles.emptyStateText}>Keep typing...</Text>
+                    <Text style={styles.emptyStateSubtext}>Enter at least 4 characters to search</Text>
+                  </View>
+                ) : searchQuery.length >= 4 && searchResults.length === 0 ? (
                   <View style={styles.emptyState}>
                     <Ionicons name="location-outline" size={48} color={COLORS.grey1} />
                     <Text style={styles.emptyStateText}>No locations found</Text>
@@ -228,24 +298,42 @@ export default function EventLocationSearchModal({
                   ))
                 ) : recentLocations.length > 0 ? (
                   <>
-                    <Text style={styles.sectionTitle}>Recent Locations</Text>
+                    <View style={styles.sectionHeader}>
+                      <View>
+                        <Text style={styles.sectionTitle}>Recent Locations</Text>
+                        <Text style={styles.sectionSubtitle}>Tap to select • Press X to delete</Text>
+                      </View>
+                      {recentLocations.length > 3 && (
+                        <Pressable onPress={handleClearAllRecent} style={styles.clearAllButton}>
+                          <Text style={styles.clearAllText}>Clear All</Text>
+                        </Pressable>
+                      )}
+                    </View>
                     {recentLocations.map((location) => (
-                      <Pressable
-                        key={location.id}
-                        style={styles.locationItem}
-                        onPress={() => handleSelectLocation(location)}
-                      >
-                        <View style={styles.locationIcon}>
-                          <Ionicons name="time-outline" size={24} color={COLORS.grey2} />
-                        </View>
-                        <View style={styles.locationInfo}>
-                          <Text style={styles.locationName}>{location.name}</Text>
-                          <Text style={styles.locationAddress}>
-                            {formatLocationDisplay(location)}
-                          </Text>
-                        </View>
-                        <Ionicons name="chevron-forward" size={20} color={COLORS.grey1} />
-                      </Pressable>
+                      <View key={location.id} style={styles.locationItemContainer}>
+                        <Pressable
+                          style={styles.locationItem}
+                          onPress={() => handleSelectLocation(location)}
+                        >
+                          <View style={styles.locationIcon}>
+                            <Ionicons name="time-outline" size={24} color={COLORS.grey2} />
+                          </View>
+                          <View style={styles.locationInfo}>
+                            <Text style={styles.locationName}>{location.name}</Text>
+                            <Text style={styles.locationAddress}>
+                              {formatLocationDisplay(location)}
+                            </Text>
+                          </View>
+                          <Ionicons name="chevron-forward" size={20} color={COLORS.grey1} />
+                        </Pressable>
+                        <Pressable
+                          style={styles.deleteButton}
+                          onPress={() => handleRemoveRecentLocation(location)}
+                          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                        >
+                          <Ionicons name="close-circle" size={20} color={COLORS.error} />
+                        </Pressable>
+                      </View>
                     ))}
                   </>
                 ) : null}
@@ -273,6 +361,19 @@ export default function EventLocationSearchModal({
                 <Ionicons name="arrow-back" size={20} color={COLORS.primary} />
                 <Text style={styles.backButtonText}>Back to search</Text>
               </Pressable>
+
+              {/* Warning Box */}
+              <View style={styles.warningBox}>
+                <View style={styles.warningIcon}>
+                  <Ionicons name="warning" size={20} color={COLORS.error} />
+                </View>
+                <View style={styles.warningContent}>
+                  <Text style={styles.warningTitle}>Important Notice</Text>
+                  <Text style={styles.warningText}>
+                    Manual addresses may not be properly referenced on maps and could make your event harder to find. We recommend using the search function above for better results.
+                  </Text>
+                </View>
+              </View>
 
               <View style={styles.formField}>
                 <Text style={styles.fieldLabel}>Location name *</Text>
@@ -457,19 +558,38 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.grey2,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+    marginTop: 8,
+  },
   sectionTitle: {
     fontSize: 14,
     fontWeight: '600',
     color: COLORS.grey2,
-    marginBottom: 12,
-    marginTop: 8,
+  },
+  sectionSubtitle: {
+    fontSize: 12,
+    color: COLORS.grey1,
+    marginTop: 2,
+  },
+  locationItemContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.grey0,
   },
   locationItem: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.grey0,
+  },
+  deleteButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 16,
   },
   locationIcon: {
     width: 40,
@@ -586,5 +706,48 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '600',
     color: COLORS.white,
+  },
+  warningBox: {
+    flexDirection: 'row',
+    backgroundColor: '#FFF5F5',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#FFE5E5',
+    gap: 12,
+  },
+  warningIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFEBEB',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  warningContent: {
+    flex: 1,
+  },
+  warningTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.error,
+    marginBottom: 4,
+  },
+  warningText: {
+    fontSize: 14,
+    color: COLORS.grey2,
+    lineHeight: 20,
+  },
+  clearAllButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    backgroundColor: '#FFE5E5',
+  },
+  clearAllText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.error,
   },
 });

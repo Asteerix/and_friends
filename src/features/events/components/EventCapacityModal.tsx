@@ -162,7 +162,7 @@ export default function EventCapacityModal({
                       <View style={styles.optionTextContainer}>
                         <Text style={styles.optionTitle}>Enable Waitlist</Text>
                         <Text style={styles.optionDescription}>
-                          Allow guests to join a waitlist when full
+                          Allow guests to join waitlist when event is full
                         </Text>
                       </View>
                     </View>
@@ -189,7 +189,7 @@ export default function EventCapacityModal({
                   <View style={styles.optionTextContainer}>
                     <Text style={styles.optionTitle}>Auto-Approve RSVPs</Text>
                     <Text style={styles.optionDescription}>
-                      Automatically approve guest requests
+                      Guests can join without your approval
                     </Text>
                   </View>
                 </View>

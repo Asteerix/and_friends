@@ -230,7 +230,7 @@ export default function PhotoAlbumModal({
                     source={{ uri: photo }} 
                     style={styles.photo}
                     onError={() => {
-                      Alert.alert('Erreur', 'Impossible de charger cette image');
+                      Alert.alert('Error', 'Unable to load this image');
                       removePhoto(index);
                     }}
                   />
@@ -277,6 +277,18 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingBottom: 20,
   },
+  helperSection: {
+    backgroundColor: '#F0F8FF',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  helperText: {
+    fontSize: 14,
+    color: '#007AFF',
+    lineHeight: 20,
+    textAlign: 'center',
+  },
   emptyStateContainer: {
     flexDirection: 'row',
     gap: 16,
@@ -297,6 +309,11 @@ const styles = StyleSheet.create({
     color: '#8E8E93',
     marginTop: 12,
   },
+  emptyStateSubtext: {
+    fontSize: 12,
+    color: '#C7C7CC',
+    marginTop: 4,
+  },
   uploadCard: {
     flex: 1,
     backgroundColor: '#F5F5F5',
@@ -310,6 +327,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     marginTop: 12,
+  },
+  uploadSubtext: {
+    fontSize: 12,
+    color: '#8E8E93',
+    marginTop: 4,
   },
   headerInfo: {
     flexDirection: 'row',

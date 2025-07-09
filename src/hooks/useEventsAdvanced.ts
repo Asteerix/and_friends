@@ -28,6 +28,23 @@ export interface EventAdvanced {
   cover_bg_color?: string;
   cover_font?: string;
   cover_image?: string;
+  // Nouveaux champs ajoutés
+  start_time?: string;
+  end_time?: string;
+  location_details?: any;
+  dress_code?: string;
+  event_theme?: string;
+  age_restriction?: string;
+  capacity_limit?: number;
+  parking_info?: string;
+  event_category?: string;
+  accessibility_info?: string;
+  event_website?: string;
+  contact_info?: string;
+  allow_plus_ones?: boolean;
+  max_plus_ones?: number;
+  event_tags?: string[];
+  extra_data?: any;
   creator?: {
     id: string;
     full_name?: string;
@@ -159,6 +176,23 @@ export function useEventsAdvanced() {
             cover_bg_color: event.cover_bg_color,
             cover_font: event.cover_font,
             cover_image: event.cover_image,
+            // Nouveaux champs
+            start_time: event.start_time,
+            end_time: event.end_time,
+            location_details: event.location_details,
+            dress_code: event.dress_code,
+            event_theme: event.event_theme,
+            age_restriction: event.age_restriction,
+            capacity_limit: event.capacity_limit,
+            parking_info: event.parking_info,
+            event_category: event.event_category,
+            accessibility_info: event.accessibility_info,
+            event_website: event.event_website,
+            contact_info: event.contact_info,
+            allow_plus_ones: event.allow_plus_ones,
+            max_plus_ones: event.max_plus_ones,
+            event_tags: event.event_tags,
+            extra_data: event.extra_data,
             creator: event.profiles,
             participants: formattedParticipants,
             participants_count: participantsCount || 0,
@@ -442,6 +476,23 @@ export function useEventsAdvanced() {
         cover_bg_color: eventData.cover_bg_color,
         cover_font: eventData.cover_font,
         cover_image: eventData.cover_image,
+        // Nouveaux champs
+        start_time: eventData.start_time,
+        end_time: eventData.end_time,
+        location_details: eventData.location_details,
+        dress_code: eventData.dress_code,
+        event_theme: eventData.event_theme,
+        age_restriction: eventData.age_restriction,
+        capacity_limit: eventData.capacity_limit,
+        parking_info: eventData.parking_info,
+        event_category: eventData.event_category,
+        accessibility_info: eventData.accessibility_info,
+        event_website: eventData.event_website,
+        contact_info: eventData.contact_info,
+        allow_plus_ones: eventData.allow_plus_ones,
+        max_plus_ones: eventData.max_plus_ones,
+        event_tags: eventData.event_tags,
+        extra_data: eventData.extra_data,
         creator: eventData.profiles,
         participants: formattedParticipants,
         participants_count: formattedParticipants.length,

@@ -56,6 +56,14 @@ export default function ParkingInfoModal({
   const [nearbyOptions, setNearbyOptions] = useState(initialParkingInfo?.nearbyOptions || '');
 
   const handleSave = () => {
+    // Validate that something is filled
+    if (parkingAvailable && !selectedType) {
+      return; // Don't save if parking available but no type selected
+    }
+    if (!parkingAvailable && !nearbyOptions.trim()) {
+      return; // Don't save if no parking and no alternatives provided
+    }
+    
     const parkingInfo = {
       available: parkingAvailable,
       type: selectedType,
@@ -123,7 +131,7 @@ export default function ParkingInfoModal({
 
               {parkingAvailable ? (
                 <>
-                  <Text style={styles.sectionTitle}>Parking Type</Text>
+                  <Text style={styles.sectionTitle}>Parking Type <Text style={{ color: '#FF3B30' }}>*</Text></Text>
                   <View style={styles.typeGrid}>
                     {PARKING_TYPES.map((type) => (
                       <Pressable
@@ -162,7 +170,7 @@ export default function ParkingInfoModal({
                   )}
 
                   <View style={styles.inputSection}>
-                    <Text style={styles.inputLabel}>Parking Instructions</Text>
+                    <Text style={styles.inputLabel}>Parking Instructions <Text style={{ color: '#8E8E93', fontSize: 12 }}>(optional)</Text></Text>
                     <TextInput
                       style={[styles.textInput, styles.multilineInput]}
                       placeholder="e.g., Enter through the main gate, parking is on level B2"
@@ -176,7 +184,7 @@ export default function ParkingInfoModal({
                 </>
               ) : (
                 <View style={styles.inputSection}>
-                  <Text style={styles.inputLabel}>Nearby Parking Options</Text>
+                  <Text style={styles.inputLabel}>Alternative Parking Options <Text style={{ color: '#FF3B30' }}>*</Text></Text>
                   <TextInput
                     style={[styles.textInput, styles.multilineInput]}
                     placeholder="e.g., Public parking garage 2 blocks away, street parking available on Main St"
@@ -223,8 +231,18 @@ export default function ParkingInfoModal({
             <Pressable style={styles.cancelButton} onPress={handleCancel}>
               <Text style={styles.cancelButtonText}>Cancel</Text>
             </Pressable>
-            <Pressable style={styles.saveButton} onPress={handleSave}>
-              <Text style={styles.saveButtonText}>Save</Text>
+            <Pressable 
+              style={[
+                styles.saveButton,
+                ((parkingAvailable && !selectedType) || (!parkingAvailable && !nearbyOptions.trim())) && styles.saveButtonDisabled
+              ]} 
+              onPress={handleSave}
+              disabled={(parkingAvailable && !selectedType) || (!parkingAvailable && !nearbyOptions.trim())}
+            >
+              <Text style={[
+                styles.saveButtonText,
+                ((parkingAvailable && !selectedType) || (!parkingAvailable && !nearbyOptions.trim())) && styles.saveButtonTextDisabled
+              ]}>Save</Text>
             </Pressable>
           </View>
         </View>
@@ -447,5 +465,12 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '600',
     color: '#FFF',
+  },
+  saveButtonDisabled: {
+    backgroundColor: '#C7C7CC',
+  },
+  saveButtonTextDisabled: {
+    color: '#FFF',
+    opacity: 0.6,
   },
 });

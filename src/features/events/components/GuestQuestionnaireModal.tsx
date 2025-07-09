@@ -554,7 +554,7 @@ export default function GuestQuestionnaireModal({
         {isAddingCustom && (
           <View style={styles.customForm}>
             <View style={styles.customFormHeader}>
-              <Text style={styles.customFormTitle}>Custom Question</Text>
+              <Text style={styles.customFormTitle}>Create Custom Question</Text>
               <TouchableOpacity onPress={resetCustomForm}>
                 <Ionicons name="close" size={24} color="#999" />
               </TouchableOpacity>
@@ -719,6 +719,18 @@ export default function GuestQuestionnaireModal({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  helperSection: {
+    backgroundColor: '#F0F8FF',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 20,
+  },
+  helperText: {
+    fontSize: 14,
+    color: '#007AFF',
+    lineHeight: 20,
+    textAlign: 'center',
   },
   currentQuestionsSection: {
     marginBottom: 20,

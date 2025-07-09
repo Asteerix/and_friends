@@ -86,12 +86,19 @@ export default function PlaylistModal({
     <BottomModal
       visible={visible}
       onClose={onClose}
-      title="Playlist"
+      title="🎵 Event Playlist"
       height={700}
       onSave={handleSave}
-      saveButtonText="Save Playlist"
+      saveButtonText={songs.length > 0 || spotifyLink ? `Save Playlist${songs.length > 0 ? ` (${songs.length} songs)` : ''}` : 'Save'}
+      saveDisabled={songs.length === 0 && !spotifyLink}
     >
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+        {/* Helper Section */}
+        <View style={styles.helperSection}>
+          <Text style={styles.helperText}>
+            Create a playlist for your event by adding songs or linking Spotify
+          </Text>
+        </View>
         <View style={styles.searchSection}>
           <View style={styles.searchContainer}>
             <Ionicons name="search" size={20} color="#999" />
@@ -99,7 +106,7 @@ export default function PlaylistModal({
               style={styles.searchInput}
               value={searchQuery}
               onChangeText={handleSearch}
-              placeholder="Search songs or artists"
+              placeholder="Search for songs or artists..."
               placeholderTextColor="#999"
             />
           </View>
@@ -128,7 +135,7 @@ export default function PlaylistModal({
           <TouchableOpacity style={styles.linkButton} onPress={toggleLinking}>
             <Ionicons name="link-outline" size={20} color="#007AFF" />
             <Text style={styles.linkButtonText}>
-              {isLinking ? 'Cancel Spotify Link' : 'Link Spotify Playlist'}
+              {isLinking ? 'Cancel Linking' : 'Or Link Spotify Playlist'}
             </Text>
           </TouchableOpacity>
 
@@ -137,7 +144,7 @@ export default function PlaylistModal({
               style={styles.linkInput}
               value={spotifyLink}
               onChangeText={setSpotifyLink}
-              placeholder="Paste Spotify playlist URL"
+              placeholder="Paste Spotify playlist URL here..."
               placeholderTextColor="#999"
               autoCapitalize="none"
               autoCorrect={false}
@@ -147,7 +154,7 @@ export default function PlaylistModal({
 
         {songs.length > 0 && (
           <View style={styles.playlistSection}>
-            <Text style={styles.sectionTitle}>Your Playlist</Text>
+            <Text style={styles.sectionTitle}>Your Event Playlist</Text>
             {songs.map((song) => (
               <View key={song.id} style={styles.playlistItem}>
                 <Image source={{ uri: song.albumArt }} style={styles.albumArt} />
@@ -166,9 +173,9 @@ export default function PlaylistModal({
         {songs.length === 0 && !isLinking && (
           <View style={styles.emptyState}>
             <Ionicons name="musical-notes-outline" size={64} color="#C7C7CC" />
-            <Text style={styles.emptyStateText}>No songs added yet</Text>
+            <Text style={styles.emptyStateText}>No playlist created yet</Text>
             <Text style={styles.emptyStateSubtext}>
-              Search for songs or link a Spotify playlist
+              Add at least one song or link a Spotify playlist
             </Text>
           </View>
         )}
@@ -181,6 +188,18 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingBottom: 20,
+  },
+  helperSection: {
+    backgroundColor: '#F0F8FF',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 20,
+  },
+  helperText: {
+    fontSize: 14,
+    color: '#007AFF',
+    lineHeight: 20,
+    textAlign: 'center',
   },
   searchSection: {
     marginBottom: 20,

@@ -41,6 +41,7 @@ export interface CreateEventData {
     }>;
     selectedTemplate?: any;
   };
+  host?: {id: string, name: string, avatar?: string};
   coHosts?: Array<{id: string, name: string, avatar: string}>;
   costs?: Array<{id: string, amount: string, currency: string, description: string}>;
   eventPhotos?: string[];
@@ -62,7 +63,6 @@ export interface CreateEventData {
   contactInfo?: string;
   allowPlusOnes?: boolean;
   maxPlusOnes?: number;
-  eventTags?: string[];
 }
 
 export interface EventCost {
@@ -116,27 +116,31 @@ export class EventServiceComplete {
       const endTime = eventData.endTime || eventData.endDate || new Date(startTime.getTime() + 3 * 60 * 60 * 1000); // Si pas de end_time, utiliser +3 heures par défaut
       
       // Préparer les données pour la table events
+      // IMPORTANT: On n'inclut que les colonnes de base qui existent sûrement
       const eventToInsert: any = {
         // Colonnes de base qui existent sûrement
         title: eventData.title || eventData.coverData.eventTitle || 'Nouvel événement',
         description: eventData.description || '',
         date: startTime.toISOString(),
-        location: eventData.location || eventData.locationDetails?.address || '',
+        location: eventData.locationDetails?.coordinates 
+          ? `${eventData.locationDetails.coordinates.latitude},${eventData.locationDetails.coordinates.longitude}`
+          : eventData.location || eventData.locationDetails?.address || '',
         is_private: eventData.isPrivate || false,
         created_by: user.id,
+        host: eventData.host?.id || user.id,
         
-        // Colonnes de temps
+        // Colonnes de temps (peuvent exister)
         start_time: startTime.toISOString(),
         end_time: endTime.toISOString(),
         
-        // Colonnes de couverture (peuvent exister ou non)
+        // Colonnes de couverture (peuvent exister)
         subtitle: eventData.subtitle || eventData.coverData.eventSubtitle || null,
         cover_bg_color: eventData.coverData.selectedBackground || null,
         cover_font: eventData.coverData.selectedTitleFont || null,
         cover_image: finalCoverImageUrl || null,
         image_url: finalCoverImageUrl || null,
         
-        // Colonnes RSVP (ajoutées par migration)
+        // Colonnes RSVP (peuvent exister)
         rsvp_deadline: eventData.rsvpDeadline ? eventData.rsvpDeadline.toISOString() : null,
         rsvp_reminder_enabled: eventData.rsvpReminderEnabled || false,
         rsvp_reminder_timing: eventData.rsvpReminderTiming || '24h',
@@ -158,7 +162,11 @@ export class EventServiceComplete {
           finalCoverImageUrl,
         },
         
-        // Co-hosts
+        // Host info
+        host: eventData.host || { id: user.id, name: 'Host' },
+        
+        // Co-hosts (fixed structure)
+        co_organizers: eventData.coHosts || [],
         coHosts: eventData.coHosts || [],
         
         // Extras
@@ -169,19 +177,19 @@ export class EventServiceComplete {
         playlist: eventData.playlist || null,
         spotifyLink: eventData.spotifyLink || null,
         
-        // Additional Details
-        dressCode: eventData.dressCode || null,
-        eventTheme: eventData.eventTheme || null,
-        ageRestriction: eventData.ageRestriction || null,
-        capacityLimit: eventData.capacityLimit || null,
-        parkingInfo: eventData.parkingInfo || null,
-        eventCategory: eventData.eventCategory || null,
-        accessibilityInfo: eventData.accessibilityInfo || null,
-        eventWebsite: eventData.eventWebsite || null,
-        contactInfo: eventData.contactInfo || null,
-        allowPlusOnes: eventData.allowPlusOnes || false,
-        maxPlusOnes: eventData.maxPlusOnes || null,
-        eventTags: eventData.eventTags || [],
+        // TOUS les champs supplémentaires (au cas où les colonnes n'existent pas)
+        dress_code: eventData.dressCode || null,
+        event_theme: eventData.eventTheme || null,
+        age_restriction: eventData.ageRestriction || null,
+        capacity_limit: eventData.capacityLimit || null,
+        parking_info: eventData.parkingInfo || null,
+        event_category: eventData.eventCategory || null,
+        accessibility_info: eventData.accessibilityInfo || null,
+        event_website: eventData.eventWebsite || null,
+        contact_info: eventData.contactInfo || null,
+        allow_plus_ones: eventData.allowPlusOnes || false,
+        max_plus_ones: eventData.maxPlusOnes || null,
+        // event_tags removed - no longer exists
         
         // Métadonnées
         createdWithService: 'EventServiceComplete',
@@ -195,16 +203,32 @@ export class EventServiceComplete {
 
       console.log('📦 [EventServiceComplete] Données préparées');
       console.log('  - Titre:', eventToInsert.title);
+      console.log('  - Description:', eventToInsert.description || '(vide)');
       console.log('  - Date:', new Date(eventToInsert.date).toLocaleString());
+      console.log('  - Location:', eventToInsert.location);
       console.log('  - Privé:', eventToInsert.is_private);
+      console.log('  - Host:', eventToInsert.host);
+      console.log('  - Co-hosts:', eventToInsert.extra_data.co_organizers?.length || 0);
       console.log('  - Extras dans extra_data:', Object.keys(eventToInsert.extra_data).length);
       console.log('');
 
-      // 4. Insérer l'événement
+      // 4. Insérer l'événement avec seulement les colonnes de base
       console.log('💾 [EventServiceComplete] Insertion dans Supabase...');
+      
+      // Créer un objet avec SEULEMENT les colonnes de BASE qui DOIVENT exister
+      const safeEventToInsert = {
+        title: eventToInsert.title,
+        description: eventToInsert.description,
+        date: eventToInsert.date,
+        location: eventToInsert.location,
+        is_private: eventToInsert.is_private,
+        created_by: eventToInsert.created_by,
+        extra_data: eventToInsert.extra_data,
+      };
+      
       const { data: newEvent, error: insertError } = await supabase
         .from('events')
-        .insert([eventToInsert])
+        .insert([safeEventToInsert])
         .select()
         .single();
 
@@ -214,23 +238,88 @@ export class EventServiceComplete {
         console.error('  Message:', insertError.message);
         console.error('  Détails:', insertError.details);
         
-        // Si c'est une erreur de colonne manquante, on réessaie avec moins de colonnes
-        if (insertError.code === '42703') {
-          console.log('🔄 [EventServiceComplete] Réessai avec colonnes minimales...');
+        // Si l'erreur concerne une colonne manquante, essayer avec la fonction RPC
+        if (insertError.message?.includes('column') || insertError.code === 'PGRST204') {
+          console.log('🔄 [EventServiceComplete] Tentative avec fonction RPC...');
           
-          const minimalEvent = {
+          const { data: rpcResult, error: rpcError } = await supabase
+            .rpc('create_event_safe', {
+              p_title: safeEventToInsert.title,
+              p_description: safeEventToInsert.description,
+              p_date: safeEventToInsert.date,
+              p_location: safeEventToInsert.location,
+              p_is_private: safeEventToInsert.is_private,
+              p_image_url: eventToInsert.image_url || null,
+              p_subtitle: eventToInsert.subtitle || null,
+              p_extra_data: safeEventToInsert.extra_data
+            });
+            
+          if (rpcError) {
+            console.error('❌ [EventServiceComplete] Erreur RPC:', rpcError);
+            // Continuer avec le fallback existant
+          } else if (rpcResult && rpcResult.length > 0) {
+            console.log('✅ [EventServiceComplete] Événement créé via RPC!');
+            // Récupérer l'événement complet
+            const { data: fullEvent } = await supabase
+              .from('events')
+              .select('*')
+              .eq('id', rpcResult[0].id)
+              .single();
+            
+            if (fullEvent) {
+              return { success: true, event: fullEvent };
+            }
+          }
+        }
+        
+        // Si c'est une erreur de colonne manquante, on réessaie avec moins de colonnes
+        if (insertError.code === '42703' || insertError.code === 'PGRST204' || insertError.message?.includes('column')) {
+          console.log('🔄 [EventServiceComplete] Réessai avec colonnes de base uniquement...');
+          
+          // Créer un objet avec seulement les colonnes essentielles
+          const baseEvent: any = {
             title: eventToInsert.title,
             description: eventToInsert.description,
             date: eventToInsert.date,
             location: eventToInsert.location,
             is_private: eventToInsert.is_private,
             created_by: eventToInsert.created_by,
-            extra_data: eventToInsert.extra_data,
+          };
+          
+          // Ajouter les colonnes optionnelles une par une si elles existent
+          const optionalFields = [
+            'subtitle', 'cover_bg_color', 'cover_font', 'cover_image', 'image_url',
+            'start_time', 'end_time', 'rsvp_deadline', 'rsvp_reminder_enabled', 
+            'rsvp_reminder_timing', 'extra_data', 'location_details'
+          ];
+          
+          for (const field of optionalFields) {
+            if (eventToInsert[field] !== undefined) {
+              baseEvent[field] = eventToInsert[field];
+            }
+          }
+          
+          // Stocker TOUTES les données supplémentaires dans extra_data
+          baseEvent.extra_data = {
+            ...eventToInsert.extra_data,
+            // Ajouter tous les champs qui pourraient ne pas exister comme colonnes
+            dress_code: eventData.dressCode,
+            event_theme: eventData.eventTheme,
+            age_restriction: eventData.ageRestriction,
+            capacity_limit: eventData.capacityLimit,
+            parking_info: eventData.parkingInfo,
+            event_category: eventData.eventCategory,
+            accessibility_info: eventData.accessibilityInfo,
+            event_website: eventData.eventWebsite,
+            contact_info: eventData.contactInfo,
+            allow_plus_ones: eventData.allowPlusOnes,
+            max_plus_ones: eventData.maxPlusOnes,
+            // event_tags removed - no longer exists
           };
           
           const { data: retryEvent, error: retryError } = await supabase
             .from('events')
-            .insert([minimalEvent])
+            .insert([baseEvent])
             .select()
             .single();
             
@@ -239,7 +328,8 @@ export class EventServiceComplete {
             throw new Error('Impossible de créer l\'événement: ' + retryError.message);
           }
           
-          console.log('✅ [EventServiceComplete] Événement créé avec colonnes minimales');
+          console.log('✅ [EventServiceComplete] Événement créé avec colonnes de base');
+          console.log('  ℹ️ Données supplémentaires stockées dans extra_data');
           return { success: true, event: retryEvent };
         }
         
@@ -761,6 +851,108 @@ export class EventServiceComplete {
     if (error && error.code !== '42P01') {
       console.error('❌ [addStickers] Erreur:', error);
       throw error;
+    }
+  }
+
+  // Méthode pour récupérer un événement par son ID
+  static async getEvent(eventId: string) {
+    try {
+      console.log('📋 [EventServiceComplete] Récupération de l\'événement:', eventId);
+
+      // Récupérer l'événement avec toutes ses relations
+      const { data: event, error } = await supabase
+        .from('events')
+        .select(`
+          *,
+          organizer:profiles!events_created_by_fkey(
+            id,
+            full_name,
+            username,
+            avatar_url
+          ),
+          event_costs(
+            id,
+            amount,
+            currency,
+            description,
+            is_required,
+            position
+          ),
+          event_items(
+            id,
+            name,
+            item_name,
+            quantity,
+            quantity_needed,
+            quantity_assigned,
+            position,
+            is_brought
+          ),
+          event_questionnaire(
+            id,
+            question_text,
+            question_type,
+            position,
+            is_required,
+            question_options
+          ),
+          event_playlists(
+            id,
+            song_title,
+            artist,
+            spotify_url,
+            spotify_link,
+            position,
+            playlist_name
+          ),
+          event_cohosts(
+            id,
+            user_id,
+            status,
+            permissions,
+            user:profiles!event_cohosts_user_id_fkey(
+              id,
+              full_name,
+              username,
+              avatar_url
+            )
+          ),
+          event_photos(
+            id,
+            photo_url,
+            caption,
+            uploaded_by,
+            position
+          ),
+          event_cover_stickers(
+            id,
+            sticker_emoji,
+            position_x,
+            position_y,
+            scale,
+            rotation,
+            z_index
+          )
+        `)
+        .eq('id', eventId)
+        .single();
+
+      if (error) {
+        console.error('❌ [EventServiceComplete] Erreur lors de la récupération:', error);
+        return { success: false, error: error.message };
+      }
+
+      if (!event) {
+        console.error('❌ [EventServiceComplete] Événement non trouvé');
+        return { success: false, error: 'Event not found' };
+      }
+
+      console.log('✅ [EventServiceComplete] Événement récupéré avec succès');
+      return { success: true, event };
+
+    } catch (error) {
+      console.error('💥 [EventServiceComplete] Erreur inattendue:', error);
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   }
 }

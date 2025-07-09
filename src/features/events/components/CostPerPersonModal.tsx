@@ -376,16 +376,24 @@ export default function CostPerPersonModal({
     <BottomModal
       visible={visible}
       onClose={onClose}
-      title="💰 Cost Per Person"
+      title="💰 Entry Fees & Costs"
       height={SCREEN_HEIGHT * 0.9}
       onSave={handleSave}
-      saveButtonText={`Save ${costs.length > 0 ? `(${getCurrencySymbol(selectedCurrency)}${getTotalAmount().toFixed(2)})` : ''}`}
+      saveButtonText={`Save ${costs.length > 0 ? `(${getCurrencySymbol(selectedCurrency)}${getTotalAmount().toFixed(2)} total)` : ''}`}
+      saveDisabled={costs.length === 0}
       scrollable={true}
     >
       <View style={styles.container}>
+        {/* Helper Text */}
+        <View style={styles.helperSection}>
+          <Text style={styles.helperText}>
+            Add costs that guests need to pay (entry fees, dinner, activities, etc.)
+          </Text>
+        </View>
+        
         {/* Currency Selector */}
         <View style={styles.currencySection}>
-          <Text style={styles.sectionLabel}>Select Currency</Text>
+          <Text style={styles.sectionLabel}>Currency</Text>
           <ScrollView 
             horizontal 
             showsHorizontalScrollIndicator={false}
@@ -424,7 +432,7 @@ export default function CostPerPersonModal({
 
         {/* Amount Input */}
         <View style={styles.amountSection}>
-          <Text style={styles.sectionLabel}>Amount</Text>
+          <Text style={styles.sectionLabel}>Cost Amount <Text style={styles.required}>*</Text></Text>
           <View style={styles.amountInputContainer}>
             <Text style={styles.currencyPrefix}>{getCurrencySymbol(selectedCurrency)}</Text>
             <TextInput
@@ -440,18 +448,18 @@ export default function CostPerPersonModal({
 
         {/* Description Input */}
         <View style={styles.descriptionSection}>
-          <Text style={styles.sectionLabel}>What's this for? <Text style={styles.required}>*</Text></Text>
+          <Text style={styles.sectionLabel}>Cost Description <Text style={styles.required}>*</Text></Text>
           <TextInput
             style={styles.descriptionInput}
             value={description}
             onChangeText={setDescription}
-            placeholder="Describe the cost (required)"
+            placeholder="What guests are paying for"
             placeholderTextColor="#C7C7CC"
             maxLength={50}
           />
           
           {/* Examples */}
-          <Text style={styles.examplesLabel}>Popular examples:</Text>
+          <Text style={styles.examplesLabel}>Quick select:</Text>
           <ScrollView 
             horizontal 
             showsHorizontalScrollIndicator={false}
@@ -485,7 +493,7 @@ export default function CostPerPersonModal({
         {/* Costs List */}
         {costs.length > 0 && (
           <View style={styles.costsListSection}>
-            <Text style={styles.listTitle}>Cost Breakdown</Text>
+            <Text style={styles.listTitle}>Event Costs</Text>
             {costs.map((cost) => (
               <View key={cost.id} style={styles.costItem}>
                 <View style={styles.costItemLeft}>
@@ -744,5 +752,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#8E8E93',
     lineHeight: 20,
+  },
+  helperSection: {
+    backgroundColor: '#F0F8FF',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 20,
+  },
+  helperText: {
+    fontSize: 14,
+    color: '#007AFF',
+    lineHeight: 20,
+    textAlign: 'center',
   },
 });
