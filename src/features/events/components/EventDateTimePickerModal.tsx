@@ -186,7 +186,7 @@ export default function EventDateTimePickerModal({
     );
 
     const now = new Date();
-    const minimumDate = minDate || new Date(now.getTime() + (24 * 60 * 60 * 1000));
+    // const minimumDate = minDate || new Date(now.getTime() + (24 * 60 * 60 * 1000));
     
     if (selectedDate < now) {
       setDateError('Date cannot be in the past');

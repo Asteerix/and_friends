@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   Modal,
   View,
@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Pressable,
+  Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -53,6 +54,7 @@ export default function EventCategoryModal({
 }: EventCategoryModalProps) {
   const insets = useSafeAreaInsets();
   const [selectedCategory, setSelectedCategory] = useState(initialCategory);
+  const shakeAnimation = useRef(new Animated.Value(0)).current;
 
   // Reset selected category when modal opens
   React.useEffect(() => {
@@ -61,8 +63,13 @@ export default function EventCategoryModal({
     }
   }, [visible, initialCategory]);
 
-  const handleSelectCategory = (category: string) => {
-    setSelectedCategory(category);
+  const handleSelectCategory = (categoryId: string) => {
+    // Toggle selection if clicking on the same category
+    if (selectedCategory === categoryId) {
+      setSelectedCategory('');
+    } else {
+      setSelectedCategory(categoryId);
+    }
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
@@ -70,8 +77,33 @@ export default function EventCategoryModal({
     if (selectedCategory) {
       onSave(selectedCategory);
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      onClose();
+    } else {
+      // Shake animation when no category selected
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Animated.sequence([
+        Animated.timing(shakeAnimation, {
+          toValue: 10,
+          duration: 50,
+          useNativeDriver: true,
+        }),
+        Animated.timing(shakeAnimation, {
+          toValue: -10,
+          duration: 50,
+          useNativeDriver: true,
+        }),
+        Animated.timing(shakeAnimation, {
+          toValue: 10,
+          duration: 50,
+          useNativeDriver: true,
+        }),
+        Animated.timing(shakeAnimation, {
+          toValue: 0,
+          duration: 50,
+          useNativeDriver: true,
+        }),
+      ]).start();
     }
-    onClose();
   };
 
   return (
@@ -87,12 +119,20 @@ export default function EventCategoryModal({
         <View style={[styles.modalContent, { paddingBottom: insets.bottom || 20 }]}>
           <View style={styles.handle} />
           
-          <View style={styles.header}>
+          <Animated.View 
+            style={[
+              styles.header,
+              { transform: [{ translateX: shakeAnimation }] }
+            ]}
+          >
             <Text style={styles.title}>Event Category</Text>
             <Text style={styles.subtitle}>
               Choose the category that best describes your event
             </Text>
-          </View>
+            {!selectedCategory && (
+              <Text style={styles.requiredText}>* Required field</Text>
+            )}
+          </Animated.View>
 
           <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
             <View style={styles.categoriesContainer}>
@@ -101,15 +141,15 @@ export default function EventCategoryModal({
                   key={category.id}
                   style={[
                     styles.categoryCard,
-                    selectedCategory === category.label && styles.categoryCardActive
+                    selectedCategory === category.id && styles.categoryCardActive
                   ]}
-                  onPress={() => handleSelectCategory(category.label)}
+                  onPress={() => handleSelectCategory(category.id)}
                 >
                   <Text style={styles.categoryIcon}>{category.icon}</Text>
                   <View style={styles.categoryTextContainer}>
                     <Text style={[
                       styles.categoryLabel,
-                      selectedCategory === category.label && styles.categoryLabelActive
+                      selectedCategory === category.id && styles.categoryLabelActive
                     ]}>
                       {category.label}
                     </Text>
@@ -117,7 +157,7 @@ export default function EventCategoryModal({
                       {category.description}
                     </Text>
                   </View>
-                  {selectedCategory === category.label && (
+                  {selectedCategory === category.id && (
                     <Ionicons name="checkmark-circle" size={24} color="#007AFF" />
                   )}
                 </TouchableOpacity>
@@ -132,9 +172,10 @@ export default function EventCategoryModal({
             <TouchableOpacity 
               style={[styles.saveButton, !selectedCategory && styles.saveButtonDisabled]} 
               onPress={handleSave}
-              disabled={!selectedCategory}
             >
-              <Text style={styles.saveButtonText}>Save</Text>
+              <Text style={[styles.saveButtonText, !selectedCategory && styles.saveButtonTextDisabled]}>
+                {selectedCategory ? 'Save' : 'Select a category'}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -183,6 +224,12 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#666',
     lineHeight: 20,
+  },
+  requiredText: {
+    fontSize: 13,
+    color: '#FF3B30',
+    marginTop: 4,
+    fontWeight: '500',
   },
   scrollView: {
     flex: 1,
@@ -266,5 +313,9 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '600',
     color: '#FFF',
+  },
+  saveButtonTextDisabled: {
+    color: '#FFF',
+    opacity: 0.7,
   },
 });

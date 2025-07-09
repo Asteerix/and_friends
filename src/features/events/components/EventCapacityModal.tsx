@@ -40,7 +40,9 @@ export default function EventCapacityModal({
   const [maxAttendees, setMaxAttendees] = useState(
     initialCapacity?.maxAttendees?.toString() || ''
   );
-  const [hasLimit, setHasLimit] = useState(!!initialCapacity?.maxAttendees);
+  const [hasLimit, setHasLimit] = useState(
+    initialCapacity?.maxAttendees !== undefined && initialCapacity?.maxAttendees !== null
+  );
   const [waitlistEnabled, setWaitlistEnabled] = useState(
     initialCapacity?.waitlistEnabled || false
   );
@@ -56,7 +58,7 @@ export default function EventCapacityModal({
 
   const handleSave = () => {
     const capacity = {
-      maxAttendees: hasLimit && maxAttendees ? parseInt(maxAttendees) : undefined,
+      maxAttendees: hasLimit && maxAttendees ? parseInt(maxAttendees) : (hasLimit === false ? 0 : undefined),
       waitlistEnabled: hasLimit ? waitlistEnabled : false,
       autoApprove,
     };

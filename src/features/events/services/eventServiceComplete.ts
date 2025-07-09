@@ -3,6 +3,12 @@ import * as FileSystem from 'expo-file-system';
 import * as ImageManipulator from 'expo-image-manipulator';
 
 // Types pour la création d'événements
+export interface EventOperationResult {
+  success: boolean;
+  event?: any;
+  error?: string;
+}
+
 export interface CreateEventData {
   title: string;
   subtitle?: string;
@@ -207,6 +213,7 @@ export class EventServiceComplete {
       console.log('  - Date:', new Date(eventToInsert.date).toLocaleString());
       console.log('  - Location:', eventToInsert.location);
       console.log('  - Privé:', eventToInsert.is_private);
+      console.log('  - Catégorie (eventData.eventCategory):', eventData.eventCategory || '(non définie)');
       console.log('  - Host:', eventToInsert.host);
       console.log('  - Co-hosts:', eventToInsert.extra_data.co_organizers?.length || 0);
       console.log('  - Extras dans extra_data:', Object.keys(eventToInsert.extra_data).length);
@@ -224,7 +231,34 @@ export class EventServiceComplete {
         is_private: eventToInsert.is_private,
         created_by: eventToInsert.created_by,
         extra_data: eventToInsert.extra_data,
+        category: eventData.eventCategory || null,
+        // RSVP fields that exist as columns
+        rsvp_deadline: eventData.rsvpDeadline ? eventData.rsvpDeadline.toISOString() : null,
+        rsvp_reminder_enabled: eventData.rsvpReminderEnabled || false,
+        rsvp_reminder_timing: eventData.rsvpReminderTiming || '24h',
+        // Other existing columns
+        max_attendees: eventData.capacityLimit || null,
+        // Array columns
+        what_to_bring: eventData.itemsToBring ? eventData.itemsToBring.map(item => item.name) : null,
+        co_organizers: eventData.coHosts ? eventData.coHosts.map(host => host.id) : null,
+        // Activation flags for extras
+        has_capacity_enabled: eventData.capacityLimit !== null && eventData.capacityLimit !== undefined && eventData.capacityLimit !== '',
+        has_costs_enabled: eventData.costs && eventData.costs.length > 0,
+        has_dress_code_enabled: !!eventData.dressCode,
+        has_age_restriction_enabled: !!eventData.ageRestriction,
+        has_parking_info_enabled: !!eventData.parkingInfo,
+        has_accessibility_enabled: !!eventData.accessibilityInfo,
+        has_theme_enabled: !!eventData.eventTheme,
+        has_website_enabled: !!eventData.eventWebsite,
+        has_contact_enabled: !!eventData.contactInfo,
+        has_photos_enabled: eventData.eventPhotos && eventData.eventPhotos.length > 0,
+        has_items_enabled: eventData.itemsToBring && eventData.itemsToBring.length > 0,
+        has_playlist_enabled: eventData.playlist && eventData.playlist.length > 0,
+        has_questionnaire_enabled: eventData.questionnaire && eventData.questionnaire.length > 0,
+        has_cohosts_enabled: eventData.coHosts && eventData.coHosts.length > 0,
       };
+      
+      console.log('🏷️ [EventServiceComplete] Catégorie à insérer:', safeEventToInsert.category);
       
       const { data: newEvent, error: insertError } = await supabase
         .from('events')
@@ -284,13 +318,14 @@ export class EventServiceComplete {
             location: eventToInsert.location,
             is_private: eventToInsert.is_private,
             created_by: eventToInsert.created_by,
+            category: eventData.eventCategory || null,
           };
           
           // Ajouter les colonnes optionnelles une par une si elles existent
           const optionalFields = [
             'subtitle', 'cover_bg_color', 'cover_font', 'cover_image', 'image_url',
             'start_time', 'end_time', 'rsvp_deadline', 'rsvp_reminder_enabled', 
-            'rsvp_reminder_timing', 'extra_data', 'location_details'
+            'rsvp_reminder_timing', 'extra_data', 'location_details', 'category'
           ];
           
           for (const field of optionalFields) {
@@ -343,6 +378,8 @@ export class EventServiceComplete {
       console.log('✅ [EventServiceComplete] Événement créé avec succès!');
       console.log('  🆔 ID:', newEvent.id);
       console.log('  📝 Titre:', newEvent.title);
+      console.log('  🏷️ Catégorie (après création):', newEvent.category);
+      console.log('  📄 Objet complet:', JSON.stringify(newEvent, null, 2));
       console.log('');
 
       // 5. Ajouter le créateur comme participant
@@ -948,10 +985,311 @@ export class EventServiceComplete {
       }
 
       console.log('✅ [EventServiceComplete] Événement récupéré avec succès');
-      return { success: true, event };
+      console.log('🏷️ [EventServiceComplete] Catégorie dans la DB:', event.category);
+      console.log('🏷️ [EventServiceComplete] Catégorie dans extra_data:', event.extra_data?.event_category);
+      
+      // Mapper les champs pour la compatibilité
+      // Priorité : extra_data.event_category > category (DB)
+      const mappedEvent = {
+        ...event,
+        event_category: event.extra_data?.event_category || event.category || null,
+      };
+      
+      console.log('🏷️ [EventServiceComplete] Catégorie mappée:', mappedEvent.event_category);
+      
+      return { success: true, event: mappedEvent };
 
     } catch (error) {
       console.error('💥 [EventServiceComplete] Erreur inattendue:', error);
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  }
+  
+  static async updateEvent(eventId: string, updates: Partial<CreateEventData>): Promise<EventOperationResult> {
+    try {
+      console.log('🔄 [EventServiceComplete] ========================================');
+      console.log('🔄 [EventServiceComplete] DÉBUT DE LA MISE À JOUR DE L\'EVÉNEMENT');
+      console.log('🔄 [EventServiceComplete] ========================================');
+      console.log('🆔 Event ID:', eventId);
+      console.log('🔄 [EventServiceComplete] VERSION 2.0 - AVEC FILTRAGE STRICT');
+      console.log('');
+      
+      // Log des modifications demandées
+      console.log('📝 [EventServiceComplete] Modifications demandées:');
+      Object.entries(updates).forEach(([key, value]) => {
+        if (value !== undefined) {
+          console.log(`  - ${key}:`, value);
+        }
+      });
+      console.log('');
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        return { success: false, error: 'User not authenticated' };
+      }
+      
+      // Préparer les données de mise à jour
+      const updateData: any = {};
+      const extraDataUpdates: any = {};
+      
+      // Champs principaux
+      if (updates.title !== undefined) updateData.title = updates.title;
+      // Handle subtitle from either direct field or coverData
+      if (updates.subtitle !== undefined) {
+        updateData.subtitle = updates.subtitle;
+      } else if (updates.coverData?.eventSubtitle !== undefined) {
+        updateData.subtitle = updates.coverData.eventSubtitle;
+      }
+      if (updates.description !== undefined) updateData.description = updates.description;
+      if (updates.isPrivate !== undefined) updateData.is_private = updates.isPrivate;
+      if (updates.eventCategory !== undefined) {
+        updateData.category = updates.eventCategory;
+        extraDataUpdates.event_category = updates.eventCategory;
+        console.log('🏷️ [EventServiceComplete] Catégorie à mettre à jour:', updates.eventCategory);
+      }
+      
+      // Dates et heures
+      if (updates.date !== undefined) updateData.date = updates.date;
+      if (updates.endDate !== undefined) updateData.start_time = updates.endDate;
+      if (updates.endTime !== undefined) updateData.end_time = updates.endTime;
+      
+      // Localisation
+      if (updates.location !== undefined) updateData.location = updates.location;
+      if (updates.locationDetails !== undefined) {
+        updateData.location_details = updates.locationDetails;
+        updateData.venue_name = updates.locationDetails.name;
+        updateData.address = updates.locationDetails.address;
+        updateData.city = updates.locationDetails.city;
+        updateData.postal_code = updates.locationDetails.postalCode;
+        updateData.country = updates.locationDetails.country;
+        updateData.coordinates = updates.locationDetails.coordinates;
+      }
+      
+      // Autres champs existants en colonnes
+      if (updates.capacityLimit !== undefined) {
+        updateData.max_attendees = updates.capacityLimit;
+        // Activer automatiquement le flag si une capacité est définie
+        updateData.has_capacity_enabled = updates.capacityLimit !== null && updates.capacityLimit !== undefined && updates.capacityLimit !== '';
+        console.log('👥 [EventServiceComplete] Mise à jour capacité:', updates.capacityLimit, '→ max_attendees:', updateData.max_attendees, 'enabled:', updateData.has_capacity_enabled);
+        
+        // IMPORTANT: Mettre à jour aussi dans extra_data
+        extraDataUpdates.capacity_limit = updates.capacityLimit;
+      }
+      if (updates.rsvpDeadline !== undefined) updateData.rsvp_deadline = updates.rsvpDeadline;
+      if (updates.rsvpReminderEnabled !== undefined) updateData.rsvp_reminder_enabled = updates.rsvpReminderEnabled;
+      if (updates.rsvpReminderTiming !== undefined) updateData.rsvp_reminder_timing = updates.rsvpReminderTiming;
+      
+      // Champs arrays qui existent comme colonnes
+      if (updates.itemsToBring !== undefined) {
+        updateData.what_to_bring = updates.itemsToBring.map(item => item.name);
+      }
+      if (updates.coHosts !== undefined) {
+        updateData.co_organizers = updates.coHosts.map(host => host.id);
+      }
+      
+      // Cover data - update both root level and in extra_data
+      if (updates.coverData !== undefined) {
+        updateData.cover_data = updates.coverData;
+        // IMPORTANT: Also update coverData in extra_data to maintain consistency
+        extraDataUpdates.coverData = updates.coverData;
+        console.log('🎨 [EventServiceComplete] Cover data à mettre à jour:', updates.coverData);
+      }
+      
+      // Mise à jour de extra_data pour les champs complexes et ceux sans colonnes dédiées
+      if (updates.coHosts !== undefined) {
+        extraDataUpdates.co_hosts = updates.coHosts;
+        updateData.has_cohosts_enabled = updates.coHosts && updates.coHosts.length > 0;
+      }
+      if (updates.costs !== undefined) {
+        extraDataUpdates.costs = updates.costs;
+        updateData.has_costs_enabled = updates.costs && updates.costs.length > 0;
+      }
+      if (updates.eventPhotos !== undefined) {
+        extraDataUpdates.event_photos = updates.eventPhotos;
+        updateData.has_photos_enabled = updates.eventPhotos && updates.eventPhotos.length > 0;
+      }
+      if (updates.questionnaire !== undefined) {
+        extraDataUpdates.questionnaire = updates.questionnaire;
+        updateData.has_questionnaire_enabled = updates.questionnaire && updates.questionnaire.length > 0;
+      }
+      if (updates.itemsToBring !== undefined) {
+        extraDataUpdates.items_to_bring = updates.itemsToBring;
+        updateData.has_items_enabled = updates.itemsToBring && updates.itemsToBring.length > 0;
+      }
+      if (updates.playlist !== undefined) {
+        extraDataUpdates.playlist = updates.playlist;
+        updateData.has_playlist_enabled = updates.playlist && updates.playlist.length > 0;
+      }
+      if (updates.spotifyLink !== undefined) extraDataUpdates.spotify_link = updates.spotifyLink;
+      if (updates.eventTheme !== undefined) {
+        extraDataUpdates.event_theme = updates.eventTheme;
+        updateData.has_theme_enabled = !!updates.eventTheme;
+      }
+      // Champs qui n'ont pas de colonnes dédiées
+      if (updates.ageRestriction !== undefined) {
+        extraDataUpdates.age_restriction = updates.ageRestriction;
+        updateData.has_age_restriction_enabled = !!updates.ageRestriction;
+      }
+      if (updates.dressCode !== undefined) {
+        extraDataUpdates.dress_code = updates.dressCode;
+        updateData.has_dress_code_enabled = !!updates.dressCode;
+      }
+      if (updates.parkingInfo !== undefined) {
+        extraDataUpdates.parking_info = updates.parkingInfo;
+        updateData.has_parking_info_enabled = !!updates.parkingInfo;
+      }
+      if (updates.accessibilityInfo !== undefined) {
+        extraDataUpdates.accessibility_info = updates.accessibilityInfo;
+        updateData.has_accessibility_enabled = !!updates.accessibilityInfo;
+      }
+      if (updates.eventWebsite !== undefined) {
+        extraDataUpdates.event_website = updates.eventWebsite;
+        updateData.has_website_enabled = !!updates.eventWebsite;
+      }
+      if (updates.contactInfo !== undefined) {
+        extraDataUpdates.contact_info = updates.contactInfo;
+        updateData.has_contact_enabled = !!updates.contactInfo;
+      }
+      
+      if (Object.keys(extraDataUpdates).length > 0) {
+        // Récupérer l'extra_data existant
+        const { data: currentEvent } = await supabase
+          .from('events')
+          .select('extra_data')
+          .eq('id', eventId)
+          .single();
+          
+        updateData.extra_data = {
+          ...(currentEvent?.extra_data || {}),
+          ...extraDataUpdates
+        };
+      }
+      
+      // Ajouter updated_at
+      updateData.updated_at = new Date().toISOString();
+      
+      // IMPORTANT: Filtrer les champs qui n'existent pas comme colonnes
+      console.log('🔍 [EventServiceComplete] DÉBUT DU FILTRAGE DES CHAMPS NON-COLONNES');
+      console.log('🔍 [EventServiceComplete] Champs dans updateData AVANT filtrage:', Object.keys(updateData));
+      
+      // Supprimer tous les champs qui devraient être dans extra_data s'ils ont été ajoutés par erreur
+      const fieldsToRemove = [
+        'accessibility_info', 'parking_info', 'dress_code', 'age_restriction',
+        'event_website', 'contact_info', 'event_theme', 'theme', 'website',
+        'items_to_bring', 'event_photos', 'costs', 'questionnaire', 'playlist',
+        'spotify_link', 'allow_plus_ones', 'max_plus_ones'
+      ];
+      
+      fieldsToRemove.forEach(field => {
+        if (field in updateData) {
+          console.log(`⚠️ [EventServiceComplete] Suppression du champ non-colonne: ${field}`);
+          delete updateData[field];
+        }
+      });
+      
+      console.log('🔍 [EventServiceComplete] Champs dans updateData APRÈS filtrage:', Object.keys(updateData));
+      console.log('🔍 [EventServiceComplete] FIN DU FILTRAGE');
+      
+      console.log('📤 [EventServiceComplete] Données envoyées à Supabase (après filtrage):');
+      console.log(JSON.stringify(updateData, null, 2));
+      console.log('');
+      
+      // Effectuer la mise à jour
+      const { data: updatedEvent, error } = await supabase
+        .from('events')
+        .update(updateData)
+        .eq('id', eventId)
+        .select()
+        .single();
+        
+      if (error) {
+        console.error('❌ [EventServiceComplete] Erreur lors de la mise à jour:', error);
+        return { success: false, error: error.message };
+      }
+      
+      console.log('✅ [EventServiceComplete] Événement mis à jour avec succès!');
+      console.log('  🆔 ID:', updatedEvent.id);
+      console.log('  📝 Titre:', updatedEvent.title);
+      console.log('  🏷️ Catégorie (après mise à jour):', updatedEvent.category);
+      console.log('  🏷️ Catégorie dans extra_data:', updatedEvent.extra_data?.event_category);
+      console.log('  👥 Capacité (max_attendees):', updatedEvent.max_attendees);
+      console.log('  📦 Extra data (après mise à jour):', JSON.stringify(updatedEvent.extra_data, null, 2));
+      console.log('');
+      console.log('🎉 [EventServiceComplete] ========================================');
+      console.log('🎉 [EventServiceComplete] MISE À JOUR TERMINÉE AVEC SUCCÈS!');
+      console.log('🎉 [EventServiceComplete] ========================================');
+      console.log('');
+      
+      // Mapper les champs pour la compatibilité
+      // Priorité : extra_data.event_category > category (DB)
+      const mappedEvent = {
+        ...updatedEvent,
+        event_category: updatedEvent.extra_data?.event_category || updatedEvent.category || null,
+      };
+      
+      return { success: true, event: mappedEvent };
+      
+    } catch (error) {
+      console.error('💥 [EventServiceComplete] Erreur inattendue lors de la mise à jour:', error);
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  }
+
+  /**
+   * Annuler un événement
+   */
+  static async cancelEvent(eventId: string): Promise<EventOperationResult> {
+    try {
+      console.log('🚫 [EventServiceComplete] ========================================');
+      console.log('🚫 [EventServiceComplete] DÉBUT DE L\'ANNULATION DE L\'ÉVÉNEMENT');
+      console.log('🚫 [EventServiceComplete] ========================================');
+      console.log('🆔 Event ID:', eventId);
+      
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) {
+        console.error('❌ [EventServiceComplete] Erreur d\'authentification:', authError);
+        return { success: false, error: 'User not authenticated' };
+      }
+      
+      // Vérifier que l'utilisateur est bien le créateur de l'événement
+      const { data: event, error: fetchError } = await supabase
+        .from('events')
+        .select('created_by, title')
+        .eq('id', eventId)
+        .single();
+        
+      if (fetchError || !event) {
+        console.error('❌ [EventServiceComplete] Événement non trouvé:', fetchError);
+        return { success: false, error: 'Event not found' };
+      }
+      
+      if (event.created_by !== user.id) {
+        console.error('❌ [EventServiceComplete] L\'utilisateur n\'est pas le créateur de l\'événement');
+        return { success: false, error: 'You are not authorized to cancel this event' };
+      }
+      
+      console.log('✅ [EventServiceComplete] Autorisation vérifiée, suppression de l\'événement...');
+      
+      // Supprimer l'événement (les suppressions en cascade s'occuperont des tables liées)
+      const { error: deleteError } = await supabase
+        .from('events')
+        .delete()
+        .eq('id', eventId);
+        
+      if (deleteError) {
+        console.error('❌ [EventServiceComplete] Erreur lors de la suppression:', deleteError);
+        return { success: false, error: deleteError.message };
+      }
+      
+      console.log('✅ [EventServiceComplete] Événement annulé avec succès');
+      console.log('🚫 [EventServiceComplete] ========================================');
+      console.log('🚫 [EventServiceComplete] ANNULATION TERMINÉE AVEC SUCCÈS!');
+      console.log('🚫 [EventServiceComplete] ========================================');
+      
+      return { success: true };
+      
+    } catch (error) {
+      console.error('💥 [EventServiceComplete] Erreur inattendue lors de l\'annulation:', error);
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   }

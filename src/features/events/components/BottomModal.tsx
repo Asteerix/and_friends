@@ -24,6 +24,7 @@ interface BottomModalProps {
   onSave?: () => void;
   saveButtonText?: string;
   scrollable?: boolean;
+  saveDisabled?: boolean;
 }
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -38,6 +39,7 @@ export default function BottomModal({
   onSave,
   saveButtonText = 'Save',
   scrollable = true,
+  saveDisabled = false,
 }: BottomModalProps) {
   const slideAnim = useRef(new Animated.Value(height)).current;
 
@@ -119,8 +121,14 @@ export default function BottomModal({
 
             {onSave && (
               <View style={styles.footer}>
-                <TouchableOpacity style={styles.saveButton} onPress={onSave}>
-                  <Text style={styles.saveButtonText}>{saveButtonText}</Text>
+                <TouchableOpacity 
+                  style={[styles.saveButton, saveDisabled && styles.saveButtonDisabled]} 
+                  onPress={onSave}
+                  disabled={saveDisabled}
+                >
+                  <Text style={[styles.saveButtonText, saveDisabled && styles.saveButtonTextDisabled]}>
+                    {saveButtonText}
+                  </Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -195,5 +203,11 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 17,
     fontWeight: '600',
+  },
+  saveButtonDisabled: {
+    backgroundColor: '#E5E5EA',
+  },
+  saveButtonTextDisabled: {
+    color: '#8E8E93',
   },
 });
