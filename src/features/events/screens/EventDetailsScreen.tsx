@@ -1,6 +1,6 @@
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -11,30 +11,26 @@ import {
   Text,
   TouchableOpacity,
   View,
-  LayoutAnimation,
   UIManager,
-  Dimensions,
   Linking,
+  TextInput,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import MapView, { Marker } from 'react-native-maps';
-import { BlurView } from 'expo-blur';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useProfile } from '@/hooks/useProfile';
 import BackButton from '@/assets/svg/back-button.svg';
 import ChatButton from '@/assets/svg/chat-button.svg';
 import NotificationButton from '@/assets/svg/notification-button.svg';
-import { EventServiceComplete } from '../services/eventServiceComplete';
-import { getCategoryDisplayName, getCategoryIcon } from '../utils/categoryHelpers';
+import { getCategoryDisplayName } from '../utils/categoryHelpers';
 import { useEvent } from '../context/EventProvider';
+import { LinearGradient } from 'expo-linear-gradient';
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // Import fonts and backgrounds data
 import {
@@ -75,11 +71,9 @@ interface EventDetailsScreenProps {
 
 export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps) {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { profile } = useProfile();
-  const { currentEvent: event, loading, loadEvent } = useEvent();
-  const [expandedSections, setExpandedSections] = useState<{ [key: string]: boolean }>({});
-  const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(0);
+  const { currentEvent: event, loading, loadEvent, updateEvent } = useEvent();
+  const [questionResponses, setQuestionResponses] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
     if (!eventId) {
@@ -100,10 +94,6 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
     return font?.style || {};
   };
 
-  const toggleSection = (section: string) => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
-  };
 
   const handleEditEvent = () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -118,6 +108,65 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
   const handleShare = () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     Alert.alert('Share', 'Share functionality coming soon!');
+  };
+
+  const handleClaimItem = async (itemId: string | number) => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    
+    if (!profile?.id) {
+      Alert.alert('Sign in required', 'Please sign in to claim items');
+      return;
+    }
+
+    // Update the item to mark it as claimed
+    const updatedItems = items.map((item: any) => 
+      (item.id || items.indexOf(item)) === itemId 
+        ? { ...item, assignedTo: profile.id } 
+        : item
+    );
+
+    const result = await updateEvent(eventId!, {
+      itemsToBring: updatedItems
+    });
+
+    if (result.success) {
+      Alert.alert('Success', 'Item claimed successfully!');
+    } else {
+      Alert.alert('Error', 'Failed to claim item');
+    }
+  };
+
+  const handleQuestionResponse = (questionId: string, text: string) => {
+    setQuestionResponses(prev => ({
+      ...prev,
+      [questionId]: text
+    }));
+  };
+
+  const handleSubmitResponses = async () => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    
+    // Validate required questions
+    const requiredQuestions = questionnaire.filter((q: any) => q.is_required);
+    const missingResponses = requiredQuestions.filter((q: any) => {
+      const questionId = q.id || questionnaire.indexOf(q);
+      return !questionResponses[questionId] || questionResponses[questionId].trim() === '';
+    });
+
+    if (missingResponses.length > 0) {
+      Alert.alert('Missing responses', 'Please answer all required questions');
+      return;
+    }
+
+    // In a real app, save responses to database
+    Alert.alert('Success', 'Your responses have been submitted!');
+    
+    // TODO: Implement actual submission to database
+    // const result = await EventServiceComplete.submitQuestionnaireResponses(
+    //   eventId!, 
+    //   profile!.id, 
+    //   questionResponses
+    // );
   };
 
   const handleOpenWebsite = () => {
@@ -184,7 +233,6 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
   const costs = event.event_costs || event.extra_data?.costs || [];
   const items = event.event_items || event.extra_data?.items_to_bring || [];
   const questionnaire = event.event_questionnaire || event.extra_data?.questionnaire || [];
-  const coHosts = event.event_cohosts || event.extra_data?.co_organizers || [];
 
   return (
     <View style={styles.container}>
@@ -303,188 +351,130 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
 
         {/* Details section */}
         <View style={styles.detailsSheet}>
-          {/* Primary Actions */}
+          {/* Primary Actions - Airbnb Style */}
           <View style={styles.primaryActionsContainer}>
             {!isHost ? (
               <TouchableOpacity style={styles.joinEventButton} onPress={handleJoinEvent}>
-                <Ionicons name="checkmark-circle" size={22} color="#FFF" />
-                <Text style={styles.joinEventButtonText}>Join Event</Text>
+                <Text style={styles.joinEventButtonText}>Request to Join</Text>
               </TouchableOpacity>
             ) : (
-              <View style={styles.hostButtonsRow}>
-                <TouchableOpacity style={styles.inviteFriendsButton} onPress={handleShare}>
-                  <Ionicons name="person-add-outline" size={20} color="#FFF" />
-                  <Text style={styles.inviteFriendsText}>Invite Friends</Text>
+              <View style={styles.hostActionsContainer}>
+                <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
+                  <View style={styles.shareButtonContent}>
+                    <Ionicons name="share-outline" size={20} color="#000" />
+                    <Text style={styles.shareButtonText}>Share</Text>
+                  </View>
                 </TouchableOpacity>
                 
-                <TouchableOpacity style={styles.sendUpdateButton}>
-                  <Ionicons name="paper-plane-outline" size={20} color="#007AFF" />
-                  <Text style={styles.sendUpdateText}>Send Reminder</Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity style={styles.moreOptionsButton}>
-                  <Ionicons name="ellipsis-horizontal" size={24} color="#666" />
+                <TouchableOpacity style={styles.moreButton}>
+                  <Ionicons name="ellipsis-horizontal" size={20} color="#000" />
                 </TouchableOpacity>
               </View>
             )}
           </View>
 
-          {/* About Section - Redesigned */}
-          <View style={styles.aboutSectionWrapper}>
-            {/* Host Section at the Top */}
-            <View style={styles.hostSectionCard}>
-              <View style={styles.hostMainInfo}>
+          {/* Host & About Section - Airbnb Style */}
+          <View style={styles.hostAboutSection}>
+            <Text style={styles.sectionTitle}>Meet your host</Text>
+            <View style={styles.hostCard}>
+              <View style={styles.hostInfo}>
                 <Image 
                   source={{ 
                     uri: event.organizer?.avatar_url || 
                          event.extra_data?.host?.avatar || 
-                         'https://via.placeholder.com/56' 
+                         'https://via.placeholder.com/64' 
                   }} 
-                  style={styles.hostMainAvatar} 
+                  style={styles.hostAvatar} 
                 />
-                <View style={styles.hostTextInfo}>
-                  <Text style={styles.hostedByLabel}>HOSTED BY</Text>
-                  <Text style={styles.hostMainName}>
+                <View style={styles.hostDetails}>
+                  <Text style={styles.hostName}>
                     {event.organizer?.full_name || event.extra_data?.host?.name || 'Host'}
                   </Text>
-                  {event.organizer?.username && (
-                    <Text style={styles.hostUsername}>@{event.organizer.username}</Text>
-                  )}
+                  <Text style={styles.hostRole}>Event host</Text>
                 </View>
-                {!isHost && (
-                  <TouchableOpacity style={styles.messageHostButton}>
-                    <Ionicons name="chatbubble-ellipses-outline" size={24} color="#007AFF" />
-                  </TouchableOpacity>
-                )}
               </View>
-              
-              {/* Co-hosts inline */}
-              {event.has_cohosts_enabled && coHosts.length > 0 && (
-                <View style={styles.coHostsInline}>
-                  <Text style={styles.withText}>with</Text>
-                  <View style={styles.coHostsAvatars}>
-                    {coHosts.slice(0, 3).map((coHost: any, index: number) => (
-                      <Image 
-                        key={coHost.id || index}
-                        source={{ uri: coHost.avatar || 'https://via.placeholder.com/36' }} 
-                        style={[styles.coHostSmallAvatar, index > 0 && { marginLeft: -12 }]}
-                      />
-                    ))}
-                  </View>
-                  <Text style={styles.coHostsNames}>
-                    {coHosts.slice(0, 2).map((c: any) => c.name.split(' ')[0]).join(', ')}
-                    {coHosts.length > 2 && ` +${coHosts.length - 2}`}
-                  </Text>
-                </View>
-              )}
-            </View>
-            
-            {/* About Description Below */}
-            <View style={styles.aboutDescriptionCard}>
-              <View style={styles.aboutTitleRow}>
-                <View style={styles.aboutIconContainer}>
-                  <Ionicons name="document-text" size={20} color="#007AFF" />
-                </View>
-                <Text style={styles.aboutSectionTitle}>About</Text>
-              </View>
-              <Text style={styles.aboutText}>
-                {event.description || 'Get ready for an unforgettable experience! More details coming soon.'}
-              </Text>
-              {event.description && event.description.length > 200 && (
-                <TouchableOpacity style={styles.readMoreButton}>
-                  <Text style={styles.readMoreText}>Read more</Text>
-                  <Ionicons name="chevron-down" size={16} color="#007AFF" />
+              {!isHost && (
+                <TouchableOpacity style={styles.messageHostBtn}>
+                  <Text style={styles.messageHostText}>Message host</Text>
                 </TouchableOpacity>
               )}
             </View>
-          </View>
-
-          {/* Quick Info Cards */}
-          <View style={styles.quickInfoSection}>
-            {/* Date & Time Card */}
-            <TouchableOpacity style={styles.infoCard} activeOpacity={0.8}>
-              <View style={styles.infoCardIcon}>
-                <Ionicons name="calendar" size={24} color="#007AFF" />
-              </View>
-              <View style={styles.infoCardContent}>
-                <Text style={styles.infoCardLabel}>Date & Time</Text>
-                <Text style={styles.infoCardValue}>
-                  {formatDate(event.start_time).split(',')[0]}
-                  {event.end_time && new Date(event.end_time).toDateString() !== new Date(event.start_time).toDateString() && 
-                    ` - ${formatDate(event.end_time).split(',')[0]}`}
-                </Text>
-                <Text style={styles.infoCardSubValue}>
-                  {formatTime(event.start_time)}{event.end_time && ` - ${formatTime(event.end_time)}`}
-                </Text>
-              </View>
-            </TouchableOpacity>
-
-            {/* Location Card */}
-            <TouchableOpacity style={styles.infoCard} activeOpacity={0.8}>
-              <View style={[styles.infoCardIcon, { backgroundColor: '#F0F7FF' }]}>
-                <Ionicons name="location" size={24} color="#0051D5" />
-              </View>
-              <View style={styles.infoCardContent}>
-                <Text style={styles.infoCardLabel}>Location</Text>
-                <Text style={styles.infoCardValue} numberOfLines={1}>
-                  {event.venue_name || event.location_details?.name || 'TBD'}
-                </Text>
-                {event.address && (
-                  <Text style={styles.infoCardSubValue} numberOfLines={1}>
-                    {event.address}
-                  </Text>
-                )}
-              </View>
-            </TouchableOpacity>
-
-            {/* Capacity Card */}
-            {event.has_capacity_enabled && (
-              <TouchableOpacity style={styles.infoCard} activeOpacity={0.8}>
-                <View style={[styles.infoCardIcon, { backgroundColor: '#E8F2FF' }]}>
-                  <Ionicons name="people" size={24} color="#0051D5" />
-                </View>
-                <View style={styles.infoCardContent}>
-                  <Text style={styles.infoCardLabel}>Capacity</Text>
-                  <Text style={styles.infoCardValue}>
-                    {event.max_attendees === 0 ? 'Unlimited' : 
-                     `${event.current_attendees || 0}/${event.max_attendees}`}
-                  </Text>
-                  {event.max_attendees > 0 && (
-                    <View style={styles.miniProgressBar}>
-                      <View 
-                        style={[
-                          styles.miniProgressFill,
-                          { 
-                            width: `${((event.current_attendees || 0) / event.max_attendees) * 100}%`,
-                            backgroundColor: 
-                              ((event.current_attendees || 0) / event.max_attendees) >= 1 ? '#8E8E93' :
-                              ((event.current_attendees || 0) / event.max_attendees) >= 0.8 ? '#007AFF' :
-                              '#0051D5'
-                          }
-                        ]}
-                      />
-                    </View>
-                  )}
-                </View>
+            
+            <View style={styles.divider} />
+            
+            <Text style={styles.aboutTitle}>About this event</Text>
+            <Text style={styles.aboutDescription}>
+              {event.description || 'Join us for an amazing experience! The host will share more details soon.'}
+            </Text>
+            {event.description && event.description.length > 200 && (
+              <TouchableOpacity style={styles.showMoreButton}>
+                <Text style={styles.showMoreText}>Show more</Text>
               </TouchableOpacity>
             )}
+          </View>
 
-            {/* Category Card */}
-            <TouchableOpacity style={styles.infoCard} activeOpacity={0.8}>
-              <View style={[styles.infoCardIcon, { backgroundColor: '#F0F7FF' }]}>
-                <Ionicons 
-                  name={getCategoryIcon(event.category || event.event_category || 'social')} 
-                  size={24} 
-                  color="#007AFF" 
-                />
+          {/* Essential Info - Airbnb Style */}
+          <View style={styles.essentialInfoSection}>
+            <View style={styles.essentialInfoGrid}>
+              {/* Date */}
+              <View style={styles.essentialInfoItem}>
+                <Ionicons name="calendar-outline" size={20} color="#000" />
+                <View style={styles.essentialInfoContent}>
+                  <Text style={styles.essentialInfoTitle}>
+                    {formatDate(event.start_time).split(',')[0]}
+                    {event.end_time && new Date(event.end_time).toDateString() !== new Date(event.start_time).toDateString() && 
+                      ` - ${formatDate(event.end_time).split(',')[0]}`}
+                  </Text>
+                  <Text style={styles.essentialInfoSubtitle}>
+                    {formatTime(event.start_time)}{event.end_time && ` - ${formatTime(event.end_time)}`}
+                  </Text>
+                </View>
               </View>
-              <View style={styles.infoCardContent}>
-                <Text style={styles.infoCardLabel}>Category</Text>
-                <Text style={styles.infoCardValue}>
-                  {getCategoryDisplayName(event.category || event.event_category || 'social')}
-                </Text>
+
+              {/* Location */}
+              <View style={styles.essentialInfoItem}>
+                <Ionicons name="location-outline" size={20} color="#000" />
+                <View style={styles.essentialInfoContent}>
+                  <Text style={styles.essentialInfoTitle} numberOfLines={1}>
+                    {event.venue_name || event.location_details?.name || 'Location TBD'}
+                  </Text>
+                  {event.address && (
+                    <Text style={styles.essentialInfoSubtitle} numberOfLines={1}>
+                      {event.address}
+                    </Text>
+                  )}
+                </View>
               </View>
-            </TouchableOpacity>
+
+              {/* Attendees */}
+              {event.has_capacity_enabled && (
+                <View style={styles.essentialInfoItem}>
+                  <Ionicons name="people-outline" size={20} color="#000" />
+                  <View style={styles.essentialInfoContent}>
+                    <Text style={styles.essentialInfoTitle}>
+                      {event.current_attendees || 0} going
+                    </Text>
+                    <Text style={styles.essentialInfoSubtitle}>
+                      {event.max_attendees === 0 ? 'No limit' : 
+                       `${event.max_attendees - (event.current_attendees || 0)} spots left`}
+                    </Text>
+                  </View>
+                </View>
+              )}
+
+              {/* Type */}
+              <View style={styles.essentialInfoItem}>
+                <Ionicons name="pricetag-outline" size={20} color="#000" />
+                <View style={styles.essentialInfoContent}>
+                  <Text style={styles.essentialInfoTitle}>
+                    {getCategoryDisplayName(event.category || event.event_category || 'social')}
+                  </Text>
+                  <Text style={styles.essentialInfoSubtitle}>
+                    {event.is_private ? 'Private event' : 'Public event'}
+                  </Text>
+                </View>
+              </View>
+            </View>
           </View>
 
           {/* Event Gallery */}
@@ -512,161 +502,145 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
             </View>
           )}
 
-          {/* Location Section with Map */}
+          {/* Location Section - Airbnb Style */}
           {event.coordinates && (
             <View style={styles.locationSection}>
-              <Text style={styles.sectionTitle}>Location</Text>
-              <View style={styles.mapContainer}>
-                <MapView
-                  style={styles.map}
-                  initialRegion={{
-                    latitude: event.coordinates.lat || event.coordinates.latitude,
-                    longitude: event.coordinates.lng || event.coordinates.longitude,
-                    latitudeDelta: 0.01,
-                    longitudeDelta: 0.01,
-                  }}
-                  scrollEnabled={false}
-                  zoomEnabled={false}
-                >
-                  <Marker
-                    coordinate={{
+              <Text style={styles.sectionTitle}>Where you'll be</Text>
+              <View style={styles.locationContent}>
+                <View style={styles.mapContainer}>
+                  <MapView
+                    style={styles.map}
+                    initialRegion={{
                       latitude: event.coordinates.lat || event.coordinates.latitude,
                       longitude: event.coordinates.lng || event.coordinates.longitude,
+                      latitudeDelta: 0.01,
+                      longitudeDelta: 0.01,
                     }}
-                  />
-                </MapView>
-                <View style={styles.mapOverlay}>
-                  <View style={styles.locationDetails}>
-                    <Ionicons name="location" size={20} color="#FFF" />
-                    <View style={styles.locationTextContainer}>
-                      <Text style={styles.locationName}>
-                        {event.venue_name || event.location_details?.name || 'Event Location'}
-                      </Text>
-                      {event.address && (
-                        <Text style={styles.locationAddress}>
-                          {event.address}
-                        </Text>
-                      )}
-                    </View>
-                  </View>
-                  <TouchableOpacity style={styles.directionsButton}>
-                    <Text style={styles.directionsText}>Get Directions</Text>
-                    <Ionicons name="navigate" size={16} color="#007AFF" />
+                    scrollEnabled={false}
+                    zoomEnabled={false}
+                  >
+                    <Marker
+                      coordinate={{
+                        latitude: event.coordinates.lat || event.coordinates.latitude,
+                        longitude: event.coordinates.lng || event.coordinates.longitude,
+                      }}
+                    />
+                  </MapView>
+                </View>
+                <View style={styles.locationInfo}>
+                  <Text style={styles.locationName}>
+                    {event.venue_name || event.location_details?.name || 'Event Location'}
+                  </Text>
+                  {event.address && (
+                    <Text style={styles.locationAddress}>
+                      {event.address}
+                    </Text>
+                  )}
+                  <TouchableOpacity style={styles.getDirectionsButton} onPress={() => {
+                    const coords = event.coordinates;
+                    const lat = coords.lat || coords.latitude;
+                    const lng = coords.lng || coords.longitude;
+                    const url = Platform.OS === 'ios' 
+                      ? `maps:0,0?q=${lat},${lng}`
+                      : `geo:0,0?q=${lat},${lng}`;
+                    Linking.openURL(url);
+                  }}>
+                    <Text style={styles.getDirectionsText}>Get directions</Text>
                   </TouchableOpacity>
                 </View>
               </View>
             </View>
           )}
 
-          {/* Attendees Section */}
+          {/* Attendees Section - Airbnb Style */}
           <View style={styles.attendeesSection}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Who's Going</Text>
-              <TouchableOpacity>
-                <Text style={styles.viewAllText}>View All</Text>
-              </TouchableOpacity>
-            </View>
-            
-            <View style={styles.attendeesContainer}>
-              <View style={styles.attendeesList}>
-                {[1, 2, 3, 4, 5].map((_, index) => (
-                  <Image 
-                    key={index}
-                    source={{ uri: `https://i.pravatar.cc/100?img=${index + 10}` }} 
-                    style={[
-                      styles.attendeeAvatar,
-                      index > 0 && { marginLeft: -16 }
-                    ]}
-                  />
-                ))}
-                <View style={[styles.attendeeAvatar, styles.moreAttendees, { marginLeft: -16 }]}>
-                  <Text style={styles.moreAttendeesText}>+{(event.current_attendees || 5) - 5}</Text>
-                </View>
+            <Text style={styles.sectionTitle}>Who's coming</Text>
+            <View style={styles.attendeesInfo}>
+              <View style={styles.attendeesHeader}>
+                <Text style={styles.attendeesMainText}>
+                  {event.current_attendees || 12} guests
+                </Text>
+                {event.has_capacity_enabled && event.max_attendees > 0 && (
+                  <Text style={styles.attendeesSubText}>
+                    {event.max_attendees - (event.current_attendees || 0)} spots available
+                  </Text>
+                )}
               </View>
               
-              <View style={styles.attendeesStats}>
-                <Text style={styles.attendeesCount}>
-                  {event.current_attendees || 12} attending
-                </Text>
-                <Text style={[styles.spotsLeft, 
-                  event.has_capacity_enabled && event.max_attendees > 0 && 
-                  event.max_attendees - (event.current_attendees || 0) <= 5 && 
-                  { color: '#007AFF' }
-                ]}>
-                  {event.has_capacity_enabled && event.max_attendees > 0 
-                    ? `${event.max_attendees - (event.current_attendees || 0)} spots left`
-                    : 'Open event'}
-                </Text>
+              <View style={styles.attendeesPreview}>
+                <View style={styles.attendeesList}>
+                  {[1, 2, 3, 4].map((_, index) => (
+                    <Image 
+                      key={index}
+                      source={{ uri: `https://i.pravatar.cc/100?img=${index + 10}` }} 
+                      style={[
+                        styles.attendeeAvatar,
+                        index > 0 && { marginLeft: -12 }
+                      ]}
+                    />
+                  ))}
+                  {(event.current_attendees || 12) > 4 && (
+                    <View style={[styles.attendeeAvatar, styles.moreAttendees, { marginLeft: -12 }]}>
+                      <Text style={styles.moreAttendeesText}>+{(event.current_attendees || 12) - 4}</Text>
+                    </View>
+                  )}
+                </View>
+                <TouchableOpacity style={styles.viewGuestsButton}>
+                  <Text style={styles.viewGuestsText}>Show all</Text>
+                </TouchableOpacity>
               </View>
             </View>
           </View>
 
-          {/* Event Details - Enhanced Presentation */}
+          {/* Things to Know - Airbnb Style */}
           {(event.has_dress_code_enabled || event.has_theme_enabled || event.has_age_restriction_enabled || 
             event.extra_data?.allow_plus_ones) && (
-            <View style={styles.eventDetailsSection}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Good to Know</Text>
-                <View style={styles.detailsBadge}>
-                  <Ionicons name="sparkles" size={16} color="#007AFF" />
-                </View>
-              </View>
+            <View style={styles.thingsToKnowSection}>
+              <Text style={styles.sectionTitle}>Things to know</Text>
               
-              <View style={styles.detailsCard}>
+              <View style={styles.thingsToKnowGrid}>
                 {/* Dress Code */}
                 {event.has_dress_code_enabled && event.extra_data?.dress_code && (
-                  <View style={styles.detailItem}>
-                    <View style={styles.detailIconContainer}>
-                      <Ionicons name="shirt" size={24} color="#007AFF" />
-                    </View>
-                    <View style={styles.detailContent}>
-                      <Text style={styles.detailTitle}>Dress Code</Text>
-                      <Text style={styles.detailValue}>{event.extra_data.dress_code}</Text>
-                      <Text style={styles.detailHint}>Dress to impress! Follow the dress code for the best experience.</Text>
+                  <View style={styles.thingToKnowItem}>
+                    <Ionicons name="shirt-outline" size={20} color="#000" />
+                    <View style={styles.thingToKnowContent}>
+                      <Text style={styles.thingToKnowTitle}>Dress code</Text>
+                      <Text style={styles.thingToKnowValue}>{event.extra_data.dress_code}</Text>
                     </View>
                   </View>
                 )}
                 
                 {/* Theme */}
                 {event.has_theme_enabled && event.extra_data?.event_theme && (
-                  <View style={[styles.detailItem, event.has_dress_code_enabled && styles.detailItemBorder]}>
-                    <View style={styles.detailIconContainer}>
-                      <Ionicons name="color-palette" size={24} color="#0051D5" />
-                    </View>
-                    <View style={styles.detailContent}>
-                      <Text style={styles.detailTitle}>Event Theme</Text>
-                      <Text style={styles.detailValue}>{event.extra_data.event_theme}</Text>
-                      <Text style={styles.detailHint}>Get creative with the theme! It's part of the fun.</Text>
+                  <View style={styles.thingToKnowItem}>
+                    <Ionicons name="color-palette-outline" size={20} color="#000" />
+                    <View style={styles.thingToKnowContent}>
+                      <Text style={styles.thingToKnowTitle}>Event theme</Text>
+                      <Text style={styles.thingToKnowValue}>{event.extra_data.event_theme}</Text>
                     </View>
                   </View>
                 )}
                 
                 {/* Age Restriction */}
                 {event.has_age_restriction_enabled && event.extra_data?.age_restriction && (
-                  <View style={[styles.detailItem, (event.has_dress_code_enabled || event.has_theme_enabled) && styles.detailItemBorder]}>
-                    <View style={styles.detailIconContainer}>
-                      <MaterialCommunityIcons name="account-check" size={24} color="#007AFF" />
-                    </View>
-                    <View style={styles.detailContent}>
-                      <Text style={styles.detailTitle}>Age Requirement</Text>
-                      <Text style={styles.detailValue}>{event.extra_data.age_restriction}</Text>
-                      <Text style={styles.detailHint}>Please bring valid ID if required.</Text>
+                  <View style={styles.thingToKnowItem}>
+                    <MaterialCommunityIcons name="account-check-outline" size={20} color="#000" />
+                    <View style={styles.thingToKnowContent}>
+                      <Text style={styles.thingToKnowTitle}>Age requirement</Text>
+                      <Text style={styles.thingToKnowValue}>{event.extra_data.age_restriction}</Text>
                     </View>
                   </View>
                 )}
 
                 {/* Plus Ones */}
                 {event.extra_data?.allow_plus_ones && (
-                  <View style={[styles.detailItem, (event.has_dress_code_enabled || event.has_theme_enabled || event.has_age_restriction_enabled) && styles.detailItemBorder]}>
-                    <View style={styles.detailIconContainer}>
-                      <Ionicons name="person-add" size={24} color="#0051D5" />
-                    </View>
-                    <View style={styles.detailContent}>
-                      <Text style={styles.detailTitle}>Bringing Someone?</Text>
-                      <Text style={styles.detailValue}>
-                        {event.extra_data.max_plus_ones ? `You can bring up to ${event.extra_data.max_plus_ones} guest${event.extra_data.max_plus_ones > 1 ? 's' : ''}` : 'Plus ones are welcome!'}
+                  <View style={styles.thingToKnowItem}>
+                    <Ionicons name="person-add-outline" size={20} color="#000" />
+                    <View style={styles.thingToKnowContent}>
+                      <Text style={styles.thingToKnowTitle}>Guests allowed</Text>
+                      <Text style={styles.thingToKnowValue}>
+                        {event.extra_data.max_plus_ones ? `Bring up to ${event.extra_data.max_plus_ones} guest${event.extra_data.max_plus_ones > 1 ? 's' : ''}` : 'Plus ones welcome'}
                       </Text>
-                      <Text style={styles.detailHint}>Let the host know if you're bringing someone.</Text>
                     </View>
                   </View>
                 )}
@@ -674,44 +648,21 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
             </View>
           )}
 
-          {/* Costs Section - Enhanced */}
+          {/* Price Details - Airbnb Style */}
           {event.has_costs_enabled && costs.length > 0 && (
-            <View style={styles.costsSection}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Entry & Costs</Text>
-                <View style={styles.costsBadge}>
-                  <Ionicons name="cash-outline" size={16} color="#007AFF" />
-                  <Text style={styles.costsBadgeText}>
-                    ${costs.reduce((sum: number, cost: any) => sum + (parseFloat(cost.amount) || 0), 0).toFixed(0)} total
-                  </Text>
-                </View>
-              </View>
-              <View style={styles.costsCard}>
-                <View style={styles.costsIntro}>
-                  <Ionicons name="information-circle" size={20} color="#007AFF" />
-                  <Text style={styles.costsIntroText}>
-                    Here's what you'll need to budget for this event
-                  </Text>
-                </View>
+            <View style={styles.priceSection}>
+              <Text style={styles.sectionTitle}>Price details</Text>
+              <View style={styles.priceCard}>
                 {costs.map((cost: any, index: number) => (
-                  <View key={cost.id || index} style={styles.costItem}>
-                    <View style={styles.costInfo}>
-                      <Text style={styles.costDescription}>{cost.description}</Text>
-                      {cost.is_required && (
-                        <View style={styles.requiredBadge}>
-                          <Text style={styles.requiredBadgeText}>Required</Text>
-                        </View>
-                      )}
-                    </View>
-                    <Text style={styles.costAmount}>${cost.amount}</Text>
+                  <View key={cost.id || index} style={styles.priceRow}>
+                    <Text style={styles.priceLabel}>{cost.description}</Text>
+                    <Text style={styles.priceValue}>${cost.amount}</Text>
                   </View>
                 ))}
-                <View style={styles.costTotal}>
-                  <View>
-                    <Text style={styles.costTotalLabel}>Total per person</Text>
-                    <Text style={styles.costPaymentHint}>Payment collected at the event</Text>
-                  </View>
-                  <Text style={styles.costTotalAmount}>
+                <View style={styles.priceDivider} />
+                <View style={styles.priceRow}>
+                  <Text style={styles.priceTotalLabel}>Total</Text>
+                  <Text style={styles.priceTotalValue}>
                     ${costs.reduce((sum: number, cost: any) => sum + (parseFloat(cost.amount) || 0), 0).toFixed(2)}
                   </Text>
                 </View>
@@ -719,147 +670,178 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
             </View>
           )}
 
-          {/* Items to Bring */}
+          {/* Items to Bring - Professional Style */}
           {event.has_items_enabled && items.length > 0 && (
             <View style={styles.itemsSection}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>What to Bring</Text>
-                <View style={styles.itemsCount}>
-                  <Text style={styles.itemsCountText}>{items.length} items</Text>
-                </View>
-              </View>
-              <View style={styles.itemsCard}>
+              <Text style={styles.sectionTitle}>What to bring</Text>
+              <View style={styles.itemsContainer}>
                 {items.map((item: any, index: number) => (
-                  <TouchableOpacity 
-                    key={item.id || index} 
-                    style={styles.itemRow}
-                    activeOpacity={item.assignedTo ? 1 : 0.7}
-                  >
-                    <View style={styles.itemCheckbox}>
-                      <Ionicons 
-                        name={item.assignedTo ? "checkbox" : "square-outline"} 
-                        size={24} 
-                        color={item.assignedTo ? "#007AFF" : "#C7C7CC"} 
-                      />
-                    </View>
-                    <View style={styles.itemInfo}>
-                      <Text style={[styles.itemName, item.assignedTo && styles.itemNameAssigned]}>
-                        {item.name || item.item_name}
-                      </Text>
-                      {item.quantity > 1 && (
-                        <Text style={styles.itemQuantity}>Quantity: {item.quantity}</Text>
-                      )}
-                    </View>
-                    {item.assignedTo ? (
-                      <View style={styles.assignedBadge}>
-                        <Text style={styles.assignedText}>Taken</Text>
+                  <View key={item.id || index} style={styles.itemCard}>
+                    <View style={styles.itemHeader}>
+                      <View style={styles.itemMainInfo}>
+                        <Text style={styles.itemName}>
+                          {item.name || item.item_name}
+                        </Text>
+                        {item.quantity > 1 && (
+                          <Text style={styles.itemQuantity}>Quantity needed: {item.quantity}</Text>
+                        )}
                       </View>
-                    ) : (
-                      <View style={styles.availableBadge}>
-                        <Text style={styles.availableText}>Available</Text>
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-          )}
-
-          {/* Guest Questionnaire */}
-          {event.has_questionnaire_enabled && questionnaire.length > 0 && (
-            <View style={styles.questionnaireSection}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Questions for Guests</Text>
-                <Text style={styles.questionsCount}>{questionnaire.length} questions</Text>
-              </View>
-              <View style={styles.questionsCard}>
-                {questionnaire.map((question: any, index: number) => (
-                  <View key={question.id || index} style={styles.questionItem}>
-                    <View style={styles.questionNumber}>
-                      <Text style={styles.questionNumberText}>{index + 1}</Text>
-                    </View>
-                    <View style={styles.questionContent}>
-                      <Text style={styles.questionText}>
-                        {question.question || question.question_text || question.text}
-                      </Text>
-                      {question.is_required && (
-                        <View style={styles.requiredBadge}>
-                          <Text style={styles.requiredBadgeText}>Required</Text>
+                      {item.assignedTo ? (
+                        <View style={styles.itemAssignedBadge}>
+                          <Ionicons name="checkmark-circle" size={16} color="#007AFF" />
+                          <Text style={styles.itemAssignedText}>Taken</Text>
                         </View>
+                      ) : (
+                        <TouchableOpacity 
+                          style={styles.itemClaimButton}
+                          onPress={() => handleClaimItem(item.id || index)}
+                          activeOpacity={0.7}
+                        >
+                          <Text style={styles.itemClaimText}>I'll bring this</Text>
+                        </TouchableOpacity>
                       )}
                     </View>
+                    {item.assignedTo && (
+                      <Text style={styles.itemBroughtBy}>
+                        {item.assignedTo === profile?.id ? 'You' : 'A guest'} will bring this
+                      </Text>
+                    )}
                   </View>
                 ))}
-                <View style={styles.questionsNote}>
-                  <Ionicons name="information-circle-outline" size={16} color="#8E8E93" />
-                  <Text style={styles.questionsNoteText}>
-                    You'll answer these questions when joining the event
-                  </Text>
-                </View>
               </View>
             </View>
           )}
 
-          {/* Additional Info */}
+          {/* Guest Questionnaire - Interactive */}
+          {event.has_questionnaire_enabled && questionnaire.length > 0 && (
+            <View style={styles.questionnaireSection}>
+              <Text style={styles.sectionTitle}>Questions from the host</Text>
+              
+              {/* For Hosts - Show Responses */}
+              {isHost ? (
+                <View style={styles.responsesContainer}>
+                  <Text style={styles.responsesIntro}>Guest responses:</Text>
+                  {questionnaire.map((question: any, index: number) => (
+                    <View key={question.id || index} style={styles.responseCard}>
+                      <Text style={styles.responseQuestion}>
+                        {question.question || question.question_text || question.text}
+                      </Text>
+                      <View style={styles.responsesGrid}>
+                        {/* Mock responses - in real app, fetch from database */}
+                        {[1, 2, 3].map((guestId) => (
+                          <View key={guestId} style={styles.guestResponse}>
+                            <View style={styles.guestResponseHeader}>
+                              <Image 
+                                source={{ uri: `https://i.pravatar.cc/100?img=${guestId}` }} 
+                                style={styles.guestResponseAvatar}
+                              />
+                              <Text style={styles.guestResponseName}>Guest {guestId}</Text>
+                            </View>
+                            <Text style={styles.guestResponseText}>
+                              {/* Example response */}
+                              Lorem ipsum response to the question
+                            </Text>
+                          </View>
+                        ))}
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                /* For Guests - Answer Form */
+                <View style={styles.questionsForm}>
+                  {questionnaire.map((question: any, index: number) => (
+                    <View key={question.id || index} style={styles.questionFormItem}>
+                      <Text style={styles.questionLabel}>
+                        {question.question || question.question_text || question.text}
+                        {question.is_required && <Text style={styles.requiredStar}> *</Text>}
+                      </Text>
+                      <TextInput
+                        style={styles.questionInput}
+                        placeholder="Type your answer here..."
+                        placeholderTextColor="#8E8E93"
+                        multiline
+                        numberOfLines={3}
+                        value={questionResponses[question.id] || ''}
+                        onChangeText={(text) => handleQuestionResponse(question.id, text)}
+                      />
+                    </View>
+                  ))}
+                  <TouchableOpacity 
+                    style={styles.submitResponsesButton}
+                    onPress={handleSubmitResponses}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.submitResponsesText}>Submit Responses</Text>
+                  </TouchableOpacity>
+                  {questionnaire.some((q: any) => q.is_required) && (
+                    <Text style={styles.questionsNote}>* Required questions</Text>
+                  )}
+                </View>
+              )}
+            </View>
+          )}
+
+          {/* Additional Info - Airbnb Style */}
           {(event.has_parking_info_enabled || event.has_accessibility_enabled || 
             event.has_contact_enabled || event.has_website_enabled) && (
             <View style={styles.additionalInfoSection}>
-              <Text style={styles.sectionTitle}>Additional Information</Text>
+              <Text style={styles.sectionTitle}>Good to know</Text>
               
-              <View style={styles.infoCards}>
+              <View style={styles.additionalInfoGrid}>
                 {/* Parking */}
                 {event.has_parking_info_enabled && event.extra_data?.parking_info && (
-                  <TouchableOpacity style={styles.infoItemCard} activeOpacity={0.7}>
-                    <View style={styles.infoItemHeader}>
-                      <Ionicons name="car" size={20} color="#007AFF" />
-                      <Text style={styles.infoItemTitle}>Parking</Text>
+                  <View style={styles.additionalInfoItem}>
+                    <Ionicons name="car-outline" size={20} color="#000" />
+                    <View style={styles.additionalInfoContent}>
+                      <Text style={styles.additionalInfoTitle}>Parking</Text>
+                      <Text style={styles.additionalInfoValue}>{event.extra_data.parking_info}</Text>
                     </View>
-                    <Text style={styles.infoItemText}>{event.extra_data.parking_info}</Text>
-                  </TouchableOpacity>
+                  </View>
                 )}
                 
                 {/* Accessibility */}
                 {event.has_accessibility_enabled && event.extra_data?.accessibility_info && (
-                  <TouchableOpacity style={styles.infoItemCard} activeOpacity={0.7}>
-                    <View style={styles.infoItemHeader}>
-                      <MaterialCommunityIcons name="wheelchair-accessibility" size={20} color="#007AFF" />
-                      <Text style={styles.infoItemTitle}>Accessibility</Text>
+                  <View style={styles.additionalInfoItem}>
+                    <MaterialCommunityIcons name="wheelchair-accessibility" size={20} color="#000" />
+                    <View style={styles.additionalInfoContent}>
+                      <Text style={styles.additionalInfoTitle}>Accessibility</Text>
+                      <Text style={styles.additionalInfoValue}>{event.extra_data.accessibility_info}</Text>
                     </View>
-                    <Text style={styles.infoItemText}>{event.extra_data.accessibility_info}</Text>
-                  </TouchableOpacity>
+                  </View>
                 )}
                 
                 {/* Contact */}
                 {event.has_contact_enabled && event.extra_data?.contact_info && (
                   <TouchableOpacity 
-                    style={styles.infoItemCard} 
+                    style={styles.additionalInfoItem} 
                     activeOpacity={0.7}
                     onPress={handleCallContact}
                   >
-                    <View style={styles.infoItemHeader}>
-                      <Ionicons name="call" size={20} color="#0051D5" />
-                      <Text style={styles.infoItemTitle}>Contact</Text>
+                    <Ionicons name="call-outline" size={20} color="#000" />
+                    <View style={styles.additionalInfoContent}>
+                      <Text style={styles.additionalInfoTitle}>Contact</Text>
+                      <Text style={[styles.additionalInfoValue, styles.linkTextBlue]}>
+                        {event.extra_data.contact_info}
+                      </Text>
                     </View>
-                    <Text style={[styles.infoItemText, styles.linkText]}>
-                      {event.extra_data.contact_info}
-                    </Text>
                   </TouchableOpacity>
                 )}
                 
                 {/* Website */}
                 {event.has_website_enabled && event.extra_data?.event_website && (
                   <TouchableOpacity 
-                    style={styles.infoItemCard} 
+                    style={styles.additionalInfoItem} 
                     activeOpacity={0.7}
                     onPress={handleOpenWebsite}
                   >
-                    <View style={styles.infoItemHeader}>
-                      <Ionicons name="globe" size={20} color="#007AFF" />
-                      <Text style={styles.infoItemTitle}>Website</Text>
+                    <Ionicons name="globe-outline" size={20} color="#000" />
+                    <View style={styles.additionalInfoContent}>
+                      <Text style={styles.additionalInfoTitle}>Website</Text>
+                      <Text style={[styles.additionalInfoValue, styles.linkTextBlue]} numberOfLines={1}>
+                        {event.extra_data.event_website}
+                      </Text>
                     </View>
-                    <Text style={[styles.infoItemText, styles.linkText]}>
-                      {event.extra_data.event_website}
-                    </Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -914,7 +896,7 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                     style={styles.spotifyButton}
                     onPress={() => Linking.openURL(event.extra_data.spotify_link)}
                   >
-                    <Ionicons name="logo-spotify" size={24} color="#1DB954" />
+                    <MaterialCommunityIcons name="spotify" size={24} color="#1DB954" />
                     <Text style={styles.spotifyButtonText}>Open in Spotify</Text>
                     <Ionicons name="arrow-forward" size={18} color="#666" />
                   </TouchableOpacity>
@@ -1504,117 +1486,109 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   
-  // Location Section
+  // Location Section - Airbnb Style
   locationSection: {
     paddingHorizontal: 20,
-    marginBottom: 32,
+    paddingVertical: 24,
+    borderBottomWidth: 8,
+    borderBottomColor: '#F7F7F7',
+  },
+  locationContent: {
+    gap: 16,
   },
   mapContainer: {
-    height: 280,
-    borderRadius: 16,
+    height: 200,
+    borderRadius: 12,
     overflow: 'hidden',
-    position: 'relative',
   },
   map: {
     flex: 1,
   },
-  mapOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(0, 81, 213, 0.9)',
-    padding: 16,
-    borderBottomLeftRadius: 16,
-    borderBottomRightRadius: 16,
-  },
-  locationDetails: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  locationTextContainer: {
-    flex: 1,
-    marginLeft: 8,
+  locationInfo: {
+    gap: 8,
   },
   locationName: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginBottom: 2,
+    fontWeight: '500',
+    color: '#222222',
   },
   locationAddress: {
     fontSize: 14,
-    color: '#FFFFFF',
-    opacity: 0.8,
+    color: '#717171',
   },
-  directionsButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    backgroundColor: '#FFFFFF',
-    paddingVertical: 10,
-    borderRadius: 8,
+  getDirectionsButton: {
+    marginTop: 8,
   },
-  directionsText: {
-    fontSize: 14,
-    fontWeight: '600',
+  getDirectionsText: {
+    fontSize: 16,
+    fontWeight: '500',
     color: '#007AFF',
+    textDecorationLine: 'underline',
   },
 
-  // Attendees Section
+  // Attendees Section - Airbnb Style
   attendeesSection: {
     paddingHorizontal: 20,
-    marginBottom: 32,
+    paddingVertical: 24,
+    borderBottomWidth: 8,
+    borderBottomColor: '#F7F7F7',
   },
-  viewAllText: {
-    fontSize: 15,
-    color: '#007AFF',
-    fontWeight: '500',
-  },
-  attendeesContainer: {
+  attendeesInfo: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    padding: 20,
+    padding: 24,
     borderWidth: 1,
-    borderColor: '#E5E5EA',
+    borderColor: '#DDDDDD',
+  },
+  attendeesHeader: {
+    marginBottom: 20,
+  },
+  attendeesMainText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#222222',
+    marginBottom: 4,
+  },
+  attendeesSubText: {
+    fontSize: 14,
+    color: '#717171',
+  },
+  attendeesPreview: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   attendeesList: {
     flexDirection: 'row',
-    marginBottom: 16,
   },
   attendeeAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    borderWidth: 3,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 2,
     borderColor: '#FFFFFF',
   },
+  viewGuestsButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#DDDDDD',
+  },
+  viewGuestsText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#222222',
+  },
   moreAttendees: {
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#F7F7F7',
     alignItems: 'center',
     justifyContent: 'center',
   },
   moreAttendeesText: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
-    color: '#666666',
-  },
-  attendeesStats: {
-    borderTopWidth: 1,
-    borderTopColor: '#F2F2F7',
-    paddingTop: 16,
-  },
-  attendeesCount: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#000000',
-    marginBottom: 4,
-  },
-  spotsLeft: {
-    fontSize: 14,
-    color: '#007AFF',
+    color: '#222222',
   },
 
   // Event Details - Extras
@@ -1626,11 +1600,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     marginHorizontal: -6,
-  },
-  extraCard: {
-    width: '50%',
-    paddingHorizontal: 6,
-    marginBottom: 12,
   },
   extraCard: {
     backgroundColor: '#FFFFFF',
@@ -1815,138 +1784,111 @@ const styles = StyleSheet.create({
   // Items Section
   itemsSection: {
     paddingHorizontal: 20,
-    marginBottom: 32,
+    paddingVertical: 24,
+    borderBottomWidth: 8,
+    borderBottomColor: '#F7F7F7',
   },
   itemsCount: {
     fontSize: 15,
     color: '#8E8E93',
     fontWeight: '500',
   },
-  itemsList: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
+  itemsContainer: {
+    gap: 12,
   },
   itemCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#DDDDDD',
+  },
+  itemHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F2F2F7',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
   },
-  itemCheckbox: {
-    marginRight: 12,
-  },
-  itemInfo: {
+  itemMainInfo: {
     flex: 1,
+    marginRight: 12,
   },
   itemName: {
     fontSize: 16,
-    color: '#000000',
     fontWeight: '500',
+    color: '#222222',
+    marginBottom: 4,
   },
   itemQuantity: {
     fontSize: 14,
-    color: '#8E8E93',
-    marginTop: 2,
+    color: '#717171',
   },
-  assignedBadge: {
-    backgroundColor: '#E8F5E9',
+  itemAssignedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#E8F4FD',
     paddingHorizontal: 12,
-    paddingVertical: 4,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  itemAssignedText: {
+    fontSize: 14,
+    color: '#007AFF',
+    fontWeight: '500',
+  },
+  itemClaimButton: {
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderRadius: 8,
   },
-  assignedText: {
-    fontSize: 12,
+  itemClaimText: {
+    color: '#FFFFFF',
+    fontSize: 14,
     fontWeight: '600',
-    color: '#007AFF',
+  },
+  itemBroughtBy: {
+    fontSize: 14,
+    color: '#717171',
+    marginTop: 12,
   },
 
   // Questionnaire Section
   questionnaireSection: {
     paddingHorizontal: 20,
-    marginBottom: 32,
-  },
-  questionsCount: {
-    fontSize: 15,
-    color: '#8E8E93',
-    fontWeight: '500',
-  },
-  questionsList: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-  },
-  questionCard: {
-    flexDirection: 'row',
-    marginBottom: 16,
-  },
-  questionNumber: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#E3F2FD',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  questionNumberText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#007AFF',
-  },
-  questionContent: {
-    flex: 1,
-  },
-  questionText: {
-    fontSize: 16,
-    color: '#000000',
-    lineHeight: 22,
-  },
-  questionRequired: {
-    fontSize: 12,
-    color: '#0051D5',
-    fontWeight: '500',
-    marginTop: 4,
+    paddingVertical: 24,
+    borderBottomWidth: 8,
+    borderBottomColor: '#F7F7F7',
   },
 
-  // Additional Info Section
+  // Additional Info Section - Airbnb Style
   additionalInfoSection: {
     paddingHorizontal: 20,
-    marginBottom: 32,
+    paddingVertical: 24,
+    borderBottomWidth: 8,
+    borderBottomColor: '#F7F7F7',
   },
-  infoCards: {
-    gap: 12,
+  additionalInfoGrid: {
+    gap: 24,
   },
-  infoItemCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-  },
-  infoItemHeader: {
+  additionalInfoItem: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
+    gap: 16,
   },
-  infoItemTitle: {
+  additionalInfoContent: {
+    flex: 1,
+  },
+  additionalInfoTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#000000',
+    fontWeight: '400',
+    color: '#222222',
+    marginBottom: 4,
   },
-  infoItemText: {
-    fontSize: 15,
-    color: '#666666',
-    lineHeight: 22,
+  additionalInfoValue: {
+    fontSize: 14,
+    color: '#717171',
   },
-  linkText: {
+  linkTextBlue: {
     color: '#007AFF',
     textDecorationLine: 'underline',
   },
@@ -2138,31 +2080,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     lineHeight: 20,
   },
-  itemRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F2F2F7',
-  },
-  itemDetails: {
-    flex: 1,
-  },
-  itemNameAssigned: {
-    color: '#8E8E93',
-    textDecorationLine: 'line-through',
-  },
-  availableBadge: {
-    backgroundColor: '#F0F7FF',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  availableText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#007AFF',
-  },
   itemsFooter: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -2171,10 +2088,6 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     borderTopWidth: 1,
     borderTopColor: '#F2F2F7',
-  },
-  itemsFooterText: {
-    fontSize: 13,
-    color: '#8E8E93',
   },
   
   // New Items styles
@@ -2192,251 +2105,6 @@ const styles = StyleSheet.create({
     color: '#007AFF',
     fontWeight: '600',
   },
-  itemsContainer: {
-    gap: 16,
-  },
-  itemsHeaderCard: {
-    backgroundColor: '#F0F7FF',
-    borderRadius: 12,
-    padding: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-  },
-  itemsHeaderIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  itemsHeaderContent: {
-    flex: 1,
-  },
-  itemsHeaderTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000',
-    marginBottom: 4,
-  },
-  itemsHeaderSubtitle: {
-    fontSize: 14,
-    color: '#666',
-    lineHeight: 20,
-  },
-  itemsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  itemCardAssigned: {
-    backgroundColor: '#F8F8F8',
-    borderColor: '#E3E3E8',
-  },
-  itemCardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  itemIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: '#F0F7FF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  itemIconAssigned: {
-    backgroundColor: '#E8F2FF',
-  },
-  claimedTag: {
-    backgroundColor: '#E3F2FD',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  claimedTagText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#007AFF',
-  },
-  availableTag: {
-    backgroundColor: '#F0FFF0',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  availableTagText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#007AFF',
-  },
-  itemCardName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#000',
-    marginBottom: 8,
-  },
-  itemCardNameClaimed: {
-    color: '#8E8E93',
-  },
-  quantityBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginBottom: 8,
-  },
-  quantityText: {
-    fontSize: 13,
-    color: '#666',
-    fontWeight: '500',
-  },
-  assignedToInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  assignedToText: {
-    fontSize: 12,
-    color: '#8E8E93',
-  },
-  itemsHint: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#F2F2F7',
-    borderRadius: 8,
-    padding: 12,
-  },
-  itemsHintText: {
-    flex: 1,
-    fontSize: 13,
-    color: '#666',
-  },
-  
-  // New Questionnaire styles
-  questionsBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#FFE5E5',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  questionsBadgeText: {
-    fontSize: 12,
-    color: '#FF3B30',
-    fontWeight: '600',
-  },
-  questionsContainer: {
-    gap: 16,
-  },
-  questionsHeaderCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 24,
-    alignItems: 'center',
-    textAlign: 'center',
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-  },
-  questionsHeaderTitle: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: '#000',
-    marginTop: 12,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  questionsHeaderSubtitle: {
-    fontSize: 14,
-    color: '#666',
-    lineHeight: 20,
-    textAlign: 'center',
-  },
-  questionsListContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-  },
-  questionItem: {
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F2F2F7',
-  },
-  questionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  questionIndexBadge: {
-    backgroundColor: '#E3F2FD',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  questionIndexText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#007AFF',
-  },
-  requiredIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  requiredText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#FF3B30',
-  },
-  questionTextContent: {
-    fontSize: 16,
-    lineHeight: 24,
-    color: '#000',
-    marginBottom: 12,
-  },
-  answerPreview: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#F8F8F8',
-    padding: 12,
-    borderRadius: 8,
-  },
-  answerPreviewText: {
-    fontSize: 13,
-    color: '#8E8E93',
-    flex: 1,
-  },
-  questionsFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: '#F0F7FF',
-    borderRadius: 12,
-    padding: 16,
-  },
-  questionsFooterIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  questionsFooterText: {
-    flex: 1,
-    fontSize: 14,
-    color: '#007AFF',
-    fontWeight: '500',
-  },
   
   // Simpler questionnaire styles
   questionsCard: {
@@ -2446,12 +2114,28 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E5EA',
   },
+  questionsIntro: {
+    fontSize: 16,
+    color: '#222222',
+    marginBottom: 20,
+  },
   questionItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F2F2F7',
+    marginBottom: 16,
+    paddingLeft: 8,
+  },
+  questionBullet: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#717171',
+    marginTop: 8,
+    marginRight: 12,
+  },
+  requiredStar: {
+    color: '#FF3B30',
+    fontWeight: '600',
   },
   questionNumber: {
     width: 28,
@@ -2486,5 +2170,314 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 13,
     color: '#8E8E93',
+  },
+  
+  // Airbnb/Hinge style updates
+  hostActionsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 16,
+  },
+  shareButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#DDDDDD',
+    backgroundColor: '#FFFFFF',
+  },
+  shareButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  shareButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#000000',
+  },
+  moreButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#DDDDDD',
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  
+  // Essential Info - Airbnb Style
+  essentialInfoSection: {
+    paddingHorizontal: 20,
+    paddingVertical: 24,
+    borderBottomWidth: 8,
+    borderBottomColor: '#F7F7F7',
+  },
+  essentialInfoGrid: {
+    gap: 20,
+  },
+  essentialInfoItem: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  essentialInfoContent: {
+    flex: 1,
+  },
+  essentialInfoTitle: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#222222',
+    marginBottom: 2,
+  },
+  essentialInfoSubtitle: {
+    fontSize: 14,
+    color: '#717171',
+  },
+  
+  // Host & About Section - Airbnb Style
+  hostAboutSection: {
+    paddingHorizontal: 20,
+    paddingVertical: 24,
+    borderBottomWidth: 8,
+    borderBottomColor: '#F7F7F7',
+  },
+  hostCard: {
+    marginBottom: 24,
+  },
+  hostInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  hostAvatar: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    marginRight: 16,
+  },
+  hostDetails: {
+    flex: 1,
+  },
+  hostName: {
+    fontSize: 22,
+    fontWeight: '600',
+    color: '#222222',
+    marginBottom: 4,
+  },
+  hostRole: {
+    fontSize: 14,
+    color: '#717171',
+  },
+  messageHostBtn: {
+    paddingVertical: 13,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#222222',
+  },
+  messageHostText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#222222',
+    textAlign: 'center',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#DDDDDD',
+    marginVertical: 24,
+  },
+  aboutTitle: {
+    fontSize: 22,
+    fontWeight: '600',
+    color: '#222222',
+    marginBottom: 16,
+  },
+  aboutDescription: {
+    fontSize: 16,
+    lineHeight: 24,
+    color: '#222222',
+  },
+  showMoreButton: {
+    marginTop: 12,
+  },
+  showMoreText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#222222',
+    textDecorationLine: 'underline',
+  },
+  
+  // Things to Know - Airbnb Style
+  thingsToKnowSection: {
+    paddingHorizontal: 20,
+    paddingVertical: 24,
+    borderBottomWidth: 8,
+    borderBottomColor: '#F7F7F7',
+  },
+  thingsToKnowGrid: {
+    gap: 24,
+  },
+  thingToKnowItem: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  thingToKnowContent: {
+    flex: 1,
+  },
+  thingToKnowTitle: {
+    fontSize: 16,
+    fontWeight: '400',
+    color: '#222222',
+    marginBottom: 4,
+  },
+  thingToKnowValue: {
+    fontSize: 14,
+    color: '#717171',
+  },
+  
+  // Price Section - Airbnb Style
+  priceSection: {
+    paddingHorizontal: 20,
+    paddingVertical: 24,
+    borderBottomWidth: 8,
+    borderBottomColor: '#F7F7F7',
+  },
+  priceCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: '#DDDDDD',
+  },
+  priceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  priceLabel: {
+    fontSize: 16,
+    color: '#222222',
+  },
+  priceValue: {
+    fontSize: 16,
+    color: '#222222',
+  },
+  priceDivider: {
+    height: 1,
+    backgroundColor: '#DDDDDD',
+    marginVertical: 16,
+  },
+  priceTotalLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#222222',
+  },
+  priceTotalValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#222222',
+  },
+  itemAssignee: {
+    fontSize: 14,
+    color: '#717171',
+    marginTop: 2,
+  },
+  
+  // Questions Section - Airbnb Style
+  // Questionnaire styles for hosts
+  responsesContainer: {
+    gap: 20,
+  },
+  responsesIntro: {
+    fontSize: 16,
+    color: '#222222',
+    marginBottom: 16,
+  },
+  responseCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#DDDDDD',
+  },
+  responseQuestion: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#222222',
+    marginBottom: 16,
+  },
+  responsesGrid: {
+    gap: 12,
+  },
+  guestResponse: {
+    backgroundColor: '#F7F7F7',
+    borderRadius: 8,
+    padding: 12,
+  },
+  guestResponseHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  guestResponseAvatar: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+  },
+  guestResponseName: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#222222',
+  },
+  guestResponseText: {
+    fontSize: 14,
+    color: '#717171',
+    lineHeight: 20,
+  },
+  
+  // Questionnaire styles for guests
+  questionsForm: {
+    gap: 20,
+  },
+  questionFormItem: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#DDDDDD',
+  },
+  questionLabel: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#222222',
+    marginBottom: 12,
+  },
+  questionInput: {
+    backgroundColor: '#F7F7F7',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    color: '#222222',
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+  submitResponsesButton: {
+    backgroundColor: '#007AFF',
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  submitResponsesText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  questionsFooterText: {
+    fontSize: 14,
+    color: '#717171',
+    marginTop: 16,
+    fontStyle: 'italic',
   },
 });
