@@ -32,8 +32,16 @@ import RSVPDeadlineModal from '../components/RSVPDeadlineModal';
 import GuestQuestionnaireModal from '../components/GuestQuestionnaireModal';
 import PlaylistModal from '../components/PlaylistModal';
 import ManageCoHostsModal from '../components/ManageCoHostsModal';
-import EventDatePickerModal from '../components/EventDatePickerModal';
+import EventStartDateModal from '../components/EventStartDateModal';
+import EventEndDateModal from '../components/EventEndDateModal';
 import EventLocationSearchModal from '../components/EventLocationSearchModal';
+import DressCodeModal from '../components/DressCodeModal';
+import ThemeSelectionModal from '../components/ThemeSelectionModal';
+import AgeRestrictionModal from '../components/AgeRestrictionModal';
+import EventCapacityModal from '../components/EventCapacityModal';
+import ParkingInfoModal from '../components/ParkingInfoModal';
+import AccessibilityModal from '../components/AccessibilityModal';
+import EventCategoryModal from '../components/EventCategoryModal';
 
 // Default event cover image
 const DEFAULT_EVENT_COVER = require('../../../assets/default_avatar.png');
@@ -86,7 +94,10 @@ export default function CreateEventScreen() {
   
   const [eventDate, setEventDate] = useState(getDefaultEventDate());
   const [eventTime, setEventTime] = useState(getDefaultEventDate());
-  const [showDatePickerModal, setShowDatePickerModal] = useState(false);
+  const [eventEndDate, setEventEndDate] = useState(new Date(getDefaultEventDate().getTime() + (3 * 60 * 60 * 1000)));
+  const [eventEndTime, setEventEndTime] = useState(new Date(getDefaultEventDate().getTime() + (3 * 60 * 60 * 1000)));
+  const [showStartDateModal, setShowStartDateModal] = useState(false);
+  const [showEndDateModal, setShowEndDateModal] = useState(false);
   const [location, setLocation] = useState('');
   const [locationDetails, setLocationDetails] = useState<{
     name: string;
@@ -113,6 +124,15 @@ export default function CreateEventScreen() {
   const [itemsToBring, setItemsToBring] = useState<Array<{id: string, name: string, quantity: number, assignedTo?: string}>>([]);
   const [playlist, setPlaylist] = useState<Array<{id: string, title: string, artist: string, spotifyUrl?: string, appleUrl?: string, youtubeUrl?: string}>>([]);
   const [playlistSettings, setPlaylistSettings] = useState<{spotifyLink?: string, appleMusicLink?: string, acceptSuggestions: boolean}>({ acceptSuggestions: true });
+  const [dressCode, setDressCode] = useState<string | null>(null);
+  const [ageRestriction, setAgeRestriction] = useState<string>('');
+  const [capacityLimit, setCapacityLimit] = useState<string>('');
+  const [parkingInfo, setParkingInfo] = useState<string>('');
+  const [eventCategory, setEventCategory] = useState<string>('');
+  const [accessibilityInfo, setAccessibilityInfo] = useState<string>('');
+  const [eventWebsite, setEventWebsite] = useState<string>('');
+  const [contactInfo, setContactInfo] = useState<string>('');
+  const [eventTheme, setEventTheme] = useState<string | null>(null);
   
   // Load saved cover data when component mounts
   useEffect(() => {
@@ -127,6 +147,13 @@ export default function CreateEventScreen() {
   const [showQuestionnaireModal, setShowQuestionnaireModal] = useState(false);
   const [showPlaylistModal, setShowPlaylistModal] = useState(false);
   const [showCoHostsModal, setShowCoHostsModal] = useState(false);
+  const [showDressCodeModal, setShowDressCodeModal] = useState(false);
+  const [showThemeModal, setShowThemeModal] = useState(false);
+  const [showAgeRestrictionModal, setShowAgeRestrictionModal] = useState(false);
+  const [showCapacityModal, setShowCapacityModal] = useState(false);
+  const [showParkingModal, setShowParkingModal] = useState(false);
+  const [showAccessibilityModal, setShowAccessibilityModal] = useState(false);
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
 
   const handleEditCover = () => {
     router.push('/screens/edit-event-cover');
@@ -158,6 +185,30 @@ export default function CreateEventScreen() {
   
   const handlePlaylist = () => {
     setShowPlaylistModal(true);
+  };
+  
+  const handleDressCode = () => {
+    setShowDressCodeModal(true);
+  };
+  
+  const handleTheme = () => {
+    setShowThemeModal(true);
+  };
+  
+  const handleAgeRestriction = () => {
+    setShowAgeRestrictionModal(true);
+  };
+  
+  const handleCapacity = () => {
+    setShowCapacityModal(true);
+  };
+  
+  const handleParking = () => {
+    setShowParkingModal(true);
+  };
+  
+  const handleAccessibility = () => {
+    setShowAccessibilityModal(true);
   };
 
   const handleSaveAsDraft = async () => {
@@ -208,6 +259,8 @@ export default function CreateEventScreen() {
         subtitle: coverData.eventSubtitle,
         description: description,
         date: eventDate,
+        endDate: eventEndDate,
+        endTime: eventEndTime,
         location: location,
         locationDetails: locationDetails || undefined,
         isPrivate: isPrivate,
@@ -221,7 +274,16 @@ export default function CreateEventScreen() {
         questionnaire: questionnaire,
         itemsToBring: itemsToBring,
         playlist: playlist,
-        spotifyLink: playlistSettings.spotifyLink
+        spotifyLink: playlistSettings.spotifyLink,
+        dressCode: dressCode,
+        eventTheme: eventTheme,
+        ageRestriction: ageRestriction,
+        capacityLimit: capacityLimit ? parseInt(capacityLimit) : undefined,
+        parkingInfo: parkingInfo,
+        eventCategory: eventCategory,
+        accessibilityInfo: accessibilityInfo,
+        eventWebsite: eventWebsite,
+        contactInfo: contactInfo
       };
       
       console.log('📤 [CreateEventScreen] Envoi des données à EventService:', {
@@ -405,11 +467,102 @@ export default function CreateEventScreen() {
 
         {/* Form section */}
         <View style={styles.formSheet}>
-          {/* Hosted By Section */}
+          {/* Description Section - Right after cover */}
           <View style={styles.sectionContainer}>
             <View style={styles.sectionHeader}>
-              <Ionicons name="person-outline" size={20} color="#666" />
-              <Text style={styles.sectionTitle}>Hosted By</Text>
+              <Ionicons name="document-text-outline" size={20} color="#666" />
+              <Text style={styles.sectionTitle}>About This Event</Text>
+            </View>
+            
+            <TextInput
+              style={styles.descriptionField}
+              value={description}
+              onChangeText={setDescription}
+              placeholder="Tell guests what to expect, what to bring, special instructions..."
+              placeholderTextColor="#999"
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
+            />
+          </View>
+          
+          {/* When Section */}
+          <View style={styles.sectionContainer}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="time-outline" size={20} color="#666" />
+              <Text style={styles.sectionTitle}>When</Text>
+            </View>
+            
+            <TouchableOpacity
+              style={styles.datePickerField}
+              onPress={() => setShowStartDateModal(true)}
+            >
+              <View style={styles.datePickerContent}>
+                <View>
+                  <Text style={styles.datePickerLabel}>Starts</Text>
+                  <Text style={styles.datePickerText}>
+                    {eventDate.toLocaleDateString('en-US', { 
+                      weekday: 'short', 
+                      month: 'short', 
+                      day: 'numeric' 
+                    })} at {eventTime.toLocaleTimeString([], { 
+                      hour: '2-digit', 
+                      minute: '2-digit' 
+                    })}
+                  </Text>
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#999" />
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={styles.datePickerField}
+              onPress={() => setShowEndDateModal(true)}
+            >
+              <View style={styles.datePickerContent}>
+                <View>
+                  <Text style={styles.datePickerLabel}>Ends</Text>
+                  <Text style={styles.datePickerText}>
+                    {eventEndDate.toLocaleDateString('en-US', { 
+                      weekday: 'short', 
+                      month: 'short', 
+                      day: 'numeric' 
+                    })} at {eventEndTime.toLocaleTimeString([], { 
+                      hour: '2-digit', 
+                      minute: '2-digit' 
+                    })}
+                  </Text>
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#999" />
+            </TouchableOpacity>
+            
+          </View>
+          
+          {/* Where Section */}
+          <View style={styles.sectionContainer}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="location-outline" size={20} color="#666" />
+              <Text style={styles.sectionTitle}>Where</Text>
+            </View>
+            
+            <TouchableOpacity
+              style={styles.locationField}
+              onPress={() => setShowLocationModal(true)}
+            >
+              <Ionicons name="search" size={20} color="#999" />
+              <Text style={[styles.locationInput, !location && { color: '#999' }]}>
+                {location || "Search for a venue or address"}
+              </Text>
+              <Ionicons name="chevron-forward" size={20} color="#999" />
+            </TouchableOpacity>
+          </View>
+          
+          {/* Who's Hosting Section */}
+          <View style={styles.sectionContainer}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="people-outline" size={20} color="#666" />
+              <Text style={styles.sectionTitle}>Who's Hosting</Text>
             </View>
             
             <View style={styles.hostedByContent}>
@@ -453,85 +606,145 @@ export default function CreateEventScreen() {
                 {coHosts.length > 1 && ` and ${coHosts.length} others`}
               </Text>
               <TouchableOpacity onPress={handleAddCoHosts} style={styles.addCoHostsBtn}>
-                <Ionicons name="people-outline" size={16} color="#007AFF" />
+                <Ionicons name="add-circle-outline" size={16} color="#007AFF" />
                 <Text style={styles.addCoHostsText}>Add Co-Hosts</Text>
               </TouchableOpacity>
             </View>
           </View>
           
-          {/* When & Where Section */}
+          {/* Event Details Section */}
           <View style={styles.sectionContainer}>
             <View style={styles.sectionHeader}>
-              <Ionicons name="calendar-outline" size={20} color="#666" />
-              <Text style={styles.sectionTitle}>When & Where</Text>
+              <Ionicons name="list-outline" size={20} color="#666" />
+              <Text style={styles.sectionTitle}>Event Details</Text>
             </View>
             
-            <TouchableOpacity
-              style={styles.datePickerField}
-              onPress={() => setShowDatePickerModal(true)}
-            >
-              <Text style={styles.datePickerText}>
-                {eventDate.toLocaleDateString('en-US', { 
-                  weekday: 'short', 
-                  month: 'short', 
-                  day: 'numeric' 
-                })} at {eventTime.toLocaleTimeString([], { 
-                  hour: '2-digit', 
-                  minute: '2-digit' 
-                })}
-              </Text>
-              <Ionicons name="chevron-forward" size={20} color="#999" />
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={styles.locationField}
-              onPress={() => setShowLocationModal(true)}
-            >
-              <Ionicons name="search" size={20} color="#999" />
-              <Text style={[styles.locationInput, !location && { color: '#999' }]}>
-                {location || "Search location"}
-              </Text>
-              <Ionicons name="chevron-forward" size={20} color="#999" />
-            </TouchableOpacity>
-          </View>
-          
-          {/* Description Section */}
-          <View style={styles.sectionContainer}>
-            <View style={styles.sectionHeader}>
-              <Ionicons name="pencil-outline" size={20} color="#666" />
-              <Text style={styles.sectionTitle}>Description</Text>
+            <View style={styles.additionalFieldsContainer}>
+              <View style={styles.fieldWrapper}>
+                <Text style={styles.fieldLabel}>Category</Text>
+                <TouchableOpacity 
+                  style={styles.selectField}
+                  onPress={() => setShowCategoryModal(true)}
+                >
+                  <Text style={[styles.selectFieldText, !eventCategory && styles.placeholderText]}>
+                    {eventCategory || "Social, Party, Wedding, Corporate..."}
+                  </Text>
+                  <Ionicons name="chevron-forward" size={20} color="#999" />
+                </TouchableOpacity>
+              </View>
             </View>
-            
-            <TextInput
-              style={styles.descriptionField}
-              value={description}
-              onChangeText={setDescription}
-              placeholder="Add an event description — what to bring, logistics, etc."
-              placeholderTextColor="#999"
-              multiline
-              numberOfLines={4}
-              textAlignVertical="top"
-            />
           </View>
           
-          {/* Add Extras Section */}
+          {/* Event Features Section */}
           <View style={styles.sectionContainer}>
             <View style={styles.sectionHeader}>
-              <Ionicons name="sparkles-outline" size={20} color="#666" />
-              <Text style={styles.sectionTitle}>Add Extras</Text>
+              <Ionicons name="options-outline" size={20} color="#666" />
+              <Text style={styles.sectionTitle}>Event Features</Text>
             </View>
             
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.extrasScroll}>
               <View style={styles.extrasRow}>
+                {/* Most frequently used extras first - Cost is #1 for nightlife events */}
                 <TouchableOpacity style={[styles.extraPill, costs.length > 0 && styles.extraPillConfigured]} onPress={handleCostPerPerson}>
-                  <Ionicons name="ticket-outline" size={16} color={costs.length > 0 ? "#FFF" : "#007AFF"} />
+                  <Ionicons name="cash-outline" size={16} color={costs.length > 0 ? "#FFF" : "#007AFF"} />
                   <Text style={[styles.extraPillText, costs.length > 0 && styles.extraPillTextConfigured]}>
-                    {costs.length > 0 ? `${costs.length} cost${costs.length > 1 ? 's' : ''} added` : 'Cost per person'}
+                    {costs.length > 0 ? `${costs.length} cost${costs.length > 1 ? 's' : ''} added` : 'Entry & Costs'}
                   </Text>
                   {costs.length > 0 ? (
                     <TouchableOpacity onPress={(e) => {
                       e.stopPropagation();
                       setCosts([]);
+                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    }}>
+                      <Ionicons name="close-circle" size={16} color="#FFF" />
+                    </TouchableOpacity>
+                  ) : (
+                    <Ionicons name="add" size={16} color="#007AFF" />
+                  )}
+                </TouchableOpacity>
+                
+                <TouchableOpacity style={[styles.extraPill, capacityLimit && styles.extraPillConfigured]} onPress={handleCapacity}>
+                  <Ionicons name="people-outline" size={16} color={capacityLimit ? "#FFF" : "#007AFF"} />
+                  <Text style={[styles.extraPillText, capacityLimit && styles.extraPillTextConfigured]}>
+                    {capacityLimit ? `Max ${capacityLimit} guests` : 'Capacity Limit'}
+                  </Text>
+                  {capacityLimit ? (
+                    <TouchableOpacity onPress={(e) => {
+                      e.stopPropagation();
+                      setCapacityLimit('');
+                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    }}>
+                      <Ionicons name="close-circle" size={16} color="#FFF" />
+                    </TouchableOpacity>
+                  ) : (
+                    <Ionicons name="add" size={16} color="#007AFF" />
+                  )}
+                </TouchableOpacity>
+                
+                <TouchableOpacity style={[styles.extraPill, ageRestriction && styles.extraPillConfigured]} onPress={handleAgeRestriction}>
+                  <Ionicons name="person-circle-outline" size={16} color={ageRestriction ? "#FFF" : "#007AFF"} />
+                  <Text style={[styles.extraPillText, ageRestriction && styles.extraPillTextConfigured]}>
+                    {ageRestriction || 'Age Restriction'}
+                  </Text>
+                  {ageRestriction ? (
+                    <TouchableOpacity onPress={(e) => {
+                      e.stopPropagation();
+                      setAgeRestriction('');
+                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    }}>
+                      <Ionicons name="close-circle" size={16} color="#FFF" />
+                    </TouchableOpacity>
+                  ) : (
+                    <Ionicons name="add" size={16} color="#007AFF" />
+                  )}
+                </TouchableOpacity>
+                
+                <TouchableOpacity style={[styles.extraPill, dressCode && styles.extraPillConfigured]} onPress={handleDressCode}>
+                  <Ionicons name="shirt-outline" size={16} color={dressCode ? "#FFF" : "#007AFF"} />
+                  <Text style={[styles.extraPillText, dressCode && styles.extraPillTextConfigured]}>
+                    {dressCode ? `${dressCode}` : 'Dress Code'}
+                  </Text>
+                  {dressCode ? (
+                    <TouchableOpacity onPress={(e) => {
+                      e.stopPropagation();
+                      setDressCode(null);
+                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    }}>
+                      <Ionicons name="close-circle" size={16} color="#FFF" />
+                    </TouchableOpacity>
+                  ) : (
+                    <Ionicons name="add" size={16} color="#007AFF" />
+                  )}
+                </TouchableOpacity>
+                
+                <TouchableOpacity style={[styles.extraPill, rsvpDeadline && styles.extraPillConfigured]} onPress={handleRSVPDeadline}>
+                  <Ionicons name="calendar-outline" size={16} color={rsvpDeadline ? "#FFF" : "#007AFF"} />
+                  <Text style={[styles.extraPillText, rsvpDeadline && styles.extraPillTextConfigured]}>
+                    {rsvpDeadline ? `RSVP by ${rsvpDeadline.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : 'RSVP deadline'}
+                  </Text>
+                  {rsvpDeadline ? (
+                    <TouchableOpacity onPress={(e) => {
+                      e.stopPropagation();
+                      setRsvpDeadline(null);
+                      setRsvpReminderEnabled(false);
+                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    }}>
+                      <Ionicons name="close-circle" size={16} color="#FFF" />
+                    </TouchableOpacity>
+                  ) : (
+                    <Ionicons name="add" size={16} color="#007AFF" />
+                  )}
+                </TouchableOpacity>
+                
+                <TouchableOpacity style={[styles.extraPill, parkingInfo && styles.extraPillConfigured]} onPress={handleParking}>
+                  <Ionicons name="car-outline" size={16} color={parkingInfo ? "#FFF" : "#007AFF"} />
+                  <Text style={[styles.extraPillText, parkingInfo && styles.extraPillTextConfigured]}>
+                    {parkingInfo ? 'Parking Info Set' : 'Parking Info'}
+                  </Text>
+                  {parkingInfo ? (
+                    <TouchableOpacity onPress={(e) => {
+                      e.stopPropagation();
+                      setParkingInfo('');
                       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     }}>
                       <Ionicons name="close-circle" size={16} color="#FFF" />
@@ -577,16 +790,69 @@ export default function CreateEventScreen() {
                   )}
                 </TouchableOpacity>
                 
-                <TouchableOpacity style={[styles.extraPill, rsvpDeadline && styles.extraPillConfigured]} onPress={handleRSVPDeadline}>
-                  <Ionicons name="calendar-outline" size={16} color={rsvpDeadline ? "#FFF" : "#007AFF"} />
-                  <Text style={[styles.extraPillText, rsvpDeadline && styles.extraPillTextConfigured]}>
-                    {rsvpDeadline ? `RSVP by ${rsvpDeadline.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : 'RSVP deadline'}
+                <TouchableOpacity style={[styles.extraPill, dressCode && styles.extraPillConfigured]} onPress={handleDressCode}>
+                  <Ionicons name="shirt-outline" size={16} color={dressCode ? "#FFF" : "#007AFF"} />
+                  <Text style={[styles.extraPillText, dressCode && styles.extraPillTextConfigured]}>
+                    {dressCode ? `${dressCode}` : 'Dress Code'}
                   </Text>
-                  {rsvpDeadline ? (
+                  {dressCode ? (
                     <TouchableOpacity onPress={(e) => {
                       e.stopPropagation();
-                      setRsvpDeadline(null);
-                      setRsvpReminderEnabled(false);
+                      setDressCode(null);
+                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    }}>
+                      <Ionicons name="close-circle" size={16} color="#FFF" />
+                    </TouchableOpacity>
+                  ) : (
+                    <Ionicons name="add" size={16} color="#007AFF" />
+                  )}
+                </TouchableOpacity>
+                
+                <TouchableOpacity style={[styles.extraPill, ageRestriction && styles.extraPillConfigured]} onPress={handleAgeRestriction}>
+                  <Ionicons name="people-circle-outline" size={16} color={ageRestriction ? "#FFF" : "#007AFF"} />
+                  <Text style={[styles.extraPillText, ageRestriction && styles.extraPillTextConfigured]}>
+                    {ageRestriction || 'Age Restriction'}
+                  </Text>
+                  {ageRestriction ? (
+                    <TouchableOpacity onPress={(e) => {
+                      e.stopPropagation();
+                      setAgeRestriction('');
+                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    }}>
+                      <Ionicons name="close-circle" size={16} color="#FFF" />
+                    </TouchableOpacity>
+                  ) : (
+                    <Ionicons name="add" size={16} color="#007AFF" />
+                  )}
+                </TouchableOpacity>
+                
+                <TouchableOpacity style={[styles.extraPill, eventTheme && styles.extraPillConfigured]} onPress={handleTheme}>
+                  <Ionicons name="color-palette-outline" size={16} color={eventTheme ? "#FFF" : "#007AFF"} />
+                  <Text style={[styles.extraPillText, eventTheme && styles.extraPillTextConfigured]}>
+                    {eventTheme ? `Theme: ${eventTheme}` : 'Event Theme'}
+                  </Text>
+                  {eventTheme ? (
+                    <TouchableOpacity onPress={(e) => {
+                      e.stopPropagation();
+                      setEventTheme(null);
+                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    }}>
+                      <Ionicons name="close-circle" size={16} color="#FFF" />
+                    </TouchableOpacity>
+                  ) : (
+                    <Ionicons name="add" size={16} color="#007AFF" />
+                  )}
+                </TouchableOpacity>
+                
+                <TouchableOpacity style={[styles.extraPill, accessibilityInfo && styles.extraPillConfigured]} onPress={handleAccessibility}>
+                  <Ionicons name="accessibility-outline" size={16} color={accessibilityInfo ? "#FFF" : "#007AFF"} />
+                  <Text style={[styles.extraPillText, accessibilityInfo && styles.extraPillTextConfigured]}>
+                    {accessibilityInfo ? 'Accessibility Set' : 'Accessibility'}
+                  </Text>
+                  {accessibilityInfo ? (
+                    <TouchableOpacity onPress={(e) => {
+                      e.stopPropagation();
+                      setAccessibilityInfo('');
                       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     }}>
                       <Ionicons name="close-circle" size={16} color="#FFF" />
@@ -636,17 +902,53 @@ export default function CreateEventScreen() {
             </ScrollView>
           </View>
           
+          {/* Contact & Links Section */}
+          <View style={styles.sectionContainer}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="link-outline" size={20} color="#666" />
+              <Text style={styles.sectionTitle}>Contact & Links</Text>
+            </View>
+            
+            <View style={styles.additionalFieldsContainer}>
+              <View style={styles.fieldWrapper}>
+                <Text style={styles.fieldLabel}>Contact Info</Text>
+                <TextInput
+                  style={styles.textField}
+                  value={contactInfo}
+                  onChangeText={setContactInfo}
+                  placeholder="Email or phone for guest questions"
+                  placeholderTextColor="#999"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+              </View>
+              
+              <View style={styles.fieldWrapper}>
+                <Text style={styles.fieldLabel}>Event Website</Text>
+                <TextInput
+                  style={styles.textField}
+                  value={eventWebsite}
+                  onChangeText={setEventWebsite}
+                  placeholder="https://your-event-website.com"
+                  placeholderTextColor="#999"
+                  keyboardType="url"
+                  autoCapitalize="none"
+                />
+              </View>
+            </View>
+          </View>
+          
           {/* Privacy Section */}
           <View style={styles.sectionContainer}>
             <View style={styles.sectionHeader}>
-              <Ionicons name="shield-checkmark-outline" size={20} color="#666" />
-              <Text style={styles.sectionTitle}>Privacy</Text>
+              <Ionicons name="lock-closed-outline" size={20} color="#666" />
+              <Text style={styles.sectionTitle}>Privacy Settings</Text>
             </View>
             
             <View style={styles.privacyCard}>
               <View style={styles.privacyLeft}>
-                <Text style={styles.privacyTitle}>Invite-Only Event</Text>
-                <Text style={styles.privacySubtitle}>Only invited guests can view</Text>
+                <Text style={styles.privacyTitle}>Private Event</Text>
+                <Text style={styles.privacySubtitle}>Only people you invite can see this event</Text>
               </View>
               <Switch
                 value={isPrivate}
@@ -778,16 +1080,40 @@ export default function CreateEventScreen() {
         }}
       />
       
-      <EventDatePickerModal
-        visible={showDatePickerModal}
-        onClose={() => setShowDatePickerModal(false)}
-        onSelect={(date, time) => {
-          setEventDate(date);
-          setEventTime(time);
+      <EventStartDateModal
+        visible={showStartDateModal}
+        onClose={() => setShowStartDateModal(false)}
+        onSelect={(startDate, startTime) => {
+          setEventDate(startDate);
+          setEventTime(startTime);
+          // Update end date/time if it's before the new start time
+          const endDateTime = new Date(eventEndTime);
+          const startDateTime = new Date(startTime);
+          if (endDateTime <= startDateTime) {
+            const newEndTime = new Date(startDateTime.getTime() + (3 * 60 * 60 * 1000)); // 3 hours later
+            setEventEndDate(newEndTime);
+            setEventEndTime(newEndTime);
+          }
+          setShowStartDateModal(false);
+          setShowEndDateModal(true); // Automatically show end date modal
           void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         }}
         currentDate={eventDate}
         currentTime={eventTime}
+      />
+      
+      <EventEndDateModal
+        visible={showEndDateModal}
+        onClose={() => setShowEndDateModal(false)}
+        onSelect={(endDate, endTime) => {
+          setEventEndDate(endDate);
+          setEventEndTime(endTime);
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }}
+        startDate={eventDate}
+        startTime={eventTime}
+        currentEndDate={eventEndDate}
+        currentEndTime={eventEndTime}
       />
       
       <EventLocationSearchModal
@@ -804,6 +1130,126 @@ export default function CreateEventScreen() {
           void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         }}
         currentLocation={location}
+      />
+      
+      <DressCodeModal
+        visible={showDressCodeModal}
+        onClose={() => setShowDressCodeModal(false)}
+        onSave={(dressCodeValue) => {
+          setDressCode(dressCodeValue);
+          setShowDressCodeModal(false);
+        }}
+        initialDressCode={dressCode}
+      />
+      
+      <ThemeSelectionModal
+        visible={showThemeModal}
+        onClose={() => setShowThemeModal(false)}
+        onSave={(themeValue) => {
+          setEventTheme(themeValue);
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }}
+        initialTheme={eventTheme}
+      />
+      
+      <AgeRestrictionModal
+        visible={showAgeRestrictionModal}
+        onClose={() => setShowAgeRestrictionModal(false)}
+        onSave={(restriction) => {
+          if (restriction) {
+            const selectedOption = restriction.type;
+            setAgeRestriction(selectedOption === 'all_ages' ? 'All Ages' : 
+                           selectedOption === 'family_friendly' ? 'Family Friendly' :
+                           selectedOption === 'kids_only' ? 'Kids Only' :
+                           selectedOption === 'custom' && restriction.minAge ? `${restriction.minAge}+` :
+                           selectedOption.includes('+') ? selectedOption : 'All Ages');
+          } else {
+            setAgeRestriction('');
+          }
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }}
+        initialRestriction={ageRestriction ? {
+          type: ageRestriction.includes('+') ? ageRestriction : 
+                ageRestriction === 'All Ages' ? 'all_ages' :
+                ageRestriction === 'Family Friendly' ? 'family_friendly' :
+                ageRestriction === 'Kids Only' ? 'kids_only' : 'all_ages',
+          minAge: ageRestriction.includes('+') ? parseInt(ageRestriction.replace('+', '')) : undefined
+        } : null}
+      />
+      
+      <EventCapacityModal
+        visible={showCapacityModal}
+        onClose={() => setShowCapacityModal(false)}
+        onSave={(capacity) => {
+          if (capacity.maxAttendees) {
+            setCapacityLimit(capacity.maxAttendees.toString());
+          } else {
+            setCapacityLimit('');
+          }
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }}
+        initialCapacity={capacityLimit ? { maxAttendees: parseInt(capacityLimit) } : undefined}
+      />
+      
+      <ParkingInfoModal
+        visible={showParkingModal}
+        onClose={() => setShowParkingModal(false)}
+        onSave={(info) => {
+          if (info.available && info.instructions) {
+            setParkingInfo(info.instructions);
+          } else if (!info.available && info.nearbyOptions) {
+            setParkingInfo(`No parking - ${info.nearbyOptions}`);
+          } else {
+            setParkingInfo('');
+          }
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }}
+        initialParkingInfo={parkingInfo ? {
+          available: !parkingInfo.includes('No parking'),
+          instructions: parkingInfo.includes('No parking') ? '' : parkingInfo,
+          nearbyOptions: parkingInfo.includes('No parking') ? parkingInfo.replace('No parking - ', '') : ''
+        } : { available: true }}
+      />
+      
+      <AccessibilityModal
+        visible={showAccessibilityModal}
+        onClose={() => setShowAccessibilityModal(false)}
+        onSave={(info) => {
+          const features = [];
+          if (info.wheelchairAccessible) features.push('Wheelchair accessible');
+          if (info.elevatorAvailable) features.push('Elevator available');
+          if (info.accessibleParking) features.push('Accessible parking');
+          if (info.accessibleRestrooms) features.push('Accessible restrooms');
+          if (info.signLanguageInterpreter) features.push('Sign language interpreter');
+          if (info.brailleAvailable) features.push('Braille materials');
+          
+          let accessibilityText = features.join(', ');
+          if (info.additionalInfo) {
+            accessibilityText = accessibilityText ? `${accessibilityText}. ${info.additionalInfo}` : info.additionalInfo;
+          }
+          
+          setAccessibilityInfo(accessibilityText);
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }}
+        initialAccessibility={accessibilityInfo ? {
+          wheelchairAccessible: accessibilityInfo.includes('Wheelchair accessible'),
+          elevatorAvailable: accessibilityInfo.includes('Elevator available'),
+          accessibleParking: accessibilityInfo.includes('Accessible parking'),
+          accessibleRestrooms: accessibilityInfo.includes('Accessible restrooms'),
+          signLanguageInterpreter: accessibilityInfo.includes('Sign language'),
+          brailleAvailable: accessibilityInfo.includes('Braille'),
+          additionalInfo: accessibilityInfo
+        } : undefined}
+      />
+      
+      <EventCategoryModal
+        visible={showCategoryModal}
+        onClose={() => setShowCategoryModal(false)}
+        onSave={(category) => {
+          setEventCategory(category);
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }}
+        initialCategory={eventCategory}
       />
     </View>
   );
@@ -1000,6 +1446,16 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     marginBottom: 12,
   },
+  datePickerContent: {
+    flex: 1,
+  },
+  datePickerLabel: {
+    fontSize: 12,
+    color: '#666',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
   datePickerText: {
     fontSize: 16,
     color: '#000',
@@ -1140,5 +1596,87 @@ const styles = StyleSheet.create({
   },
   stickerEmoji: {
     fontSize: 40,
+  },
+  additionalDetailsGrid: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  detailField: {
+    flex: 1,
+  },
+  detailFieldFull: {
+    marginBottom: 16,
+  },
+  detailLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#666',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+  },
+  detailInput: {
+    backgroundColor: '#FFF',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#000',
+  },
+  detailInputMultiline: {
+    backgroundColor: '#FFF',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#000',
+    minHeight: 70,
+    textAlignVertical: 'top',
+  },
+  additionalFieldsContainer: {
+    gap: 16,
+  },
+  fieldWrapper: {
+    marginBottom: 16,
+  },
+  fieldLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#666',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+  },
+  textField: {
+    backgroundColor: '#FFF',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#000',
+  },
+  selectField: {
+    backgroundColor: '#FFF',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  selectFieldText: {
+    fontSize: 16,
+    color: '#000',
+    flex: 1,
+  },
+  placeholderText: {
+    color: '#999',
   },
 });

@@ -1,4 +1,6 @@
 import { supabase } from '@/shared/lib/supabase/client';
+import * as FileSystem from 'expo-file-system';
+import * as ImageManipulator from 'expo-image-manipulator';
 
 // Types pour la création d'événements
 export interface CreateEventData {
@@ -6,6 +8,8 @@ export interface CreateEventData {
   subtitle?: string;
   description?: string;
   date: Date;
+  endDate?: Date;
+  endTime?: Date;
   location?: string;
   locationDetails?: {
     name: string;
@@ -47,6 +51,18 @@ export interface CreateEventData {
   itemsToBring?: Array<{id: string, name: string, quantity: number, assignedTo?: string}>;
   playlist?: any;
   spotifyLink?: string;
+  dressCode?: string | null;
+  eventTheme?: string | null;
+  ageRestriction?: string;
+  capacityLimit?: number;
+  parkingInfo?: string;
+  eventCategory?: string;
+  accessibilityInfo?: string;
+  eventWebsite?: string;
+  contactInfo?: string;
+  allowPlusOnes?: boolean;
+  maxPlusOnes?: number;
+  eventTags?: string[];
 }
 
 export interface EventCost {
@@ -95,9 +111,9 @@ export class EventServiceComplete {
       // 3. Préparer les données de l'événement
       console.log('📋 [EventServiceComplete] Préparation des données...');
       
-      // Utiliser la date fournie pour start_time et calculer end_time (+3h par défaut)
+      // Utiliser la date fournie pour start_time et end_time
       const startTime = new Date(eventData.date);
-      const endTime = new Date(startTime.getTime() + 3 * 60 * 60 * 1000); // +3 heures
+      const endTime = eventData.endTime || eventData.endDate || new Date(startTime.getTime() + 3 * 60 * 60 * 1000); // Si pas de end_time, utiliser +3 heures par défaut
       
       // Préparer les données pour la table events
       const eventToInsert: any = {
@@ -108,6 +124,10 @@ export class EventServiceComplete {
         location: eventData.location || eventData.locationDetails?.address || '',
         is_private: eventData.isPrivate || false,
         created_by: user.id,
+        
+        // Colonnes de temps
+        start_time: startTime.toISOString(),
+        end_time: endTime.toISOString(),
         
         // Colonnes de couverture (peuvent exister ou non)
         subtitle: eventData.subtitle || eventData.coverData.eventSubtitle || null,
@@ -148,6 +168,20 @@ export class EventServiceComplete {
         itemsToBring: eventData.itemsToBring || [],
         playlist: eventData.playlist || null,
         spotifyLink: eventData.spotifyLink || null,
+        
+        // Additional Details
+        dressCode: eventData.dressCode || null,
+        eventTheme: eventData.eventTheme || null,
+        ageRestriction: eventData.ageRestriction || null,
+        capacityLimit: eventData.capacityLimit || null,
+        parkingInfo: eventData.parkingInfo || null,
+        eventCategory: eventData.eventCategory || null,
+        accessibilityInfo: eventData.accessibilityInfo || null,
+        eventWebsite: eventData.eventWebsite || null,
+        contactInfo: eventData.contactInfo || null,
+        allowPlusOnes: eventData.allowPlusOnes || false,
+        maxPlusOnes: eventData.maxPlusOnes || null,
+        eventTags: eventData.eventTags || [],
         
         // Métadonnées
         createdWithService: 'EventServiceComplete',
@@ -336,51 +370,107 @@ export class EventServiceComplete {
 
   // Upload de l'image de couverture
   private static async uploadCoverImage(imageUri: string, userId: string): Promise<string> {
-    const fileName = `${userId}/${Date.now()}_cover.jpg`;
+    console.log('📤 [uploadCoverImage] Début upload de l\'image de couverture');
+    console.log('  URI:', imageUri.substring(0, 50) + '...');
     
-    // Essayer d'abord le bucket 'events'
-    let bucket = 'events';
-    let response = await fetch(imageUri);
-    let blob = await response.blob();
-    
-    console.log(`📤 [uploadCoverImage] Upload vers bucket '${bucket}'...`);
-    let { data, error } = await supabase.storage
-      .from(bucket)
-      .upload(fileName, blob, {
-        contentType: 'image/jpeg',
-        upsert: true
+    try {
+      // Vérifier que le fichier existe
+      const fileInfo = await FileSystem.getInfoAsync(imageUri);
+      
+      if (!fileInfo.exists) {
+        console.error('❌ [uploadCoverImage] Le fichier n\'existe pas:', imageUri);
+        throw new Error('Image de couverture introuvable');
+      }
+      
+      console.log('📁 [uploadCoverImage] Info fichier:', {
+        exists: fileInfo.exists,
+        size: fileInfo.size,
       });
 
-    // Si erreur, essayer 'event-images'
-    if (error && error.message.includes('404')) {
-      console.log('⚠️ [uploadCoverImage] Bucket events non trouvé, essai avec event-images...');
-      bucket = 'event-images';
-      
-      response = await fetch(imageUri);
-      blob = await response.blob();
-      
-      const retry = await supabase.storage
-        .from(bucket)
-        .upload(fileName, blob, {
-          contentType: 'image/jpeg',
-          upsert: true
-        });
-        
-      data = retry.data;
-      error = retry.error;
-    }
+      if (fileInfo.size === 0) {
+        console.error('❌ [uploadCoverImage] Le fichier est vide');
+        throw new Error('Image de couverture vide');
+      }
 
-    if (error) {
-      console.error(`❌ [uploadCoverImage] Erreur upload:`, error);
+      // Compresser l'image pour optimiser la taille
+      let uploadUri = imageUri;
+      console.log('🗜️ [uploadCoverImage] Compression de l\'image...');
+      
+      try {
+        const manipResult = await ImageManipulator.manipulateAsync(
+          imageUri,
+          [{ resize: { width: 1080 } }], // Largeur max 1080px
+          { 
+            compress: 0.8, // Compression 80%
+            format: ImageManipulator.SaveFormat.JPEG 
+          }
+        );
+        
+        uploadUri = manipResult.uri;
+        
+        const compressedInfo = await FileSystem.getInfoAsync(uploadUri);
+        if (compressedInfo.exists && fileInfo.size) {
+          console.log('✅ [uploadCoverImage] Image compressée:', {
+            tailleOriginale: fileInfo.size,
+            tailleCompressée: compressedInfo.size,
+            reduction: `${Math.round((1 - (compressedInfo.size || 0) / fileInfo.size) * 100)}%`
+          });
+        }
+      } catch (compressionError) {
+        console.error('⚠️ [uploadCoverImage] Compression échouée, utilisation de l\'originale:', compressionError);
+      }
+
+      // Obtenir la session pour l'authentification
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Utilisateur non authentifié');
+      }
+
+      const fileName = `${userId}/${Date.now()}_cover.jpg`;
+      const bucket = 'events';
+      
+      // Upload avec FileSystem.uploadAsync (méthode recommandée pour React Native)
+      const uploadUrl = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/storage/v1/object/${bucket}/${fileName}`;
+      
+      console.log('⬆️ [uploadCoverImage] Upload vers Supabase...');
+      console.log('  Bucket:', bucket);
+      console.log('  FileName:', fileName);
+      
+      const uploadResult = await FileSystem.uploadAsync(uploadUrl, uploadUri, {
+        httpMethod: 'POST',
+        uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'apikey': process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '',
+          'Content-Type': 'image/jpeg',
+          'x-upsert': 'true' // Permettre l'écrasement si nécessaire
+        },
+      });
+
+      console.log('📡 [uploadCoverImage] Réponse upload:', {
+        status: uploadResult.status,
+        body: uploadResult.body?.substring(0, 200)
+      });
+
+      if (uploadResult.status !== 200 && uploadResult.status !== 201) {
+        console.error('❌ [uploadCoverImage] Upload échoué:', uploadResult.body);
+        throw new Error(`Upload échoué avec status ${uploadResult.status}`);
+      }
+
+      // Obtenir l'URL publique
+      const { data: { publicUrl } } = supabase.storage
+        .from(bucket)
+        .getPublicUrl(fileName);
+
+      console.log('✅ [uploadCoverImage] Upload réussi!');
+      console.log('🔗 URL publique:', publicUrl);
+
+      return publicUrl;
+      
+    } catch (error) {
+      console.error('❌ [uploadCoverImage] Erreur complète:', error);
       throw error;
     }
-
-    // Obtenir l'URL publique
-    const { data: { publicUrl } } = supabase.storage
-      .from(bucket)
-      .getPublicUrl(data?.path || fileName);
-
-    return publicUrl;
   }
 
   // Ajouter le créateur comme participant
@@ -441,20 +531,109 @@ export class EventServiceComplete {
 
   // Ajouter les photos
   private static async addPhotos(eventId: string, photos: string[], uploadedBy: string) {
-    const photosData = photos.map((url, index) => ({
-      event_id: eventId,
-      photo_url: url,
-      caption: '',
-      uploaded_by: uploadedBy,
-      position: index
-    }));
+    console.log('📸 [addPhotos] Upload de', photos.length, 'photos...');
+    
+    try {
+      // Obtenir la session pour l'authentification
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Utilisateur non authentifié');
+      }
 
-    const { error } = await supabase
-      .from('event_photos')
-      .insert(photosData);
+      // Traiter chaque photo
+      const uploadedPhotos = await Promise.all(
+        photos.map(async (photoUri, index) => {
+          // Si c'est déjà une URL HTTP, la garder telle quelle
+          if (photoUri.startsWith('http')) {
+            return { url: photoUri, position: index };
+          }
 
-    if (error && error.code !== '42P01') {
-      console.error('❌ [addPhotos] Erreur:', error);
+          // Sinon, uploader le fichier local
+          try {
+            const fileInfo = await FileSystem.getInfoAsync(photoUri);
+            
+            if (!fileInfo.exists) {
+              console.error(`❌ [addPhotos] Photo ${index} introuvable:`, photoUri);
+              return null;
+            }
+
+            // Compresser l'image
+            let uploadUri = photoUri;
+            try {
+              const manipResult = await ImageManipulator.manipulateAsync(
+                photoUri,
+                [{ resize: { width: 1080 } }],
+                { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+              );
+              uploadUri = manipResult.uri;
+            } catch (e) {
+              console.warn(`⚠️ [addPhotos] Compression échouée pour photo ${index}`);
+            }
+
+            const fileName = `${uploadedBy}/${Date.now()}_photo_${index}.jpg`;
+            const bucket = 'events';
+            const uploadUrl = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/storage/v1/object/${bucket}/${fileName}`;
+            
+            const uploadResult = await FileSystem.uploadAsync(uploadUrl, uploadUri, {
+              httpMethod: 'POST',
+              uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
+              headers: {
+                'Authorization': `Bearer ${session.access_token}`,
+                'apikey': process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '',
+                'Content-Type': 'image/jpeg',
+                'x-upsert': 'true'
+              },
+            });
+
+            if (uploadResult.status !== 200 && uploadResult.status !== 201) {
+              console.error(`❌ [addPhotos] Upload échoué pour photo ${index}`);
+              return null;
+            }
+
+            const { data: { publicUrl } } = supabase.storage
+              .from(bucket)
+              .getPublicUrl(fileName);
+
+            console.log(`✅ [addPhotos] Photo ${index} uploadée:`, publicUrl);
+            return { url: publicUrl, position: index };
+            
+          } catch (error) {
+            console.error(`❌ [addPhotos] Erreur upload photo ${index}:`, error);
+            return null;
+          }
+        })
+      );
+
+      // Filtrer les photos réussies
+      const successfulPhotos = uploadedPhotos.filter(p => p !== null);
+      
+      if (successfulPhotos.length === 0) {
+        console.warn('⚠️ [addPhotos] Aucune photo uploadée avec succès');
+        return;
+      }
+
+      // Insérer les données des photos dans la base
+      const photosData = successfulPhotos.map((photo) => ({
+        event_id: eventId,
+        photo_url: photo!.url,
+        caption: '',
+        uploaded_by: uploadedBy,
+        position: photo!.position
+      }));
+
+      const { error } = await supabase
+        .from('event_photos')
+        .insert(photosData);
+
+      if (error && error.code !== '42P01') {
+        console.error('❌ [addPhotos] Erreur insertion BD:', error);
+        throw error;
+      }
+
+      console.log(`✅ [addPhotos] ${successfulPhotos.length} photos ajoutées avec succès`);
+      
+    } catch (error) {
+      console.error('❌ [addPhotos] Erreur générale:', error);
       throw error;
     }
   }

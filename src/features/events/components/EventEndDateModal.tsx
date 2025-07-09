@@ -14,14 +14,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 
-interface EventDatePickerModalProps {
+interface EventEndDateModalProps {
   visible: boolean;
   onClose: () => void;
-  onSelect: (startDate: Date, startTime: Date, endDate: Date, endTime: Date) => void;
-  currentDate?: Date;
-  currentTime?: Date;
+  onSelect: (endDate: Date, endTime: Date) => void;
   currentEndDate?: Date;
   currentEndTime?: Date;
+  startDate: Date;
+  startTime: Date;
 }
 
 const COLORS = {
@@ -129,68 +129,47 @@ const PickerColumn: React.FC<PickerColumnProps> = ({ data, selectedValue, onSele
   );
 };
 
-export default function EventDatePickerModal({
+export default function EventEndDateModal({
   visible,
   onClose,
   onSelect,
-  currentDate,
-  currentTime,
   currentEndDate,
   currentEndTime,
-}: EventDatePickerModalProps) {
+  startDate,
+  startTime,
+}: EventEndDateModalProps) {
   const insets = useSafeAreaInsets();
   const [month, setMonth] = useState<string | null>(null);
   const [day, setDay] = useState<string | null>(null);
   const [year, setYear] = useState<string | null>(null);
   const [hour, setHour] = useState<string | null>(null);
   const [minute, setMinute] = useState<string | null>(null);
-  const [endMonth, setEndMonth] = useState<string | null>(null);
-  const [endDay, setEndDay] = useState<string | null>(null);
-  const [endYear, setEndYear] = useState<string | null>(null);
-  const [endHour, setEndHour] = useState<string | null>(null);
-  const [endMinute, setEndMinute] = useState<string | null>(null);
   const [dateError, setDateError] = useState<string | null>(null);
 
   useEffect(() => {
     if (visible) {
-      const now = new Date();
-      const minimumDate = new Date(now.getTime() + (24 * 60 * 60 * 1000));
+      // Default to 3 hours after start time
+      const defaultEndTime = new Date(startTime.getTime() + (3 * 60 * 60 * 1000));
       
-      let dateToUse = currentDate || minimumDate;
-      let timeToUse = currentTime || minimumDate;
+      let endDateToUse = currentEndDate || defaultEndTime;
+      let endTimeToUse = currentEndTime || defaultEndTime;
       
-      // Ensure the date is not in the past
-      if (dateToUse < minimumDate) {
-        dateToUse = minimumDate;
-        timeToUse = minimumDate;
-      }
-      
-      setYear(String(dateToUse.getFullYear()));
-      setMonth(MONTHS[dateToUse.getMonth()] || null);
-      setDay(String(dateToUse.getDate()));
-      setHour(String(timeToUse.getHours()).padStart(2, '0'));
-      setMinute(String(timeToUse.getMinutes()).padStart(2, '0'));
-      
-      // Set end date/time (default to 3 hours after start)
-      let endDateToUse = currentEndDate || new Date(timeToUse.getTime() + (3 * 60 * 60 * 1000));
-      let endTimeToUse = currentEndTime || new Date(timeToUse.getTime() + (3 * 60 * 60 * 1000));
-      
-      setEndYear(String(endDateToUse.getFullYear()));
-      setEndMonth(MONTHS[endDateToUse.getMonth()] || null);
-      setEndDay(String(endDateToUse.getDate()));
-      setEndHour(String(endTimeToUse.getHours()).padStart(2, '0'));
-      setEndMinute(String(endTimeToUse.getMinutes()).padStart(2, '0'));
+      setYear(String(endDateToUse.getFullYear()));
+      setMonth(MONTHS[endDateToUse.getMonth()] || null);
+      setDay(String(endDateToUse.getDate()));
+      setHour(String(endTimeToUse.getHours()).padStart(2, '0'));
+      setMinute(String(endTimeToUse.getMinutes()).padStart(2, '0'));
     }
-  }, [visible, currentDate, currentTime, currentEndDate, currentEndTime]);
+  }, [visible, currentEndDate, currentEndTime, startTime]);
 
   const validateDateTime = (): boolean => {
-    if (!month || !day || !year || !hour || !minute || !endMonth || !endDay || !endYear || !endHour || !endMinute) {
-      setDateError('Please select complete start and end dates');
+    if (!month || !day || !year || !hour || !minute) {
+      setDateError('Please select complete date and time');
       return false;
     }
 
     const monthIndex = MONTHS.indexOf(month);
-    const selectedDate = new Date(
+    const selectedEndDate = new Date(
       parseInt(year),
       monthIndex,
       parseInt(day),
@@ -198,31 +177,16 @@ export default function EventDatePickerModal({
       parseInt(minute)
     );
 
-    const endMonthIndex = MONTHS.indexOf(endMonth);
-    const selectedEndDate = new Date(
-      parseInt(endYear),
-      endMonthIndex,
-      parseInt(endDay),
-      parseInt(endHour),
-      parseInt(endMinute)
-    );
-
-    const now = new Date();
-    const minimumDate = new Date(now.getTime() + (24 * 60 * 60 * 1000)); // 24 hours from now
-    
-    if (selectedDate < now) {
-      setDateError('Event date cannot be in the past');
-      return false;
-    }
-    
-    if (selectedDate < minimumDate) {
-      const hoursUntil = Math.ceil((selectedDate.getTime() - now.getTime()) / (1000 * 60 * 60));
-      setDateError(`Event must be at least 24 hours from now (currently ${hoursUntil} hours)`);
-      return false;
-    }
-    
-    if (selectedEndDate <= selectedDate) {
+    if (selectedEndDate <= startTime) {
       setDateError('End time must be after start time');
+      return false;
+    }
+
+    // Check if event is longer than 7 days
+    const duration = selectedEndDate.getTime() - startTime.getTime();
+    const daysInMs = 7 * 24 * 60 * 60 * 1000;
+    if (duration > daysInMs) {
+      setDateError('Event cannot be longer than 7 days');
       return false;
     }
 
@@ -231,26 +195,25 @@ export default function EventDatePickerModal({
   };
 
   useEffect(() => {
-    if (month && day && year && hour && minute && endMonth && endDay && endYear && endHour && endMinute) {
+    if (month && day && year && hour && minute) {
       validateDateTime();
     } else {
       setDateError(null);
     }
-  }, [month, day, year, hour, minute, endMonth, endDay, endYear, endHour, endMinute]);
+  }, [month, day, year, hour, minute]);
 
   const handleConfirm = () => {
     if (!validateDateTime()) return;
 
-    if (year && month && day && hour && minute && endYear && endMonth && endDay && endHour && endMinute) {
+    if (year && month && day && hour && minute) {
       const monthIndex = MONTHS.indexOf(month);
-      const endMonthIndex = MONTHS.indexOf(endMonth);
       
-      const eventDate = new Date(
+      const eventEndDate = new Date(
         parseInt(year),
         monthIndex,
         parseInt(day)
       );
-      const eventTime = new Date(
+      const eventEndTime = new Date(
         parseInt(year),
         monthIndex,
         parseInt(day),
@@ -258,20 +221,7 @@ export default function EventDatePickerModal({
         parseInt(minute)
       );
       
-      const eventEndDate = new Date(
-        parseInt(endYear),
-        endMonthIndex,
-        parseInt(endDay)
-      );
-      const eventEndTime = new Date(
-        parseInt(endYear),
-        endMonthIndex,
-        parseInt(endDay),
-        parseInt(endHour),
-        parseInt(endMinute)
-      );
-      
-      onSelect(eventDate, eventTime, eventEndDate, eventEndTime);
+      onSelect(eventEndDate, eventEndTime);
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       onClose();
     }
@@ -283,21 +233,19 @@ export default function EventDatePickerModal({
     setYear(null);
     setHour(null);
     setMinute(null);
-    setEndMonth(null);
-    setEndDay(null);
-    setEndYear(null);
-    setEndHour(null);
-    setEndMinute(null);
     setDateError(null);
     onClose();
   };
 
-  const isValid = month && day && year && hour && minute && endMonth && endDay && endYear && endHour && endMinute && !dateError;
+  const isValid = month && day && year && hour && minute && !dateError;
 
   const formatSelectedDateTime = () => {
-    if (!month || !day || !year || !hour || !minute) return 'Select start date & time';
-    if (!endMonth || !endDay || !endYear || !endHour || !endMinute) return `${month} ${day}, ${year} at ${hour}:${minute} - Select end time`;
-    return `${month} ${day}, ${year} at ${hour}:${minute} - ${endMonth} ${endDay}, ${endYear} at ${endHour}:${endMinute}`;
+    if (!month || !day || !year || !hour || !minute) return 'Select date & time';
+    return `${month} ${day}, ${year} at ${hour}:${minute}`;
+  };
+
+  const formatStartDateTime = () => {
+    return `${MONTHS[startDate.getMonth()]} ${startDate.getDate()}, ${startDate.getFullYear()} at ${startTime.getHours().toString().padStart(2, '0')}:${startTime.getMinutes().toString().padStart(2, '0')}`;
   };
 
   return (
@@ -314,19 +262,24 @@ export default function EventDatePickerModal({
           <View style={styles.handle} />
           
           <View style={styles.header}>
-            <Text style={styles.title}>When is your event?</Text>
-            <Text style={styles.subtitle}>Select start and end times</Text>
+            <Text style={styles.title}>When does it end?</Text>
+            <Text style={styles.subtitle}>Select the end date and time</Text>
           </View>
 
           <ScrollView showsVerticalScrollIndicator={false}>
-            <View style={styles.dateTimeDisplay}>
-              <Ionicons name="calendar-outline" size={20} color={COLORS.primary} />
-              <Text style={styles.dateTimeText} numberOfLines={2}>{formatSelectedDateTime()}</Text>
+            <View style={styles.startTimeDisplay}>
+              <Ionicons name="time-outline" size={16} color={COLORS.grey2} />
+              <Text style={styles.startTimeText}>Starts: {formatStartDateTime()}</Text>
             </View>
 
-            {/* Start Date/Time */}
+            <View style={styles.dateTimeDisplay}>
+              <Ionicons name="calendar-outline" size={20} color={COLORS.primary} />
+              <Text style={styles.dateTimeText}>{formatSelectedDateTime()}</Text>
+            </View>
+
+            {/* Date Selection */}
             <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>Start Date</Text>
+              <Text style={styles.sectionTitle}>Date</Text>
               <View style={styles.pickerGroup}>
                 <PickerColumn
                   data={MONTHS}
@@ -350,7 +303,7 @@ export default function EventDatePickerModal({
             </View>
 
             <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>Start Time</Text>
+              <Text style={styles.sectionTitle}>Time</Text>
               <View style={styles.timePickerGroup}>
                 <PickerColumn
                   data={HOURS}
@@ -367,56 +320,12 @@ export default function EventDatePickerModal({
                 />
               </View>
             </View>
-
-            {/* End Date/Time */}
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>End Date</Text>
-              <View style={styles.pickerGroup}>
-                <PickerColumn
-                  data={MONTHS}
-                  selectedValue={endMonth}
-                  onSelect={setEndMonth}
-                  placeholder="Month"
-                />
-                <PickerColumn
-                  data={DAYS}
-                  selectedValue={endDay}
-                  onSelect={setEndDay}
-                  placeholder="Day"
-                />
-                <PickerColumn
-                  data={YEARS}
-                  selectedValue={endYear}
-                  onSelect={setEndYear}
-                  placeholder="Year"
-                />
-              </View>
-            </View>
-
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>End Time</Text>
-              <View style={styles.timePickerGroup}>
-                <PickerColumn
-                  data={HOURS}
-                  selectedValue={endHour}
-                  onSelect={setEndHour}
-                  placeholder="Hour"
-                />
-                <Text style={styles.timeSeparator}>:</Text>
-                <PickerColumn
-                  data={MINUTES}
-                  selectedValue={endMinute}
-                  onSelect={setEndMinute}
-                  placeholder="Min"
-                />
-              </View>
-            </View>
             
             {/* Validation info */}
             <View style={styles.validationInfo}>
               <Ionicons name="information-circle-outline" size={16} color="#666" />
               <Text style={styles.validationText}>
-                Event must be at least 24 hours in the future
+                End time must be after start time
               </Text>
             </View>
             
@@ -457,7 +366,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingTop: 8,
-    maxHeight: '75%',
+    maxHeight: '65%',
   },
   handle: {
     width: 40,
@@ -482,6 +391,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: COLORS.grey2,
   },
+  startTimeDisplay: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    marginBottom: 16,
+    gap: 8,
+  },
+  startTimeText: {
+    fontSize: 14,
+    color: COLORS.grey2,
+  },
   dateTimeDisplay: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -497,6 +417,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: COLORS.black,
     fontWeight: '500',
+    flex: 1,
   },
   sectionContainer: {
     paddingHorizontal: 24,

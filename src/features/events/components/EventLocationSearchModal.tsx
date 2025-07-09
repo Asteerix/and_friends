@@ -14,19 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
-
-interface LocationSearchResult {
-  id: string;
-  name: string;
-  address: string;
-  city: string;
-  postalCode?: string;
-  country: string;
-  coordinates?: {
-    latitude: number;
-    longitude: number;
-  };
-}
+import { hereApiService, type LocationSearchResult } from '../../../services/hereApi';
 
 interface EventLocationSearchModalProps {
   visible: boolean;
@@ -44,37 +32,6 @@ const COLORS = {
   primary: '#007AFF',
   error: '#FF3B30',
 };
-
-// Mock search results for demonstration
-const MOCK_SEARCH_RESULTS: LocationSearchResult[] = [
-  {
-    id: '1',
-    name: 'Central Park',
-    address: '14 E 60th St',
-    city: 'New York',
-    postalCode: '10022',
-    country: 'USA',
-    coordinates: { latitude: 40.7644, longitude: -73.9729 },
-  },
-  {
-    id: '2',
-    name: 'Times Square',
-    address: 'Times Square',
-    city: 'New York',
-    postalCode: '10036',
-    country: 'USA',
-    coordinates: { latitude: 40.7580, longitude: -73.9855 },
-  },
-  {
-    id: '3',
-    name: 'Brooklyn Bridge Park',
-    address: '334 Furman St',
-    city: 'Brooklyn',
-    postalCode: '11201',
-    country: 'USA',
-    coordinates: { latitude: 40.7024, longitude: -73.9961 },
-  },
-];
 
 export default function EventLocationSearchModal({
   visible,
@@ -96,29 +53,31 @@ export default function EventLocationSearchModal({
   const [manualPostalCode, setManualPostalCode] = useState('');
   const [manualCountry, setManualCountry] = useState('');
 
-  // Search for locations
+  // Search for locations using HERE API
   const handleSearch = async (query: string) => {
+    console.log('🔍 EventLocationSearchModal - Starting search for:', query);
+    
     if (!query.trim()) {
+      console.log('❌ Empty query, clearing results');
       setSearchResults([]);
       return;
     }
 
     setIsSearching(true);
     
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // Filter mock results based on query
-    const results = MOCK_SEARCH_RESULTS.filter(
-      location => 
-        location.name.toLowerCase().includes(query.toLowerCase()) ||
-        location.address.toLowerCase().includes(query.toLowerCase()) ||
-        location.city.toLowerCase().includes(query.toLowerCase()) ||
-        location.postalCode?.toLowerCase().includes(query.toLowerCase())
-    );
-    
-    setSearchResults(results);
-    setIsSearching(false);
+    try {
+      console.log('📡 Calling HERE API...');
+      // Use HERE API to search for locations
+      // You can optionally pass a location bias (e.g., user's current location)
+      const results = await hereApiService.searchLocations(query);
+      console.log('✅ HERE API returned', results.length, 'results:', results);
+      setSearchResults(results);
+    } catch (error) {
+      console.error('❌ Error searching locations:', error);
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
   };
 
   // Debounced search
@@ -131,6 +90,12 @@ export default function EventLocationSearchModal({
   }, [searchQuery]);
 
   const handleSelectLocation = (location: LocationSearchResult) => {
+    console.log('📍 Location selected:', location);
+    console.log('  - Name:', location.name);
+    console.log('  - Address:', location.address);
+    console.log('  - City:', location.city);
+    console.log('  - Coordinates:', location.coordinates);
+    
     onSelect(location);
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     
@@ -200,6 +165,7 @@ export default function EventLocationSearchModal({
           <View style={styles.header}>
             <Text style={styles.title}>Event Location</Text>
             <Text style={styles.subtitle}>Search for a place or enter an address</Text>
+            <Text style={styles.poweredBy}>Powered by HERE Maps</Text>
           </View>
 
           {!showManualEntry ? (
@@ -413,7 +379,8 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingTop: 8,
-    maxHeight: '90%',
+    height: '85%', // Changed from maxHeight to fixed height for better visibility
+    minHeight: '70%',
   },
   handle: {
     width: 40,
@@ -437,6 +404,12 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     color: COLORS.grey2,
+  },
+  poweredBy: {
+    fontSize: 12,
+    color: COLORS.grey1,
+    marginTop: 4,
+    fontStyle: 'italic',
   },
   searchContainer: {
     paddingHorizontal: 24,
