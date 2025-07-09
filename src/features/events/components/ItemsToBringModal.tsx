@@ -316,7 +316,7 @@ export default function ItemsToBringModal({
                 const types: ItemType[] = ['required', 'suggested', 'open'];
                 const currentIndex = types.indexOf(item.type || 'suggested');
                 const nextType = types[(currentIndex + 1) % types.length];
-                updateItemType(item.id, nextType);
+                updateItemType(item.id, nextType as ItemType);
               }}
             >
               <Ionicons 

@@ -20,8 +20,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import BackButton from '@/assets/svg/back-button.svg';
-import ChatButton from '@/assets/svg/chat-button.svg';
-import NotificationButton from '@/assets/svg/notification-button.svg';
 import { useEventCover } from '../context/EventCoverContext';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -31,41 +29,60 @@ const MAX_STICKERS = 10;
 const MIN_SCALE = 0.5;
 const MAX_SCALE = 3.0;
 
-// Default event cover image
-const DEFAULT_EVENT_COVER = require('../../../assets/default_avatar.png');
 
 // Import event templates from data file
-import { EVENT_TEMPLATE_CATEGORIES, FONTS as IMPORTED_FONTS, BACKGROUNDS as IMPORTED_BACKGROUNDS, STICKER_CATEGORIES as IMPORTED_STICKER_CATEGORIES } from '../data/eventTemplates';
+import {
+  EVENT_TEMPLATE_CATEGORIES,
+  FONTS as IMPORTED_FONTS,
+  BACKGROUNDS as IMPORTED_BACKGROUNDS,
+  STICKER_CATEGORIES as IMPORTED_STICKER_CATEGORIES,
+} from '../data/eventTemplates';
 
 // Map fonts with their styles
-const FONTS = IMPORTED_FONTS.map(font => ({
+const FONTS = IMPORTED_FONTS.map((font) => ({
   ...font,
+  value: font.value, // Keep the value property
   style: {
     fontFamily: font.value,
-    fontWeight: font.name === 'AFTERPARTY' ? 'bold' as const : font.name === 'Bold Impact' ? '900' as const : font.name === 'Modern' ? '300' as const : font.name === 'Elegant' ? '500' as const : 'normal' as const,
-    fontStyle: font.name === 'Classic Invite' || font.name === 'Fun Script' ? 'italic' as const : 'normal' as const
-  }
+    fontWeight:
+      font.name === 'AFTERPARTY'
+        ? ('bold' as const)
+        : font.name === 'Bold Impact'
+          ? ('900' as const)
+          : font.name === 'Modern'
+            ? ('300' as const)
+            : font.name === 'Elegant'
+              ? ('500' as const)
+              : ('normal' as const),
+    fontStyle:
+      font.name === 'Classic Invite' || font.name === 'Fun Script'
+        ? ('italic' as const)
+        : ('normal' as const),
+  },
 }));
 
-const BACKGROUNDS = IMPORTED_BACKGROUNDS.map(bg => ({
+const BACKGROUNDS = IMPORTED_BACKGROUNDS.map((bg) => ({
   ...bg,
-  colors: bg.colors as [string, string]
+  colors: bg.colors as [string, string],
+  type: bg.type,
+  start: bg.start,
+  end: bg.end,
 }));
 
 // Map sticker categories to include emoji names
-const STICKER_CATEGORIES = IMPORTED_STICKER_CATEGORIES.map(category => ({
+const STICKER_CATEGORIES = IMPORTED_STICKER_CATEGORIES.map((category) => ({
   ...category,
   stickers: category.stickers.map((emoji, index) => ({
     id: `${category.id}-${index + 1}`,
     emoji: emoji,
-    name: emoji // Using emoji as name for simplicity
-  }))
+    name: emoji, // Using emoji as name for simplicity
+  })),
 }));
 
 // Use event template categories from imported data
-const TEMPLATE_CATEGORIES = EVENT_TEMPLATE_CATEGORIES.map(category => ({
+const TEMPLATE_CATEGORIES = EVENT_TEMPLATE_CATEGORIES.map((category) => ({
   ...category,
-  templates: category.templates // Templates already have the correct structure
+  templates: category.templates, // Templates already have the correct structure
 }));
 
 type TabType = 'style' | 'decorate' | 'template';
@@ -98,8 +115,6 @@ const DraggableSticker: React.FC<{
   const rotation = useRef(new Animated.Value(sticker.rotation)).current;
   const lastScale = useRef(sticker.scale);
   const lastRotation = useRef(sticker.rotation);
-  const baseScale = useRef(new Animated.Value(1)).current;
-  const pinchScale = useRef(new Animated.Value(1)).current;
   const lastDistance = useRef(0);
   const lastAngle = useRef(0);
 
@@ -113,8 +128,8 @@ const DraggableSticker: React.FC<{
 
         // Set offset for current position
         pan.setOffset({
-          x: (pan.x as any)._value,
-          y: (pan.y as any)._value,
+          x: (pan.x as any)._value || 0,
+          y: (pan.y as any)._value || 0,
         });
         pan.setValue({ x: 0, y: 0 });
 
@@ -122,7 +137,7 @@ const DraggableSticker: React.FC<{
       },
 
       onPanResponderMove: (evt, gestureState) => {
-        const touches = evt.nativeEvent.touches;
+        const touches = evt.nativeEvent.touches || [];
 
         // Handle pinch to zoom and rotate
         if (touches.length === 2) {
@@ -170,10 +185,10 @@ const DraggableSticker: React.FC<{
         lastAngle.current = 0;
 
         // Update sticker position, scale and rotation
-        const currentX = ((pan.x as any)._value / screenWidth) * 100;
-        const currentY = ((pan.y as any)._value / 700) * 100;
-        const currentScale = (scale as any)._value;
-        const currentRotation = (rotation as any)._value;
+        const currentX = (((pan.x as any)._value || 0) / screenWidth) * 100;
+        const currentY = (((pan.y as any)._value || 0) / 700) * 100;
+        const currentScale = (scale as any)._value || 1;
+        const currentRotation = (rotation as any)._value || 0;
 
         lastScale.current = currentScale;
         lastRotation.current = currentRotation;
@@ -193,7 +208,6 @@ const DraggableSticker: React.FC<{
     transform: [
       { translateX: pan.x },
       { translateY: pan.y },
-      { scale: Animated.multiply(baseScale, pinchScale) },
       { scale },
       {
         rotate: rotation.interpolate({
@@ -251,10 +265,12 @@ const DraggableSticker: React.FC<{
 export default function EditEventCoverScreen() {
   const router = useRouter();
   const { coverData, updateCoverData, saveCoverData } = useEventCover();
-  
+
   const [activeTab, setActiveTab] = useState<TabType>('style');
   const [selectedTitleFont, setSelectedTitleFont] = useState(coverData.selectedTitleFont || '1');
-  const [selectedSubtitleFont, setSelectedSubtitleFont] = useState(coverData.selectedSubtitleFont || '1');
+  const [selectedSubtitleFont, setSelectedSubtitleFont] = useState(
+    coverData.selectedSubtitleFont || '1'
+  );
   const [selectedBackground, setSelectedBackground] = useState(coverData.selectedBackground || '');
   const [eventTitle, setEventTitle] = useState(coverData.eventTitle || '');
   const [eventSubtitle, setEventSubtitle] = useState(coverData.eventSubtitle || '');
@@ -264,13 +280,19 @@ export default function EditEventCoverScreen() {
   const [uploadedImage, setUploadedImage] = useState(coverData.uploadedImage || '');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('party');
-  const [placedStickers, setPlacedStickers] = useState<StickerType[]>(coverData.placedStickers || []);
+  const [placedStickers, setPlacedStickers] = useState<StickerType[]>(
+    coverData.placedStickers || []
+  );
   const [selectedStickerId, setSelectedStickerId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isDecorationMode, setIsDecorationMode] = useState(false);
   const [selectedTemplateCategory, setSelectedTemplateCategory] = useState('party');
   const [templateSearchQuery, setTemplateSearchQuery] = useState('');
-  const [selectedTemplate, setSelectedTemplate] = useState<{ id: string; name: string; image: any } | null>(coverData.selectedTemplate || null);
+  const [selectedTemplate, setSelectedTemplate] = useState<{
+    id: string;
+    name: string;
+    image: any;
+  } | null>(coverData.selectedTemplate || null);
 
   // Load saved data when component mounts
   useEffect(() => {
@@ -312,7 +334,7 @@ export default function EditEventCoverScreen() {
     setPlacedStickers([]);
     setEventTitle('');
     setEventSubtitle('');
-    
+
     // Update context with default values
     updateCoverData({
       eventTitle: '',
@@ -325,7 +347,7 @@ export default function EditEventCoverScreen() {
       placedStickers: [],
       selectedTemplate: null,
     });
-    
+
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
@@ -344,13 +366,13 @@ export default function EditEventCoverScreen() {
         placedStickers,
         selectedTemplate,
       };
-      
+
       // Update the context with all the current data
       updateCoverData(newCoverData);
-      
+
       // Save to AsyncStorage with the new data
       await saveCoverData(newCoverData);
-      
+
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.back();
     } catch (error) {
@@ -791,13 +813,10 @@ export default function EditEventCoverScreen() {
             {selectedBackground && !coverImage && !selectedTemplate ? (
               <LinearGradient colors={getBackgroundStyle().colors} style={styles.headerGradient} />
             ) : selectedTemplate ? (
-              <Image
-                source={selectedTemplate.image}
-                style={styles.coverImage}
-              />
+              <Image source={selectedTemplate.image} style={styles.coverImage} />
             ) : (
               <Image
-                source={coverImage ? { uri: coverImage } : DEFAULT_EVENT_COVER}
+                source={{ uri: coverImage || uploadedImage || 'https://via.placeholder.com/400x700' }}
                 style={styles.coverImage}
               />
             )}
@@ -870,13 +889,10 @@ export default function EditEventCoverScreen() {
           {selectedBackground && !coverImage && !selectedTemplate ? (
             <LinearGradient colors={getBackgroundStyle().colors} style={styles.headerGradient} />
           ) : selectedTemplate ? (
-            <Image
-              source={selectedTemplate.image}
-              style={styles.coverImage}
-            />
+            <Image source={selectedTemplate.image} style={styles.coverImage} />
           ) : (
             <Image
-              source={coverImage ? { uri: coverImage } : DEFAULT_EVENT_COVER}
+              source={{ uri: coverImage || uploadedImage || 'https://via.placeholder.com/400x700' }}
               style={styles.coverImage}
             />
           )}
@@ -911,14 +927,7 @@ export default function EditEventCoverScreen() {
 
             <Text style={styles.headerTitle}>Edit Cover</Text>
 
-            <View style={styles.rightIcons}>
-              <TouchableOpacity style={{ paddingHorizontal: 4 }}>
-                <ChatButton width={40} height={40} />
-              </TouchableOpacity>
-              <TouchableOpacity style={{ paddingHorizontal: 4 }}>
-                <NotificationButton width={40} height={40} />
-              </TouchableOpacity>
-            </View>
+            <View style={styles.rightIcons} />
           </View>
 
           {/* Event title and subtitle - always visible */}

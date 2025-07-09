@@ -22,6 +22,7 @@ import ChatButton from '@/assets/svg/chat-button.svg';
 import NotificationButton from '@/assets/svg/notification-button.svg';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEventCover } from '../context/EventCoverContext';
+import { EventServiceComplete, CreateEventData } from '../services/eventServiceComplete';
 
 // Import all modals
 import CostPerPersonModal from '../components/CostPerPersonModal';
@@ -32,6 +33,7 @@ import GuestQuestionnaireModal from '../components/GuestQuestionnaireModal';
 import PlaylistModal from '../components/PlaylistModal';
 import ManageCoHostsModal from '../components/ManageCoHostsModal';
 import EventDatePickerModal from '../components/EventDatePickerModal';
+import EventLocationSearchModal from '../components/EventLocationSearchModal';
 
 // Default event cover image
 const DEFAULT_EVENT_COVER = require('../../../assets/default_avatar.png');
@@ -57,10 +59,9 @@ const BACKGROUNDS = IMPORTED_BACKGROUNDS.map(bg => ({
 export default function CreateEventScreen() {
   const router = useRouter();
   const { profile } = useProfile();
-  const { coverData, loadCoverData } = useEventCover();
+  const { coverData, loadCoverData, resetCoverData } = useEventCover();
   
   // State for event details
-  const [coverUri] = useState('');
   // Initialize event date to next Saturday at 8 PM
   const getDefaultEventDate = () => {
     const now = new Date();
@@ -87,6 +88,18 @@ export default function CreateEventScreen() {
   const [eventTime, setEventTime] = useState(getDefaultEventDate());
   const [showDatePickerModal, setShowDatePickerModal] = useState(false);
   const [location, setLocation] = useState('');
+  const [locationDetails, setLocationDetails] = useState<{
+    name: string;
+    address: string;
+    city: string;
+    postalCode?: string;
+    country: string;
+    coordinates?: {
+      latitude: number;
+      longitude: number;
+    };
+  } | null>(null);
+  const [showLocationModal, setShowLocationModal] = useState(false);
   const [description, setDescription] = useState('');
   const [isPrivate, setIsPrivate] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
@@ -97,6 +110,9 @@ export default function CreateEventScreen() {
   const [rsvpReminderEnabled, setRsvpReminderEnabled] = useState(false);
   const [rsvpReminderTiming, setRsvpReminderTiming] = useState('24h');
   const [questionnaire, setQuestionnaire] = useState<Array<{id: string, text: string, type: string}>>([]);
+  const [itemsToBring, setItemsToBring] = useState<Array<{id: string, name: string, quantity: number, assignedTo?: string}>>([]);
+  const [playlist, setPlaylist] = useState<Array<{id: string, title: string, artist: string, spotifyUrl?: string, appleUrl?: string, youtubeUrl?: string}>>([]);
+  const [playlistSettings, setPlaylistSettings] = useState<{spotifyLink?: string, appleMusicLink?: string, acceptSuggestions: boolean}>({ acceptSuggestions: true });
   
   // Load saved cover data when component mounts
   useEffect(() => {
@@ -145,24 +161,129 @@ export default function CreateEventScreen() {
   };
 
   const handleSaveAsDraft = async () => {
-    Alert.alert('Save as Draft', 'Event saved as draft');
+    console.log('💾 [CreateEventScreen] Sauvegarde en brouillon...');
+    Alert.alert('Save as Draft', 'Cette fonctionnalité sera bientôt disponible');
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    router.back();
   };
 
   const handlePublish = async () => {
+    console.log('🚀 [CreateEventScreen] ========================================');
+    console.log('🚀 [CreateEventScreen] DÉBUT DE LA PUBLICATION DE L\'ÉVÉNEMENT');
+    console.log('🚀 [CreateEventScreen] ========================================');
+    console.log('');
+    
+    // Validation des champs obligatoires
+    if (!coverData.eventTitle) {
+      console.warn('⚠️ [CreateEventScreen] Pas de titre personnalisé, utilisation du titre par défaut');
+    }
+    
+    console.log('📋 [CreateEventScreen] DONNÉES COLLECTÉES:');
+    console.log('  🎨 Cover Data:', {
+      hasTitle: !!coverData.eventTitle,
+      hasSubtitle: !!coverData.eventSubtitle,
+      hasBackground: !!coverData.selectedBackground,
+      hasImage: !!coverData.coverImage,
+      stickersCount: coverData.placedStickers?.length || 0
+    });
+    console.log('  📅 Date/Heure:', eventDate.toLocaleString());
+    console.log('  📍 Localisation:', location || 'Non spécifiée');
+    console.log('  🔒 Privé:', isPrivate);
+    console.log('  👥 Co-hosts:', coHosts.length);
+    console.log('  💰 Coûts:', costs.length);
+    console.log('  📸 Photos:', eventPhotos.length);
+    console.log('  ⏰ RSVP Deadline:', rsvpDeadline ? rsvpDeadline.toLocaleString() : 'Non défini');
+    console.log('  📋 Questionnaire:', questionnaire.length, 'questions');
+    console.log('  🎁 Items à apporter:', itemsToBring.length, 'items');
+    console.log('  🎵 Playlist:', playlist.length, 'chansons', playlistSettings.spotifyLink ? '(avec lien Spotify)' : '');
+    console.log('');
+    
     setIsLoading(true);
     
     try {
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert('Success', 'Event published successfully');
-      router.back();
+      console.log('📋 [CreateEventScreen] Préparation des données de l\'événement...');
+      
+      // Préparer les données pour la création
+      const eventData: CreateEventData = {
+        title: coverData.eventTitle || 'Nouvel événement',
+        subtitle: coverData.eventSubtitle,
+        description: description,
+        date: eventDate,
+        location: location,
+        locationDetails: locationDetails || undefined,
+        isPrivate: isPrivate,
+        coverData: coverData,
+        coHosts: coHosts,
+        costs: costs,
+        eventPhotos: eventPhotos,
+        rsvpDeadline: rsvpDeadline,
+        rsvpReminderEnabled: rsvpReminderEnabled,
+        rsvpReminderTiming: rsvpReminderTiming,
+        questionnaire: questionnaire,
+        itemsToBring: itemsToBring,
+        playlist: playlist,
+        spotifyLink: playlistSettings.spotifyLink
+      };
+      
+      console.log('📤 [CreateEventScreen] Envoi des données à EventService:', {
+        title: eventData.title,
+        date: eventData.date,
+        location: eventData.location,
+        hasExtras: {
+          coHosts: coHosts.length,
+          costs: costs.length,
+          photos: eventPhotos.length,
+          questionnaire: questionnaire.length,
+          itemsToBring: itemsToBring.length,
+          playlist: playlist.length
+        }
+      });
+      
+      // Utiliser le service complet avec gestion de TOUS les extras
+      console.log('🔄 [CreateEventScreen] Utilisation de EventServiceComplete pour une création COMPLÈTE avec TOUS les extras');
+      const result = await EventServiceComplete.createEvent(eventData);
+      
+      if (result.success) {
+        console.log('✅ [CreateEventScreen] Événement créé avec succès:', result.event.id);
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        
+        // Réinitialiser les données de couverture
+        resetCoverData();
+        
+        Alert.alert(
+          'Succès! 🎉', 
+          'Votre événement a été créé avec succès!',
+          [
+            {
+              text: 'Voir l\'événement',
+              onPress: () => {
+                console.log('👁️ [CreateEventScreen] Navigation vers l\'événement:', result.event.id);
+                // Navigation vers l'événement créé
+                router.replace(`/event/${result.event.id}`);
+              }
+            },
+            {
+              text: 'Retour',
+              onPress: () => {
+                router.back();
+              },
+              style: 'cancel'
+            }
+          ]
+        );
+      }
     } catch (error) {
-      console.error('Error publishing event:', error);
-      Alert.alert('Error', 'Failed to publish event');
+      console.error('💥 [CreateEventScreen] Erreur lors de la publication:', error);
+      
+      let errorMessage = 'Une erreur est survenue lors de la création de l\'événement';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
+      Alert.alert('Erreur', errorMessage);
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
       setIsLoading(false);
+      console.log('🏁 [CreateEventScreen] Fin du processus de publication');
     }
   };
 
@@ -225,6 +346,14 @@ export default function CreateEventScreen() {
             <Text style={styles.headerTitle}>Create Event</Text>
             
             <View style={styles.rightIcons}>
+              <TouchableOpacity
+                onPress={() => router.push('/debug-events')}
+                accessibilityRole="button"
+                accessibilityLabel="Debug"
+                style={{ paddingHorizontal: 4 }}
+              >
+                <Ionicons name="bug-outline" size={24} color="#FFF" />
+              </TouchableOpacity>
               <TouchableOpacity
                 accessibilityRole="button"
                 accessibilityLabel="Messages"
@@ -354,16 +483,16 @@ export default function CreateEventScreen() {
               <Ionicons name="chevron-forward" size={20} color="#999" />
             </TouchableOpacity>
             
-            <View style={styles.locationField}>
+            <TouchableOpacity
+              style={styles.locationField}
+              onPress={() => setShowLocationModal(true)}
+            >
               <Ionicons name="search" size={20} color="#999" />
-              <TextInput
-                style={styles.locationInput}
-                placeholder="Search location"
-                placeholderTextColor="#999"
-                value={location}
-                onChangeText={setLocation}
-              />
-            </View>
+              <Text style={[styles.locationInput, !location && { color: '#999' }]}>
+                {location || "Search location"}
+              </Text>
+              <Ionicons name="chevron-forward" size={20} color="#999" />
+            </TouchableOpacity>
           </View>
           
           {/* Description Section */}
@@ -430,10 +559,22 @@ export default function CreateEventScreen() {
                   )}
                 </TouchableOpacity>
                 
-                <TouchableOpacity style={styles.extraPill} onPress={handleItemsToBring}>
-                  <Ionicons name="gift-outline" size={16} color="#007AFF" />
-                  <Text style={styles.extraPillText}>To Bring</Text>
-                  <Ionicons name="add" size={16} color="#007AFF" />
+                <TouchableOpacity style={[styles.extraPill, itemsToBring.length > 0 && styles.extraPillConfigured]} onPress={handleItemsToBring}>
+                  <Ionicons name="gift-outline" size={16} color={itemsToBring.length > 0 ? "#FFF" : "#007AFF"} />
+                  <Text style={[styles.extraPillText, itemsToBring.length > 0 && styles.extraPillTextConfigured]}>
+                    {itemsToBring.length > 0 ? `${itemsToBring.length} item${itemsToBring.length > 1 ? 's' : ''}` : 'To Bring'}
+                  </Text>
+                  {itemsToBring.length > 0 ? (
+                    <TouchableOpacity onPress={(e) => {
+                      e.stopPropagation();
+                      setItemsToBring([]);
+                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    }}>
+                      <Ionicons name="close-circle" size={16} color="#FFF" />
+                    </TouchableOpacity>
+                  ) : (
+                    <Ionicons name="add" size={16} color="#007AFF" />
+                  )}
                 </TouchableOpacity>
                 
                 <TouchableOpacity style={[styles.extraPill, rsvpDeadline && styles.extraPillConfigured]} onPress={handleRSVPDeadline}>
@@ -473,10 +614,23 @@ export default function CreateEventScreen() {
                   )}
                 </TouchableOpacity>
                 
-                <TouchableOpacity style={styles.extraPill} onPress={handlePlaylist}>
-                  <Ionicons name="musical-notes-outline" size={16} color="#007AFF" />
-                  <Text style={styles.extraPillText}>Playlist</Text>
-                  <Ionicons name="add" size={16} color="#007AFF" />
+                <TouchableOpacity style={[styles.extraPill, playlist.length > 0 && styles.extraPillConfigured]} onPress={handlePlaylist}>
+                  <Ionicons name="musical-notes-outline" size={16} color={playlist.length > 0 ? "#FFF" : "#007AFF"} />
+                  <Text style={[styles.extraPillText, playlist.length > 0 && styles.extraPillTextConfigured]}>
+                    {playlist.length > 0 ? `${playlist.length} song${playlist.length > 1 ? 's' : ''}` : 'Playlist'}
+                  </Text>
+                  {playlist.length > 0 ? (
+                    <TouchableOpacity onPress={(e) => {
+                      e.stopPropagation();
+                      setPlaylist([]);
+                      setPlaylistSettings({ acceptSuggestions: true });
+                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    }}>
+                      <Ionicons name="close-circle" size={16} color="#FFF" />
+                    </TouchableOpacity>
+                  ) : (
+                    <Ionicons name="add" size={16} color="#007AFF" />
+                  )}
                 </TouchableOpacity>
               </View>
             </ScrollView>
@@ -554,7 +708,16 @@ export default function CreateEventScreen() {
         visible={showItemsModal}
         onClose={() => setShowItemsModal(false)}
         onSave={(items) => {
-          console.log('Items saved:', items);
+          console.log('📦 [CreateEventScreen] Items to bring sauvegardés:', items.length);
+          // Convertir le format de la modal vers le format attendu par le service
+          const formattedItems = items.map(item => ({
+            id: item.id,
+            name: item.name,
+            quantity: item.quantity ? parseInt(item.quantity.toString()) : 1,
+            assignedTo: item.assignee || undefined
+          }));
+          setItemsToBring(formattedItems);
+          setShowItemsModal(false);
           void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         }}
       />
@@ -576,7 +739,7 @@ export default function CreateEventScreen() {
       <GuestQuestionnaireModal
         visible={showQuestionnaireModal}
         onClose={() => setShowQuestionnaireModal(false)}
-        onSave={(questions, settings) => {
+        onSave={(questions) => {
           setQuestionnaire(questions);
           setShowQuestionnaireModal(false);
           if (questions.length > 0) {
@@ -588,8 +751,19 @@ export default function CreateEventScreen() {
       <PlaylistModal
         visible={showPlaylistModal}
         onClose={() => setShowPlaylistModal(false)}
-        onSave={(playlist, spotifyLink) => {
-          console.log('Playlist saved:', playlist, spotifyLink);
+        onSave={(songs, spotifyLink) => {
+          console.log('🎵 [CreateEventScreen] Playlist sauvegardée:', songs.length, 'chansons');
+          // Formater les chansons pour le service
+          const formattedPlaylist = songs.map(song => ({
+            id: song.id,
+            title: song.title,
+            artist: song.artist
+          }));
+          setPlaylist(formattedPlaylist);
+          if (spotifyLink) {
+            setPlaylistSettings({ ...playlistSettings, spotifyLink });
+          }
+          setShowPlaylistModal(false);
           void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         }}
       />
@@ -614,6 +788,22 @@ export default function CreateEventScreen() {
         }}
         currentDate={eventDate}
         currentTime={eventTime}
+      />
+      
+      <EventLocationSearchModal
+        visible={showLocationModal}
+        onClose={() => setShowLocationModal(false)}
+        onSelect={(locationData) => {
+          setLocationDetails(locationData);
+          // Format the display string
+          const displayParts = [locationData.name];
+          if (locationData.city) displayParts.push(locationData.city);
+          if (locationData.postalCode) displayParts.push(locationData.postalCode);
+          setLocation(displayParts.join(', '));
+          setShowLocationModal(false);
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }}
+        currentLocation={location}
       />
     </View>
   );
