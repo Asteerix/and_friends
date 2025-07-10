@@ -9,7 +9,9 @@ const AUTH_FLOW = [
   'name-input',
   'avatar-pick',
   'contacts-permission',
+  'contacts-friends',
   'location-permission',
+  'location-picker',
   'age-input',
   'path-input',
   'jam-picker',
@@ -36,8 +38,9 @@ export const useAuthNavigation = (currentScreen: string) => {
     }
   }, [router, currentScreen]);
 
-  const navigateNext = useCallback((nextScreen: string) => {
-    router.push(`/(auth)/${nextScreen}`);
+  const navigateNext = useCallback((nextScreen: string, params?: Record<string, string>) => {
+    const queryString = params ? '?' + Object.entries(params).map(([key, value]) => `${key}=${encodeURIComponent(value)}`).join('&') : '';
+    router.push(`/(auth)/${nextScreen}${queryString}`);
   }, [router]);
 
   const getProgress = useCallback(() => {

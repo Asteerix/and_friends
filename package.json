@@ -57,6 +57,7 @@
     "expo-camera": "^16.1.6",
     "expo-constants": "~17.1.4",
     "expo-contacts": "~14.2.4",
+    "expo-crypto": "~14.1.5",
     "expo-device": "^7.1.4",
     "expo-font": "~13.3.1",
     "expo-haptics": "~14.1.4",
@@ -123,6 +124,7 @@
     "util": "^0.12.5",
     "uuid": "^11.1.0",
     "vm-browserify": "^1.1.2",
+    "zod": "^4.0.2",
     "zustand": "^5.0.5"
   },
   "devDependencies": {

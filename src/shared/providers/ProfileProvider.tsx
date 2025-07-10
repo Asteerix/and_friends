@@ -5,6 +5,14 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import { supabase } from '@/shared/lib/supabase/client';
 import { useSession } from '@/shared/providers/SessionContext';
 import type { UserProfile } from '@/hooks/useProfile';
+import { 
+  validateProfileUpdate, 
+  sanitizeString, 
+  sanitizeArray,
+  handleSupabaseError,
+  InputValidators,
+  ValidationError 
+} from '@/shared/utils/supabaseValidation';
 
 interface ProfileContextType {
   profile: UserProfile | null;
@@ -38,24 +46,58 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     setError(null);
 
     try {
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', session.user.id)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Error fetching profile:', error);
         if (isMountedRef.current) {
           setError(error);
           // Retry logic for transient errors
-          if (retryCount < 3 && error.code !== 'PGRST116') {
+          if (retryCount < 3) {
             retryTimeoutRef.current = setTimeout(() => {
               fetchProfile(retryCount + 1);
             }, Math.pow(2, retryCount) * 1000);
           }
         }
         return;
+      }
+
+      // If no profile exists yet (new user), create one
+      if (!data) {
+        console.log('No profile found for user, creating new profile...');
+        const { error: createError } = await supabase
+          .from('profiles')
+          .insert([{ 
+            id: session.user.id,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }]);
+
+        if (createError) {
+          console.error('Error creating initial profile:', createError);
+          if (isMountedRef.current) {
+            setError(createError);
+          }
+          return;
+        }
+
+        // Fetch the newly created profile
+        const { data: newProfile, error: fetchNewError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+
+        if (fetchNewError || !newProfile) {
+          console.error('Error fetching newly created profile:', fetchNewError);
+          return;
+        }
+
+        data = newProfile;
       }
 
       const profileData: UserProfile = {
@@ -119,34 +161,101 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     setError(null);
 
     try {
+      // Validate profile data
+      let validatedUpdates: Partial<UserProfile>;
+      try {
+        validatedUpdates = validateProfileUpdate(updates);
+      } catch (validationError) {
+        const error = validationError instanceof Error ? validationError : new ValidationError('Invalid profile data');
+        setError(error as PostgrestError);
+        return { data: null, error: error as PostgrestError };
+      }
+
+      // Additional input validation
+      if (validatedUpdates.username) {
+        const usernameError = InputValidators.username(validatedUpdates.username);
+        if (usernameError) {
+          const error = new ValidationError(usernameError, 'username');
+          setError(error as PostgrestError);
+          return { data: null, error: error as PostgrestError };
+        }
+        validatedUpdates.username = sanitizeString(validatedUpdates.username).toLowerCase();
+      }
+
+      if (validatedUpdates.full_name) {
+        validatedUpdates.full_name = sanitizeString(validatedUpdates.full_name);
+      }
+
+      if (validatedUpdates.bio) {
+        validatedUpdates.bio = sanitizeString(validatedUpdates.bio);
+      }
+
+      if (validatedUpdates.hobbies) {
+        validatedUpdates.hobbies = sanitizeArray(validatedUpdates.hobbies);
+      }
+
+      if (validatedUpdates.interests) {
+        validatedUpdates.interests = sanitizeArray(validatedUpdates.interests);
+      }
+
+      if (validatedUpdates.birth_date) {
+        const birthDateError = InputValidators.birthDate(validatedUpdates.birth_date);
+        if (birthDateError) {
+          const error = new ValidationError(birthDateError, 'birth_date');
+          setError(error as PostgrestError);
+          return { data: null, error: error as PostgrestError };
+        }
+      }
+
+      if (validatedUpdates.avatar_url) {
+        const urlError = InputValidators.url(validatedUpdates.avatar_url);
+        if (urlError) {
+          const error = new ValidationError(urlError, 'avatar_url');
+          setError(error as PostgrestError);
+          return { data: null, error: error as PostgrestError };
+        }
+      }
+
+      if (validatedUpdates.cover_url) {
+        const urlError = InputValidators.url(validatedUpdates.cover_url);
+        if (urlError) {
+          const error = new ValidationError(urlError, 'cover_url');
+          setError(error as PostgrestError);
+          return { data: null, error: error as PostgrestError };
+        }
+      }
+      // First, check if profile exists
+      const { data: existingProfile, error: fetchError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', session.user.id)
+        .maybeSingle();
+
+      // If profile doesn't exist, create it first
+      if (!existingProfile) {
+        console.log('Profile does not exist, creating new profile...');
+        const { error: createError } = await supabase
+          .from('profiles')
+          .insert([{ 
+            id: session.user.id,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }]);
+
+        if (createError) {
+          console.error('Error creating profile:', createError);
+          setError(createError);
+          return { data: null, error: createError };
+        }
+      }
+
       // Build update object only with defined values
       const updateData: any = {
+        ...validatedUpdates,
         updated_at: new Date().toISOString(),
       };
 
-      // Only include fields that are explicitly being updated
-      if (updates.full_name !== undefined) updateData.full_name = updates.full_name;
-      if (updates.username !== undefined) updateData.username = updates.username;
-      if (updates.avatar_url !== undefined) updateData.avatar_url = updates.avatar_url;
-      if (updates.cover_url !== undefined) updateData.cover_url = updates.cover_url;
-      if (updates.bio !== undefined) updateData.bio = updates.bio;
-      if (updates.birth_date !== undefined) updateData.birth_date = updates.birth_date;
-      if (updates.hide_birth_date !== undefined) updateData.hide_birth_date = updates.hide_birth_date;
-      if (updates.jam_preference !== undefined) updateData.jam_preference = updates.jam_preference;
-      if (updates.restaurant_preference !== undefined) updateData.restaurant_preference = updates.restaurant_preference;
-      if (updates.jam_track_id !== undefined) updateData.jam_track_id = updates.jam_track_id;
-      if (updates.jam_title !== undefined) updateData.jam_title = updates.jam_title;
-      if (updates.jam_artist !== undefined) updateData.jam_artist = updates.jam_artist;
-      if (updates.jam_cover_url !== undefined) updateData.jam_cover_url = updates.jam_cover_url;
-      if (updates.jam_preview_url !== undefined) updateData.jam_preview_url = updates.jam_preview_url;
-      if (updates.selected_restaurant_id !== undefined) updateData.selected_restaurant_id = updates.selected_restaurant_id;
-      if (updates.selected_restaurant_name !== undefined) updateData.selected_restaurant_name = updates.selected_restaurant_name;
-      if (updates.selected_restaurant_address !== undefined) updateData.selected_restaurant_address = updates.selected_restaurant_address;
-      if (updates.hobbies !== undefined) updateData.hobbies = updates.hobbies;
-      if (updates.path !== undefined) updateData.path = updates.path;
-      if (updates.location_permission_granted !== undefined) updateData.location_permission_granted = updates.location_permission_granted;
-      if (updates.contacts_permission_status !== undefined) updateData.contacts_permission_status = updates.contacts_permission_status;
-      if (updates.settings !== undefined) updateData.settings = updates.settings;
+      // updateData already contains validatedUpdates from above
       
       // Handle location separately to catch column not found error
       if (updates.location !== undefined) {
@@ -211,8 +320,9 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
 
       if (error) {
         console.error('Error updating profile:', error);
-        setError(error);
-        return { data: null, error };
+        const handledError = handleSupabaseError(error);
+        setError(handledError as PostgrestError);
+        return { data: null, error: handledError as PostgrestError };
       }
 
       // Update local state with fresh data from database
@@ -259,8 +369,9 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       return { data: updatedProfile, error: null };
     } catch (err: unknown) {
       console.error('Unexpected error updating profile:', err);
-      setError(err as PostgrestError);
-      return { data: null, error: err as PostgrestError };
+      const handledError = err instanceof Error ? err : new Error('An unexpected error occurred');
+      setError(handledError as PostgrestError);
+      return { data: null, error: handledError as PostgrestError };
     } finally {
       setLoading(false);
     }

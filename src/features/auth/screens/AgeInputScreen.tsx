@@ -21,6 +21,7 @@ import { getDeviceLanguage, t } from '@/shared/locales';
 import { useAuthNavigation } from '@/shared/hooks/useAuthNavigation';
 import { useRegistrationStep } from '@/shared/hooks/useRegistrationStep';
 import { Colors } from '@/shared/config/Colors';
+import { getValidSession, signOutAndCleanup } from '@/shared/utils/sessionHelpers';
 
 const designResolution = { width: 375, height: 812 };
 const perfectSize = create(designResolution);
@@ -104,9 +105,11 @@ const AgeInputScreen: React.FC = React.memo(() => {
   useEffect(() => {
     const fetchProfile = async () => {
       setIsFetchingInitialData(true);
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      
+      // Utiliser le helper pour obtenir une session valide
+      const session = await getValidSession();
+      const user = session?.user;
+      
       if (user) {
         try {
           const { data } = await supabase
@@ -195,11 +198,32 @@ const AgeInputScreen: React.FC = React.memo(() => {
 
   const continueAction = async () => {
     if (!validateAge()) return;
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    
+    // Utiliser le helper pour obtenir une session valide
+    const session = await getValidSession();
+    
+    if (!session) {
+      console.error('❌ [AgeInputScreen] Session invalide ou expirée');
+      Alert.alert(
+        'Session expirée', 
+        'Votre session a expiré. Vous allez être redirigé vers la connexion.',
+        [
+          {
+            text: 'OK',
+            onPress: async () => {
+              // Sign out and redirect to login
+              await signOutAndCleanup();
+              // Navigation will be handled by RootNavigator listening to auth state
+            }
+          }
+        ]
+      );
+      return;
+    }
+    
+    const user = session.user;
     if (!user || !user.id) {
-      Alert.alert('Session expired', 'Please log in again.');
+      console.error('❌ [AgeInputScreen] No user in session');
       return;
     }
     if (!year || !month || !day) {

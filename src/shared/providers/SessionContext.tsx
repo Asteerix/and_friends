@@ -43,6 +43,21 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     // Listen for auth changes with error handling
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
       console.log('[SessionContext] Auth state changed:', _event);
+      
+      // Log session details for debugging
+      if (_event === 'SIGNED_IN' && newSession) {
+        console.log('[SessionContext] User signed in');
+        console.log('  - User ID:', newSession.user.id);
+        console.log('  - Expires at:', new Date(newSession.expires_at! * 1000).toLocaleString());
+      } else if (_event === 'SIGNED_OUT') {
+        console.log('[SessionContext] User signed out');
+      } else if (_event === 'TOKEN_REFRESHED' && newSession) {
+        console.log('[SessionContext] Token refreshed');
+        console.log('  - New expiry:', new Date(newSession.expires_at! * 1000).toLocaleString());
+      } else if (_event === 'USER_UPDATED') {
+        console.log('[SessionContext] User updated');
+      }
+      
       setSession(newSession);
       
       // Reset loading state if it's still true (edge case)

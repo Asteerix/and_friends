@@ -12,12 +12,19 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Alert,
+  ScrollView,
+  Dimensions,
+  AppState,
 } from 'react-native';
 import { create } from 'react-native-pixel-perfect';
 import * as Haptics from 'expo-haptics';
 import { supabase } from '@/shared/lib/supabase/client';
 import { useAuthNavigation } from '@/shared/hooks/useAuthNavigation';
+import { checkOTPRateLimit, recordOTPRequest } from '@/shared/utils/phoneValidation';
+import { recordFailedOTPAttempt, checkBanStatus } from '@/shared/utils/bruteforceProtection';
+import BannedScreen from './BannedScreen';
 
+const { height: H } = Dimensions.get('window');
 const designResolution = { width: 375, height: 812 };
 const perfectSize = create(designResolution);
 
@@ -29,23 +36,111 @@ interface CodeVerificationScreenProps {
 const CodeVerificationScreen: React.FC<CodeVerificationScreenProps> = React.memo(() => {
   const { navigateBack, navigateNext, getProgress } = useAuthNavigation('code-verification');
   const params = useLocalSearchParams<{ phoneNumber: string }>();
-  const phoneNumber = params.phoneNumber || '+33633954893';
+  // Ensure phone number is properly formatted (remove spaces, keep + sign)
+  const phoneNumber = params.phoneNumber?.replace(/\s/g, '');
   const [code, setCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [timeRemaining, setTimeRemaining] = useState(300); // 5 minutes timer
+  const [timerExpiry, setTimerExpiry] = useState<number>(Date.now() + 300000); // Store actual expiry timestamp
+  
+  // If no phone number, redirect back
+  useEffect(() => {
+    if (!phoneNumber) {
+      console.error('❌ [CodeVerificationScreen] No phone number provided');
+      Alert.alert('Erreur', 'Numéro de téléphone manquant', [
+        {
+          text: 'Retour',
+          onPress: () => navigateBack()
+        }
+      ]);
+    }
+  }, [phoneNumber, navigateBack]);
+  const [canResend, setCanResend] = useState(false);
+  const [banStatus, setBanStatus] = useState<any>(null);
   const inputRef = useRef<TextInput>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const appStateRef = useRef(AppState.currentState);
   // Removed auto-save - step is saved when navigating forward from phone verification
 
   const handleBackPress = () => {
     navigateBack();
   };
 
+  // Handle app state changes to maintain timer accuracy
+  useEffect(() => {
+    const handleAppStateChange = (nextAppState: any) => {
+      if (appStateRef.current.match(/inactive|background/) && nextAppState === 'active') {
+        // App has come to foreground - recalculate timer based on actual expiry time
+        const now = Date.now();
+        const remaining = Math.max(0, Math.floor((timerExpiry - now) / 1000));
+        
+        setTimeRemaining(remaining);
+        if (remaining === 0) {
+          setCanResend(true);
+        }
+        
+        // Restart timer if there's time remaining
+        if (remaining > 0) {
+          if (timerRef.current) {
+            clearInterval(timerRef.current);
+          }
+          
+          timerRef.current = setInterval(() => {
+            const currentTime = Date.now();
+            const timeLeft = Math.max(0, Math.floor((timerExpiry - currentTime) / 1000));
+            
+            setTimeRemaining(timeLeft);
+            
+            if (timeLeft === 0) {
+              setCanResend(true);
+              if (timerRef.current) {
+                clearInterval(timerRef.current);
+              }
+            }
+          }, 1000);
+        }
+      }
+      appStateRef.current = nextAppState;
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+
+    return () => {
+      subscription.remove();
+    };
+  }, [timerExpiry]);
+
   useEffect(() => {
     console.log('🔐 [CodeVerificationScreen] Écran chargé');
     console.log('  - Numéro de téléphone:', phoneNumber);
     
+    if (!phoneNumber) {
+      console.error('❌ [CodeVerificationScreen] Aucun numéro de téléphone fourni');
+      Alert.alert('Erreur', 'Numéro de téléphone manquant', [
+        { text: 'Retour', onPress: () => navigateBack() }
+      ]);
+      return;
+    }
+    
     // Test de connexion Supabase
     testSupabaseConnection();
-  }, [phoneNumber]);
+    
+    // Check ban status first
+    checkBanStatusOnMount();
+    
+    // Check rate limit status on mount
+    checkRateLimitStatus();
+    
+    // Start countdown timer
+    startTimer();
+    
+    // Cleanup timer on unmount
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, [phoneNumber, navigateBack]);
 
   const testSupabaseConnection = async () => {
     console.log('🧪 [CodeVerificationScreen] Test de connexion Supabase...');
@@ -62,6 +157,83 @@ const CodeVerificationScreen: React.FC<CodeVerificationScreenProps> = React.memo
       }
     } catch (error) {
       console.error('❌ [CodeVerificationScreen] Erreur test connexion:', error);
+    }
+  };
+
+  const startTimer = () => {
+    const expiryTime = Date.now() + 60000; // 1 minute from now
+    setTimerExpiry(expiryTime);
+    setTimeRemaining(60); // Reset to 1 minute
+    setCanResend(false);
+    
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
+    
+    timerRef.current = setInterval(() => {
+      const now = Date.now();
+      const remaining = Math.max(0, Math.floor((expiryTime - now) / 1000));
+      
+      setTimeRemaining(remaining);
+      
+      if (remaining === 0) {
+        setCanResend(true);
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+        }
+      }
+    }, 1000);
+  };
+  
+  const checkRateLimitStatus = async () => {
+    if (!phoneNumber) return;
+    
+    try {
+      const rateLimit = await checkOTPRateLimit(phoneNumber);
+      
+      if (!rateLimit.canRequest && rateLimit.timeRemainingSeconds) {
+        // Set timer to remaining time from rate limit
+        const remainingTime = Math.min(rateLimit.timeRemainingSeconds, 60); // Max 1 minute
+        setTimeRemaining(remainingTime);
+        setCanResend(false);
+        
+        // Start countdown from remaining time
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+        }
+        
+        const expiryTime = Date.now() + (remainingTime * 1000);
+        setTimerExpiry(expiryTime);
+        
+        timerRef.current = setInterval(() => {
+          const now = Date.now();
+          const remaining = Math.max(0, Math.floor((expiryTime - now) / 1000));
+          
+          setTimeRemaining(remaining);
+          
+          if (remaining === 0) {
+            setCanResend(true);
+            if (timerRef.current) {
+              clearInterval(timerRef.current);
+            }
+          }
+        }, 1000);
+      }
+    } catch (error) {
+      console.error('❌ [CodeVerificationScreen] Erreur vérification rate limit:', error);
+    }
+  };
+  
+  const checkBanStatusOnMount = async () => {
+    if (!phoneNumber) return;
+    
+    try {
+      const ban = await checkBanStatus(phoneNumber);
+      if (ban.isBanned) {
+        setBanStatus(ban);
+      }
+    } catch (error) {
+      console.error('❌ [CodeVerificationScreen] Erreur vérification ban:', error);
     }
   };
 
@@ -115,13 +287,33 @@ const CodeVerificationScreen: React.FC<CodeVerificationScreenProps> = React.memo
         // Save next step before navigating
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          await supabase
+          // First check if profile exists, create if not
+          const { data: profile } = await supabase
             .from('profiles')
-            .update({ 
-              current_registration_step: 'name_input',
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', user.id);
+            .select('id')
+            .eq('id', user.id)
+            .maybeSingle();
+
+          if (!profile) {
+            // Create profile first
+            await supabase
+              .from('profiles')
+              .insert([{ 
+                id: user.id,
+                current_registration_step: 'name_input',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              }]);
+          } else {
+            // Update existing profile
+            await supabase
+              .from('profiles')
+              .update({ 
+                current_registration_step: 'name_input',
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', user.id);
+          }
         }
         
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -131,6 +323,11 @@ const CodeVerificationScreen: React.FC<CodeVerificationScreenProps> = React.memo
       }
       
       // Vérifier l'OTP avec Supabase (production)
+      console.log('📞 [CodeVerificationScreen] Tentative de vérification OTP:');
+      console.log('  - Phone:', phoneNumber);
+      console.log('  - Code:', codeToVerify);
+      console.log('  - Type: sms');
+      
       const { data, error } = await supabase.auth.verifyOtp({
         phone: phoneNumber,
         token: codeToVerify,
@@ -139,16 +336,56 @@ const CodeVerificationScreen: React.FC<CodeVerificationScreenProps> = React.memo
 
       if (error) {
         console.error('❌ [CodeVerificationScreen] Erreur vérification OTP:', error);
+        console.error('  - Error code:', error.code);
+        console.error('  - Error message:', error.message);
+        console.error('  - Error status:', (error as any).status);
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        Alert.alert('Code invalide', error.message || 'Le code entré est incorrect. Veuillez réessayer.', [
-          {
-            text: 'OK',
-            onPress: () => {
-              setCode('');
-              inputRef.current?.focus();
-            },
+        
+        // Record failed attempt
+        const banResult = await recordFailedOTPAttempt(phoneNumber);
+        
+        if (banResult.isBanned) {
+          setBanStatus(banResult);
+          setIsLoading(false);
+          return;
+        }
+        
+        let errorMessage = 'Le code entré est incorrect. Veuillez réessayer.';
+        let actions = [{
+          text: 'OK',
+          onPress: () => {
+            setCode('');
+            inputRef.current?.focus();
           },
-        ]);
+        }];
+        
+        // Handle token expiration specifically
+        if (error.message?.includes('expired') || error.message?.includes('invalid')) {
+          // Check if it's a token format issue or actual expiration
+          if (error.message?.includes('Token format')) {
+            errorMessage = 'Le code entré est incorrect. Veuillez vérifier et réessayer.';
+          } else {
+            errorMessage = 'Le code a expiré ou est invalide. Veuillez demander un nouveau code.';
+          }
+          
+          if (canResend) {
+            actions = [
+              {
+                text: 'Annuler',
+                onPress: () => {
+                  setCode('');
+                  inputRef.current?.focus();
+                },
+              },
+              {
+                text: 'Renvoyer le code',
+                onPress: handleResendCode,
+              },
+            ];
+          }
+        }
+        
+        Alert.alert('Code invalide', errorMessage, actions);
         setIsLoading(false);
         return;
       }
@@ -170,13 +407,33 @@ const CodeVerificationScreen: React.FC<CodeVerificationScreenProps> = React.memo
       // Save next step before navigating
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        await supabase
+        // First check if profile exists, create if not
+        const { data: profile } = await supabase
           .from('profiles')
-          .update({ 
-            current_registration_step: 'name_input',
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', user.id);
+          .select('id')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        if (!profile) {
+          // Create profile first
+          await supabase
+            .from('profiles')
+            .insert([{ 
+              id: user.id,
+              current_registration_step: 'name_input',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            }]);
+        } else {
+          // Update existing profile
+          await supabase
+            .from('profiles')
+            .update({ 
+              current_registration_step: 'name_input',
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', user.id);
+        }
       }
       
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -202,88 +459,178 @@ const CodeVerificationScreen: React.FC<CodeVerificationScreenProps> = React.memo
     await verifyCode(code);
   };
 
-  const handleResendCode = () => {
-    Alert.alert('Code Resent', 'A new verification code has been sent to your phone.', [
-      { text: 'OK' },
-    ]);
+  const handleResendCode = async () => {
+    if (!canResend) return;
+    
+    setIsLoading(true);
+    setCode('');
+    
+    try {
+      console.log('📱 [CodeVerificationScreen] Vérification rate limit pour:', phoneNumber);
+      
+      // Check rate limit before resending
+      const rateLimit = await checkOTPRateLimit(phoneNumber);
+      
+      if (!rateLimit.canRequest) {
+        const secondsRemaining = rateLimit.timeRemainingSeconds || 60;
+        const displayTime = secondsRemaining > 60 
+          ? `${Math.ceil(secondsRemaining / 60)} minute${Math.ceil(secondsRemaining / 60) > 1 ? 's' : ''}`
+          : `${secondsRemaining} secondes`;
+        
+        Alert.alert(
+          'Trop de demandes',
+          `Veuillez attendre ${displayTime} avant de demander un nouveau code.`,
+          [{ text: 'OK' }]
+        );
+        setIsLoading(false);
+        return;
+      }
+      
+      // Record the new OTP request
+      const recordResult = await recordOTPRequest(phoneNumber);
+      
+      if (!recordResult.success) {
+        Alert.alert('Erreur', recordResult.message);
+        setIsLoading(false);
+        return;
+      }
+      
+      console.log('📱 [CodeVerificationScreen] Renvoi OTP à:', phoneNumber);
+      
+      const { error } = await supabase.auth.signInWithOtp({
+        phone: phoneNumber,
+      });
+
+      if (error) {
+        console.error('❌ [CodeVerificationScreen] Erreur renvoi OTP:', error);
+        Alert.alert('Erreur', error.message || 'Impossible de renvoyer le code.');
+      } else {
+        console.log('✅ [CodeVerificationScreen] OTP renvoyé avec succès');
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        
+        // Restart timer
+        startTimer();
+        
+        Alert.alert('Code renvoyé', 'Un nouveau code de vérification a été envoyé.', [
+          { text: 'OK' },
+        ]);
+      }
+    } catch (error) {
+      console.error('❌ [CodeVerificationScreen] Erreur inattendue:', error);
+      Alert.alert('Erreur', 'Une erreur inattendue s\'est produite.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
+  // Show banned screen if banned
+  if (banStatus && banStatus.isBanned) {
+    return <BannedScreen banStatus={banStatus} />;
+  }
+  
   return (
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.container}
+        style={styles.keyboardAvoidingView}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
-        <View style={styles.header}>
-          <TouchableOpacity onPress={handleBackPress} accessibilityLabel="Go back">
-            <Feather name="arrow-left" size={perfectSize(24)} color="#007AFF" />
-          </TouchableOpacity>
-          <View style={styles.progressBar}>
-            <View style={[styles.progress, { width: `${getProgress() * 100}%` }]} />
-          </View>
-        </View>
-
-        <View style={styles.content}>
-          <Text style={styles.title}>
-            And we are <Text style={styles.titleItalic}>almost there</Text>
-          </Text>
-          <Text style={styles.subtitle}>Enter the 6-digit code below sent to {phoneNumber}.</Text>
-
-          <TouchableOpacity
-            style={styles.codeContainer}
-            onPress={handlePress}
-            activeOpacity={1}
-            accessibilityLabel="Enter 6-digit code"
-          >
-            {Array.from({ length: 6 }).map((_, index) => (
-              <View key={index} style={styles.codeBox}>
-                <Text style={styles.codeText}>{code[index] || '-'}</Text>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollViewContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          bounces={false}
+        >
+          <View style={styles.container}>
+            <View style={styles.header}>
+              <TouchableOpacity onPress={handleBackPress} accessibilityLabel="Go back">
+                <Feather name="arrow-left" size={perfectSize(24)} color="#007AFF" />
+              </TouchableOpacity>
+              <View style={styles.progressBar}>
+                <View style={[styles.progress, { width: `${getProgress() * 100}%` }]} />
               </View>
-            ))}
-            <TextInput
-              ref={inputRef}
-              style={styles.hiddenInput}
-              value={code}
-              onChangeText={handleCodeChange}
-              keyboardType="number-pad"
-              maxLength={6}
-              caretHidden
-              textContentType="oneTimeCode"
-              autoFocus
-            />
-          </TouchableOpacity>
+            </View>
 
-          <View style={styles.imageContainer}>
-            <Image
-              source={require('@/assets/images/register/code-verification.png')}
-              style={styles.illustration}
-              resizeMode="contain"
-            />
+            <View style={styles.content}>
+              <Text style={styles.title}>
+                And we are <Text style={styles.titleItalic}>almost there</Text>
+              </Text>
+              <Text style={styles.subtitle}>Enter the 6-digit code below sent to {phoneNumber}.</Text>
+              {timeRemaining > 0 && (
+                <Text style={styles.timerText}>
+                  Code expire dans {Math.floor(timeRemaining / 60)}:{(timeRemaining % 60).toString().padStart(2, '0')}
+                </Text>
+              )}
+              {timeRemaining === 0 && (
+                <Text style={styles.expiredText}>
+                  Code expiré - Veuillez renvoyer un nouveau code
+                </Text>
+              )}
+
+              <TouchableOpacity
+                style={styles.codeContainer}
+                onPress={handlePress}
+                activeOpacity={1}
+                accessibilityLabel="Enter 6-digit code"
+              >
+                {Array.from({ length: 6 }).map((_, index) => (
+                  <View key={index} style={styles.codeBox}>
+                    <Text style={styles.codeText}>{code[index] || '-'}</Text>
+                  </View>
+                ))}
+                <TextInput
+                  ref={inputRef}
+                  style={styles.hiddenInput}
+                  value={code}
+                  onChangeText={handleCodeChange}
+                  keyboardType="number-pad"
+                  maxLength={6}
+                  caretHidden
+                  textContentType="oneTimeCode"
+                  autoFocus
+                />
+              </TouchableOpacity>
+
+              <View style={styles.imageContainer}>
+                <Image
+                  source={require('@/assets/images/register/code-verification.png')}
+                  style={styles.illustration}
+                  resizeMode="contain"
+                />
+              </View>
+            </View>
+
+            <View style={styles.footer}>
+              <TouchableOpacity
+                style={[
+                  styles.continueButton,
+                  (!code || code.length !== 6 || isLoading) && styles.buttonDisabled,
+                ]}
+                onPress={handleContinue}
+                disabled={!code || code.length !== 6 || isLoading}
+                accessibilityRole="button"
+                accessibilityLabel="Continue"
+                activeOpacity={0.8}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Text style={styles.continueButtonText}>{isLoading ? 'Vérification...' : 'Continue'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.resendButton, !canResend && styles.resendButtonDisabled]}
+                onPress={handleResendCode}
+                disabled={!canResend || isLoading}
+                accessibilityRole="button"
+                accessibilityLabel="Resend code"
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Text style={[styles.resendButtonText, !canResend && styles.resendButtonTextDisabled]}>
+                  {canResend ? 'Renvoyer le code' : `Renvoyer dans ${timeRemaining}s`}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-
-        <View style={styles.footer}>
-          <TouchableOpacity
-            style={[
-              styles.continueButton,
-              (!code || code.length !== 6 || isLoading) && styles.buttonDisabled,
-            ]}
-            onPress={handleContinue}
-            disabled={!code || code.length !== 6 || isLoading}
-            accessibilityRole="button"
-            accessibilityLabel="Continue"
-          >
-            <Text style={styles.continueButtonText}>Continue</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.resendButton}
-            onPress={handleResendCode}
-            accessibilityRole="button"
-            accessibilityLabel="Resend code"
-          >
-            <Text style={styles.resendButtonText}>Resend Code</Text>
-          </TouchableOpacity>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -293,6 +640,15 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+  },
+  keyboardAvoidingView: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollViewContent: {
+    flexGrow: 1,
   },
   container: {
     flex: 1,
@@ -318,8 +674,8 @@ const styles = StyleSheet.create({
     borderRadius: perfectSize(2),
   },
   content: {
-    flex: 1,
     alignItems: 'center',
+    paddingTop: perfectSize(20),
   },
   title: {
     fontSize: perfectSize(34),
@@ -367,22 +723,27 @@ const styles = StyleSheet.create({
     opacity: 0,
   },
   imageContainer: {
-    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     width: '100%',
+    marginTop: perfectSize(30),
+    marginBottom: perfectSize(30),
+    minHeight: perfectSize(200),
   },
   illustration: {
-    width: perfectSize(250),
-    height: perfectSize(250),
+    width: perfectSize(220),
+    height: perfectSize(220),
+    maxHeight: H * 0.25,
   },
   footer: {
+    marginTop: perfectSize(20),
     paddingBottom: perfectSize(34),
   },
   continueButton: {
     backgroundColor: '#007AFF',
     borderRadius: perfectSize(14),
     height: perfectSize(56),
+    minHeight: 56,
     justifyContent: 'center',
     alignItems: 'center',
     ...Platform.select({
@@ -412,6 +773,24 @@ const styles = StyleSheet.create({
   resendButtonText: {
     color: '#007AFF',
     fontSize: perfectSize(16),
+  },
+  resendButtonDisabled: {
+    opacity: 0.5,
+  },
+  resendButtonTextDisabled: {
+    color: '#8E8E93',
+  },
+  timerText: {
+    fontSize: perfectSize(14),
+    color: '#8E8E93',
+    marginTop: perfectSize(8),
+    textAlign: 'center',
+  },
+  expiredText: {
+    fontSize: perfectSize(14),
+    color: '#FF3B30',
+    marginTop: perfectSize(8),
+    textAlign: 'center',
   },
 });
 

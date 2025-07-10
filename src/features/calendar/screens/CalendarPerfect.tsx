@@ -27,6 +27,25 @@ const { width } = Dimensions.get('window');
 const designResolution = { width: 375, height: 812 };
 const perfectSize = create(designResolution);
 
+// Category configuration
+const getCategoryConfig = (category?: string) => {
+  const configs: Record<string, { icon: string; color: string; label: string }> = {
+    party: { icon: 'musical-notes', color: '#FF2D55', label: 'Party' },
+    casual: { icon: 'cafe', color: '#FF9500', label: 'Casual' },
+    celebration: { icon: 'gift', color: '#AF52DE', label: 'Celebration' },
+    sports: { icon: 'football', color: '#34C759', label: 'Sports' },
+    music: { icon: 'musical-note', color: '#FF3B30', label: 'Music' },
+    food: { icon: 'restaurant', color: '#FF6000', label: 'Food' },
+    outdoor: { icon: 'leaf', color: '#00C7BE', label: 'Outdoor' },
+    culture: { icon: 'library', color: '#5856D6', label: 'Culture' },
+    networking: { icon: 'people', color: '#007AFF', label: 'Networking' },
+    education: { icon: 'school', color: '#32ADE6', label: 'Education' },
+    other: { icon: 'ellipsis-horizontal', color: '#8E8E93', label: 'Other' },
+  };
+  
+  return configs[category || 'other'] || configs.other;
+};
+
 // Time-based background images
 const getTimeBasedBackground = (): ImageSourcePropType => {
   const hour = new Date().getHours();
@@ -53,6 +72,7 @@ interface CalendarEvent {
   participants?: any[];
   participants_count?: number;
   cover_image?: string;
+  category?: string;
 }
 
 export default function CalendarPerfect() {
@@ -122,7 +142,8 @@ export default function CalendarPerfect() {
             date,
             location,
             cover_image,
-            created_by
+            created_by,
+            category
           )
         `
         )
@@ -140,6 +161,7 @@ export default function CalendarPerfect() {
           date: p.events.date,
           location: p.events.location,
           cover_image: p.events.cover_image,
+          category: p.events.category,
           participants: [],
           participants_count: 0,
         })) || [];
@@ -390,37 +412,54 @@ export default function CalendarPerfect() {
                       key={event.id}
                       style={styles.eventCell}
                       onPress={() => router.push(`/screens/event-details?eventId=${event.id}`)}
-                      activeOpacity={0.7}
+                      activeOpacity={0.9}
                     >
                       {/* Event Image */}
                       <View style={styles.eventImageContainer}>
                         {event.cover_image ? (
-                          <View style={styles.eventImage}>{/* Image would go here */}</View>
+                          <Image
+                            source={{ uri: event.cover_image }}
+                            style={styles.eventImage}
+                            resizeMode="cover"
+                          />
                         ) : (
                           <View style={styles.eventImagePlaceholder}>
-                            {/* Checkerboard pattern */}
-                            {[...Array(16)].map((_, i) => (
-                              <View
-                                key={i}
-                                style={[
-                                  styles.checkerSquare,
-                                  i % 2 === Math.floor(i / 4) % 2 && styles.checkerSquareDark,
-                                ]}
-                              />
-                            ))}
+                            <Ionicons name="calendar" size={28} color="#C7C7CC" />
                           </View>
                         )}
                       </View>
 
                       {/* Event Info */}
                       <View style={styles.eventInfo}>
-                        <Text style={styles.eventTitle} numberOfLines={1}>
-                          {event.title}
-                        </Text>
-                        <Text style={styles.eventDateTime}>
-                          {date}, {time}
-                        </Text>
-                        <Text style={styles.eventLocation}>{event.location || 'Location TBD'}</Text>
+                        <View style={styles.eventHeader}>
+                          <Text style={styles.eventTitle} numberOfLines={1}>
+                            {event.title}
+                          </Text>
+                          {event.category && (
+                            <View style={[styles.categoryBadge, { backgroundColor: getCategoryConfig(event.category).color + '20' }]}>
+                              <Ionicons 
+                                name={getCategoryConfig(event.category).icon as any} 
+                                size={12} 
+                                color={getCategoryConfig(event.category).color} 
+                              />
+                              <Text style={[styles.categoryText, { color: getCategoryConfig(event.category).color }]}>
+                                {getCategoryConfig(event.category).label}
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+                        <View style={styles.eventDetails}>
+                          <View style={styles.detailRow}>
+                            <Ionicons name="calendar-outline" size={14} color="#6E6E73" />
+                            <Text style={styles.eventDateTime}>
+                              {date}, {time}
+                            </Text>
+                          </View>
+                          <View style={styles.detailRow}>
+                            <Ionicons name="location-outline" size={14} color="#6E6E73" />
+                            <Text style={styles.eventLocation}>{event.location || 'Location TBD'}</Text>
+                          </View>
+                        </View>
 
                         {/* Participants */}
                         <View style={styles.participantsRow}>
@@ -428,13 +467,26 @@ export default function CalendarPerfect() {
                             {event.participants
                               ?.slice(0, 4)
                               .map((participant, index) => (
-                                <View
-                                  key={participant.id}
-                                  style={[
-                                    styles.avatar,
-                                    { marginLeft: index > 0 ? -8 : 0, zIndex: 4 - index },
-                                  ]}
-                                />
+                                participant.avatar_url ? (
+                                  <Image
+                                    key={participant.id}
+                                    source={{ uri: participant.avatar_url }}
+                                    style={[
+                                      styles.avatar,
+                                      { marginLeft: index > 0 ? -8 : 0, zIndex: 4 - index },
+                                    ]}
+                                  />
+                                ) : (
+                                  <View
+                                    key={participant.id}
+                                    style={[
+                                      styles.avatar,
+                                      { marginLeft: index > 0 ? -8 : 0, zIndex: 4 - index },
+                                    ]}
+                                  >
+                                    <Ionicons name="person" size={12} color="#666" />
+                                  </View>
+                                )
                               ))}
                           </View>
                           {event.participants_count && event.participants_count > 0 && (
@@ -558,33 +610,54 @@ export default function CalendarPerfect() {
                       key={event.id}
                       style={styles.eventCell}
                       onPress={() => router.push(`/screens/event-details?eventId=${event.id}`)}
-                      activeOpacity={0.7}
+                      activeOpacity={0.9}
                     >
                       {/* Event Image */}
                       <View style={styles.eventImageContainer}>
-                        <View style={styles.eventImagePlaceholder}>
-                          {/* Checkerboard pattern */}
-                          {[...Array(16)].map((_, i) => (
-                            <View
-                              key={i}
-                              style={[
-                                styles.checkerSquare,
-                                i % 2 === Math.floor(i / 4) % 2 && styles.checkerSquareDark,
-                              ]}
-                            />
-                          ))}
-                        </View>
+                        {event.cover_image ? (
+                          <Image
+                            source={{ uri: event.cover_image }}
+                            style={styles.eventImage}
+                            resizeMode="cover"
+                          />
+                        ) : (
+                          <View style={styles.eventImagePlaceholder}>
+                            <Ionicons name="calendar" size={28} color="#C7C7CC" />
+                          </View>
+                        )}
                       </View>
 
                       {/* Event Info */}
                       <View style={styles.eventInfo}>
-                        <Text style={styles.eventTitle} numberOfLines={1}>
-                          {event.title}
-                        </Text>
-                        <Text style={styles.eventDateTime}>
-                          {date}, {time}
-                        </Text>
-                        <Text style={styles.eventLocation}>{event.location || 'Location TBD'}</Text>
+                        <View style={styles.eventHeader}>
+                          <Text style={styles.eventTitle} numberOfLines={1}>
+                            {event.title}
+                          </Text>
+                          {event.category && (
+                            <View style={[styles.categoryBadge, { backgroundColor: getCategoryConfig(event.category).color + '20' }]}>
+                              <Ionicons 
+                                name={getCategoryConfig(event.category).icon as any} 
+                                size={12} 
+                                color={getCategoryConfig(event.category).color} 
+                              />
+                              <Text style={[styles.categoryText, { color: getCategoryConfig(event.category).color }]}>
+                                {getCategoryConfig(event.category).label}
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+                        <View style={styles.eventDetails}>
+                          <View style={styles.detailRow}>
+                            <Ionicons name="calendar-outline" size={14} color="#6E6E73" />
+                            <Text style={styles.eventDateTime}>
+                              {date}, {time}
+                            </Text>
+                          </View>
+                          <View style={styles.detailRow}>
+                            <Ionicons name="location-outline" size={14} color="#6E6E73" />
+                            <Text style={styles.eventLocation}>{event.location || 'Location TBD'}</Text>
+                          </View>
+                        </View>
 
                         {/* Participants */}
                         <View style={styles.participantsRow}>
@@ -592,13 +665,26 @@ export default function CalendarPerfect() {
                             {event.participants
                               ?.slice(0, 4)
                               .map((participant, index) => (
-                                <View
-                                  key={participant.id}
-                                  style={[
-                                    styles.avatar,
-                                    { marginLeft: index > 0 ? -8 : 0, zIndex: 4 - index },
-                                  ]}
-                                />
+                                participant.avatar_url ? (
+                                  <Image
+                                    key={participant.id}
+                                    source={{ uri: participant.avatar_url }}
+                                    style={[
+                                      styles.avatar,
+                                      { marginLeft: index > 0 ? -8 : 0, zIndex: 4 - index },
+                                    ]}
+                                  />
+                                ) : (
+                                  <View
+                                    key={participant.id}
+                                    style={[
+                                      styles.avatar,
+                                      { marginLeft: index > 0 ? -8 : 0, zIndex: 4 - index },
+                                    ]}
+                                  >
+                                    <Ionicons name="person" size={12} color="#666" />
+                                  </View>
+                                )
                               ))}
                           </View>
                           {event.participants_count && event.participants_count > 0 && (
@@ -736,13 +822,23 @@ const styles = StyleSheet.create({
   },
   eventsList: {
     paddingBottom: 40,
+    paddingTop: 8,
   },
   eventCell: {
-    height: 80,
     flexDirection: 'row',
-    paddingHorizontal: 20,
-    paddingVertical: 8,
+    marginHorizontal: 20,
+    marginVertical: 8,
+    padding: 12,
     backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
   },
   eventImageContainer: {
     marginRight: 12,
@@ -759,8 +855,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: 'hidden',
     backgroundColor: '#F0F0F0',
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   checkerSquare: {
     width: 16,
@@ -774,23 +870,49 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
   },
+  eventHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 2,
+  },
+  categoryBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+    gap: 4,
+  },
+  categoryText: {
+    fontSize: 11,
+    fontWeight: '600',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'System',
+  },
+  eventDetails: {
+    gap: 4,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   eventTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: '#000000',
-    marginBottom: 2,
+    flex: 1,
+    marginRight: 8,
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'System',
   },
   eventDateTime: {
     fontSize: 13,
     color: '#6E6E73',
-    marginBottom: 2,
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'System',
   },
   eventLocation: {
     fontSize: 13,
     color: '#6E6E73',
-    marginBottom: 6,
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'System',
   },
   participantsRow: {
@@ -808,6 +930,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#E0E0E0',
     borderWidth: 2,
     borderColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   goingText: {
     fontSize: 13,

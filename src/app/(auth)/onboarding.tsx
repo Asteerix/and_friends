@@ -82,7 +82,12 @@ export default function OnboardingScreen() {
           entering={FadeIn.delay(1600).duration(600)}
           style={[styles.buttonContainer, { paddingBottom: insets.bottom + 40 }]}
         >
-          <TouchableOpacity style={styles.button} onPress={handleContinue}>
+          <TouchableOpacity 
+            style={styles.button} 
+            onPress={handleContinue}
+            activeOpacity={0.8}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
             <Text style={styles.buttonText}>Continue</Text>
           </TouchableOpacity>
         </Animated.View>
@@ -135,9 +140,11 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: '#007AFF',
-    paddingVertical: 16,
+    paddingVertical: 18,
     borderRadius: 12,
     alignItems: 'center',
+    minHeight: 56,
+    justifyContent: 'center',
   },
   buttonText: {
     color: '#FFFFFF',

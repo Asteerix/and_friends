@@ -799,6 +799,37 @@ export default function MemoriesScreen() {
     );
   }
 
+  // Empty state
+  if (memories.length === 0) {
+    return (
+      <SafeAreaView style={styles.emptyContainer}>
+        {/* Header with back button */}
+        <View style={styles.emptyHeader}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={28} color="#000" />
+          </TouchableOpacity>
+          <Text style={styles.emptyHeaderTitle}>Memories</Text>
+          <View style={{ width: 44 }} />
+        </View>
+        
+        {/* Empty content */}
+        <View style={styles.emptyContent}>
+          <Text style={styles.emptyEmoji}>📷</Text>
+          <Text style={styles.emptyText}>Aucune memories pour l'instant</Text>
+          <TouchableOpacity 
+            style={styles.refreshButton}
+            onPress={() => {
+              fetchAllMemories();
+            }}
+          >
+            <Ionicons name="refresh" size={20} color="#FFF" />
+            <Text style={styles.refreshButtonText}>Rafraîchir</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <FlatList
@@ -1409,5 +1440,53 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginTop: 8,
     marginBottom: 8,
+  },
+  emptyContainer: {
+    flex: 1,
+    backgroundColor: '#FFF',
+  },
+  emptyHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 20,
+  },
+  emptyHeaderTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#000',
+  },
+  emptyContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  emptyEmoji: {
+    fontSize: 80,
+    marginBottom: 24,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+    textAlign: 'center',
+    marginBottom: 32,
+  },
+  refreshButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 24,
+  },
+  refreshButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFF',
   },
 });

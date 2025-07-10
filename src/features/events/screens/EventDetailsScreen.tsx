@@ -20,6 +20,7 @@ import MapView, { Marker } from 'react-native-maps';
 
 import { useProfile } from '@/hooks/useProfile';
 import { useEventAttendees } from '@/hooks/useEventAttendees';
+import { useRatings } from '@/hooks/useRatings';
 import BackButton from '@/assets/svg/back-button.svg';
 import ChatButton from '@/assets/svg/chat-button.svg';
 import NotificationButton from '@/assets/svg/notification-button.svg';
@@ -99,6 +100,7 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
     unsubscribeFromEventUpdates,
     updateEventExtras,
   } = useEvent();
+  const { getUserRatingStats } = useRatings();
   const [questionResponses, setQuestionResponses] = useState<{ [key: string]: string }>({});
   const [showPriceModal, setShowPriceModal] = useState(false);
   const [itemBringers, setItemBringers] = useState<{ [itemId: string]: string[] }>({});
@@ -122,6 +124,10 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [allQuestionnaireResponses, setAllQuestionnaireResponses] = useState<any[]>([]);
   const [loadingResponses, setLoadingResponses] = useState(false);
+  const [organizerRating, setOrganizerRating] = useState<{
+    average_rating: number;
+    total_ratings: number;
+  } | null>(null);
 
   useEffect(() => {
     if (!eventId) {
@@ -136,6 +142,23 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
       unsubscribeFromEventUpdates();
     };
   }, [eventId]);
+
+  // Load organizer rating when event is loaded
+  useEffect(() => {
+    const loadOrganizerRating = async () => {
+      if (event?.organizer?.id) {
+        const stats = await getUserRatingStats(event.organizer.id);
+        if (stats) {
+          setOrganizerRating({
+            average_rating: stats.average_rating,
+            total_ratings: stats.total_ratings
+          });
+        }
+      }
+    };
+
+    loadOrganizerRating();
+  }, [event?.organizer?.id, getUserRatingStats]);
 
   // Charger les réponses au questionnaire
   const loadQuestionnaireResponses = async () => {
@@ -960,7 +983,7 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                         <Ionicons
                           key={star}
                           name={
-                            star <= Math.floor(event.organizer?.rating || 4.5)
+                            star <= Math.floor(organizerRating?.average_rating || 0)
                               ? 'star'
                               : 'star-outline'
                           }
@@ -969,9 +992,11 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                           style={{ marginRight: 1 }}
                         />
                       ))}
-                      <Text style={styles.hostRatingText}>
-                        {(event.organizer?.rating || 4.5).toFixed(1)} • 127 events
-                      </Text>
+                      {organizerRating && organizerRating.total_ratings > 0 && (
+                        <Text style={styles.hostRatingText}>
+                          {organizerRating.average_rating.toFixed(1)} • {organizerRating.total_ratings} rating{organizerRating.total_ratings > 1 ? 's' : ''}
+                        </Text>
+                      )}
                     </View>
                   </View>
                 </View>

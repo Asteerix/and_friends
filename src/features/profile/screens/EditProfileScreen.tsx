@@ -670,6 +670,13 @@ export default function EditProfileScreen() {
           </View>
           
           <View style={styles.formRow}>
+            <Text style={styles.fieldLabel}>Phone Number</Text>
+            <View style={[styles.textInput, styles.disabledInput]}>
+              <Text style={styles.textInputText}>{profile?.phone || 'No phone number'}</Text>
+            </View>
+          </View>
+          
+          <View style={styles.formRow}>
             <Text style={styles.fieldLabel}>Bio</Text>
             <TextInput
               style={[styles.textInput, styles.bioInput]}

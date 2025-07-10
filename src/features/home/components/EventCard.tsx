@@ -8,6 +8,8 @@ import {
   Platform,
 } from 'react-native';
 import { useResponsive } from '@/shared/hooks/useResponsive';
+import { getCategoryIcon } from '@/features/events/utils/categoryHelpers';
+import EventCoverPreview from '@/features/events/components/EventCoverPreview';
 
 type Props = {
   thumbnail: string;
@@ -17,6 +19,8 @@ type Props = {
   participants: string[];
   goingText: string;
   onPress?: () => void;
+  category?: string;
+  event?: any; // Full event object for cover preview
 };
 
 export default function EventCard({
@@ -27,9 +31,27 @@ export default function EventCard({
   participants,
   goingText,
   onPress,
+  category,
+  event,
 }: Props) {
   const responsive = useResponsive();
   const styles = createStyles(responsive);
+  
+  // Format date to be more readable
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', { 
+        weekday: 'short', 
+        month: 'short', 
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit'
+      });
+    } catch {
+      return dateString;
+    }
+  };
   
   return (
     <TouchableOpacity
@@ -37,12 +59,31 @@ export default function EventCard({
       activeOpacity={0.85}
       style={styles.container}
     >
-      <Image source={{ uri: thumbnail }} style={styles.thumbnail} />
+      <View style={styles.thumbnailContainer}>
+        {event && event.cover_data ? (
+          <EventCoverPreview 
+            event={event}
+            style={styles.thumbnail}
+            showTitle={false}
+            showOverlay={true}
+          />
+        ) : (
+          <Image 
+            source={{ uri: thumbnail || 'https://via.placeholder.com/400x400/f0f0f0/666666?text=Event' }} 
+            style={styles.thumbnail} 
+          />
+        )}
+        {(category || event?.event_category) && (
+          <View style={styles.categoryBadge}>
+            <Text style={styles.categoryIcon}>{getCategoryIcon(category || event?.event_category)}</Text>
+          </View>
+        )}
+      </View>
       <View style={styles.body}>
         <Text style={styles.title} numberOfLines={2}>
           {title}
         </Text>
-        <Text style={styles.date}>{date}</Text>
+        <Text style={styles.date}>{formatDate(date)}</Text>
         <Text style={styles.location} numberOfLines={1}>{location}</Text>
         <View style={styles.participantsRow}>
           <View style={styles.avatarsStack}>
@@ -67,6 +108,9 @@ const createStyles = (responsive: ReturnType<typeof useResponsive>) => StyleShee
     marginBottom: responsive.scaleHeight(16),
     backgroundColor: '#FFF',
   },
+  thumbnailContainer: {
+    position: 'relative',
+  },
   thumbnail: {
     width: responsive.getResponsiveValue({
       small: responsive.width * 0.35,
@@ -77,6 +121,22 @@ const createStyles = (responsive: ReturnType<typeof useResponsive>) => StyleShee
     aspectRatio: 1,
     borderRadius: responsive.scaleWidth(16),
     backgroundColor: '#EEE',
+  },
+  categoryBadge: {
+    position: 'absolute',
+    top: responsive.scaleHeight(8),
+    right: responsive.scaleWidth(8),
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: responsive.scaleWidth(12),
+    padding: responsive.scaleWidth(6),
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  categoryIcon: {
+    fontSize: responsive.scaleFontSize(20),
   },
   body: {
     flex: 1,

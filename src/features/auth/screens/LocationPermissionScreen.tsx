@@ -38,7 +38,7 @@ const LocationPermissionScreen: React.FC = React.memo(() => {
         current_registration_step: 'age_input',
       })
       .eq('id', (await supabase.auth.getUser()).data.user?.id);
-    navigateNext('age-input');
+    navigateNext('location-picker');
     setIsLoading(false);
   };
 
@@ -52,7 +52,7 @@ const LocationPermissionScreen: React.FC = React.memo(() => {
         current_registration_step: 'age_input',
       })
       .eq('id', (await supabase.auth.getUser()).data.user?.id);
-    navigateNext('age-input');
+    navigateNext('location-picker');
     setIsLoading(false);
   };
 

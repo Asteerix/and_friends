@@ -32,7 +32,7 @@ const ContactsPermissionScreen: React.FC = React.memo(() => {
         await updateProfile({
           contacts_permission_status: 'granted',
         });
-        navigateNext('location-permission');
+        navigateNext('contacts-friends');
       } else {
         Alert.alert(
           'Permission Denied',

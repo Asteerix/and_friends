@@ -13,8 +13,13 @@ import StoriesStrip from '@/features/stories/components/StoriesStrip';
 import { useEventsAdvanced } from '@/hooks/useEventsAdvanced';
 import { useProfile } from '@/hooks/useProfile';
 import { useOnboardingStatus } from '@/hooks/useOnboardingStatus';
+import { EVENT_CATEGORIES } from '@/features/events/utils/categoryHelpers';
+import { usePendingFriendRequests } from '@/shared/hooks/usePendingFriendRequests';
 
-const CATEGORIES = ['All', 'Sports', 'Music', 'Arts', 'Food', 'Gaming'];
+const CATEGORIES = [
+  { id: 'all', label: 'All' },
+  ...EVENT_CATEGORIES.slice(0, 6) // Take first 6 categories
+];
 
 // Sample event images for demo
 // const EVENT_IMAGES = [
@@ -29,8 +34,101 @@ const HomeScreen = () => {
   const router = useRouter();
   const [activeCategory, setActiveCategory] = useState(0);
   const { events = [], loading: eventsLoading } = useEventsAdvanced();
-  const { loading: profileLoading } = useProfile();
+  const { profile, loading: profileLoading } = useProfile();
   const { currentStep, isComplete, loading: onboardingLoading } = useOnboardingStatus();
+  
+  // Process any pending friend requests from ContactsFriendsScreen
+  usePendingFriendRequests();
+
+  // Filter events by category
+  const filteredEvents = events.filter(event => {
+    if (activeCategory === 0) return true; // Show all
+    const selectedCategory = CATEGORIES[activeCategory];
+    return event.event_category === selectedCategory.id;
+  });
+
+  // Get events user is going to - ONLY events where user has confirmed participation
+  const userGoingEvents = events.filter(event => event.user_status === 'going');
+  
+  // Get events based on interests using user's profile data
+  const getInterestBasedEvents = () => {
+    if (!profile) return [];
+    
+    const userInterests = [
+      ...(profile.interests || []),
+      ...(profile.hobbies || []),
+      profile.jam_preference,
+      profile.restaurant_preference,
+      profile.path
+    ].filter(Boolean).map(i => i?.toLowerCase());
+    
+    // Score events based on interest matching
+    const scoredEvents = events.map(event => {
+      let score = 0;
+      
+      // Check category match
+      if (event.event_category && userInterests.some(interest => 
+        event.event_category.toLowerCase().includes(interest) ||
+        interest.includes(event.event_category.toLowerCase())
+      )) {
+        score += 3;
+      }
+      
+      // Check title/description match
+      const eventText = `${event.title} ${event.description || ''}`.toLowerCase();
+      userInterests.forEach(interest => {
+        if (eventText.includes(interest)) {
+          score += 2;
+        }
+      });
+      
+      // Check tags match
+      if (event.tags) {
+        event.tags.forEach(tag => {
+          if (userInterests.some(interest => 
+            tag.toLowerCase().includes(interest) || 
+            interest.includes(tag.toLowerCase())
+          )) {
+            score += 1;
+          }
+        });
+      }
+      
+      return { ...event, interestScore: score };
+    });
+    
+    // Return top events with score > 0, sorted by score
+    return scoredEvents
+      .filter(e => e.interestScore > 0)
+      .sort((a, b) => b.interestScore - a.interestScore)
+      .slice(0, 3);
+  };
+  
+  const interestEvents = getInterestBasedEvents();
+  
+  // Get events with friends going - ONLY show if user has friends attending
+  const getFriendsEvents = () => {
+    // For now, we'll check if there are participants that aren't the current user
+    // In a real app, this would check against the user's friends list
+    return events.filter(event => {
+      // Skip if user is already going
+      if (event.user_status === 'going') return false;
+      
+      // Check if there are other participants (potential friends)
+      const hasOtherParticipants = event.participants && 
+        event.participants.length > 0 &&
+        event.participants.some(p => p.id !== profile?.id);
+      
+      return hasOtherParticipants && (event.participants_count || 0) > 0;
+    }).sort((a, b) => (b.participants_count || 0) - (a.participants_count || 0))
+      .slice(0, 3);
+  };
+  
+  const friendsEvents = getFriendsEvents();
+  
+  // Sort all events by participant count (biggest first)
+  const allEventsSorted = filteredEvents
+    .sort((a, b) => (b.participants_count || 0) - (a.participants_count || 0));
 
   // Redirection onboarding si nécessaire
   useEffect(() => {
@@ -88,13 +186,13 @@ const HomeScreen = () => {
           >
         <SearchBar />
         <CategoryTabs
-          categories={CATEGORIES}
+          categories={CATEGORIES.map(cat => cat.label)}
           activeIndex={activeCategory}
           onPress={setActiveCategory}
         />
         <MiniMap />
-        <SectionHeader title="All Events" onViewAll={() => {}} />
-        {events.slice(0, 2).map((event) => (
+        <SectionHeader title="All Events" onViewAll={() => router.push('/events-list?section=all')} />
+        {allEventsSorted.slice(0, 2).map((event) => (
           <EventCard
             key={`all-${event.id}`}
             title={event.title}
@@ -105,12 +203,16 @@ const HomeScreen = () => {
               (p) =>
                 p.avatar_url || `https://i.pravatar.cc/150?img=${Math.floor(Math.random() * 70)}`
             )}
-            goingText={`+${event.participants_count || 10} going`}
+            goingText={`+${event.participants_count || 0} going`}
             onPress={() => handleEventPress(event.id)}
+            category={event.event_category}
+            event={event}
           />
         ))}
-        <SectionHeader title="Based on Your Interests" onViewAll={() => {}} />
-        {events.slice(0, 3).map((event) => (
+        {interestEvents.length > 0 && (
+          <>
+            <SectionHeader title="Based on Your Interests" onViewAll={() => router.push('/events-list?section=interests')} />
+            {interestEvents.map((event) => (
           <EventCard
             key={`interest-${event.id}`}
             title={event.title}
@@ -121,12 +223,18 @@ const HomeScreen = () => {
               (p) =>
                 p.avatar_url || `https://i.pravatar.cc/150?img=${Math.floor(Math.random() * 70)}`
             )}
-            goingText={`+${event.participants_count || 10} going`}
+            goingText={`+${event.participants_count || 0} going`}
             onPress={() => handleEventPress(event.id)}
+            category={event.event_category}
+            event={event}
           />
         ))}
-        <SectionHeader title="Your Friends Are Going To" onViewAll={() => {}} />
-        {events.slice(0, 2).map((event) => (
+          </>
+        )}
+        {friendsEvents.length > 0 && (
+          <>
+            <SectionHeader title="Your Friends Are Going To" onViewAll={() => router.push('/events-list?section=friends')} />
+            {friendsEvents.slice(0, 2).map((event) => (
           <EventCard
             key={`friends-${event.id}`}
             title={event.title}
@@ -137,12 +245,18 @@ const HomeScreen = () => {
               (p) =>
                 p.avatar_url || `https://i.pravatar.cc/150?img=${Math.floor(Math.random() * 70)}`
             )}
-            goingText={`+${event.participants_count || 10} going`}
+            goingText={`+${event.participants_count || 0} going`}
             onPress={() => handleEventPress(event.id)}
+            category={event.event_category}
+            event={event}
           />
         ))}
-        <SectionHeader title="Events You Are Going To" onViewAll={() => {}} />
-        {events.slice(0, 2).map((event) => (
+          </>
+        )}
+        {userGoingEvents.length > 0 && (
+          <>
+            <SectionHeader title="Events You Are Going To" onViewAll={() => router.push('/events-list?section=going')} />
+            {userGoingEvents.slice(0, 2).map((event) => (
           <EventCard
             key={`going-${event.id}`}
             title={event.title}
@@ -153,10 +267,14 @@ const HomeScreen = () => {
               (p) =>
                 p.avatar_url || `https://i.pravatar.cc/150?img=${Math.floor(Math.random() * 70)}`
             )}
-            goingText={`+${event.participants_count || 10} going`}
+            goingText={`+${event.participants_count || 0} going`}
             onPress={() => handleEventPress(event.id)}
+            category={event.event_category}
+            event={event}
           />
         ))}
+          </>
+        )}
             <View style={{ height: 100 }} />
           </ScrollView>
         </View>

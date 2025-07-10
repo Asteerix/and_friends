@@ -31,8 +31,14 @@ const ChatScreen: React.FC = React.memo(() => {
   const [search, setSearch] = React.useState('');
 
   // Organisation des chats par catégorie
-  const circles = useMemo(() => chats.filter((c) => c.is_group && !c.event_id), [chats]);
-  const events = useMemo(() => chats.filter((c) => !!c.event_id), [chats]);
+  const circles = useMemo(() => chats.filter((c) => {
+    // Les groupes incluent les chats d'événements annulés (qui ont "(annulé)" dans le nom)
+    return c.is_group && (!c.event_id || c.name?.includes('(annulé)'));
+  }), [chats]);
+  const events = useMemo(() => chats.filter((c) => {
+    // Seulement les chats d'événements actifs
+    return !!c.event_id && !c.name?.includes('(annulé)');
+  }), [chats]);
   const friends = useMemo(() => chats.filter((c) => !c.is_group && !c.event_id), [chats]);
 
   // Filtrage par recherche
@@ -46,7 +52,7 @@ const ChatScreen: React.FC = React.memo(() => {
   // Mapping vers ChatCardProps
   const mapCircle = (c: any): ChatCardProps => ({
     type: 'group',
-    color: '#FF4B6E', // TODO: couleur dynamique si dispo
+    color: c.name?.includes('(annulé)') ? '#9CA3AF' : '#FF4B6E', // Gris pour les événements annulés
     title: c.name || 'Group',
     subtitle: c.last_message?.content || 'No messages yet',
     timestamp: c.last_message?.created_at
@@ -90,7 +96,7 @@ const ChatScreen: React.FC = React.memo(() => {
           accessibilityLabel="Go back"
           onPress={() => router.back()}
         >
-          <BackButton width={perfectSize(22)} height={perfectSize(22)} />
+          <BackButton width={perfectSize(22)} height={perfectSize(22)} fill="#000" color="#000" stroke="#000" />
         </TouchableOpacity>
         <View style={styles.headerTitleWrapper} pointerEvents="none">
           <Text style={styles.headerTitle} accessibilityRole="header" accessibilityLabel="Chat">

@@ -20,6 +20,10 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { supabase } from '@/shared/lib/supabase/client';
 import { Alert } from 'react-native';
 import { useAuthNavigation } from '@/shared/hooks/useAuthNavigation';
+import { validatePhoneNumber, checkOTPRateLimit, recordOTPRequest } from '@/shared/utils/phoneValidation';
+import { checkBanStatus } from '@/shared/utils/bruteforceProtection';
+import { storeLastPhoneNumber } from '@/shared/hooks/useBanProtection';
+import { sendOTPWithRetry, validatePhoneNumber as validatePhone, showSMSTroubleshootingDialog } from '@/shared/utils/otpHelpers';
 
 const { height: H } = Dimensions.get('window');
 const designResolution = { width: 375, height: 812 };
@@ -111,53 +115,139 @@ const PhoneVerificationScreen: React.FC<PhoneVerificationScreenProps> = React.me
     setIsLoading(true);
     
     try {
-      // Formater le numéro de téléphone avec le code pays
-      const cleanedPhone = phoneNumber.replace(/\s+/g, '').replace(/^0/, '');
-      const fullPhoneNumber = `+${selectedCountry.callingCode}${cleanedPhone}`;
+      // Validate phone number format
+      const validation = validatePhoneNumber(phoneNumber, selectedCountry.code);
       
-      console.log('📱 [PhoneVerification] Envoi OTP à:', fullPhoneNumber);
+      if (!validation.isValid) {
+        Alert.alert('Numéro invalide', validation.error || 'Format de numéro incorrect');
+        setIsLoading(false);
+        return;
+      }
       
-      // Envoyer l'OTP via Supabase
-      const { data, error } = await supabase.auth.signInWithOtp({
+      const fullPhoneNumber = validation.formattedNumber!;
+      console.log('📱 [PhoneVerification] Numéro validé:', fullPhoneNumber);
+      
+      // Check if phone number is banned
+      const banStatus = await checkBanStatus(fullPhoneNumber);
+      
+      if (banStatus.isBanned) {
+        // Store phone number for ban checking
+        await storeLastPhoneNumber(fullPhoneNumber);
+        
+        // Navigate to banned screen
+        navigateNext('banned');
+        setIsLoading(false);
+        return;
+      }
+      
+      // Check rate limit before sending OTP
+      const rateLimit = await checkOTPRateLimit(fullPhoneNumber);
+      
+      if (!rateLimit.canRequest) {
+        const secondsRemaining = rateLimit.timeRemainingSeconds || 60;
+        const displayTime = secondsRemaining > 60 
+          ? `${Math.ceil(secondsRemaining / 60)} minute${Math.ceil(secondsRemaining / 60) > 1 ? 's' : ''}`
+          : `${secondsRemaining} secondes`;
+        
+        Alert.alert(
+          'Trop de demandes',
+          `Veuillez attendre ${displayTime} avant de demander un nouveau code.`,
+          [{ text: 'OK' }]
+        );
+        setIsLoading(false);
+        return;
+      }
+      
+      // Record the OTP request for rate limiting
+      const recordResult = await recordOTPRequest(fullPhoneNumber);
+      
+      if (!recordResult.success) {
+        Alert.alert('Erreur', recordResult.message);
+        setIsLoading(false);
+        return;
+      }
+      
+      // Phone format is already validated above, no need to validate again
+      
+      // Envoyer l'OTP avec retry logic
+      console.log('📤 [PhoneVerification] Envoi OTP avec retry...');
+      const result = await sendOTPWithRetry({
         phone: fullPhoneNumber,
+        channel: 'sms',
+        createUser: true
       });
 
-      if (error) {
-        console.error('❌ [PhoneVerification] Erreur envoi OTP:', error);
+      if (!result.success) {
+        console.error('❌ [PhoneVerification] Échec envoi OTP après retries');
         
         // Si c'est une erreur de quota, proposer le mode test
-        if (error.message?.includes('Quota Exceeded')) {
+        if (result.error?.includes('quota') || result.error?.includes('indisponible')) {
           Alert.alert(
-            'Quota SMS dépassé', 
-            'Le quota d\'envoi de SMS est dépassé. En développement, utilisez le numéro +33612345678 avec le code 123456.',
+            'Service temporairement indisponible', 
+            'Le service SMS est temporairement indisponible. Que voulez-vous faire ?',
             [
               {
-                text: 'Utiliser le mode test',
+                text: 'Mode Test',
                 onPress: () => {
-                  setPhoneNumber('612345678');
-                  navigateNext('code-verification');
+                  Alert.alert(
+                    'Mode Test',
+                    'Utilisez:\nNuméro: +33612345678\nCode: 123456',
+                    [
+                      {
+                        text: 'Utiliser',
+                        onPress: () => {
+                          setPhoneNumber('612345678');
+                          navigateNext('code-verification', { phoneNumber: '+33612345678' });
+                        }
+                      },
+                      { text: 'Annuler' }
+                    ]
+                  );
                 }
               },
-              { text: 'Annuler', style: 'cancel' }
+              {
+                text: 'Aide',
+                onPress: showSMSTroubleshootingDialog
+              },
+              { 
+                text: 'Réessayer',
+                onPress: () => handleContinue()
+              }
             ]
           );
         } else {
           Alert.alert(
-            'Erreur', 
-            error.message || 'Impossible d\'envoyer le code. Vérifiez votre numéro.'
+            'Impossible d\'envoyer le SMS', 
+            result.error || 'Vérifiez votre numéro et réessayez.',
+            [
+              {
+                text: 'Aide',
+                onPress: showSMSTroubleshootingDialog
+              },
+              {
+                text: 'OK',
+                style: 'cancel'
+              }
+            ]
           );
         }
       } else {
-        console.log('✅ [PhoneVerification] Réponse Supabase:', data);
+        console.log('✅ [PhoneVerification] OTP envoyé avec succès!');
         
-        // Avec Supabase, l'absence d'erreur signifie que l'OTP a été envoyé
-        // même si data.user et data.session sont null (normal pour signInWithOtp)
-        console.log('✅ [PhoneVerification] OTP envoyé avec succès');
+        // Store phone number for ban checking
+        await storeLastPhoneNumber(fullPhoneNumber);
         
-        // No need to save step here since user is not logged in yet
-        
-        // Naviguer vers l'écran de vérification du code
-        navigateNext('code-verification');
+        // Show success message
+        Alert.alert(
+          'SMS envoyé !', 
+          `Un code de vérification a été envoyé au ${fullPhoneNumber}`,
+          [
+            {
+              text: 'Continuer',
+              onPress: () => navigateNext('code-verification', { phoneNumber: fullPhoneNumber })
+            }
+          ]
+        );
       }
     } catch (error) {
       console.error('❌ [PhoneVerification] Erreur inattendue:', error);
@@ -173,66 +263,87 @@ const PhoneVerificationScreen: React.FC<PhoneVerificationScreenProps> = React.me
       <KeyboardAvoidingView
         style={styles.keyboardAvoidingView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
-        <View style={styles.container}>
-          <View style={styles.header}>
-            <View style={styles.progressContainer}>
-              <View style={[styles.progressBar, { width: `${getProgress() * 100}%` }]} />
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollViewContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          bounces={false}
+        >
+          <View style={styles.container}>
+            <View style={styles.header}>
+              <View style={styles.progressContainer}>
+                <View style={[styles.progressBar, { width: `${getProgress() * 100}%` }]} />
+              </View>
+
+              <Text style={styles.title}>Are you real or something?</Text>
+              <Text style={styles.subtitle}>
+                Let's make sure you're a real one. Enter your phone number to keep things safe.
+              </Text>
             </View>
 
-            <Text style={styles.title}>Are you real or something?</Text>
-            <Text style={styles.subtitle}>
-              Let's make sure you're a real one. Enter your phone number to keep things safe.
-            </Text>
-          </View>
+            <View style={styles.formContainer}>
+              <TouchableOpacity
+                style={styles.inputBox}
+                accessibilityRole="button"
+                accessibilityLabel="Select country"
+                onPress={() => setIsCountryModalVisible(true)}
+              >
+                <Text style={styles.flag}>{selectedCountry.flag}</Text>
+                <Text style={styles.inputText}>{selectedCountry.name}</Text>
+                <Text style={styles.chevron}>▼</Text>
+              </TouchableOpacity>
 
-          <View style={styles.formContainer}>
-            <TouchableOpacity
-              style={styles.inputBox}
-              accessibilityRole="button"
-              accessibilityLabel="Select country"
-              onPress={() => setIsCountryModalVisible(true)}
-            >
-              <Text style={styles.flag}>{selectedCountry.flag}</Text>
-              <Text style={styles.inputText}>{selectedCountry.name}</Text>
-              <Text style={styles.chevron}>▼</Text>
-            </TouchableOpacity>
+              <View style={[styles.inputBox, styles.phoneInputContainer]}>
+                <Text style={styles.countryCode}>+{selectedCountry.callingCode}</Text>
+                <View style={styles.separator} />
+                <TextInput
+                  style={styles.textInput}
+                  placeholder={selectedCountry.placeholder}
+                  placeholderTextColor="#A9A9A9"
+                  keyboardType="phone-pad"
+                  value={phoneNumber}
+                  onChangeText={setPhoneNumber}
+                  accessibilityLabel="Phone number input"
+                  maxLength={15}
+                />
+              </View>
+            </View>
 
-            <View style={[styles.inputBox, styles.phoneInputContainer]}>
-              <Text style={styles.countryCode}>+{selectedCountry.callingCode}</Text>
-              <View style={styles.separator} />
-              <TextInput
-                style={styles.textInput}
-                placeholder={selectedCountry.placeholder}
-                placeholderTextColor="#A9A9A9"
-                keyboardType="phone-pad"
-                value={phoneNumber}
-                onChangeText={setPhoneNumber}
-                accessibilityLabel="Phone number input"
+            <View style={styles.illustrationContainer}>
+              <Image
+                source={require('@/assets/images/register/phone_verification.png')}
+                style={styles.illustration}
+                resizeMode="contain"
               />
             </View>
-          </View>
 
-          <View style={styles.illustrationContainer}>
-            <Image
-              source={require('@/assets/images/register/phone_verification.png')}
-              style={styles.illustration}
-              resizeMode="contain"
-            />
+            <View style={styles.footer}>
+              <TouchableOpacity
+                style={[styles.button, (!phoneNumber.trim() || isLoading) && styles.buttonDisabled]}
+                onPress={handleContinue}
+                disabled={!phoneNumber.trim() || isLoading}
+                accessibilityRole="button"
+                accessibilityLabel="Continue to the next step"
+                activeOpacity={0.8}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Text style={styles.buttonText}>{isLoading ? 'Envoi...' : 'Continue'}</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={styles.helpButton}
+                onPress={showSMSTroubleshootingDialog}
+                accessibilityRole="button"
+                accessibilityLabel="Aide pour la réception des SMS"
+              >
+                <Text style={styles.helpButtonText}>Vous ne recevez pas de SMS ?</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-
-          <View style={styles.footer}>
-            <TouchableOpacity
-              style={[styles.button, (!phoneNumber.trim() || isLoading) && styles.buttonDisabled]}
-              onPress={handleContinue}
-              disabled={!phoneNumber.trim() || isLoading}
-              accessibilityRole="button"
-              accessibilityLabel="Continue to the next step"
-            >
-              <Text style={styles.buttonText}>{isLoading ? 'Envoi...' : 'Continue'}</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
 
       <Modal
@@ -302,6 +413,12 @@ const styles = StyleSheet.create({
   keyboardAvoidingView: {
     flex: 1,
   },
+  scrollView: {
+    flex: 1,
+  },
+  scrollViewContent: {
+    flexGrow: 1,
+  },
   container: {
     flex: 1,
     paddingHorizontal: perfectSize(24),
@@ -313,6 +430,7 @@ const styles = StyleSheet.create({
     marginTop: perfectSize(32),
   },
   footer: {
+    marginTop: perfectSize(20),
     paddingBottom: perfectSize(20),
   },
   progressContainer: {
@@ -390,15 +508,16 @@ const styles = StyleSheet.create({
     color: '#111827',
   },
   illustrationContainer: {
-    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: H * 0.04,
-    marginBottom: H * 0.04,
+    marginTop: perfectSize(30),
+    marginBottom: perfectSize(30),
+    minHeight: perfectSize(180),
   },
   illustration: {
     width: '90%',
-    height: H * 0.25,
+    height: perfectSize(180),
+    maxHeight: H * 0.22,
   },
   button: {
     height: perfectSize(60),
@@ -507,6 +626,17 @@ const styles = StyleSheet.create({
   countryModalItemText: {
     fontSize: perfectSize(17),
     color: '#111827',
+  },
+  helpButton: {
+    marginTop: perfectSize(20),
+    alignItems: 'center',
+    alignSelf: 'center',
+  },
+  helpButtonText: {
+    fontSize: perfectSize(14),
+    color: '#016fff',
+    textDecorationLine: 'underline',
+    textAlign: 'center',
   },
 });
 

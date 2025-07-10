@@ -11,6 +11,9 @@ import {
   Pressable,
   Alert,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  ScrollView,
+  Dimensions,
 } from 'react-native';
 import { create } from 'react-native-pixel-perfect';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -18,6 +21,7 @@ import { supabase } from '@/shared/lib/supabase/client';
 import { useAuthNavigation } from '@/shared/hooks/useAuthNavigation';
 import { useRegistrationStep } from '@/shared/hooks/useRegistrationStep';
 
+const { height: H } = Dimensions.get('window');
 const designResolution = { width: 375, height: 812 };
 const perfectSize = create(designResolution);
 
@@ -96,9 +100,21 @@ const PathInputScreen: React.FC = React.memo(() => {
 
   return (
     <SafeAreaView style={[styles.safe, { paddingTop: insets.top }]}>
-      <View style={styles.container}>
-        {/* Header bar with back arrow and progress */}
-        <View style={styles.headerRow}>
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoidingView}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollViewContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          bounces={false}
+        >
+          <View style={styles.container}>
+            {/* Header bar with back arrow and progress */}
+            <View style={styles.headerRow}>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Go back"
@@ -162,6 +178,7 @@ const PathInputScreen: React.FC = React.memo(() => {
           accessibilityRole="button"
           accessibilityLabel="Continue"
           disabled={isLoading || !value.trim()}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           {isLoading ? (
             <ActivityIndicator color="#fff" />
@@ -169,7 +186,9 @@ const PathInputScreen: React.FC = React.memo(() => {
             <Text style={styles.buttonText}>Continue</Text>
           )}
         </TouchableOpacity>
-      </View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 });
@@ -178,6 +197,15 @@ const styles = StyleSheet.create({
   safe: {
     flex: 1,
     backgroundColor: '#fff',
+  },
+  keyboardAvoidingView: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollViewContent: {
+    flexGrow: 1,
   },
   container: {
     flex: 1,
@@ -255,6 +283,7 @@ const styles = StyleSheet.create({
   illustration: {
     width: perfectSize(260),
     height: perfectSize(220),
+    maxHeight: H * 0.25,
     marginBottom: perfectSize(24),
     marginTop: perfectSize(8),
   },

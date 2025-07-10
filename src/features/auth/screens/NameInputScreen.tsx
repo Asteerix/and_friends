@@ -9,6 +9,9 @@ import {
   KeyboardAvoidingView,
   Image,
   Alert,
+  ScrollView,
+  Dimensions,
+  SafeAreaView,
 } from 'react-native';
 import { create } from 'react-native-pixel-perfect';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,6 +20,7 @@ import { supabase } from '@/shared/lib/supabase/client';
 import { useAuthNavigation } from '@/shared/hooks/useAuthNavigation';
 import { useRegistrationStep } from '@/shared/hooks/useRegistrationStep';
 
+const { height: H } = Dimensions.get('window');
 const designResolution = { width: 375, height: 812 };
 const perfectSize = create(designResolution);
 
@@ -141,16 +145,34 @@ const NameInputScreen: React.FC<NameInputScreenProps> = React.memo(() => {
       
       try {
         // Sauvegarder les données dans le profil
-        const { error } = await updateProfile({
+        console.log('🔄 [NameInputScreen] Mise à jour du profil...');
+        const profileData = {
           full_name: `${firstName.trim()} ${lastName.trim()}`,
           username: handle.trim(),
-        });
+        };
+        console.log('📝 [NameInputScreen] Données à sauvegarder:', profileData);
+        
+        const { data, error } = await updateProfile(profileData);
 
         if (error) {
-          console.error('Erreur lors de la mise à jour du profil:', error);
-          Alert.alert('Erreur', 'Impossible de sauvegarder vos informations. Veuillez réessayer.');
+          console.error('❌ [NameInputScreen] Erreur lors de la mise à jour du profil:', error);
+          Alert.alert('Erreur', `Impossible de sauvegarder vos informations: ${error.message}`);
           setIsSubmitting(false);
           return;
+        }
+        
+        console.log('✅ [NameInputScreen] Profil mis à jour avec succès:', data);
+        
+        // Update registration step
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase
+            .from('profiles')
+            .update({ 
+              current_registration_step: 'avatar_pick',
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', user.id);
         }
 
         // Navigate to the next screen in the auth flow
@@ -164,40 +186,48 @@ const NameInputScreen: React.FC<NameInputScreenProps> = React.memo(() => {
   };
 
   return (
-    <View style={[styles.safeArea, { paddingTop: insets.top }]}>
-      {/* Header Row */}
-      <View style={styles.headerRow}>
-        <TouchableOpacity
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-          style={styles.backButton}
-          onPress={handleBackPress}
-        >
-          <Text style={styles.backArrow}>←</Text>
-        </TouchableOpacity>
-        <View style={styles.progressTrack}>
-          <View style={[styles.progressFill, { width: `${getProgress() * 100}%` }]} />
-        </View>
-      </View>
-
-      {/* Title & Subtitle */}
-      <Text
-        style={styles.title}
-        accessibilityRole="header"
-        accessibilityLabel="What should we call you?"
-      >
-        What should we call <Text style={styles.titleItalic}>you?</Text>
-      </Text>
-      <Text style={styles.subtitle} accessibilityRole="text">
-        Tell us your name and pick a{'\n'}nickname friends can find you with.
-      </Text>
-
-      {/* Inputs */}
+    <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView
-        style={styles.inputsContainer}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={perfectSize(40)}
+        style={styles.keyboardAvoidingView}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollViewContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          bounces={false}
+        >
+          {/* Header Row */}
+          <View style={styles.headerRow}>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Go back"
+              style={styles.backButton}
+              onPress={handleBackPress}
+            >
+              <Text style={styles.backArrow}>←</Text>
+            </TouchableOpacity>
+            <View style={styles.progressTrack}>
+              <View style={[styles.progressFill, { width: `${getProgress() * 100}%` }]} />
+            </View>
+          </View>
+
+          {/* Title & Subtitle */}
+          <Text
+            style={styles.title}
+            accessibilityRole="header"
+            accessibilityLabel="What should we call you?"
+          >
+            What should we call <Text style={styles.titleItalic}>you?</Text>
+          </Text>
+          <Text style={styles.subtitle} accessibilityRole="text">
+            Tell us your name and pick a{'\n'}nickname friends can find you with.
+          </Text>
+
+          {/* Inputs */}
+          <View style={styles.inputsContainer}>
         <View style={styles.inputWrapper}>
           <TextInput
             style={[styles.input, firstNameError ? styles.inputError : undefined]}
@@ -261,36 +291,39 @@ const NameInputScreen: React.FC<NameInputScreenProps> = React.memo(() => {
           />
           {!!handleError && <Text style={styles.errorText}>{handleError}</Text>}
         </View>
+          </View>
+
+          {/* Illustration */}
+          <View
+            style={styles.illustrationContainer}
+            accessible
+            accessibilityLabel="Friends cheers illustration"
+          >
+            <Image
+              source={require('@/assets/images/register/name.png')}
+              style={styles.illustration}
+              resizeMode="contain"
+              accessibilityIgnoresInvertColors
+            />
+          </View>
+
+          {/* Continue Button */}
+          <TouchableOpacity
+            style={[styles.continueButton, !canContinue && { opacity: 0.4 }]}
+            onPress={onContinue}
+            accessibilityRole="button"
+            accessibilityLabel="Continue"
+            activeOpacity={0.8}
+            disabled={!canContinue}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Text style={styles.continueButtonText}>
+              {isSubmitting ? 'Saving...' : 'Continue'}
+            </Text>
+          </TouchableOpacity>
+        </ScrollView>
       </KeyboardAvoidingView>
-
-      {/* Illustration */}
-      <View
-        style={styles.illustrationContainer}
-        accessible
-        accessibilityLabel="Friends cheers illustration"
-      >
-        <Image
-          source={require('@/assets/images/register/name.png')}
-          style={styles.illustration}
-          resizeMode="contain"
-          accessibilityIgnoresInvertColors
-        />
-      </View>
-
-      {/* Continue Button */}
-      <TouchableOpacity
-        style={[styles.continueButton, !canContinue && { opacity: 0.4 }]}
-        onPress={onContinue}
-        accessibilityRole="button"
-        accessibilityLabel="Continue"
-        activeOpacity={0.8}
-        disabled={!canContinue}
-      >
-        <Text style={styles.continueButtonText}>
-          {isSubmitting ? 'Saving...' : 'Continue'}
-        </Text>
-      </TouchableOpacity>
-    </View>
+    </SafeAreaView>
   );
 });
 
@@ -298,6 +331,15 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#fff',
+  },
+  keyboardAvoidingView: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollViewContent: {
+    flexGrow: 1,
     paddingHorizontal: perfectSize(24),
   },
   headerRow: {
@@ -358,6 +400,7 @@ const styles = StyleSheet.create({
   },
   inputsContainer: {
     width: '100%',
+    marginTop: perfectSize(20),
     marginBottom: perfectSize(16),
   },
   inputWrapper: {
@@ -384,15 +427,16 @@ const styles = StyleSheet.create({
     paddingLeft: perfectSize(4),
   },
   illustrationContainer: {
-    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: perfectSize(8),
-    marginBottom: perfectSize(8),
+    marginTop: perfectSize(20),
+    marginBottom: perfectSize(20),
+    minHeight: perfectSize(200),
   },
   illustration: {
     width: perfectSize(280),
     height: perfectSize(180),
+    maxHeight: H * 0.22,
   },
   continueButton: {
     height: perfectSize(60),

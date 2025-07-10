@@ -93,18 +93,46 @@ const NotificationsScreen: React.FC = React.memo(() => {
     if (!notification.read) {
       await markAsRead(notification.id);
     }
-    if (notification.type === 'event_invite' || notification.type === 'rsvp_update') {
-      if (notification.related_event_id) {
-        void router.push(`/screens/event-details?eventId=${notification.related_event_id}`);
-      }
-    } else if (notification.type === 'new_message') {
-      if (notification.related_chat_id) {
-        void router.push(`/screens/conversation?chatId=${notification.related_chat_id}`);
-      }
-    } else if (notification.type === 'friend_request' || notification.type === 'friend_accepted') {
-      if (notification.related_user_id) {
-        void router.push(`/screens/person-card?userId=${notification.related_user_id}`);
-      }
+    
+    // Navigate based on notification type
+    switch (notification.type) {
+      case 'event_invite':
+      case 'event_join':
+      case 'event_accepted':
+      case 'event_removed':
+      case 'rsvp_update':
+        if (notification.related_event_id) {
+          void router.push(`/screens/event-details?eventId=${notification.related_event_id}`);
+        }
+        break;
+        
+      case 'new_message':
+        if (notification.related_chat_id) {
+          void router.push(`/screens/conversation?chatId=${notification.related_chat_id}`);
+        }
+        break;
+        
+      case 'friend_request':
+      case 'friend_accepted':
+      case 'new_rating':
+        if (notification.related_user_id) {
+          void router.push(`/screens/person-card?userId=${notification.related_user_id}`);
+        }
+        break;
+        
+      case 'story_like':
+      case 'story_comment':
+        // Navigate to memories/stories screen
+        if (notification.data && (notification.data as any).story_id) {
+          void router.push(`/memories?storyId=${(notification.data as any).story_id}`);
+        } else {
+          void router.push('/memories');
+        }
+        break;
+        
+      default:
+        // Stay on notifications screen
+        break;
     }
   };
 
