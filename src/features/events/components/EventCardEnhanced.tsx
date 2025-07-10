@@ -31,6 +31,7 @@ interface EventCardEnhancedProps {
     participants_count?: number;
     is_private?: boolean;
     distance?: number;
+    playlists?: Array<{ id: string; playlist_name?: string; spotify_link?: string; }>;
   };
   onPress?: () => void;
   size?: 'small' | 'medium' | 'large';
@@ -147,6 +148,13 @@ export default function EventCardEnhanced({
                     ? `${Math.round(event.distance * 1000)}m`
                     : `${event.distance.toFixed(1)}km`}
                 </Text>
+              </BlurView>
+            )}
+
+            {event.playlists && event.playlists.length > 0 && (
+              <BlurView intensity={80} style={styles.badge}>
+                <Ionicons name="musical-notes" size={12} color="#fff" />
+                <Text style={styles.badgeText}>Playlist</Text>
               </BlurView>
             )}
           </View>

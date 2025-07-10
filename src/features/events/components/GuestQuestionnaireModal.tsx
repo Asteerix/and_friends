@@ -26,6 +26,8 @@ interface GuestQuestionnaireModalProps {
   visible: boolean;
   onClose: () => void;
   onSave: (questions: Question[], settings: { allowSkipAll: boolean; showResponsesLive: boolean }) => void;
+  initialQuestions?: Question[];
+  initialSettings?: { allowSkipAll: boolean; showResponsesLive: boolean };
 }
 
 interface QuestionSuggestion {
@@ -266,8 +268,10 @@ export default function GuestQuestionnaireModal({
   visible,
   onClose,
   onSave,
+  initialQuestions = [],
+  initialSettings = { allowSkipAll: true, showResponsesLive: true },
 }: GuestQuestionnaireModalProps) {
-  const [questions, setQuestions] = useState<Question[]>([]);
+  const [questions, setQuestions] = useState<Question[]>(initialQuestions);
   const [isAddingCustom, setIsAddingCustom] = useState(false);
   const [customQuestionText, setCustomQuestionText] = useState('');
   const [customType, setCustomType] = useState<'short' | 'multiple' | 'host-answer'>('short');
@@ -277,8 +281,8 @@ export default function GuestQuestionnaireModal({
   const [searchQuery, setSearchQuery] = useState('');
 
   // Settings
-  const [allowSkipAll, setAllowSkipAll] = useState(true);
-  const [showResponsesLive, setShowResponsesLive] = useState(true);
+  const [allowSkipAll, setAllowSkipAll] = useState(initialSettings.allowSkipAll);
+  const [showResponsesLive, setShowResponsesLive] = useState(initialSettings.showResponsesLive);
 
   const handleAddQuestion = (template: QuestionSuggestion) => {
     const newQuestion: Question = {

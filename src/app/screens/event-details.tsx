@@ -1,6 +1,7 @@
 
 import { useLocalSearchParams } from 'expo-router';
 import EventDetailsScreen from '@/features/events/screens/EventDetailsScreen';
+import { EventProvider } from '@/features/events/context/EventProvider';
 
 export default function EventDetailsPage() {
   const params = useLocalSearchParams();
@@ -11,5 +12,9 @@ export default function EventDetailsPage() {
   
   console.log('🔍 [screens/event-details] Event ID extrait:', eventId);
   
-  return <EventDetailsScreen eventId={eventId as string} />;
+  return (
+    <EventProvider>
+      <EventDetailsScreen eventId={eventId as string} />
+    </EventProvider>
+  );
 }

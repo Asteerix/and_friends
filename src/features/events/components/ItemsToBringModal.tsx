@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import BottomModal from './BottomModal';
+import { v4 as uuidv4 } from 'uuid';
 
 type ItemType = 'required' | 'suggested' | 'open';
 
@@ -30,6 +31,8 @@ interface ItemsToBringModalProps {
   visible: boolean;
   onClose: () => void;
   onSave: (items: Item[], settings: BringSettings) => void;
+  initialItems?: Item[];
+  initialSettings?: BringSettings;
 }
 
 interface BringSettings {
@@ -232,6 +235,12 @@ export default function ItemsToBringModal({
   visible,
   onClose,
   onSave,
+  initialItems = [],
+  initialSettings = {
+    allowGuestSuggestions: true,
+    requireSignup: false,
+    showQuantities: true,
+  },
 }: ItemsToBringModalProps) {
   const [items, setItems] = useState<Item[]>([]);
   const [newItemName, setNewItemName] = useState('');
@@ -242,12 +251,22 @@ export default function ItemsToBringModal({
     showQuantities: true,
   });
   const [showSuggestions, setShowSuggestions] = useState(true);
+  
+  // Reset state when modal opens with new data
+  React.useEffect(() => {
+    if (visible && initialItems) {
+      setItems(initialItems);
+    }
+    if (visible && initialSettings) {
+      setSettings(initialSettings);
+    }
+  }, [visible]);
 
   const addItem = (itemName?: string) => {
     const name = itemName || newItemName.trim();
     if (name) {
       const newItem: Item = {
-        id: Date.now().toString(),
+        id: uuidv4(),
         name: name,
         assignee: '',
         showQuantity: false,
@@ -299,6 +318,15 @@ export default function ItemsToBringModal({
 
   const handleSave = () => {
     onSave(items, settings);
+    onClose();
+  };
+
+  const handleClose = () => {
+    // Reset to initial values when closing without saving
+    setItems([]);
+    setNewItemName('');
+    setSelectedType('suggested');
+    setShowSuggestions(true);
     onClose();
   };
 
@@ -412,7 +440,7 @@ export default function ItemsToBringModal({
   return (
     <BottomModal
       visible={visible}
-      onClose={onClose}
+      onClose={handleClose}
       title="Items to Bring"
       height={700}
       onSave={handleSave}
@@ -422,7 +450,7 @@ export default function ItemsToBringModal({
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <ScrollView showsVerticalScrollIndicator={false}>
+        <View>
           {/* Settings Section */}
           <View style={styles.settingsSection}>
             <Text style={styles.sectionTitle}>Settings</Text>
@@ -605,7 +633,7 @@ export default function ItemsToBringModal({
               </Text>
             </View>
           )}
-        </ScrollView>
+        </View>
       </KeyboardAvoidingView>
     </BottomModal>
   );

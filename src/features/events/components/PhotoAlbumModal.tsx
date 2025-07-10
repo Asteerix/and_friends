@@ -141,6 +141,28 @@ export default function PhotoAlbumModal({
     );
   };
 
+  const removeAllPhotos = () => {
+    Alert.alert(
+      'Supprimer toutes les photos ?',
+      'Cette action supprimera toutes les photos de l\'album. Cette action est irréversible.',
+      [
+        {
+          text: 'Annuler',
+          style: 'cancel',
+        },
+        {
+          text: 'Supprimer tout',
+          style: 'destructive',
+          onPress: () => {
+            setPhotos([]);
+            setHasChanges(true);
+            void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          },
+        },
+      ]
+    );
+  };
+
   const handleAddPhotos = () => {
     Alert.alert(
       'Add Photos',
@@ -215,12 +237,21 @@ export default function PhotoAlbumModal({
         ) : (
           <ScrollView showsVerticalScrollIndicator={false}>
             <View style={styles.headerInfo}>
-              <Text style={styles.photoCountText}>
-                {photos.length} / {MAX_PHOTOS} photos
-              </Text>
-              {photos.length >= MAX_PHOTOS && (
-                <Text style={styles.limitWarning}>Limite atteinte</Text>
-              )}
+              <View>
+                <Text style={styles.photoCountText}>
+                  {photos.length} / {MAX_PHOTOS} photos
+                </Text>
+                {photos.length >= MAX_PHOTOS && (
+                  <Text style={styles.limitWarning}>Limite atteinte</Text>
+                )}
+              </View>
+              <TouchableOpacity
+                style={styles.deleteAllButton}
+                onPress={removeAllPhotos}
+              >
+                <Ionicons name="trash-outline" size={18} color="#FF3B30" />
+                <Text style={styles.deleteAllText}>Tout supprimer</Text>
+              </TouchableOpacity>
             </View>
             
             <View style={styles.photosGrid}>
@@ -419,5 +450,19 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  deleteAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: '#FFE5E5',
+  },
+  deleteAllText: {
+    fontSize: 14,
+    color: '#FF3B30',
+    fontWeight: '500',
   },
 });

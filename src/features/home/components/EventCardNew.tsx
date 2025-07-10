@@ -5,17 +5,18 @@ import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View, ViewStyle } from 'react-native';
 
 
-import { Event } from '@/entities/event/types';
+import type { EventAdvanced } from '@/hooks/useEventsAdvanced';
 
 type Props = {
-  event: Event;
+  event: EventAdvanced | any;
   style?: ViewStyle;
   onPress?: () => void;
 };
 
 export default function EventCardNew({ event, style, onPress }: Props) {
-  const formattedDate = event.startTime ? format(new Date(event.startTime), 'MMM d') : '';
-  const formattedTime = event.startTime ? format(new Date(event.startTime), 'h:mm a') : '';
+  const eventDate = event.startTime || event.start_time || event.date;
+  const formattedDate = eventDate ? format(new Date(eventDate), 'MMM d') : '';
+  const formattedTime = eventDate ? format(new Date(eventDate), 'h:mm a') : '';
 
   return (
     <TouchableOpacity 
@@ -23,9 +24,9 @@ export default function EventCardNew({ event, style, onPress }: Props) {
       onPress={onPress}
       activeOpacity={0.9}
     >
-      {event.coverData?.media?.url ? (
+      {event.coverData?.media?.url || event.cover_image || event.image_url ? (
         <Image 
-          source={{ uri: event.coverData.media.url }} 
+          source={{ uri: event.coverData?.media?.url || event.cover_image || event.image_url }} 
           style={styles.image}
         />
       ) : (
@@ -63,28 +64,37 @@ export default function EventCardNew({ event, style, onPress }: Props) {
             </Text>
           </View>
 
-          {event.address && (
+          {(event.address || event.location) && (
             <View style={styles.infoItem}>
               <Ionicons name="location-outline" size={16} color="#666" />
               <Text style={styles.infoText} numberOfLines={1}>
-                {event.address}
+                {event.address || event.location}
               </Text>
             </View>
           )}
         </View>
 
-        {event.currentAttendees !== undefined && (
-          <View style={styles.footer}>
-            <View style={styles.participantsInfo}>
-              <Ionicons name="people-outline" size={18} color="#666" />
-              <Text style={styles.participantsText}>
-                {event.currentAttendees} going
-              </Text>
-            </View>
-
-            {/* RSVP status would come from a separate query */}
+        <View style={styles.footer}>
+          <View style={styles.footerLeft}>
+            {(event.currentAttendees !== undefined || event.participants_count !== undefined) && (
+              <View style={styles.participantsInfo}>
+                <Ionicons name="people-outline" size={18} color="#666" />
+                <Text style={styles.participantsText}>
+                  {event.currentAttendees || event.participants_count || 0} going
+                </Text>
+              </View>
+            )}
           </View>
-        )}
+
+          <View style={styles.footerRight}>
+            {event.playlists && event.playlists.length > 0 && (
+              <View style={styles.playlistIndicator}>
+                <Ionicons name="musical-notes" size={16} color="#FF6B6B" />
+                <Text style={styles.playlistText}>Playlist</Text>
+              </View>
+            )}
+          </View>
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -181,6 +191,14 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#f0f0f0',
   },
+  footerLeft: {
+    flex: 1,
+  },
+  footerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   participantsInfo: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -200,5 +218,19 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: 'white',
     textTransform: 'capitalize',
+  },
+  playlistIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FFF0F0',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  playlistText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FF6B6B',
   },
 });

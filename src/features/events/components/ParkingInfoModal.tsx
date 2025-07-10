@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Modal,
   Pressable,
@@ -55,6 +55,18 @@ export default function ParkingInfoModal({
   const [instructions, setInstructions] = useState(initialParkingInfo?.instructions || '');
   const [nearbyOptions, setNearbyOptions] = useState(initialParkingInfo?.nearbyOptions || '');
 
+  // Update state when modal becomes visible with new initial data
+  useEffect(() => {
+    if (visible && initialParkingInfo) {
+      console.log('🚗 [ParkingInfoModal] Updating state with initial data:', initialParkingInfo);
+      setParkingAvailable(initialParkingInfo.available ?? true);
+      setSelectedType(initialParkingInfo.type || '');
+      setPrice(initialParkingInfo.price || '');
+      setInstructions(initialParkingInfo.instructions || '');
+      setNearbyOptions(initialParkingInfo.nearbyOptions || '');
+    }
+  }, [visible, initialParkingInfo]);
+
   const handleSave = () => {
     // Validate that something is filled
     if (parkingAvailable && !selectedType) {
@@ -66,7 +78,7 @@ export default function ParkingInfoModal({
     
     const parkingInfo = {
       available: parkingAvailable,
-      type: selectedType,
+      type: parkingAvailable ? selectedType : undefined,
       price: selectedType === 'paid' || selectedType === 'valet' ? price : undefined,
       instructions: instructions.trim() || undefined,
       nearbyOptions: !parkingAvailable ? nearbyOptions.trim() : undefined,
@@ -78,11 +90,12 @@ export default function ParkingInfoModal({
   };
 
   const handleCancel = () => {
-    setParkingAvailable(true);
-    setSelectedType('');
-    setPrice('');
-    setInstructions('');
-    setNearbyOptions('');
+    // Reset to initial values
+    setParkingAvailable(initialParkingInfo?.available ?? true);
+    setSelectedType(initialParkingInfo?.type || '');
+    setPrice(initialParkingInfo?.price || '');
+    setInstructions(initialParkingInfo?.instructions || '');
+    setNearbyOptions(initialParkingInfo?.nearbyOptions || '');
     onClose();
   };
 

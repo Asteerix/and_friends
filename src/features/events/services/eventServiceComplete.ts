@@ -54,9 +54,30 @@ export interface CreateEventData {
   rsvpDeadline?: Date | null;
   rsvpReminderEnabled?: boolean;
   rsvpReminderTiming?: string;
-  questionnaire?: Array<{id: string, text: string, type: string}>;
-  itemsToBring?: Array<{id: string, name: string, quantity: number, assignedTo?: string}>;
+  questionnaire?: Array<{
+    id: string;
+    text: string;
+    type: 'short' | 'multiple' | 'host-answer';
+    options?: string[];
+    hostAnswer?: string;
+    required?: boolean;
+  }>;
+  questionnaireSettings?: {
+    allowSkipAll?: boolean;
+    showResponsesLive?: boolean;
+  };
+  itemsToBring?: Array<{id: string, name: string, quantity: number, assignedTo?: string; type?: 'required' | 'suggested' | 'open'}>;
+  itemsSettings?: {
+    allowGuestSuggestions: boolean;
+    requireSignup: boolean;
+    showQuantities: boolean;
+  };
   playlist?: any;
+  playlistSettings?: {
+    spotifyLink?: string;
+    appleMusicLink?: string;
+    acceptSuggestions: boolean;
+  };
   spotifyLink?: string;
   dressCode?: string | null;
   eventTheme?: string | null;
@@ -146,6 +167,9 @@ export class EventServiceComplete {
         cover_image: finalCoverImageUrl || null,
         image_url: finalCoverImageUrl || null,
         
+        // Catégorie - IMPORTANT : mettre dans la colonne category pour surcharger la valeur par défaut 'social'
+        category: eventData.eventCategory || null,
+        
         // Colonnes RSVP (peuvent exister)
         rsvp_deadline: eventData.rsvpDeadline ? eventData.rsvpDeadline.toISOString() : null,
         rsvp_reminder_enabled: eventData.rsvpReminderEnabled || false,
@@ -179,22 +203,37 @@ export class EventServiceComplete {
         costs: eventData.costs || [],
         eventPhotos: eventData.eventPhotos || [],
         questionnaire: eventData.questionnaire || [],
+        questionnaireSettings: eventData.questionnaireSettings || {
+          allowSkipAll: true,
+          showResponsesLive: true
+        },
         itemsToBring: eventData.itemsToBring || [],
-        playlist: eventData.playlist || null,
+        items_to_bring: eventData.itemsToBring || [], // Dupliquer pour compatibilité
+        itemsSettings: eventData.itemsSettings || {
+          allowGuestSuggestions: true,
+          requireSignup: false,
+          showQuantities: true
+        },
+        playlist: eventData.playlist || [],
+        playlistSettings: eventData.playlistSettings || {
+          spotifyLink: eventData.spotifyLink || null,
+          appleMusicLink: null,
+          acceptSuggestions: true
+        },
         spotifyLink: eventData.spotifyLink || null,
         
-        // TOUS les champs supplémentaires (au cas où les colonnes n'existent pas)
-        dress_code: eventData.dressCode || null,
-        event_theme: eventData.eventTheme || null,
-        age_restriction: eventData.ageRestriction || null,
-        capacity_limit: eventData.capacityLimit || null,
-        parking_info: eventData.parkingInfo || null,
-        event_category: eventData.eventCategory || null,
-        accessibility_info: eventData.accessibilityInfo || null,
-        event_website: eventData.eventWebsite || null,
-        contact_info: eventData.contactInfo || null,
-        allow_plus_ones: eventData.allowPlusOnes || false,
-        max_plus_ones: eventData.maxPlusOnes || null,
+        // TOUS les champs supplémentaires avec noms cohérents
+        dressCode: eventData.dressCode || null,
+        eventTheme: eventData.eventTheme || null,
+        ageRestriction: eventData.ageRestriction || null,
+        capacityLimit: eventData.capacityLimit || null,
+        parkingInfo: eventData.parkingInfo || null,
+        eventCategory: eventData.eventCategory || null,
+        accessibilityInfo: eventData.accessibilityInfo || null,
+        eventWebsite: eventData.eventWebsite || null,
+        contactInfo: eventData.contactInfo || null,
+        allowPlusOnes: eventData.allowPlusOnes || false,
+        maxPlusOnes: eventData.maxPlusOnes || null,
         // event_tags removed - no longer exists
         
         // Métadonnées
@@ -231,7 +270,7 @@ export class EventServiceComplete {
         is_private: eventToInsert.is_private,
         created_by: eventToInsert.created_by,
         extra_data: eventToInsert.extra_data,
-        category: eventData.eventCategory || null,
+        category: eventData.eventCategory || null, // Surcharge la valeur par défaut 'social'
         // RSVP fields that exist as columns
         rsvp_deadline: eventData.rsvpDeadline ? eventData.rsvpDeadline.toISOString() : null,
         rsvp_reminder_enabled: eventData.rsvpReminderEnabled || false,
@@ -242,20 +281,26 @@ export class EventServiceComplete {
         what_to_bring: eventData.itemsToBring ? eventData.itemsToBring.map(item => item.name) : null,
         co_organizers: eventData.coHosts ? eventData.coHosts.map(host => host.id) : null,
         // Activation flags for extras
-        has_capacity_enabled: eventData.capacityLimit !== null && eventData.capacityLimit !== undefined && eventData.capacityLimit !== '',
+        has_capacity_enabled: eventData.capacityLimit !== null && eventData.capacityLimit !== undefined && eventData.capacityLimit !== 0,
         has_costs_enabled: eventData.costs && eventData.costs.length > 0,
+        has_questionnaire_enabled: eventData.questionnaire && eventData.questionnaire.length > 0,
+        has_items_enabled: eventData.itemsToBring && eventData.itemsToBring.length > 0,
+        has_playlist_enabled: eventData.playlist && eventData.playlist.length > 0,
+        has_photo_album_enabled: eventData.eventPhotos && eventData.eventPhotos.length > 0,
         has_dress_code_enabled: !!eventData.dressCode,
         has_age_restriction_enabled: !!eventData.ageRestriction,
         has_parking_info_enabled: !!eventData.parkingInfo,
         has_accessibility_enabled: !!eventData.accessibilityInfo,
         has_theme_enabled: !!eventData.eventTheme,
-        has_website_enabled: !!eventData.eventWebsite,
-        has_contact_enabled: !!eventData.contactInfo,
-        has_photos_enabled: eventData.eventPhotos && eventData.eventPhotos.length > 0,
-        has_items_enabled: eventData.itemsToBring && eventData.itemsToBring.length > 0,
-        has_playlist_enabled: eventData.playlist && eventData.playlist.length > 0,
-        has_questionnaire_enabled: eventData.questionnaire && eventData.questionnaire.length > 0,
-        has_cohosts_enabled: eventData.coHosts && eventData.coHosts.length > 0,
+        // Additional column fields (if they exist)
+        dress_code: eventData.dressCode || null,
+        theme: eventData.eventTheme || null,
+        age_restriction: eventData.ageRestriction || null,
+        parking_info: eventData.parkingInfo || null,
+        accessibility_info: eventData.accessibilityInfo || null,
+        event_website: eventData.eventWebsite || null,
+        contact_info: eventData.contactInfo || null,
+        // Remove duplicate properties - they're already defined above
       };
       
       console.log('🏷️ [EventServiceComplete] Catégorie à insérer:', safeEventToInsert.category);
@@ -318,7 +363,7 @@ export class EventServiceComplete {
             location: eventToInsert.location,
             is_private: eventToInsert.is_private,
             created_by: eventToInsert.created_by,
-            category: eventData.eventCategory || null,
+            category: eventData.eventCategory || null, // Surcharge la valeur par défaut 'social'
           };
           
           // Ajouter les colonnes optionnelles une par une si elles existent
@@ -770,8 +815,11 @@ export class EventServiceComplete {
     const questionsData = questions.map((q, index) => ({
       event_id: eventId,
       question: q.text,
-      type: q.type || 'text',
+      question_text: q.text, // For compatibility with different DB schemas
+      type: q.type || 'short',
+      question_type: q.type || 'short', // For compatibility
       options: q.options ? JSON.stringify(q.options) : null,
+      question_options: q.options ? JSON.stringify(q.options) : null, // For compatibility
       is_required: q.required || false,
       position: index
     }));
@@ -801,7 +849,9 @@ export class EventServiceComplete {
       quantity: typeof item === 'object' ? (item.quantity || 1) : 1,
       quantity_assigned: 0,
       position: index,
-      is_brought: false
+      is_brought: false,
+      // assigned_to maintenant accepte des strings
+      assigned_to: typeof item === 'object' && item.assignedTo ? item.assignedTo : null
     }));
 
     console.log('🎁 [addItemsToBring] Données formatées:', itemsData);
@@ -923,7 +973,8 @@ export class EventServiceComplete {
             quantity_needed,
             quantity_assigned,
             position,
-            is_brought
+            is_brought,
+            assigned_to
           ),
           event_questionnaire(
             id,
@@ -1069,8 +1120,8 @@ export class EventServiceComplete {
       if (updates.capacityLimit !== undefined) {
         updateData.max_attendees = updates.capacityLimit;
         // Activer automatiquement le flag si une capacité est définie
-        updateData.has_capacity_enabled = updates.capacityLimit !== null && updates.capacityLimit !== undefined && updates.capacityLimit !== '';
-        console.log('👥 [EventServiceComplete] Mise à jour capacité:', updates.capacityLimit, '→ max_attendees:', updateData.max_attendees, 'enabled:', updateData.has_capacity_enabled);
+        updateData.has_capacity_enabled = updates.capacityLimit !== null && updates.capacityLimit !== undefined && updates.capacityLimit !== 0;
+        console.log('👥 [EventServiceComplete] Mise à jour capacité:', updates.capacityLimit, '→ max_attendees:', updateData.max_attendees);
         
         // IMPORTANT: Mettre à jour aussi dans extra_data
         extraDataUpdates.capacity_limit = updates.capacityLimit;
@@ -1105,49 +1156,65 @@ export class EventServiceComplete {
         updateData.has_costs_enabled = updates.costs && updates.costs.length > 0;
       }
       if (updates.eventPhotos !== undefined) {
-        extraDataUpdates.event_photos = updates.eventPhotos;
-        updateData.has_photos_enabled = updates.eventPhotos && updates.eventPhotos.length > 0;
+        extraDataUpdates.eventPhotos = updates.eventPhotos;
+        updateData.has_photo_album_enabled = updates.eventPhotos && updates.eventPhotos.length > 0;
       }
       if (updates.questionnaire !== undefined) {
         extraDataUpdates.questionnaire = updates.questionnaire;
         updateData.has_questionnaire_enabled = updates.questionnaire && updates.questionnaire.length > 0;
       }
+      if (updates.questionnaireSettings !== undefined) {
+        extraDataUpdates.questionnaireSettings = updates.questionnaireSettings;
+      }
       if (updates.itemsToBring !== undefined) {
-        extraDataUpdates.items_to_bring = updates.itemsToBring;
+        extraDataUpdates.itemsToBring = updates.itemsToBring;
+        extraDataUpdates.items_to_bring = updates.itemsToBring; // Dupliquer pour compatibilité
         updateData.has_items_enabled = updates.itemsToBring && updates.itemsToBring.length > 0;
+      }
+      if (updates.itemsSettings !== undefined) {
+        extraDataUpdates.itemsSettings = updates.itemsSettings;
       }
       if (updates.playlist !== undefined) {
         extraDataUpdates.playlist = updates.playlist;
         updateData.has_playlist_enabled = updates.playlist && updates.playlist.length > 0;
       }
-      if (updates.spotifyLink !== undefined) extraDataUpdates.spotify_link = updates.spotifyLink;
+      if (updates.playlistSettings !== undefined) {
+        extraDataUpdates.playlistSettings = updates.playlistSettings;
+      }
+      if (updates.spotifyLink !== undefined) extraDataUpdates.spotifyLink = updates.spotifyLink;
       if (updates.eventTheme !== undefined) {
-        extraDataUpdates.event_theme = updates.eventTheme;
+        extraDataUpdates.eventTheme = updates.eventTheme;
+        updateData.theme = updates.eventTheme; // Try to update column if it exists
         updateData.has_theme_enabled = !!updates.eventTheme;
       }
-      // Champs qui n'ont pas de colonnes dédiées
       if (updates.ageRestriction !== undefined) {
-        extraDataUpdates.age_restriction = updates.ageRestriction;
+        extraDataUpdates.ageRestriction = updates.ageRestriction;
+        updateData.age_restriction = updates.ageRestriction; // Try to update column if it exists
         updateData.has_age_restriction_enabled = !!updates.ageRestriction;
       }
       if (updates.dressCode !== undefined) {
-        extraDataUpdates.dress_code = updates.dressCode;
+        extraDataUpdates.dressCode = updates.dressCode;
+        updateData.dress_code = updates.dressCode; // Try to update column if it exists
         updateData.has_dress_code_enabled = !!updates.dressCode;
       }
       if (updates.parkingInfo !== undefined) {
-        extraDataUpdates.parking_info = updates.parkingInfo;
+        extraDataUpdates.parkingInfo = updates.parkingInfo;
+        updateData.parking_info = updates.parkingInfo; // Try to update column if it exists
         updateData.has_parking_info_enabled = !!updates.parkingInfo;
       }
       if (updates.accessibilityInfo !== undefined) {
-        extraDataUpdates.accessibility_info = updates.accessibilityInfo;
+        extraDataUpdates.accessibilityInfo = updates.accessibilityInfo;
+        updateData.accessibility_info = updates.accessibilityInfo; // Try to update column if it exists
         updateData.has_accessibility_enabled = !!updates.accessibilityInfo;
       }
       if (updates.eventWebsite !== undefined) {
-        extraDataUpdates.event_website = updates.eventWebsite;
+        extraDataUpdates.eventWebsite = updates.eventWebsite;
+        updateData.event_website = updates.eventWebsite; // Try to update column if it exists
         updateData.has_website_enabled = !!updates.eventWebsite;
       }
       if (updates.contactInfo !== undefined) {
-        extraDataUpdates.contact_info = updates.contactInfo;
+        extraDataUpdates.contactInfo = updates.contactInfo;
+        updateData.contact_info = updates.contactInfo; // Try to update column if it exists
         updateData.has_contact_enabled = !!updates.contactInfo;
       }
       
@@ -1177,7 +1244,13 @@ export class EventServiceComplete {
         'accessibility_info', 'parking_info', 'dress_code', 'age_restriction',
         'event_website', 'contact_info', 'event_theme', 'theme', 'website',
         'items_to_bring', 'event_photos', 'costs', 'questionnaire', 'playlist',
-        'spotify_link', 'allow_plus_ones', 'max_plus_ones'
+        'spotify_link', 'allow_plus_ones', 'max_plus_ones',
+        // Supprimer aussi les flags has_*_enabled qui n'existent pas dans la DB
+        'has_capacity_enabled', 'has_costs_enabled', 'has_questionnaire_enabled',
+        'has_items_enabled', 'has_playlist_enabled', 'has_photo_album_enabled',
+        'has_dress_code_enabled', 'has_age_restriction_enabled', 'has_parking_info_enabled',
+        'has_accessibility_enabled', 'has_theme_enabled', 'has_website_enabled',
+        'has_contact_enabled', 'has_cohosts_enabled'
       ];
       
       fieldsToRemove.forEach(field => {
@@ -1215,13 +1288,95 @@ export class EventServiceComplete {
       console.log('  👥 Capacité (max_attendees):', updatedEvent.max_attendees);
       console.log('  📦 Extra data (après mise à jour):', JSON.stringify(updatedEvent.extra_data, null, 2));
       console.log('');
+      // Mettre à jour les tables séparées pour les extras
+      console.log('🎯 [EventServiceComplete] Mise à jour des tables séparées...');
+      const extrasPromises = [];
+      
+      // Update event_costs
+      if (updates.costs !== undefined) {
+        console.log('  💰 Mise à jour des coûts...');
+        extrasPromises.push(
+          this.updateCosts(eventId, updates.costs)
+            .then(() => ({ type: 'costs', success: true }))
+            .catch(error => ({ type: 'costs', success: false, error }))
+        );
+      }
+      
+      // Update event_cohosts
+      if (updates.coHosts !== undefined) {
+        console.log('  👥 Mise à jour des co-hosts...');
+        extrasPromises.push(
+          this.updateCoHosts(eventId, updates.coHosts, user.id)
+            .then(() => ({ type: 'coHosts', success: true }))
+            .catch(error => ({ type: 'coHosts', success: false, error }))
+        );
+      }
+      
+      // Update event_photos
+      if (updates.eventPhotos !== undefined) {
+        console.log('  📸 Mise à jour des photos...');
+        extrasPromises.push(
+          this.updatePhotos(eventId, updates.eventPhotos, user.id)
+            .then(() => ({ type: 'photos', success: true }))
+            .catch(error => ({ type: 'photos', success: false, error }))
+        );
+      }
+      
+      // Update event_questionnaire
+      if (updates.questionnaire !== undefined) {
+        console.log('  📋 Mise à jour du questionnaire...');
+        extrasPromises.push(
+          this.updateQuestionnaire(eventId, updates.questionnaire)
+            .then(() => ({ type: 'questionnaire', success: true }))
+            .catch(error => ({ type: 'questionnaire', success: false, error }))
+        );
+      }
+      
+      // Update event_items
+      if (updates.itemsToBring !== undefined) {
+        console.log('  🎁 Mise à jour des items...');
+        extrasPromises.push(
+          this.updateItems(eventId, updates.itemsToBring)
+            .then(() => ({ type: 'items', success: true }))
+            .catch(error => ({ type: 'items', success: false, error }))
+        );
+      }
+      
+      // Update event_playlists
+      if (updates.playlist !== undefined || updates.spotifyLink !== undefined) {
+        console.log('  🎵 Mise à jour de la playlist...');
+        extrasPromises.push(
+          this.updatePlaylist(eventId, updates.playlist || [], updates.spotifyLink || null)
+            .then(() => ({ type: 'playlist', success: true }))
+            .catch(error => ({ type: 'playlist', success: false, error }))
+        );
+      }
+      
+      // Attendre toutes les mises à jour
+      if (extrasPromises.length > 0) {
+        const results = await Promise.all(extrasPromises);
+        console.log('');
+        console.log('📊 [EventServiceComplete] Résultats des mises à jour extras:');
+        results.forEach(result => {
+          const icon = result.success ? '✅' : '❌';
+          console.log(`  ${icon} ${result.type}: ${result.success ? 'OK' : 'error' in result ? result.error?.message || 'Erreur' : 'Erreur'}`);
+        });
+      }
+      
+      console.log('');
       console.log('🎉 [EventServiceComplete] ========================================');
       console.log('🎉 [EventServiceComplete] MISE À JOUR TERMINÉE AVEC SUCCÈS!');
       console.log('🎉 [EventServiceComplete] ========================================');
       console.log('');
       
-      // Mapper les champs pour la compatibilité
-      // Priorité : extra_data.event_category > category (DB)
+      // Récupérer l'événement complet avec toutes les relations
+      const getResult = await this.getEvent(eventId);
+      
+      if (getResult.success && getResult.event) {
+        return { success: true, event: getResult.event };
+      }
+      
+      // Fallback si getEvent échoue
       const mappedEvent = {
         ...updatedEvent,
         event_category: updatedEvent.extra_data?.event_category || updatedEvent.category || null,
@@ -1232,6 +1387,606 @@ export class EventServiceComplete {
     } catch (error) {
       console.error('💥 [EventServiceComplete] Erreur inattendue lors de la mise à jour:', error);
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  }
+  
+  // Méthodes de mise à jour pour les tables séparées
+  private static async updateCosts(eventId: string, costs: EventCost[]) {
+    // Supprimer les anciens coûts
+    await supabase
+      .from('event_costs')
+      .delete()
+      .eq('event_id', eventId);
+    
+    // Ajouter les nouveaux coûts
+    if (costs.length > 0) {
+      await this.addCosts(eventId, costs);
+    }
+  }
+  
+  private static async updateCoHosts(eventId: string, coHosts: any[], updatedBy: string) {
+    // Supprimer les anciens co-hosts
+    await supabase
+      .from('event_cohosts')
+      .delete()
+      .eq('event_id', eventId);
+    
+    // Ajouter les nouveaux co-hosts
+    if (coHosts.length > 0) {
+      await this.addCoHosts(eventId, coHosts, updatedBy);
+    }
+  }
+  
+  private static async updatePhotos(eventId: string, photos: string[], updatedBy: string) {
+    // Récupérer les photos existantes
+    const { data: existingPhotos } = await supabase
+      .from('event_photos')
+      .select('photo_url')
+      .eq('event_id', eventId);
+    
+    const existingUrls = existingPhotos?.map(p => p.photo_url) || [];
+    
+    // Séparer les photos existantes des nouvelles
+    const newPhotos = photos.filter(photo => !existingUrls.includes(photo));
+    const photosToKeep = photos.filter(photo => existingUrls.includes(photo));
+    
+    console.log('📸 [updatePhotos] Photos existantes:', existingUrls.length);
+    console.log('📸 [updatePhotos] Photos à garder:', photosToKeep.length);
+    console.log('📸 [updatePhotos] Nouvelles photos:', newPhotos.length);
+    
+    // Supprimer seulement les photos qui ne sont plus dans la liste
+    const photosToDelete = existingUrls.filter(url => !photosToKeep.includes(url));
+    if (photosToDelete.length > 0) {
+      await supabase
+        .from('event_photos')
+        .delete()
+        .eq('event_id', eventId)
+        .in('photo_url', photosToDelete);
+    }
+    
+    // Ajouter seulement les nouvelles photos
+    if (newPhotos.length > 0) {
+      await this.addPhotos(eventId, newPhotos, updatedBy);
+    }
+  }
+  
+  private static async updateQuestionnaire(eventId: string, questions: any[]) {
+    // Supprimer les anciennes questions
+    await supabase
+      .from('event_questionnaire')
+      .delete()
+      .eq('event_id', eventId);
+    
+    // Ajouter les nouvelles questions
+    if (questions.length > 0) {
+      await this.addQuestionnaire(eventId, questions);
+    }
+  }
+  
+  private static async updateItems(eventId: string, items: any[]) {
+    // Supprimer les anciens items
+    await supabase
+      .from('event_items')
+      .delete()
+      .eq('event_id', eventId);
+    
+    // Ajouter les nouveaux items
+    if (items.length > 0) {
+      await this.addItemsToBring(eventId, items);
+    }
+  }
+  
+  private static async updatePlaylist(eventId: string, playlist: any[], spotifyLink: string | null) {
+    // Supprimer l'ancienne playlist
+    await supabase
+      .from('event_playlists')
+      .delete()
+      .eq('event_id', eventId);
+    
+    // Ajouter la nouvelle playlist
+    if (playlist.length > 0) {
+      await this.addPlaylist(eventId, playlist, spotifyLink);
+    }
+  }
+
+  /**
+   * Get items with their bringers for an event
+   */
+  static async getEventItemsWithBringers(eventId: string) {
+    try {
+      // D'abord récupérer les items
+      const { data: items, error: itemsError } = await supabase
+        .from('event_items')
+        .select('*')
+        .eq('event_id', eventId)
+        .order('position');
+
+      if (itemsError) throw itemsError;
+
+      // Ensuite, essayer de récupérer les bringers si la table existe
+      try {
+        const itemIds = items?.map(item => item.id) || [];
+        if (itemIds.length > 0) {
+          const { data: bringers, error: bringersError } = await supabase
+            .from('event_item_bringers')
+            .select(`
+              id,
+              event_item_id,
+              user_id,
+              created_at,
+              user:profiles!event_item_bringers_user_id_fkey (
+                id,
+                full_name,
+                username,
+                avatar_url
+              )
+            `)
+            .in('event_item_id', itemIds);
+
+          if (!bringersError && bringers) {
+            // Attacher les bringers aux items
+            const itemsWithBringers = items?.map(item => ({
+              ...item,
+              event_item_bringers: bringers.filter(b => b.event_item_id === item.id)
+            }));
+            return { success: true, items: itemsWithBringers };
+          }
+        }
+      } catch (bringersError) {
+        console.warn('⚠️ [EventServiceComplete] Table event_item_bringers not found, returning items without bringers');
+      }
+
+      // Si on arrive ici, retourner juste les items sans bringers
+      return { success: true, items: items || [] };
+    } catch (error) {
+      console.error('❌ [EventServiceComplete] Erreur récupération items:', error);
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  }
+
+  /**
+   * Toggle user as bringer for an item (using extra_data fallback)
+   */
+  static async toggleItemBringer(itemId: string, userId: string, shouldAdd: boolean, eventId?: string) {
+    try {
+      // Pour les anciens IDs numériques, utiliser directement extra_data
+      const isOldNumericId = /^\d+$/.test(itemId);
+      
+      if (!isOldNumericId) {
+        // Pour les UUIDs, essayer d'abord avec la table event_item_bringers
+        const { error: checkError } = await supabase
+          .from('event_item_bringers')
+          .select('id')
+          .limit(1);
+
+        if (!checkError) {
+          // La table existe, utiliser l'ancienne méthode
+          if (shouldAdd) {
+            const { error } = await supabase
+              .from('event_item_bringers')
+              .insert({
+                event_item_id: itemId,
+                user_id: userId
+              });
+            
+            if (error && error.code !== '23505') throw error;
+          } else {
+            const { error } = await supabase
+              .from('event_item_bringers')
+              .delete()
+              .eq('event_item_id', itemId)
+              .eq('user_id', userId);
+            
+            if (error) throw error;
+          }
+          return { success: true };
+        }
+      }
+
+      // Fallback: utiliser extra_data de l'événement (pour les anciens IDs ou si la table n'existe pas)
+      console.log('⚠️ [EventServiceComplete] Using extra_data fallback for bringers');
+      
+      let finalEventId: string;
+      
+      if (eventId) {
+        // Si eventId est fourni, l'utiliser directement
+        finalEventId = eventId;
+      } else if (isOldNumericId) {
+        // Pour les anciens IDs, chercher dans tous les événements qui ont cet item dans extra_data
+        const { data: events, error: eventsError } = await supabase
+          .from('events')
+          .select('id, extra_data');
+        
+        if (eventsError) throw eventsError;
+        
+        // Trouver l'événement qui contient cet item
+        let foundEventId: string | null = null;
+        for (const event of events || []) {
+          const items = event.extra_data?.itemsToBring || [];
+          if (items.some((item: any) => item.id === itemId)) {
+            foundEventId = event.id;
+            break;
+          }
+        }
+        
+        if (!foundEventId) throw new Error('Event not found for this item');
+        finalEventId = foundEventId;
+      } else {
+        // Pour les UUIDs, récupérer depuis event_items
+        const { data: item, error: itemError } = await supabase
+          .from('event_items')
+          .select('event_id')
+          .eq('id', itemId)
+          .single();
+
+        if (itemError) throw itemError;
+        finalEventId = item.event_id;
+      }
+
+      // Récupérer l'événement avec son extra_data
+      const { data: event, error: eventError } = await supabase
+        .from('events')
+        .select('extra_data')
+        .eq('id', finalEventId)
+        .single();
+
+      if (eventError) throw eventError;
+
+      // Initialiser ou récupérer les bringers depuis extra_data
+      const extraData = event.extra_data || {};
+      const itemBringers = extraData.itemBringers || {};
+      
+      if (!itemBringers[itemId]) {
+        itemBringers[itemId] = [];
+      }
+
+      if (shouldAdd) {
+        if (!itemBringers[itemId].includes(userId)) {
+          itemBringers[itemId].push(userId);
+        }
+      } else {
+        itemBringers[itemId] = itemBringers[itemId].filter((id: string) => id !== userId);
+      }
+
+      // Mettre à jour extra_data
+      const { error: updateError } = await supabase
+        .from('events')
+        .update({
+          extra_data: {
+            ...extraData,
+            itemBringers
+          }
+        })
+        .eq('id', finalEventId);
+
+      if (updateError) throw updateError;
+
+      return { success: true };
+    } catch (error) {
+      console.error('❌ [EventServiceComplete] Erreur toggle bringer:', error);
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  }
+
+  /**
+   * Get all bringers for a specific item (with extra_data fallback)
+   */
+  static async getItemBringers(itemId: string, eventId?: string) {
+    try {
+      // Pour les anciens IDs numériques, aller directement à extra_data
+      const isOldNumericId = /^\d+$/.test(itemId);
+      
+      if (!isOldNumericId) {
+        // Pour les UUIDs, essayer d'abord avec la table event_item_bringers
+        const { data, error } = await supabase
+          .from('event_item_bringers')
+          .select(`
+            id,
+            user_id,
+            created_at,
+            user:profiles!event_item_bringers_user_id_fkey (
+              id,
+              full_name,
+              username,
+              avatar_url
+            )
+          `)
+          .eq('event_item_id', itemId);
+
+        if (!error) {
+          return { success: true, bringers: data };
+        }
+      }
+
+      // Fallback: utiliser extra_data (pour les anciens IDs ou si la table n'existe pas)
+      console.log('⚠️ [EventServiceComplete] Using extra_data fallback for getting bringers');
+
+      let eventData: any = null;
+      
+      if (eventId) {
+        // Si eventId est fourni, récupérer directement l'événement
+        const { data: event, error: eventError } = await supabase
+          .from('events')
+          .select('extra_data')
+          .eq('id', eventId)
+          .single();
+
+        if (eventError) throw eventError;
+        eventData = event;
+      } else if (isOldNumericId) {
+        // Pour les anciens IDs, chercher dans tous les événements
+        const { data: events, error: eventsError } = await supabase
+          .from('events')
+          .select('id, extra_data');
+        
+        if (eventsError) throw eventsError;
+        
+        // Trouver l'événement qui contient cet item
+        for (const event of events || []) {
+          const items = event.extra_data?.itemsToBring || [];
+          if (items.some((item: any) => item.id === itemId)) {
+            eventData = event;
+            break;
+          }
+        }
+        
+        if (!eventData) throw new Error('Event not found for this item');
+      } else {
+        // Pour les UUIDs, récupérer depuis event_items
+        const { data: item, error: itemError } = await supabase
+          .from('event_items')
+          .select('event_id')
+          .eq('id', itemId)
+          .single();
+
+        if (itemError) throw itemError;
+
+        // Récupérer l'événement avec son extra_data
+        const { data: event, error: eventError } = await supabase
+          .from('events')
+          .select('extra_data')
+          .eq('id', item.event_id)
+          .single();
+
+        if (eventError) throw eventError;
+        eventData = event;
+      }
+
+      // Récupérer les IDs des bringers depuis extra_data
+      const itemBringers = eventData.extra_data?.itemBringers || {};
+      const bringerIds = itemBringers[itemId] || [];
+
+      if (bringerIds.length === 0) {
+        return { success: true, bringers: [] };
+      }
+
+      // Récupérer les profils des utilisateurs
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, full_name, username, avatar_url')
+        .in('id', bringerIds);
+
+      if (profilesError) throw profilesError;
+
+      // Formater les données pour correspondre au format attendu
+      const bringers = profiles?.map(profile => ({
+        user_id: profile.id,
+        user: profile,
+        created_at: new Date().toISOString() // Pas de date réelle stockée
+      })) || [];
+
+      return { success: true, bringers };
+    } catch (error) {
+      console.error('❌ [EventServiceComplete] Erreur récupération bringers:', error);
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  }
+
+  /**
+   * Submit questionnaire responses
+   */
+  static async submitQuestionnaireResponses(
+    eventId: string, 
+    userId: string, 
+    responses: { [questionId: string]: string }
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      console.log('📝 [EventServiceComplete] Soumission des réponses au questionnaire');
+      console.log('  Event ID:', eventId);
+      console.log('  User ID:', userId);
+      console.log('  Nombre de réponses:', Object.keys(responses).length);
+      
+      // Prepare responses data
+      const responsesData = Object.entries(responses).map(([questionId, answer]) => ({
+        event_id: eventId,
+        user_id: userId,
+        question_id: questionId,
+        answer: answer,
+        submitted_at: new Date().toISOString()
+      }));
+      
+      // Insert responses
+      const { error } = await supabase
+        .from('event_questionnaire_responses')
+        .insert(responsesData);
+        
+      if (error) {
+        console.error('❌ [submitQuestionnaireResponses] Erreur:', error);
+        // If table doesn't exist, store in events extra_data
+        if (error.code === '42P01') {
+          console.log('⚠️ Table event_questionnaire_responses n\'existe pas, stockage dans events.extra_data');
+          
+          // Récupérer l'événement actuel
+          const { data: event, error: fetchError } = await supabase
+            .from('events')
+            .select('extra_data')
+            .eq('id', eventId)
+            .single();
+            
+          if (fetchError) throw fetchError;
+          
+          // Préparer les réponses dans extra_data
+          const existingResponses = event.extra_data?.questionnaireResponses || {};
+          
+          // Ajouter les nouvelles réponses
+          for (const [questionId, answer] of Object.entries(responses)) {
+            if (!existingResponses[questionId]) {
+              existingResponses[questionId] = [];
+            }
+            
+            // Vérifier si l'utilisateur a déjà répondu
+            const existingIndex = existingResponses[questionId].findIndex(
+              (r: any) => r.userId === userId
+            );
+            
+            const responseData = {
+              userId,
+              answer,
+              submittedAt: new Date().toISOString()
+            };
+            
+            if (existingIndex >= 0) {
+              // Mettre à jour la réponse existante
+              existingResponses[questionId][existingIndex] = responseData;
+            } else {
+              // Ajouter une nouvelle réponse
+              existingResponses[questionId].push(responseData);
+            }
+          }
+          
+          // Sauvegarder dans extra_data
+          const { error: updateError } = await supabase
+            .from('events')
+            .update({
+              extra_data: {
+                ...event.extra_data,
+                questionnaireResponses: existingResponses
+              }
+            })
+            .eq('id', eventId);
+            
+          if (updateError) {
+            throw updateError;
+          }
+        } else {
+          throw error;
+        }
+      }
+      
+      console.log('✅ [submitQuestionnaireResponses] Réponses soumises avec succès');
+      return { success: true };
+      
+    } catch (error) {
+      console.error('💥 [submitQuestionnaireResponses] Erreur:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      };
+    }
+  }
+  
+  /**
+   * Get questionnaire responses for an event
+   */
+  static async getQuestionnaireResponses(
+    eventId: string
+  ): Promise<{ success: boolean; responses?: any[]; error?: string }> {
+    try {
+      console.log('📊 [EventServiceComplete] Récupération des réponses au questionnaire');
+      console.log('  Event ID:', eventId);
+      
+      // Try to get responses from dedicated table first
+      // Mais on va directement utiliser extra_data car la table semble mal configurée
+      const forceUseExtraData = true;
+      
+      if (!forceUseExtraData) {
+        const { data: responses, error } = await supabase
+          .from('event_questionnaire_responses')
+          .select(`
+            *,
+            user:profiles!event_questionnaire_responses_user_id_fkey(
+              id,
+              full_name,
+              username,
+              avatar_url
+            )
+          `)
+          .eq('event_id', eventId);
+          
+        if (error) {
+          if (error.code !== '42P01') {
+            throw error;
+          }
+          // Continue to fallback below
+        } else {
+          console.log('✅ [getQuestionnaireResponses] Réponses récupérées:', responses?.length || 0);
+          return { success: true, responses: responses || [] };
+        }
+      }
+      
+      // Use extra_data fallback
+      console.log('⚠️ Using events.extra_data for questionnaire responses');
+      
+      // Récupérer l'événement avec les réponses
+      const { data: event, error: eventError } = await supabase
+        .from('events')
+        .select('extra_data')
+        .eq('id', eventId)
+        .single();
+        
+      if (eventError) {
+        throw eventError;
+      }
+      
+      const questionnaireResponses = event.extra_data?.questionnaireResponses || {};
+      const transformedResponses = [];
+      
+      // Récupérer les profils des utilisateurs
+      const userIds = new Set<string>();
+      for (const responses of Object.values(questionnaireResponses)) {
+        for (const response of responses as any[]) {
+          userIds.add(response.userId);
+        }
+      }
+      
+      let profilesMap = new Map();
+      if (userIds.size > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, full_name, username, avatar_url')
+          .in('id', Array.from(userIds));
+          
+        profilesMap = new Map(profiles?.map(p => [p.id, p]) || []);
+      }
+      
+      // Transformer les réponses
+      for (const [questionId, responses] of Object.entries(questionnaireResponses)) {
+        for (const response of responses as any[]) {
+          transformedResponses.push({
+            event_id: eventId,
+            user_id: response.userId,
+            question_id: questionId,
+            answer: response.answer,
+            submitted_at: response.submittedAt,
+            user: profilesMap.get(response.userId) || { 
+              id: response.userId,
+              full_name: 'Anonymous',
+              username: null,
+              avatar_url: null
+            }
+          });
+        }
+      }
+      
+      console.log('✅ [getQuestionnaireResponses] Réponses récupérées:', transformedResponses.length);
+      return { success: true, responses: transformedResponses };
+      
+    } catch (error) {
+      console.error('💥 [getQuestionnaireResponses] Erreur:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      };
     }
   }
 

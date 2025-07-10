@@ -12,6 +12,14 @@ export interface EventParticipant {
   avatar_url?: string;
   status: 'going' | 'maybe' | 'not_going';
 }
+export interface EventPlaylist {
+  id: string;
+  playlist_name?: string;
+  spotify_link?: string;
+  apple_music_link?: string;
+  created_at?: string;
+}
+
 export interface EventAdvanced {
   id: string;
   title: string;
@@ -54,6 +62,7 @@ export interface EventAdvanced {
   participants_count?: number;
   user_status?: 'going' | 'maybe' | 'not_going' | null;
   is_creator?: boolean;
+  playlists?: EventPlaylist[];
 }
 export function useEventsAdvanced() {
   const { session } = useSession();
@@ -161,6 +170,12 @@ export function useEventsAdvanced() {
             })
             .filter(Boolean) as EventParticipant[];
 
+          // Get playlists for the event
+          const { data: playlists } = await supabase
+            .from('event_playlists')
+            .select('*')
+            .eq('event_id', event.id);
+
           return {
             id: event.id,
             title: event.title,
@@ -198,6 +213,7 @@ export function useEventsAdvanced() {
             participants_count: participantsCount || 0,
             user_status: userStatus,
             is_creator: session?.user?.id === event.created_by,
+            playlists: playlists || [],
           };
         })
       );
@@ -461,6 +477,12 @@ export function useEventsAdvanced() {
         userStatus = participation?.status || null;
       }
 
+      // Get playlists for the event
+      const { data: playlists } = await supabase
+        .from('event_playlists')
+        .select('*')
+        .eq('event_id', eventId);
+
       return {
         id: eventData.id,
         title: eventData.title,
@@ -498,6 +520,7 @@ export function useEventsAdvanced() {
         participants_count: formattedParticipants.length,
         user_status: userStatus,
         is_creator: session?.user?.id === eventData.created_by,
+        playlists: playlists || [],
       };
     } catch (err) {
       console.error('Unexpected error fetching event:', err);
