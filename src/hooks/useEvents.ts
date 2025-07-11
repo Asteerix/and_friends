@@ -3,6 +3,9 @@ import { useEffect, useState } from 'react';
 
 
 import { supabase } from '@/shared/lib/supabase/client';
+import { EventService } from '@/features/events/services/eventService';
+import { eventCache } from '@/shared/utils/cache/cacheManager';
+import { CacheKeys } from '@/shared/utils/cache/cacheKeys';
 
 export interface Event {
   id?: string;
@@ -35,13 +38,42 @@ export function useEvents() {
 
   async function fetchEvents() {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('events')
-      .select('*')
-      .order('date', { ascending: true });
-    setEvents((data as Event[]) || []);
-    setError(error);
-    setLoading(false);
+    
+    // Try to get from cache first
+    const cacheKey = CacheKeys.EVENTS_LIST();
+    const cachedEvents = eventCache.get<Event[]>(cacheKey);
+    
+    if (cachedEvents) {
+      setEvents(cachedEvents);
+      setLoading(false);
+      
+      // Fetch fresh data in background
+      supabase
+        .from('events')
+        .select('*')
+        .order('date', { ascending: true })
+        .then(({ data, error }) => {
+          if (!error && data) {
+            setEvents(data as Event[]);
+            eventCache.set(cacheKey, data, { ttl: 1800000 }); // 30 minutes
+          }
+        });
+    } else {
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .order('date', { ascending: true });
+      
+      if (!error && data) {
+        setEvents(data as Event[]);
+        await eventCache.set(cacheKey, data, { ttl: 1800000 }); // 30 minutes
+      } else {
+        setEvents([]);
+      }
+      
+      setError(error);
+      setLoading(false);
+    }
   }
 
   async function createEvent(event: Event) {
@@ -54,14 +86,33 @@ export function useEvents() {
   }
 
   async function joinEvent(event_id: string, user_id: string) {
-    return await supabase
+    const result = await supabase
       .from('event_participants')
       .insert([{ event_id, user_id }]);
+    
+    // Ajouter automatiquement au chat de l'événement
+    if (!result.error) {
+      try {
+        await EventService.addParticipantToEventChat(event_id, user_id);
+      } catch (error) {
+        console.error('Erreur lors de l\'ajout au chat:', error);
+      }
+    }
+    
+    return result;
   }
 
   async function updateRSVP(event_id: string, status: string) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { error: { message: 'Not authenticated' } };
+
+    // Vérifier le statut actuel avant de faire la mise à jour
+    const { data: currentParticipant } = await supabase
+      .from('event_participants')
+      .select('status')
+      .eq('event_id', event_id)
+      .eq('user_id', user.id)
+      .single();
 
     const { data, error } = await supabase
       .from('event_participants')
@@ -78,6 +129,19 @@ export function useEvents() {
       setEvents(prev => prev.map(event => 
         event.id === event_id ? { ...event, userRSVP: status } : event
       ));
+
+      // Gérer l'ajout/retrait du chat selon le statut
+      try {
+        if (status === 'going' && (!currentParticipant || currentParticipant.status !== 'going')) {
+          // L'utilisateur rejoint l'événement
+          await EventService.addParticipantToEventChat(event_id, user.id);
+        } else if (status !== 'going' && currentParticipant?.status === 'going') {
+          // L'utilisateur quitte l'événement
+          await EventService.removeParticipantFromEventChat(event_id, user.id);
+        }
+      } catch (chatError) {
+        console.error('Erreur lors de la gestion du chat:', chatError);
+      }
     }
     
     return { data, error };

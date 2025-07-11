@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import React, { useState, useEffect } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, View, ImageBackground } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 import CategoryTabs from '@/features/home/components/CategoryTabs';
 import EventCard from '@/features/home/components/EventCard';
@@ -16,8 +17,8 @@ import { useOnboardingStatus } from '@/hooks/useOnboardingStatus';
 import { EVENT_CATEGORIES } from '@/features/events/utils/categoryHelpers';
 import { usePendingFriendRequests } from '@/shared/hooks/usePendingFriendRequests';
 
-const CATEGORIES = [
-  { id: 'all', label: 'All' },
+const getCategories = (t: any) => [
+  { id: 'all', label: t('common.all') },
   ...EVENT_CATEGORIES.slice(0, 6) // Take first 6 categories
 ];
 
@@ -32,10 +33,12 @@ const CATEGORIES = [
 
 const HomeScreen = () => {
   const router = useRouter();
+  const { t } = useTranslation();
   const [activeCategory, setActiveCategory] = useState(0);
   const { events = [], loading: eventsLoading } = useEventsAdvanced();
   const { profile, loading: profileLoading } = useProfile();
   const { currentStep, isComplete, loading: onboardingLoading } = useOnboardingStatus();
+  const CATEGORIES = getCategories(t);
   
   // Process any pending friend requests from ContactsFriendsScreen
   usePendingFriendRequests();
@@ -191,7 +194,7 @@ const HomeScreen = () => {
           onPress={setActiveCategory}
         />
         <MiniMap />
-        <SectionHeader title="All Events" onViewAll={() => router.push('/events-list?section=all')} />
+        <SectionHeader title={t('home.sections.allEvents', 'All Events')} onViewAll={() => router.push('/events-list?section=all')} />
         {allEventsSorted.slice(0, 2).map((event) => (
           <EventCard
             key={`all-${event.id}`}
@@ -211,7 +214,7 @@ const HomeScreen = () => {
         ))}
         {interestEvents.length > 0 && (
           <>
-            <SectionHeader title="Based on Your Interests" onViewAll={() => router.push('/events-list?section=interests')} />
+            <SectionHeader title={t('home.sections.basedOnInterests', 'Based on Your Interests')} onViewAll={() => router.push('/events-list?section=interests')} />
             {interestEvents.map((event) => (
           <EventCard
             key={`interest-${event.id}`}
@@ -233,7 +236,7 @@ const HomeScreen = () => {
         )}
         {friendsEvents.length > 0 && (
           <>
-            <SectionHeader title="Your Friends Are Going To" onViewAll={() => router.push('/events-list?section=friends')} />
+            <SectionHeader title={t('home.sections.friendsGoing', 'Your Friends Are Going To')} onViewAll={() => router.push('/events-list?section=friends')} />
             {friendsEvents.slice(0, 2).map((event) => (
           <EventCard
             key={`friends-${event.id}`}
@@ -255,7 +258,7 @@ const HomeScreen = () => {
         )}
         {userGoingEvents.length > 0 && (
           <>
-            <SectionHeader title="Events You Are Going To" onViewAll={() => router.push('/events-list?section=going')} />
+            <SectionHeader title={t('home.sections.eventsYouAreGoing', 'Events You Are Going To')} onViewAll={() => router.push('/events-list?section=going')} />
             {userGoingEvents.slice(0, 2).map((event) => (
           <EventCard
             key={`going-${event.id}`}

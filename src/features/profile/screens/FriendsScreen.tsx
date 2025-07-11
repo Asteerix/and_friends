@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Alert,
   RefreshControl,
@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFriends, Friend, FriendRequest } from '@/hooks/useFriends';
 import { Colors } from '@/shared/config/Colors';
 import CustomText from '@/shared/ui/CustomText';
+import RatingDisplay from '@/shared/components/RatingDisplay';
 
 type Tab = 'friends' | 'requests' | 'sent';
 
@@ -116,6 +117,7 @@ export default function FriendsScreen() {
       <View style={styles.friendInfo}>
         <CustomText style={styles.username}>@{item.username}</CustomText>
         <CustomText style={styles.fullName}>{item.full_name}</CustomText>
+        <RatingDisplay userId={item.id} size="medium" style={{ marginTop: 4 }} />
         {item.last_seen && (
           <CustomText style={styles.lastSeen}>
             Last seen {new Date(item.last_seen).toLocaleDateString()}
@@ -150,6 +152,7 @@ export default function FriendsScreen() {
         <View style={styles.friendInfo}>
           <CustomText style={styles.username}>@{item.username}</CustomText>
           <CustomText style={styles.fullName}>{item.full_name}</CustomText>
+          <RatingDisplay userId={item.id} size="medium" style={{ marginTop: 4 }} />
           {item.mutual_friends_count > 0 && (
             <CustomText style={styles.mutualFriends}>
               {item.mutual_friends_count} mutual friend{item.mutual_friends_count > 1 ? 's' : ''}

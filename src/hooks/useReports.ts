@@ -6,32 +6,30 @@ import { useSession } from '../shared/providers/SessionContext';
 export type ReportType = 'user' | 'event' | 'message' | 'story' | 'memory';
 export type ReportReason =
   | 'inappropriate_content'
-  | 'harassment'
   | 'spam'
+  | 'harassment'
+  | 'fake_profile'
+  | 'inappropriate_name'
   | 'violence'
   | 'hate_speech'
-  | 'false_information'
-  | 'nudity'
-  | 'scam'
+  | 'adult_content'
+  | 'misinformation'
+  | 'copyright'
   | 'other';
 
 export interface Report {
   id: string;
   created_at: string;
+  updated_at?: string;
   reporter_id: string;
-  type: ReportType;
-  reported_user_id?: string;
-  reported_event_id?: string;
-  reported_message_id?: string;
-  reported_story_id?: string;
-  reported_memory_id?: string;
+  reported_type: ReportType;
+  reported_id: string;
   reason: ReportReason;
-  description?: string;
-  evidence?: any;
+  details?: string;
   status: 'pending' | 'reviewing' | 'resolved' | 'dismissed';
-  reviewed_at?: string;
-  reviewed_by?: string;
-  resolution?: string;
+  resolved_at?: string;
+  resolved_by?: string;
+  resolution_notes?: string;
 }
 export function useReports() {
   const { session } = useSession();
@@ -40,15 +38,10 @@ export function useReports() {
 
   const createReport = useCallback(
     async (report: {
-      type: ReportType;
-      reported_user_id?: string;
-      reported_event_id?: string;
-      reported_message_id?: string;
-      reported_story_id?: string;
-      reported_memory_id?: string;
+      reported_type: ReportType;
+      reported_id: string;
       reason: ReportReason;
-      description?: string;
-      evidence?: any;
+      details?: string;
     }) => {
       if (!session?.user) throw new Error('User not authenticated');
 
@@ -57,61 +50,16 @@ export function useReports() {
         setError(null);
 
         // Check if user has already reported this item
-        let existingReportQuery = supabase
+        const { data: existing } = await supabase
           .from('reports')
           .select('id')
           .eq('reporter_id', session.user.id)
-          .eq('type', report.type)
-          .eq('reason', report.reason);
-
-        // Add specific ID based on type
-        switch (report.type) {
-          case 'user':
-            if (report.reported_user_id) {
-              existingReportQuery = existingReportQuery.eq(
-                'reported_user_id',
-                report.reported_user_id
-              );
-            }
-            break;
-          case 'event':
-            if (report.reported_event_id) {
-              existingReportQuery = existingReportQuery.eq(
-                'reported_event_id',
-                report.reported_event_id
-              );
-            }
-            break;
-          case 'message':
-            if (report.reported_message_id) {
-              existingReportQuery = existingReportQuery.eq(
-                'reported_message_id',
-                report.reported_message_id
-              );
-            }
-            break;
-          case 'story':
-            if (report.reported_story_id) {
-              existingReportQuery = existingReportQuery.eq(
-                'reported_story_id',
-                report.reported_story_id
-              );
-            }
-            break;
-          case 'memory':
-            if (report.reported_memory_id) {
-              existingReportQuery = existingReportQuery.eq(
-                'reported_memory_id',
-                report.reported_memory_id
-              );
-            }
-            break;
-        }
-
-        const { data: existing } = await existingReportQuery.single();
+          .eq('reported_type', report.reported_type)
+          .eq('reported_id', report.reported_id)
+          .single();
 
         if (existing) {
-          throw new Error('Vous avez déjà signalé cet élément pour cette raison');
+          throw new Error('Vous avez déjà signalé cet élément');
         }
 
         // Create the report
@@ -142,65 +90,60 @@ export function useReports() {
   );
 
   const reportUser = useCallback(
-    async (userId: string, reason: ReportReason, description?: string, evidence?: any) => {
+    async (userId: string, reason: ReportReason, details?: string) => {
       return createReport({
-        type: 'user',
-        reported_user_id: userId,
+        reported_type: 'user',
+        reported_id: userId,
         reason,
-        description,
-        evidence,
+        details,
       });
     },
     [createReport]
   );
 
   const reportEvent = useCallback(
-    async (eventId: string, reason: ReportReason, description?: string, evidence?: any) => {
+    async (eventId: string, reason: ReportReason, details?: string) => {
       return createReport({
-        type: 'event',
-        reported_event_id: eventId,
+        reported_type: 'event',
+        reported_id: eventId,
         reason,
-        description,
-        evidence,
+        details,
       });
     },
     [createReport]
   );
 
   const reportMessage = useCallback(
-    async (messageId: string, reason: ReportReason, description?: string, evidence?: any) => {
+    async (messageId: string, reason: ReportReason, details?: string) => {
       return createReport({
-        type: 'message',
-        reported_message_id: messageId,
+        reported_type: 'message',
+        reported_id: messageId,
         reason,
-        description,
-        evidence,
+        details,
       });
     },
     [createReport]
   );
 
   const reportStory = useCallback(
-    async (storyId: string, reason: ReportReason, description?: string, evidence?: any) => {
+    async (storyId: string, reason: ReportReason, details?: string) => {
       return createReport({
-        type: 'story',
-        reported_story_id: storyId,
+        reported_type: 'story',
+        reported_id: storyId,
         reason,
-        description,
-        evidence,
+        details,
       });
     },
     [createReport]
   );
 
   const reportMemory = useCallback(
-    async (memoryId: string, reason: ReportReason, description?: string, evidence?: any) => {
+    async (memoryId: string, reason: ReportReason, details?: string) => {
       return createReport({
-        type: 'memory',
-        reported_memory_id: memoryId,
+        reported_type: 'memory',
+        reported_id: memoryId,
         reason,
-        description,
-        evidence,
+        details,
       });
     },
     [createReport]

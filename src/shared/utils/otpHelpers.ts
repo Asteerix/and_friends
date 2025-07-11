@@ -1,5 +1,8 @@
 import { supabase } from '@/shared/lib/supabase/client';
 import { Alert } from 'react-native';
+import { OTPCache } from './otpCache';
+import { NetworkRetry } from './networkRetry';
+import { PhoneNumberValidator } from './phoneNumberValidation';
 
 interface OTPOptions {
   phone: string;
@@ -18,7 +21,7 @@ interface RetryOptions {
 export async function sendOTPWithRetry(
   options: OTPOptions,
   retryOptions: RetryOptions = {}
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; cached?: boolean }> {
   const { phone, channel = 'sms', createUser = true } = options;
   const { maxRetries = 2, retryDelay = 1000 } = retryOptions;
   
@@ -27,52 +30,63 @@ export async function sendOTPWithRetry(
   console.log('  - Channel:', channel);
   console.log('  - Max retries:', maxRetries);
   
+  // Check OTP cache first
+  const cacheStatus = await OTPCache.hasRecentOTP(phone);
+  if (cacheStatus.hasRecent && !cacheStatus.canResend) {
+    console.log('⏰ [OTP] Recent OTP still valid, skipping send');
+    return {
+      success: true,
+      cached: true,
+      error: `Code déjà envoyé. Expire dans ${cacheStatus.timeRemaining}s`
+    };
+  }
+  
   let lastError: any = null;
   
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
-      if (attempt > 0) {
-        console.log(`🔄 [OTP] Retry attempt ${attempt}/${maxRetries}`);
-        // Wait before retrying
-        await new Promise(resolve => setTimeout(resolve, retryDelay * attempt));
-      }
-      
-      console.log(`📤 [OTP] Sending OTP (attempt ${attempt + 1})...`);
-      
-      const { data, error } = await supabase.auth.signInWithOtp({
-        phone,
-        options: {
-          channel,
-          shouldCreateUser: createUser,
-          // Add data to help with debugging
-          data: {
-            source: 'and_friends_app',
-            attempt: attempt + 1,
-            timestamp: new Date().toISOString()
+  // Use NetworkRetry for intelligent retry logic
+  try {
+    const result = await NetworkRetry.withRetry(
+      async () => {
+        console.log('📤 [OTP] Sending OTP...');
+        
+        const { data, error } = await supabase.auth.signInWithOtp({
+          phone,
+          options: {
+            channel,
+            shouldCreateUser: createUser,
+            // Add data to help with debugging
+            data: {
+              source: 'and_friends_app',
+              timestamp: new Date().toISOString(),
+              network_type: (await NetworkRetry.checkNetwork()).type
+            }
           }
+        });
+        
+        if (error) {
+          throw error;
         }
-      });
-      
-      if (!error) {
-        console.log('✅ [OTP] SMS sent successfully');
-        console.log('  - Response:', data);
-        return { success: true };
+        
+        return data;
+      },
+      {
+        maxRetries,
+        initialDelay: retryDelay,
+        onRetry: (attempt, error) => {
+          console.log(`🔄 [OTP] Retry attempt ${attempt} due to:`, error.message);
+        }
       }
-      
-      lastError = error;
-      console.error(`❌ [OTP] Attempt ${attempt + 1} failed:`, error);
-      
-      // Don't retry for certain errors
-      if (error.message?.includes('Rate limit') || 
-          error.message?.includes('Invalid phone') ||
-          error.message?.includes('Blocked')) {
-        break;
-      }
-      
-    } catch (err) {
-      lastError = err;
-      console.error(`❌ [OTP] Unexpected error on attempt ${attempt + 1}:`, err);
-    }
+    );
+    
+    // Record successful send in cache
+    await OTPCache.recordOTPSent(phone);
+    
+    console.log('✅ [OTP] SMS sent successfully');
+    return { success: true };
+    
+  } catch (error: any) {
+    lastError = error;
+    console.error('❌ [OTP] All attempts failed:', error);
   }
   
   // All attempts failed
@@ -164,9 +178,10 @@ export function formatPhoneForSupabase(phone: string, countryCode: string): stri
 /**
  * Validate phone number format
  */
-export function validatePhoneNumber(phone: string): {
+export function validatePhoneNumber(phone: string, countryCode?: string): {
   isValid: boolean;
   error?: string;
+  riskWarning?: string;
 } {
   // Must start with +
   if (!phone.startsWith('+')) {
@@ -181,6 +196,20 @@ export function validatePhoneNumber(phone: string): {
   
   if (digitsOnly.length > 15) {
     return { isValid: false, error: 'Numéro trop long' };
+  }
+  
+  // Advanced validation if country code provided
+  if (countryCode) {
+    const validation = PhoneNumberValidator.validate(phone, countryCode);
+    
+    if (!validation.isValid) {
+      return { isValid: false, error: validation.reason };
+    }
+    
+    const riskWarning = PhoneNumberValidator.getRiskMessage(validation);
+    if (riskWarning) {
+      return { isValid: true, riskWarning };
+    }
   }
   
   return { isValid: true };

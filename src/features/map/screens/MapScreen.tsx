@@ -13,6 +13,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MapView, { Marker, Callout } from 'react-native-maps';
 // import { SharedElement } from 'react-navigation-shared-element';
 import { useRouter } from 'expo-router';
+import { format } from 'date-fns';
+import { Animated, ActivityIndicator } from 'react-native';
+import { useNetworkQuality } from '@/shared/hooks/useNetworkQuality';
+import { useTranslation } from 'react-i18next';
 
 import CategoryTabs from '@/features/home/components/CategoryTabs';
 import { useEventsAdvanced } from '@/hooks/useEventsAdvanced';
@@ -28,18 +32,81 @@ import { useProfile } from '@/hooks/useProfile';
 
 const designResolution = { width: 375, height: 812 };
 const perfectSize = create(designResolution);
-const CATEGORIES = [
-  { id: 'all', label: 'All' },
+const getCategories = (t: any) => [
+  { id: 'all', label: t('common.all') },
   ...EVENT_CATEGORIES.slice(0, 5) // Take first 5 categories for map view
 ];
 
+// Helper functions for better event display
+const getCategoryColor = (category?: string): string => {
+  const colors: { [key: string]: string } = {
+    'party': '#FF6B00',
+    'music': '#9B51E0',
+    'sports': '#2ED573',
+    'food': '#FF4757',
+    'art': '#5F27CD',
+    'tech': '#00D2D3',
+    'social': '#FFA502',
+    'education': '#3742FA',
+    'outdoor': '#7BED9F',
+    'default': '#FF6B00',
+  };
+  return colors[category || 'default'] || colors.default;
+};
+
+const getCategoryEmoji = (category?: string): string => {
+  const emojis: { [key: string]: string } = {
+    'party': '🎉',
+    'music': '🎵',
+    'sports': '⚽',
+    'food': '🍽️',
+    'art': '🎨',
+    'tech': '💻',
+    'social': '👥',
+    'education': '📚',
+    'outdoor': '🏕️',
+    'default': '📍',
+  };
+  return emojis[category || 'default'] || emojis.default;
+};
+
+const formatEventDate = (date: string, time?: string): string => {
+  try {
+    const eventDate = new Date(date);
+    const dateStr = format(eventDate, 'MMM d');
+    if (time) {
+      return `${dateStr} at ${time}`;
+    }
+    return dateStr;
+  } catch {
+    return date;
+  }
+};
+
+const getLocationName = (location: any): string => {
+  if (typeof location === 'object' && location?.name) {
+    return location.name;
+  }
+  if (typeof location === 'string') {
+    // Extract city name from coordinates string if present
+    const parts = location.split(',');
+    if (parts.length > 2) {
+      return parts.slice(2).join(',').trim();
+    }
+    return location;
+  }
+  return 'Unknown Location';
+};
+
 const MapScreen: React.FC = React.memo(() => {
   const router = useRouter();
+  const { t } = useTranslation();
   const mapRef = useRef<MapView>(null);
   const { region, setRegion } = useMapStore();
   const { events, loading } = useEventsAdvanced();
   const { profile } = useProfile();
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const CATEGORIES = getCategories(t);
   const [activeCategory, setActiveCategory] = useState(0);
   const [search, setSearch] = useState('');
   const [showAutocomplete, setShowAutocomplete] = useState(false);
@@ -53,6 +120,7 @@ const MapScreen: React.FC = React.memo(() => {
   }>>([]);
   const insets = useSafeAreaInsets();
   const { unreadCount } = useNotifications();
+  const { quality, isOffline, isSlowConnection } = useNetworkQuality();
   
   // Get user's location from profile
   const getUserLocationCoordinates = useCallback(() => {
@@ -365,8 +433,8 @@ const MapScreen: React.FC = React.memo(() => {
           <BackButton width={perfectSize(22)} height={perfectSize(22)} fill="#000" color="#000" stroke="#000" />
         </TouchableOpacity>
         <View style={styles.headerTitleWrapper} pointerEvents="none">
-          <Text style={styles.headerTitle} accessibilityRole="header" accessibilityLabel="Map">
-            Map
+          <Text style={styles.headerTitle} accessibilityRole="header" accessibilityLabel={t('map.title')}>
+            {t('map.title')}
           </Text>
         </View>
         <View style={styles.headerIconsRight}>
@@ -398,9 +466,9 @@ const MapScreen: React.FC = React.memo(() => {
         <SearchIcon width={perfectSize(21)} height={perfectSize(20)} style={styles.searchIcon} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Search for a city or place"
+          placeholder={t('map.searchPlaceholder', 'Search for a city or place')}
           placeholderTextColor="#BDBDBD"
-          accessibilityLabel="Search for a city or place"
+          accessibilityLabel={t('map.searchPlaceholder', 'Search for a city or place')}
           returnKeyType="search"
           value={search}
           onChangeText={handleSearch}
@@ -430,7 +498,10 @@ const MapScreen: React.FC = React.memo(() => {
               ) : (
                 <>
                   <Image
-                    source={{ uri: eventsWithCoordinates.find(e => e.id === item.id)?.cover_image || eventsWithCoordinates.find(e => e.id === item.id)?.image_url || 'https://via.placeholder.com/60/FF6B00/FFFFFF?text=' + encodeURIComponent(item.title.charAt(0)) }}
+                    source={{ uri: (() => {
+                      const event = eventsWithCoordinates.find(e => e.id === item.id);
+                      return event?.cover_image || event?.image_url || `https://via.placeholder.com/60/${getCategoryColor(event?.event_category).replace('#', '')}/FFFFFF?text=${encodeURIComponent(getCategoryEmoji(event?.event_category))}`;
+                    })() }}
                     style={styles.eventThumbnail}
                   />
                   <View style={styles.autocompleteContent}>
@@ -456,18 +527,37 @@ const MapScreen: React.FC = React.memo(() => {
             ref={mapRef}
             style={styles.map}
             initialRegion={region}
-            region={region}
             showsCompass={false}
             showsScale={false}
             showsUserLocation={true}
-            showsMyLocationButton={false}
+            showsMyLocationButton={true}
             showsBuildings={false}
             showsTraffic={false}
             showsIndoors={false}
-            customMapStyle={[]}
+            pitchEnabled={true}
+            rotateEnabled={true}
+            scrollEnabled={true}
+            zoomEnabled={true}
+            zoomTapEnabled={true}
+            zoomControlEnabled={true}
+            minZoomLevel={2}
+            maxZoomLevel={20}
+            customMapStyle={[
+              {
+                featureType: 'poi',
+                elementType: 'labels',
+                stylers: [{ visibility: 'off' }]
+              },
+              {
+                featureType: 'transit',
+                elementType: 'labels',
+                stylers: [{ visibility: 'off' }]
+              }
+            ]}
             mapType="standard"
             accessibilityLabel="Map with events"
             accessibilityRole="image"
+            onRegionChangeComplete={(newRegion) => setRegion(newRegion)}
           >
             {filteredEvents
               .filter(
@@ -484,44 +574,123 @@ const MapScreen: React.FC = React.memo(() => {
                   onPress={() => setSelectedEventId(event.id)}
                   accessibilityLabel={`Event marker: ${event.title}`}
                   accessibilityRole="button"
+                  tracksViewChanges={false}
                 >
-                  <View style={styles.markerContainer}>
-                    <View style={styles.markerWrapper}>
-                      {/* Event thumbnail */}
-                      <Image
-                        source={{ uri: event.cover_image || event.image_url || 'https://via.placeholder.com/150/FF6B00/FFFFFF?text=' + encodeURIComponent(event.title.charAt(0)) }}
-                        style={styles.markerImage}
-                      />
-                      {/* Participant avatars */}
-                      <View style={styles.participantAvatars}>
-                        {(event.participants || []).slice(0, 3).map((p, idx) => (
-                          <Image
-                            key={idx}
-                            source={{ uri: p.avatar_url || `https://i.pravatar.cc/150?img=${idx}` }}
-                            style={[styles.participantAvatar, { marginLeft: idx === 0 ? 0 : -8 }]}
-                          />
-                        ))}
-                      </View>
-                      {/* More count */}
-                      {(event.participants_count || 0) > 3 && (
-                        <View style={styles.moreCount}>
-                          <Text style={styles.moreCountText}>+{(event.participants_count || 0) - 3} more</Text>
+                  <View style={[styles.markerContainer, selectedEventId === event.id && styles.selectedMarker]}>
+                    <View style={styles.markerPin}>
+                      <View style={styles.markerImageWrapper}>
+                        <Image
+                          source={{ uri: event.cover_image || event.image_url || 'https://via.placeholder.com/150/FF6B00/FFFFFF?text=' + encodeURIComponent(event.title.charAt(0)) }}
+                          style={styles.markerImage}
+                          resizeMode="cover"
+                        />
+                        {/* Category icon overlay */}
+                        <View style={[styles.categoryIcon, { backgroundColor: getCategoryColor(event.event_category) }]}>
+                          <Text style={styles.categoryIconText}>{getCategoryEmoji(event.event_category)}</Text>
                         </View>
-                      )}
+                      </View>
+                      <View style={styles.markerPinTip} />
                     </View>
+                    {/* Participant avatars */}
+                    {(event.participants_count || 0) > 0 && (
+                      <View style={styles.participantBubble}>
+                        <View style={styles.participantAvatars}>
+                          {(event.participants || []).slice(0, 3).map((p, idx) => (
+                            <Image
+                              key={idx}
+                              source={{ uri: p.avatar_url || `https://i.pravatar.cc/150?img=${idx}` }}
+                              style={[styles.participantAvatar, { marginLeft: idx === 0 ? 0 : -10, zIndex: 3 - idx }]}
+                            />
+                          ))}
+                        </View>
+                        {(event.participants_count || 0) > 3 && (
+                          <Text style={styles.moreCountText}>+{(event.participants_count || 0) - 3}</Text>
+                        )}
+                      </View>
+                    )}
                   </View>
                   <Callout
-                    onPress={() => router.push(`/screens/event-details?eventId=${event.id}`)}
+                    tooltip={true}
+                    onPress={() => {
+                      setSelectedEventId(null);
+                      router.push(`/event/${event.id}`);
+                    }}
                   >
-                    <View style={styles.callout}>
-                      <Text style={styles.calloutTitle}>{event.title}</Text>
-                      <Text style={styles.calloutDate}>{event.date}</Text>
-                      <Text style={styles.calloutLocation}>{event.location}</Text>
+                    <View style={styles.calloutContainer}>
+                      <View style={styles.callout}>
+                        <Image
+                          source={{ uri: event.cover_image || event.image_url }}
+                          style={styles.calloutImage}
+                        />
+                        <View style={styles.calloutContent}>
+                          <Text style={styles.calloutTitle}>{event.title}</Text>
+                          <Text style={styles.calloutSubtitle}>{event.subtitle || ''}</Text>
+                          <Text style={styles.calloutDate}>{formatEventDate(event.date, event.start_time)}</Text>
+                          <Text style={styles.calloutLocation}>{getLocationName(event.location_details || event.location)}</Text>
+                          <TouchableOpacity style={styles.calloutButton} onPress={() => {
+                            setSelectedEventId(null);
+                            router.push(`/event/${event.id}`);
+                          }}>
+                            <Text style={styles.calloutButtonText}>{t('map.viewDetails')}</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
                     </View>
                   </Callout>
                 </Marker>
               ))}
           </MapView>
+          
+          {/* Custom zoom controls */}
+          <View style={styles.zoomControls}>
+            <TouchableOpacity
+              style={styles.zoomButton}
+              onPress={() => {
+                const newRegion = {
+                  ...region,
+                  latitudeDelta: region.latitudeDelta * 0.5,
+                  longitudeDelta: region.longitudeDelta * 0.5,
+                };
+                setRegion(newRegion);
+                mapRef.current?.animateToRegion(newRegion, 300);
+              }}
+            >
+              <Text style={styles.zoomButtonText}>+</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.zoomButton, styles.zoomOutButton]}
+              onPress={() => {
+                const newRegion = {
+                  ...region,
+                  latitudeDelta: Math.min(region.latitudeDelta * 2, 50),
+                  longitudeDelta: Math.min(region.longitudeDelta * 2, 50),
+                };
+                setRegion(newRegion);
+                mapRef.current?.animateToRegion(newRegion, 300);
+              }}
+            >
+              <Text style={styles.zoomButtonText}>−</Text>
+            </TouchableOpacity>
+          </View>
+          
+          {/* Location button */}
+          <TouchableOpacity
+            style={styles.locationButton}
+            onPress={() => {
+              const userCoords = getUserLocationCoordinates();
+              if (userCoords) {
+                const newRegion = {
+                  ...userCoords,
+                  latitudeDelta: 0.02,
+                  longitudeDelta: 0.02,
+                };
+                setRegion(newRegion);
+                mapRef.current?.animateToRegion(newRegion, 1000);
+              }
+            }}
+          >
+            <Text style={styles.locationButtonIcon}>📍</Text>
+          </TouchableOpacity>
         </View>
         {/* Bottom sheet with selected event */}
         {selectedEventId && (
@@ -545,17 +714,17 @@ const MapScreen: React.FC = React.memo(() => {
               return (
                 <TouchableOpacity
                   style={styles.eventDetailsCard}
-                  onPress={() => router.push(`/screens/event-details?eventId=${selectedEvent.id}`)}
+                  onPress={() => router.push(`/event/${selectedEvent.id}`)}
                   activeOpacity={0.9}
                 >
                   <Image
-                    source={{ uri: selectedEvent.cover_image || selectedEvent.image_url || 'https://via.placeholder.com/150/FF6B00/FFFFFF?text=' + encodeURIComponent(selectedEvent.title.charAt(0)) }}
+                    source={{ uri: selectedEvent.cover_image || selectedEvent.image_url || `https://via.placeholder.com/150/${getCategoryColor(selectedEvent.event_category).replace('#', '')}/FFFFFF?text=${encodeURIComponent(getCategoryEmoji(selectedEvent.event_category))}` }}
                     style={styles.eventDetailsImage}
                   />
                   <View style={styles.eventDetailsContent}>
                     <Text style={styles.eventDetailsTitle}>{selectedEvent.title}</Text>
-                    <Text style={styles.eventDetailsDate}>{selectedEvent.date}</Text>
-                    <Text style={styles.eventDetailsLocation}>{selectedEvent.location}</Text>
+                    <Text style={styles.eventDetailsDate}>{formatEventDate(selectedEvent.date, selectedEvent.start_time)}</Text>
+                    <Text style={styles.eventDetailsLocation}>{getLocationName(selectedEvent.location_details || selectedEvent.location)}</Text>
                     <View style={styles.eventDetailsFooter}>
                       <View style={styles.eventDetailsAvatars}>
                         {(selectedEvent.participants || []).slice(0, 3).map((p, idx) => (
@@ -566,7 +735,7 @@ const MapScreen: React.FC = React.memo(() => {
                           />
                         ))}
                       </View>
-                      <Text style={styles.eventDetailsGoing}>+{selectedEvent.participants_count || 0} going</Text>
+                      <Text style={styles.eventDetailsGoing}>{t('map.going', { count: selectedEvent.participants_count || 0 })}</Text>
                     </View>
                   </View>
                 </TouchableOpacity>
@@ -574,10 +743,26 @@ const MapScreen: React.FC = React.memo(() => {
             })()}
           </View>
         )}
-        {/* Loading overlay */}
+        {/* Loading overlay with network quality indicator */}
         {loading && (
           <View style={styles.loadingOverlay}>
-            <Text>Loading events...</Text>
+            <ActivityIndicator size="large" color="#FF6B00" />
+            <Text style={styles.loadingText}>{t('map.loadingEvents')}</Text>
+            {isOffline && (
+              <Text style={styles.networkWarning}>{t('map.offlineMode')}</Text>
+            )}
+            {isSlowConnection && !isOffline && (
+              <Text style={styles.networkWarning}>{t('map.slowConnection')}</Text>
+            )}
+          </View>
+        )}
+        
+        {/* Network quality indicator */}
+        {!loading && (isOffline || isSlowConnection) && (
+          <View style={styles.networkIndicator}>
+            <Text style={styles.networkIndicatorText}>
+              {isOffline ? t('map.offlineMode') : t('map.slowConnection')}
+            </Text>
           </View>
         )}
       </View>
@@ -707,74 +892,183 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  markerWrapper: {
+  selectedMarker: {
+    transform: [{ scale: 1.1 }],
+  },
+  markerPin: {
     alignItems: 'center',
   },
+  markerImageWrapper: {
+    width: perfectSize(60),
+    height: perfectSize(60),
+    borderRadius: perfectSize(30),
+    overflow: 'hidden',
+    backgroundColor: '#FFF',
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 8,
+    borderWidth: 3,
+    borderColor: '#FFF',
+  },
   markerImage: {
-    width: perfectSize(100),
-    height: perfectSize(100),
+    width: '100%',
+    height: '100%',
+  },
+  markerPinTip: {
+    width: 0,
+    height: 0,
+    backgroundColor: 'transparent',
+    borderStyle: 'solid',
+    borderLeftWidth: perfectSize(10),
+    borderRightWidth: perfectSize(10),
+    borderTopWidth: perfectSize(15),
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderTopColor: '#FFF',
+    marginTop: -perfectSize(2),
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  categoryIcon: {
+    position: 'absolute',
+    bottom: -perfectSize(5),
+    right: -perfectSize(5),
+    width: perfectSize(24),
+    height: perfectSize(24),
     borderRadius: perfectSize(12),
     backgroundColor: '#FF6B00',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#FFF',
   },
-  participantAvatars: {
+  categoryIconText: {
+    fontSize: perfectSize(14),
+  },
+  participantBubble: {
     flexDirection: 'row',
-    marginTop: -perfectSize(15),
+    alignItems: 'center',
     backgroundColor: '#FFF',
     borderRadius: perfectSize(20),
-    paddingHorizontal: perfectSize(4),
-    paddingVertical: perfectSize(2),
+    paddingHorizontal: perfectSize(8),
+    paddingVertical: perfectSize(4),
+    marginTop: perfectSize(8),
     shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
     elevation: 3,
   },
+  participantAvatars: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   participantAvatar: {
-    width: perfectSize(28),
-    height: perfectSize(28),
-    borderRadius: perfectSize(14),
+    width: perfectSize(24),
+    height: perfectSize(24),
+    borderRadius: perfectSize(12),
     borderWidth: 2,
     borderColor: '#FFF',
   },
-  moreCount: {
-    position: 'absolute',
-    bottom: perfectSize(5),
-    right: perfectSize(5),
-    backgroundColor: '#FFF',
-    borderRadius: perfectSize(12),
-    paddingHorizontal: perfectSize(8),
-    paddingVertical: perfectSize(4),
-  },
   moreCountText: {
-    fontSize: perfectSize(11),
+    fontSize: perfectSize(12),
     fontWeight: '600',
     color: '#333',
+    marginLeft: perfectSize(4),
+  },
+  calloutContainer: {
+    backgroundColor: 'transparent',
   },
   callout: {
-    width: perfectSize(200),
-    padding: perfectSize(12),
+    backgroundColor: '#FFF',
+    borderRadius: perfectSize(16),
+    overflow: 'hidden',
+    width: perfectSize(280),
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 10,
+  },
+  calloutImage: {
+    width: '100%',
+    height: perfectSize(140),
+    backgroundColor: '#F5F5F5',
+  },
+  calloutContent: {
+    padding: perfectSize(16),
   },
   calloutTitle: {
-    fontSize: perfectSize(16),
-    fontWeight: '600',
-    marginBottom: perfectSize(4),
+    fontSize: perfectSize(18),
+    fontWeight: '700',
+    color: '#000',
+    marginBottom: perfectSize(2),
+  },
+  calloutSubtitle: {
+    fontSize: perfectSize(14),
+    color: '#666',
+    marginBottom: perfectSize(8),
   },
   calloutDate: {
     fontSize: perfectSize(14),
-    color: '#666',
-    marginBottom: perfectSize(2),
+    color: '#FF6B00',
+    fontWeight: '500',
+    marginBottom: perfectSize(4),
   },
   calloutLocation: {
-    fontSize: perfectSize(13),
-    color: '#888',
-    marginBottom: perfectSize(8),
+    fontSize: perfectSize(14),
+    color: '#666',
+    marginBottom: perfectSize(12),
+  },
+  calloutButton: {
+    backgroundColor: '#FF6B00',
+    borderRadius: perfectSize(12),
+    paddingVertical: perfectSize(10),
+    paddingHorizontal: perfectSize(20),
+    alignItems: 'center',
+  },
+  calloutButtonText: {
+    color: '#FFF',
+    fontSize: perfectSize(14),
+    fontWeight: '600',
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255,255,255,0.8)',
+    backgroundColor: 'rgba(255,255,255,0.9)',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 100,
+  },
+  loadingText: {
+    marginTop: perfectSize(12),
+    fontSize: perfectSize(16),
+    color: '#333',
+    fontWeight: '500',
+  },
+  networkWarning: {
+    marginTop: perfectSize(8),
+    fontSize: perfectSize(14),
+    color: '#FF6B00',
+    fontWeight: '400',
+  },
+  networkIndicator: {
+    position: 'absolute',
+    top: perfectSize(160),
+    alignSelf: 'center',
+    backgroundColor: 'rgba(255, 107, 0, 0.9)',
+    paddingHorizontal: perfectSize(16),
+    paddingVertical: perfectSize(8),
+    borderRadius: perfectSize(20),
+    zIndex: 10,
+  },
+  networkIndicatorText: {
+    color: '#FFF',
+    fontSize: perfectSize(14),
+    fontWeight: '500',
   },
   emptyText: {
     textAlign: 'center',
@@ -888,6 +1182,53 @@ const styles = StyleSheet.create({
   autocompleteSubtitle: {
     fontSize: perfectSize(14),
     color: '#666',
+  },
+  zoomControls: {
+    position: 'absolute',
+    right: perfectSize(16),
+    bottom: perfectSize(220),
+    backgroundColor: '#FFF',
+    borderRadius: perfectSize(8),
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 5,
+  },
+  zoomButton: {
+    width: perfectSize(44),
+    height: perfectSize(44),
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFF',
+  },
+  zoomOutButton: {
+    borderTopWidth: 1,
+    borderTopColor: '#E5E5E5',
+  },
+  zoomButtonText: {
+    fontSize: perfectSize(24),
+    fontWeight: '300',
+    color: '#333',
+  },
+  locationButton: {
+    position: 'absolute',
+    right: perfectSize(16),
+    bottom: perfectSize(280),
+    width: perfectSize(44),
+    height: perfectSize(44),
+    backgroundColor: '#FFF',
+    borderRadius: perfectSize(22),
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 5,
+  },
+  locationButtonIcon: {
+    fontSize: perfectSize(20),
   },
 });
 

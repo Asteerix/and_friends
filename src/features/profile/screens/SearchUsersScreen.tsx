@@ -3,7 +3,7 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { debounce } from 'lodash';
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -19,6 +19,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFriends, Friend } from '@/hooks/useFriends';
 import { Colors } from '@/shared/config/Colors';
 import CustomText from '@/shared/ui/CustomText';
+import RatingDisplay from '@/shared/components/RatingDisplay';
 
 export default function SearchUsersScreen() {
   const insets = useSafeAreaInsets();
@@ -136,6 +137,7 @@ export default function SearchUsersScreen() {
       <View style={styles.userInfo}>
         <CustomText style={styles.username}>@{item.username}</CustomText>
         <CustomText style={styles.fullName}>{item.full_name}</CustomText>
+        <RatingDisplay userId={item.id} size="medium" style={{ marginTop: 4 }} />
         {item.bio && (
           <CustomText style={styles.bio} numberOfLines={1}>
             {item.bio}

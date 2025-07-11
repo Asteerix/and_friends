@@ -21,6 +21,7 @@ import { useMessagesAdvanced } from '@/hooks/useMessagesAdvanced';
 import { supabase } from '@/shared/lib/supabase/client';
 import { useSession } from '@/shared/providers/SessionContext';
 import ScribbleDivider from '@/shared/ui/ScribbleDivider';
+import ReportModal from '@/features/reports/components/ReportModal';
 
 // import PollBlockLarge from "@/features/chat/components/PollBlockLarge";
 // import PollBlockCompact from "@/features/chat/components/PollBlockCompact";
@@ -40,6 +41,8 @@ export default function ConversationScreen() {
   const headerHeight = useHeaderHeight();
   const [chatInfo, setChatInfo] = useState<ChatInfo | null>(null);
   const flatListRef = useRef<FlatList>(null);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [selectedMessage, setSelectedMessage] = useState<{ id: string; senderName: string } | null>(null);
 
   useEffect(() => {
     if (chatId && chatId !== 'event') {
@@ -99,6 +102,11 @@ export default function ConversationScreen() {
     }
 
     await sendMessage(text, 'text');
+  };
+
+  const handleReportMessage = (messageId: string, senderName: string) => {
+    setSelectedMessage({ id: messageId, senderName });
+    setShowReportModal(true);
   };
 
   // Logique pour déterminer les props du header
@@ -165,6 +173,9 @@ export default function ConversationScreen() {
                         `https://ui-avatars.com/api/?name=${item.sender?.full_name || 'U'}&size=40`
                       }
                       time={messageTime}
+                      messageId={item.id}
+                      senderName={item.sender?.full_name || 'Utilisateur'}
+                      onReport={handleReportMessage}
                     />
                   );
                 }
@@ -187,6 +198,9 @@ export default function ConversationScreen() {
                       `https://ui-avatars.com/api/?name=${item.sender?.full_name || 'U'}&size=40`
                     }
                     time={messageTime}
+                    messageId={item.id}
+                    senderName={item.sender?.full_name || 'Utilisateur'}
+                    onReport={handleReportMessage}
                   />
                 );
             }
@@ -197,6 +211,19 @@ export default function ConversationScreen() {
         />
         <InputBar onSend={handleSendMessage} />
       </KeyboardAvoidingView>
+      
+      {showReportModal && selectedMessage && (
+        <ReportModal
+          visible={showReportModal}
+          onClose={() => {
+            setShowReportModal(false);
+            setSelectedMessage(null);
+          }}
+          type="message"
+          targetId={selectedMessage.id}
+          targetName={`Message de ${selectedMessage.senderName}`}
+        />
+      )}
     </SafeAreaView>
   );
 }

@@ -17,6 +17,7 @@ import CountryFlag from 'react-native-country-flag';
 import UnderlineDecoration from '@/features/home/components/UnderlineDecoration.svg';
 import { create } from 'react-native-pixel-perfect';
 import { useNavigation } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 
 import { useProfile } from '@/hooks/useProfile';
 import { useUserProfile } from '@/hooks/useUserProfile';
@@ -32,13 +33,13 @@ import NotificationButton from '@/assets/svg/notification-button.svg';
 import { useResponsive } from '@/shared/hooks/useResponsive';
 import { supabase } from '@/shared/lib/supabase/client';
 
-const TABS = [
-  { key: 'about', label: 'About' },
-  { key: 'attended', label: 'Attended' },
-  { key: 'organized', label: 'Organized' },
-  { key: 'memories', label: 'Memories' },
-  { key: 'friends', label: 'Friends' },
-  { key: 'ratings', label: 'Ratings' },
+const getTabs = (t: any) => [
+  { key: 'about', label: t('profile.tabs.about', 'About') },
+  { key: 'attended', label: t('profile.tabs.attended', 'Attended') },
+  { key: 'organized', label: t('profile.tabs.organized', 'Organized') },
+  { key: 'memories', label: t('profile.tabs.memories', 'Memories') },
+  { key: 'friends', label: t('profile.tabs.friends', 'Friends') },
+  { key: 'ratings', label: t('profile.tabs.ratings', 'Ratings') },
 ];
 
 // Définir le chemin de l'avatar par défaut
@@ -64,6 +65,7 @@ interface ProfileScreenProps {
 
 export default function ProfileScreen({ userId }: ProfileScreenProps = {}) {
   const navigation = useNavigation<any>();
+  const { t } = useTranslation();
   const {
     profile: currentUserProfile,
     loading: currentUserLoading,
@@ -643,7 +645,7 @@ export default function ProfileScreen({ userId }: ProfileScreenProps = {}) {
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#007AFF" />
-          <Text>Chargement du profil...</Text>
+          <Text>{t('profile.loading', 'Loading profile...')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -777,6 +779,12 @@ export default function ProfileScreen({ userId }: ProfileScreenProps = {}) {
           </Text>
           <Text style={styles.metaOverlay}>
             {profile?.path || 'Explorer'} • {userFriends.length} friends
+            {ratingStats && ratingStats.total_ratings > 0 && (
+              <>
+                {' • '}
+                <Text style={{ color: '#FFD700' }}>★</Text> {ratingStats.average_rating.toFixed(1)}
+              </>
+            )}
           </Text>
         </View>
         {/* Boutons Connect/Modifier et Paramètres en bas à gauche */}
@@ -800,7 +808,7 @@ export default function ProfileScreen({ userId }: ProfileScreenProps = {}) {
             >
               <Ionicons name="star" size={16} color="#FFF" />
               <Text style={styles.rateBtnTextOverlay}>
-                {existingRating ? 'Update Rating' : 'Rate'}
+                {existingRating ? t('profile.updateRating', 'Update Rating') : t('profile.rate', 'Rate')}
               </Text>
             </TouchableOpacity>
           )}
@@ -809,7 +817,7 @@ export default function ProfileScreen({ userId }: ProfileScreenProps = {}) {
               style={styles.settingsBtnOverlay}
               onPress={() => navigation.navigate('screens/settings/index')}
             >
-              <Text style={styles.settingsBtnTextOverlay}>Settings</Text>
+              <Text style={styles.settingsBtnTextOverlay}>{t('settings.title', 'Settings')}</Text>
             </TouchableOpacity>
           )}
         </View>

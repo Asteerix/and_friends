@@ -23,6 +23,14 @@ import { useAuthNavigation } from '@/shared/hooks/useAuthNavigation';
 import { checkOTPRateLimit, recordOTPRequest } from '@/shared/utils/phoneValidation';
 import { recordFailedOTPAttempt, checkBanStatus } from '@/shared/utils/bruteforceProtection';
 import BannedScreen from './BannedScreen';
+import { OTPCache } from '@/shared/utils/otpCache';
+import { NetworkRetry } from '@/shared/utils/networkRetry';
+import { useNetworkQuality } from '@/shared/hooks/useNetworkQuality';
+import { NetworkStatusBanner } from '@/shared/components/NetworkStatusBanner';
+import { AdaptiveButton } from '@/shared/components/AdaptiveButton';
+import { resilientFetch } from '@/shared/utils/api/retryStrategy';
+import { useAdaptiveTimeout } from '@/shared/utils/api/adaptiveTimeout';
+import { useTranslation } from 'react-i18next';
 
 const { height: H } = Dimensions.get('window');
 const designResolution = { width: 375, height: 812 };
@@ -35,6 +43,9 @@ interface CodeVerificationScreenProps {
 
 const CodeVerificationScreen: React.FC<CodeVerificationScreenProps> = React.memo(() => {
   const { navigateBack, navigateNext, getProgress } = useAuthNavigation('code-verification');
+  const { isSlowConnection, isOffline } = useNetworkQuality();
+  const { t } = useTranslation();
+  const adaptiveTimeout = useAdaptiveTimeout(30000); // 30s base timeout
   const params = useLocalSearchParams<{ phoneNumber: string }>();
   // Ensure phone number is properly formatted (remove spaces, keep + sign)
   const phoneNumber = params.phoneNumber?.replace(/\s/g, '');
@@ -257,6 +268,17 @@ const CodeVerificationScreen: React.FC<CodeVerificationScreenProps> = React.memo
     console.log('🔍 [CodeVerificationScreen] Vérification du code:', codeToVerify);
 
     try {
+      // Check network first
+      const network = await NetworkRetry.checkNetwork();
+      if (!network.isConnected) {
+        Alert.alert(
+          'Mode hors ligne',
+          'Vous devez être connecté à Internet pour vérifier le code.',
+          [{ text: 'OK' }]
+        );
+        setIsLoading(false);
+        return;
+      }
       console.log('🔍 [CodeVerificationScreen] Vérification OTP avec Supabase...');
       
       // Mode test pour le développement (numéro spécifique + code 123456)
@@ -328,11 +350,17 @@ const CodeVerificationScreen: React.FC<CodeVerificationScreenProps> = React.memo
       console.log('  - Code:', codeToVerify);
       console.log('  - Type: sms');
       
-      const { data, error } = await supabase.auth.verifyOtp({
-        phone: phoneNumber,
-        token: codeToVerify,
-        type: 'sms',
-      });
+      const { data, error } = await resilientFetch(
+        () => supabase.auth.verifyOtp({
+          phone: phoneNumber,
+          token: codeToVerify,
+          type: 'sms',
+        }),
+        {
+          maxRetries: isSlowConnection ? 5 : 3,
+          showAlert: false
+        }
+      );
 
       if (error) {
         console.error('❌ [CodeVerificationScreen] Erreur vérification OTP:', error);
@@ -436,6 +464,11 @@ const CodeVerificationScreen: React.FC<CodeVerificationScreenProps> = React.memo
         }
       }
       
+      // Clear OTP cache on successful verification
+      if (phoneNumber) {
+        await OTPCache.clearCache(phoneNumber);
+      }
+      
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       navigateNext('name-input');
     } catch (error) {
@@ -466,7 +499,31 @@ const CodeVerificationScreen: React.FC<CodeVerificationScreenProps> = React.memo
     setCode('');
     
     try {
+      // Check network first
+      const network = await NetworkRetry.checkNetwork();
+      if (!network.isConnected) {
+        Alert.alert(
+          'Pas de connexion',
+          'Vérifiez votre connexion internet et réessayez.',
+          [{ text: 'OK' }]
+        );
+        setIsLoading(false);
+        return;
+      }
+      
       console.log('📱 [CodeVerificationScreen] Vérification rate limit pour:', phoneNumber);
+      
+      // Check OTP cache
+      const cacheStatus = await OTPCache.hasRecentOTP(phoneNumber);
+      if (cacheStatus.hasRecent && !cacheStatus.canResend) {
+        Alert.alert(
+          'Patientez',
+          `Un code a déjà été envoyé. Réessayez dans ${cacheStatus.timeRemaining} secondes.`,
+          [{ text: 'OK' }]
+        );
+        setIsLoading(false);
+        return;
+      }
       
       // Check rate limit before resending
       const rateLimit = await checkOTPRateLimit(phoneNumber);
@@ -497,14 +554,27 @@ const CodeVerificationScreen: React.FC<CodeVerificationScreenProps> = React.memo
       
       console.log('📱 [CodeVerificationScreen] Renvoi OTP à:', phoneNumber);
       
-      const { error } = await supabase.auth.signInWithOtp({
-        phone: phoneNumber,
-      });
-
-      if (error) {
-        console.error('❌ [CodeVerificationScreen] Erreur renvoi OTP:', error);
-        Alert.alert('Erreur', error.message || 'Impossible de renvoyer le code.');
-      } else {
+      // Use NetworkRetry for resilient sending
+      try {
+        await NetworkRetry.withRetry(
+          async () => {
+            const { error } = await supabase.auth.signInWithOtp({
+              phone: phoneNumber,
+            });
+            
+            if (error) {
+              throw error;
+            }
+          },
+          {
+            maxRetries: 2,
+            initialDelay: 1000
+          }
+        );
+        
+        // Record in cache
+        await OTPCache.recordOTPSent(phoneNumber);
+        
         console.log('✅ [CodeVerificationScreen] OTP renvoyé avec succès');
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         
@@ -514,6 +584,19 @@ const CodeVerificationScreen: React.FC<CodeVerificationScreenProps> = React.memo
         Alert.alert('Code renvoyé', 'Un nouveau code de vérification a été envoyé.', [
           { text: 'OK' },
         ]);
+        
+      } catch (error: any) {
+        console.error('❌ [CodeVerificationScreen] Erreur renvoi OTP:', error);
+        
+        if (error.message?.includes('Network') || error.message?.includes('timeout')) {
+          Alert.alert(
+            'Problème de connexion',
+            'Vérifiez votre connexion internet et réessayez.',
+            [{ text: 'OK' }]
+          );
+        } else {
+          Alert.alert('Erreur', error.message || 'Impossible de renvoyer le code.');
+        }
       }
     } catch (error) {
       console.error('❌ [CodeVerificationScreen] Erreur inattendue:', error);
@@ -530,6 +613,7 @@ const CodeVerificationScreen: React.FC<CodeVerificationScreenProps> = React.memo
   
   return (
     <SafeAreaView style={styles.safeArea}>
+      <NetworkStatusBanner />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardAvoidingView}
@@ -602,20 +686,15 @@ const CodeVerificationScreen: React.FC<CodeVerificationScreenProps> = React.memo
             </View>
 
             <View style={styles.footer}>
-              <TouchableOpacity
-                style={[
-                  styles.continueButton,
-                  (!code || code.length !== 6 || isLoading) && styles.buttonDisabled,
-                ]}
+              <AdaptiveButton
                 onPress={handleContinue}
-                disabled={!code || code.length !== 6 || isLoading}
-                accessibilityRole="button"
-                accessibilityLabel="Continue"
-                activeOpacity={0.8}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <Text style={styles.continueButtonText}>{isLoading ? 'Vérification...' : 'Continue'}</Text>
-              </TouchableOpacity>
+                title="Continue"
+                loading={isLoading}
+                disabled={!code || code.length !== 6}
+                style={styles.continueButton}
+                textStyle={styles.continueButtonText}
+                showRetryState={true}
+              />
               <TouchableOpacity
                 style={[styles.resendButton, !canResend && styles.resendButtonDisabled]}
                 onPress={handleResendCode}

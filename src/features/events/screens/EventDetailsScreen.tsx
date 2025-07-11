@@ -17,6 +17,7 @@ import {
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import MapView, { Marker } from 'react-native-maps';
+import { useTranslation } from 'react-i18next';
 
 import { useProfile } from '@/hooks/useProfile';
 import { useEventAttendees } from '@/hooks/useEventAttendees';
@@ -25,6 +26,8 @@ import BackButton from '@/assets/svg/back-button.svg';
 import ChatButton from '@/assets/svg/chat-button.svg';
 import NotificationButton from '@/assets/svg/notification-button.svg';
 import { getCategoryDisplayName, getCategoryIcon } from '../utils/categoryHelpers';
+import EventOptionsButton from '../components/EventOptionsButton';
+import { useSession } from '@/shared/providers/SessionContext';
 import { useEvent } from '../context/EventProvider';
 import { LinearGradient } from 'expo-linear-gradient';
 import { EventServiceComplete } from '../services/eventServiceComplete';
@@ -89,7 +92,9 @@ interface EventDetailsScreenProps {
 
 export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps) {
   const router = useRouter();
+  const { t } = useTranslation();
   const { profile } = useProfile();
+  const { session } = useSession();
   const { attendees } = useEventAttendees(eventId);
   const {
     currentEvent: event,
@@ -128,6 +133,10 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
     average_rating: number;
     total_ratings: number;
   } | null>(null);
+  const [coHostsRatings, setCoHostsRatings] = useState<Record<string, {
+    average_rating: number;
+    total_ratings: number;
+  }>>({});
 
   useEffect(() => {
     if (!eventId) {
@@ -159,6 +168,33 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
 
     loadOrganizerRating();
   }, [event?.organizer?.id, getUserRatingStats]);
+
+  // Load co-hosts ratings when event is loaded
+  useEffect(() => {
+    const loadCoHostsRatings = async () => {
+      const coHosts = event?.extra_data?.coHosts || [];
+      const ratings: Record<string, { average_rating: number; total_ratings: number }> = {};
+      
+      for (const coHost of coHosts) {
+        if (coHost.id || coHost.user_id) {
+          const userId = coHost.id || coHost.user_id;
+          const stats = await getUserRatingStats(userId);
+          if (stats) {
+            ratings[userId] = {
+              average_rating: stats.average_rating,
+              total_ratings: stats.total_ratings
+            };
+          }
+        }
+      }
+      
+      setCoHostsRatings(ratings);
+    };
+
+    if (event?.extra_data?.coHosts?.length > 0) {
+      loadCoHostsRatings();
+    }
+  }, [event?.extra_data?.coHosts, getUserRatingStats]);
 
   // Charger les réponses au questionnaire
   const loadQuestionnaireResponses = async () => {
@@ -270,25 +306,25 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
 
   const handleJoinEvent = () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    Alert.alert('Join Event', 'Join event functionality coming soon!');
+    Alert.alert(t('events.details.join'), t('events.details.joinComingSoon', 'Join event functionality coming soon!'));
   };
 
 
   const handleSuggestItem = () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     Alert.alert(
-      'Suggest an Item',
-      'What item would you like to suggest?',
+      t('events.details.suggestItem', 'Suggest an Item'),
+      t('events.details.suggestItemMessage', 'What item would you like to suggest?'),
       [
         {
-          text: 'Cancel',
+          text: t('common.cancel'),
           style: 'cancel'
         },
         {
-          text: 'Suggest',
+          text: t('events.details.suggest', 'Suggest'),
           onPress: () => {
             // In a real app, this would open a modal or form
-            Alert.alert('Coming Soon', 'Item suggestion feature will be available soon!');
+            Alert.alert(t('common.comingSoon', 'Coming Soon'), t('events.details.itemSuggestionComingSoon', 'Item suggestion feature will be available soon!'));
           }
         }
       ]
@@ -349,7 +385,7 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
             ...prev,
             [item.id]: bringers
           }));
-          Alert.alert('Error', 'Could not update item. Please try again.');
+          Alert.alert(t('errors.general'), t('events.details.itemUpdateError', 'Could not update item. Please try again.'));
         }
         // Si succès, on garde l'update optimiste qui a déjà été fait
       }
@@ -515,12 +551,12 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
     });
 
     if (missingResponses.length > 0) {
-      Alert.alert('Missing responses', 'Please answer all required questions');
+      Alert.alert(t('events.details.missingResponses', 'Missing responses'), t('events.details.answerAllQuestions', 'Please answer all required questions'));
       return;
     }
 
     if (!profile?.id) {
-      Alert.alert('Sign in required', 'Please sign in to submit responses');
+      Alert.alert(t('auth.signInRequired', 'Sign in required'), t('events.details.signInToRespond', 'Please sign in to submit responses'));
       return;
     }
 
@@ -532,11 +568,11 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
     );
 
     if (result.success) {
-      Alert.alert('Success', 'Your responses have been submitted!');
+      Alert.alert(t('common.success'), t('events.details.responsesSubmitted', 'Your responses have been submitted!'));
       // Clear responses after successful submission
       setQuestionResponses({});
     } else {
-      Alert.alert('Error', result.error || 'Failed to submit responses');
+      Alert.alert(t('errors.general'), result.error || t('events.details.submitResponsesError', 'Failed to submit responses'));
     }
   };
 
@@ -590,9 +626,9 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
     return (
       <View style={styles.errorContainer}>
         <Ionicons name="calendar-outline" size={64} color="#C7C7CC" />
-        <Text style={styles.errorText}>Event not found</Text>
+        <Text style={styles.errorText}>{t('events.errors.notFound', 'Event not found')}</Text>
         <TouchableOpacity style={styles.errorButton} onPress={() => router.back()}>
-          <Text style={styles.errorButtonText}>Go Back</Text>
+          <Text style={styles.errorButtonText}>{t('common.goBack', 'Go Back')}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -814,13 +850,21 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
               >
                 <ChatButton width={40} height={40} />
               </TouchableOpacity>
-              <TouchableOpacity
-                accessibilityRole="button"
-                accessibilityLabel="Notifications"
-                style={{ paddingHorizontal: 4 }}
-              >
-                <NotificationButton width={40} height={40} />
-              </TouchableOpacity>
+              <EventOptionsButton
+                eventId={eventId}
+                eventTitle={event.title || 'Untitled Event'}
+                organizerId={event.created_by}
+                isOrganizer={isHost}
+                isAttending={attendees.some(a => a.user_id === session?.user?.id)}
+                onEdit={handleEditEvent}
+                onDelete={() => router.back()}
+                onLeave={() => router.back()}
+                trigger={
+                  <View style={{ paddingHorizontal: 4 }}>
+                    <Ionicons name="ellipsis-horizontal" size={24} color="#fff" />
+                  </View>
+                }
+              />
             </View>
           </View>
 
@@ -921,7 +965,7 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
             ) : (
               <View style={styles.hostPreviewBadge}>
                 <Ionicons name="eye-outline" size={16} color="#FFFFFF" />
-                <Text style={styles.hostPreviewText}>Host Preview</Text>
+                <Text style={styles.hostPreviewText}>{t('events.details.hostPreview', 'Host Preview')}</Text>
               </View>
             )}
           </View>
@@ -936,7 +980,7 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
               <View style={styles.hostButtonsRow}>
                 <TouchableOpacity style={styles.inviteButton}>
                   <Ionicons name="person-add-outline" size={18} color="#FFFFFF" />
-                  <Text style={styles.inviteButtonText}>Invite</Text>
+                  <Text style={styles.inviteButtonText}>{t('events.details.invite', 'Invite')}</Text>
                 </TouchableOpacity>
                 {!event.extra_data?.autoApprove && event.pending_requests?.length > 0 && (
                   <TouchableOpacity 
@@ -946,12 +990,12 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                     <View style={styles.pendingBadge}>
                       <Text style={styles.pendingBadgeText}>{event.pending_requests.length}</Text>
                     </View>
-                    <Text style={styles.pendingRequestsButtonText}>Pending Requests</Text>
+                    <Text style={styles.pendingRequestsButtonText}>{t('events.details.pendingRequests', 'Pending Requests')}</Text>
                   </TouchableOpacity>
                 )}
                 <TouchableOpacity style={styles.sendReminderButton}>
                   <Ionicons name="send-outline" size={18} color="#007AFF" />
-                  <Text style={styles.sendReminderButtonText}>Send Reminder</Text>
+                  <Text style={styles.sendReminderButtonText}>{t('events.details.sendReminder', 'Send Reminder')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.moreButton}>
                   <Ionicons name="ellipsis-horizontal" size={20} color="#000" />
@@ -974,7 +1018,7 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                     style={styles.organizerAvatar}
                   />
                   <View style={styles.organizerInfo}>
-                    <Text style={styles.hostLabel}>Hosted by</Text>
+                    <Text style={styles.hostLabel}>{t('events.details.hostedBy', 'Hosted by')}</Text>
                     <Text style={styles.organizerName}>
                       {event.organizer?.full_name || event.extra_data?.host?.name || 'Host'}
                     </Text>
@@ -1009,7 +1053,7 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                     style={styles.messageButtonGradient}
                   >
                     <Ionicons name="chatbubble" size={18} color="#FFFFFF" />
-                    <Text style={styles.messageHostBtnText}>Message</Text>
+                    <Text style={styles.messageHostBtnText}>{t('chat.title')}</Text>
                   </LinearGradient>
                 </TouchableOpacity>
               </View>
@@ -1017,17 +1061,31 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
               {/* Co-hosts section */}
               {event.extra_data?.coHosts && event.extra_data.coHosts.length > 0 && (
                 <View style={styles.coHostDivider}>
-                  <Text style={styles.coHostLabel}>Co-hosted with</Text>
+                  <Text style={styles.coHostLabel}>{t('events.details.coHostedWith', 'Co-hosted with')}</Text>
                   <View style={styles.coHostsList}>
-                    {event.extra_data.coHosts.slice(0, 3).map((coHost: any, index: number) => (
-                      <View key={coHost.id || index} style={styles.coHostItem}>
-                        <Image
-                          source={{ uri: coHost.avatar || 'https://via.placeholder.com/40' }}
-                          style={styles.coHostAvatar}
-                        />
-                        <Text style={styles.coHostName}>{coHost.name}</Text>
-                      </View>
-                    ))}
+                    {event.extra_data.coHosts.slice(0, 3).map((coHost: any, index: number) => {
+                      const userId = coHost.id || coHost.user_id;
+                      const rating = coHostsRatings[userId];
+                      return (
+                        <View key={coHost.id || index} style={styles.coHostItem}>
+                          <Image
+                            source={{ uri: coHost.avatar || 'https://via.placeholder.com/40' }}
+                            style={styles.coHostAvatar}
+                          />
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                            <Text style={styles.coHostName}>{coHost.name}</Text>
+                            {rating && rating.total_ratings > 0 && (
+                              <>
+                                <Ionicons name="star" size={12} color="#FFD700" />
+                                <Text style={{ fontSize: 12, color: '#666' }}>
+                                  {rating.average_rating.toFixed(1)}
+                                </Text>
+                              </>
+                            )}
+                          </View>
+                        </View>
+                      );
+                    })}
                     {event.extra_data.coHosts.length > 3 && (
                       <Text style={styles.moreCoHosts}>
                         +{event.extra_data.coHosts.length - 3} more
@@ -1106,7 +1164,7 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                     onPress={() => setShowAttendeesModal(true)}
                     style={styles.viewAllButton}
                   >
-                    <Text style={styles.viewAllText}>View All</Text>
+                    <Text style={styles.viewAllText}>{t('common.viewAll')}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -1128,7 +1186,7 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
               {!event.extra_data?.autoApprove && (
                 <View style={styles.approvalIndicator}>
                   <Ionicons name="shield-checkmark-outline" size={16} color="#FF9500" />
-                  <Text style={styles.approvalText}>Host approval required</Text>
+                  <Text style={styles.approvalText}>{t('events.details.hostApprovalRequired', 'Host approval required')}</Text>
                 </View>
               )}
             </View>
@@ -1137,7 +1195,7 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
           {/* About Section with Integrated Category */}
           <View style={styles.aboutSection}>
             <View style={styles.aboutHeader}>
-              <Text style={styles.sectionTitle}>About this event</Text>
+              <Text style={styles.sectionTitle}>{t('events.details.about')}</Text>
               {(event.extra_data?.event_category || event.event_category || event.category) && (
                 <View style={styles.categoryTag}>
                   <Text style={styles.categoryTagIcon}>
@@ -1161,11 +1219,11 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
             </View>
             <Text style={styles.aboutDescription}>
               {event.description ||
-                'Join us for an amazing experience! The host will share more details soon.'}
+                t('events.details.defaultDescription', 'Join us for an amazing experience! The host will share more details soon.')}
             </Text>
             {event.description && event.description.length > 200 && (
               <TouchableOpacity style={styles.showMoreButton}>
-                <Text style={styles.showMoreText}>Show more</Text>
+                <Text style={styles.showMoreText}>{t('common.showMore')}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -1183,7 +1241,7 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
             parkingInfo) && (
             <View style={styles.thingsToKnowSection}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Things to know</Text>
+                <Text style={styles.sectionTitle}>{t('events.details.thingsToKnow', 'Things to know')}</Text>
               </View>
 
               <View style={styles.thingsToKnowGrid}>
@@ -1192,7 +1250,7 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                   <View style={styles.thingToKnowItem}>
                     <Ionicons name="timer-outline" size={20} color="#000" />
                     <View style={styles.thingToKnowContent}>
-                      <Text style={styles.thingToKnowTitle}>RSVP deadline</Text>
+                      <Text style={styles.thingToKnowTitle}>{t('events.details.rsvpDeadline', 'RSVP deadline')}</Text>
                       <Text style={styles.thingToKnowValue}>
                         {new Date(event.extra_data.rsvp_deadline).toLocaleDateString('en-US', {
                           month: 'short',
@@ -1208,7 +1266,7 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                   <View style={styles.thingToKnowItem}>
                     <Ionicons name="shirt-outline" size={20} color="#000" />
                     <View style={styles.thingToKnowContent}>
-                      <Text style={styles.thingToKnowTitle}>Dress code</Text>
+                      <Text style={styles.thingToKnowTitle}>{t('events.details.dressCode', 'Dress code')}</Text>
                       <Text style={styles.thingToKnowValue}>{dressCode}</Text>
                     </View>
                   </View>
@@ -1219,7 +1277,7 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                   <View style={styles.thingToKnowItem}>
                     <Ionicons name="color-palette-outline" size={20} color="#000" />
                     <View style={styles.thingToKnowContent}>
-                      <Text style={styles.thingToKnowTitle}>Event theme</Text>
+                      <Text style={styles.thingToKnowTitle}>{t('events.details.eventTheme', 'Event theme')}</Text>
                       <Text style={styles.thingToKnowValue}>{eventTheme}</Text>
                     </View>
                   </View>
@@ -1230,7 +1288,7 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                   <View style={styles.thingToKnowItem}>
                     <MaterialCommunityIcons name="account-check-outline" size={20} color="#000" />
                     <View style={styles.thingToKnowContent}>
-                      <Text style={styles.thingToKnowTitle}>Age requirement</Text>
+                      <Text style={styles.thingToKnowTitle}>{t('events.details.ageRequirement', 'Age requirement')}</Text>
                       <Text style={styles.thingToKnowValue}>{ageRestriction}</Text>
                     </View>
                   </View>
@@ -1241,7 +1299,7 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                   <View style={styles.thingToKnowItem}>
                     <Ionicons name="person-add-outline" size={20} color="#000" />
                     <View style={styles.thingToKnowContent}>
-                      <Text style={styles.thingToKnowTitle}>Guests allowed</Text>
+                      <Text style={styles.thingToKnowTitle}>{t('events.details.guestsAllowed', 'Guests allowed')}</Text>
                       <Text style={styles.thingToKnowValue}>
                         {event.extra_data.max_plus_ones
                           ? `Bring up to ${event.extra_data.max_plus_ones} guest${event.extra_data.max_plus_ones > 1 ? 's' : ''}`
@@ -1255,7 +1313,7 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                 <View style={styles.thingToKnowItem}>
                   <Ionicons name="pricetag-outline" size={20} color="#000" />
                   <View style={styles.thingToKnowContent}>
-                    <Text style={styles.thingToKnowTitle}>Event type</Text>
+                    <Text style={styles.thingToKnowTitle}>{t('events.details.eventType', 'Event type')}</Text>
                     <Text style={styles.thingToKnowValue}>
                       {getCategoryDisplayName(
                         event.extra_data?.event_category ||
@@ -1272,7 +1330,7 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                   <View style={styles.thingToKnowItem}>
                     <Ionicons name="people-outline" size={20} color="#000" />
                     <View style={styles.thingToKnowContent}>
-                      <Text style={styles.thingToKnowTitle}>Event capacity</Text>
+                      <Text style={styles.thingToKnowTitle}>{t('events.details.eventCapacity', 'Event capacity')}</Text>
                       <Text style={styles.thingToKnowValue}>
                         Limited to {capacityLimit} guests
                         {event.extra_data?.waitlistEnabled && ' • Waitlist available'}
@@ -1286,8 +1344,8 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                   <View style={styles.thingToKnowItem}>
                     <Ionicons name="shield-checkmark-outline" size={20} color="#000" />
                     <View style={styles.thingToKnowContent}>
-                      <Text style={styles.thingToKnowTitle}>Registration</Text>
-                      <Text style={styles.thingToKnowValue}>Host approval required</Text>
+                      <Text style={styles.thingToKnowTitle}>{t('events.details.registration', 'Registration')}</Text>
+                      <Text style={styles.thingToKnowValue}>{t('events.details.hostApprovalRequired', 'Host approval required')}</Text>
                     </View>
                   </View>
                 )}
@@ -1297,7 +1355,7 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                   <View style={styles.thingToKnowItem}>
                     <Ionicons name="call-outline" size={20} color="#000" />
                     <View style={styles.thingToKnowContent}>
-                      <Text style={styles.thingToKnowTitle}>Contact</Text>
+                      <Text style={styles.thingToKnowTitle}>{t('events.details.contact', 'Contact')}</Text>
                       <Text style={styles.thingToKnowValue}>{contactInfo}</Text>
                     </View>
                   </View>
@@ -1311,7 +1369,7 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                   >
                     <Ionicons name="globe-outline" size={20} color="#000" />
                     <View style={styles.thingToKnowContent}>
-                      <Text style={styles.thingToKnowTitle}>Website</Text>
+                      <Text style={styles.thingToKnowTitle}>{t('events.details.website', 'Website')}</Text>
                       <Text style={[styles.thingToKnowValue, { color: '#007AFF', textDecorationLine: 'underline' }]}>
                         {eventWebsite.replace(/^https?:\/\//, '')}
                       </Text>
@@ -1341,7 +1399,7 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                       })()}
                     </Text>
                     <View style={styles.thingToKnowContent}>
-                      <Text style={styles.thingToKnowTitle}>Parking</Text>
+                      <Text style={styles.thingToKnowTitle}>{t('events.details.parking', 'Parking')}</Text>
                       <Text style={styles.thingToKnowValue}>
                         {(() => {
                           try {
@@ -1375,7 +1433,7 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
           {costs.length > 0 && (
             <View style={styles.costsDetailSection}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Event costs</Text>
+                <Text style={styles.sectionTitle}>{t('events.details.eventCosts', 'Event costs')}</Text>
                 <Text style={styles.costsTotalBadge}>
                   $
                   {costs
@@ -1390,7 +1448,7 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                     <View style={styles.costLeft}>
                       <Text style={styles.costDescription}>{cost.description}</Text>
                       {cost.description.toLowerCase().includes('required') && (
-                        <Text style={styles.costRequired}>• Required</Text>
+                        <Text style={styles.costRequired}>• {t('common.required', 'Required')}</Text>
                       )}
                     </View>
                     <Text style={styles.costAmount}>
@@ -1401,7 +1459,7 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                 ))}
                 <View style={styles.costNote}>
                   <Ionicons name="information-circle" size={16} color="#8E8E93" />
-                  <Text style={styles.costNoteText}>Payment collected at the event</Text>
+                  <Text style={styles.costNoteText}>{t('events.details.paymentAtEvent', 'Payment collected at the event')}</Text>
                 </View>
               </View>
             </View>
@@ -1411,7 +1469,7 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
           {parkingInfo && event.has_parking_info_enabled && (
             <View style={styles.parkingSection}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Parking & Transportation</Text>
+                <Text style={styles.sectionTitle}>{t('events.details.parkingTransportation', 'Parking & Transportation')}</Text>
               </View>
               <View style={styles.infoCard}>
                 {(() => {
@@ -1435,7 +1493,7 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                         <>
                           <View style={styles.infoRow}>
                             <Text style={styles.parkingEmoji}>🚫</Text>
-                            <Text style={styles.infoText}>No parking available at venue</Text>
+                            <Text style={styles.infoText}>{t('events.details.noParkingAtVenue', 'No parking available at venue')}</Text>
                           </View>
                           {parsed.nearbyOptions && (
                             <View style={[styles.infoRow, { marginTop: 12 }]}>
@@ -1920,8 +1978,8 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                       onPress={() => {
                         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                         Alert.alert(
-                          'RSVP Submitted',
-                          "You have RSVP'd without answering questions."
+                          t('events.details.rsvpSubmitted', 'RSVP Submitted'),
+                          t('events.details.rsvpWithoutQuestions', "You have RSVP'd without answering questions.")
                         );
                       }}
                     >
@@ -2249,18 +2307,29 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                 />
                 <View style={styles.modalHostInfo}>
                   <Text style={styles.modalHostName}>{coHost.name}</Text>
-                  <View style={styles.hostRatingRow}>
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <Ionicons
-                        key={star}
-                        name={star <= Math.floor(coHost.rating || 4.3) ? 'star' : 'star-outline'}
-                        size={16}
-                        color="#FFB800"
-                        style={{ marginRight: 2 }}
-                      />
-                    ))}
-                    <Text style={styles.hostRatingText}>{(coHost.rating || 4.3).toFixed(1)}</Text>
-                  </View>
+                  {(() => {
+                    const userId = coHost.id || coHost.user_id;
+                    const rating = coHostsRatings[userId];
+                    if (rating && rating.total_ratings > 0) {
+                      return (
+                        <View style={styles.hostRatingRow}>
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Ionicons
+                              key={star}
+                              name={star <= Math.floor(rating.average_rating) ? 'star' : 'star-outline'}
+                              size={16}
+                              color="#FFB800"
+                              style={{ marginRight: 2 }}
+                            />
+                          ))}
+                          <Text style={styles.hostRatingText}>
+                            {rating.average_rating.toFixed(1)} • {rating.total_ratings} rating{rating.total_ratings > 1 ? 's' : ''}
+                          </Text>
+                        </View>
+                      );
+                    }
+                    return null;
+                  })()}
                   <Text style={styles.modalHostRole}>Co-Host</Text>
                 </View>
               </View>

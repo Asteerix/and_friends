@@ -299,6 +299,15 @@ export class EventService {
         // On continue malgré l'erreur pour ne pas faire échouer la création principale
       }
 
+      // 14. Créer la conversation pour l'événement
+      console.log('💬 [EventService] Création de la conversation pour l\'événement...');
+      try {
+        await this.createEventConversation(newEvent.id, user.id, eventData);
+      } catch (conversationError) {
+        console.error('⚠️ [EventService] Erreur lors de la création de la conversation:', conversationError);
+        // On continue malgré l'erreur
+      }
+
       console.log('🎉 [EventService] Création d\'événement terminée avec succès!');
       console.log('🎊 [EventService] Résumé final:', {
         eventId: newEvent.id,
@@ -534,6 +543,81 @@ export class EventService {
     }
   }
 
+  static async cancelEvent(eventId: string) {
+    console.log('🚫 [EventService] Annulation de l\'événement:', eventId);
+    
+    try {
+      // 1. Récupérer l'événement
+      const { data: event, error: eventError } = await supabase
+        .from('events')
+        .select('*, chats(id, name)')
+        .eq('id', eventId)
+        .single();
+
+      if (eventError || !event) {
+        console.error('❌ [EventService] Erreur lors de la récupération de l\'événement:', eventError);
+        throw eventError || new Error('Événement non trouvé');
+      }
+
+      // 2. Marquer l'événement comme annulé
+      const { error: updateError } = await supabase
+        .from('events')
+        .update({
+          status: 'cancelled',
+          cancelled_at: new Date().toISOString()
+        })
+        .eq('id', eventId);
+
+      if (updateError) {
+        console.error('❌ [EventService] Erreur lors de l\'annulation:', updateError);
+        throw updateError;
+      }
+
+      // 3. Mettre à jour le nom de la conversation associée
+      if (event.chats && event.chats.length > 0) {
+        const chat = event.chats[0];
+        const newChatName = `${chat.name} (Annulé)`;
+        
+        console.log('💬 [EventService] Mise à jour du nom de la conversation:', newChatName);
+        
+        const { error: chatUpdateError } = await supabase
+          .from('chats')
+          .update({ name: newChatName })
+          .eq('id', chat.id);
+
+        if (chatUpdateError) {
+          console.error('⚠️ [EventService] Erreur lors de la mise à jour du chat:', chatUpdateError);
+        }
+
+        // 4. Envoyer un message système dans la conversation
+        const cancelMessage = {
+          chat_id: chat.id,
+          user_id: (await supabase.auth.getUser()).data.user?.id,
+          content: 'Cet événement a été annulé. La conversation reste ouverte pour continuer à discuter.',
+          type: 'system',
+          metadata: {
+            event_id: eventId,
+            action: 'event_cancelled'
+          }
+        };
+
+        const { error: messageError } = await supabase
+          .from('messages')
+          .insert([cancelMessage]);
+
+        if (messageError) {
+          console.error('⚠️ [EventService] Erreur lors de l\'envoi du message d\'annulation:', messageError);
+        }
+      }
+
+      console.log('✅ [EventService] Événement annulé avec succès');
+      return { success: true };
+    } catch (error) {
+      console.error('💥 [EventService] Erreur fatale lors de l\'annulation:', error);
+      throw error;
+    }
+  }
+
   // ========== MÉTHODES POUR LES EXTRAS ==========
 
   static async addRSVPSettings(eventId: string, deadline: Date, reminderEnabled: boolean, reminderTiming: string) {
@@ -747,6 +831,246 @@ export class EventService {
       console.log('✅ [EventService] Stickers mis à jour');
     } catch (error) {
       console.error('❌ [EventService] Erreur lors de la mise à jour des stickers:', error);
+      throw error;
+    }
+  }
+
+  static async createEventConversation(eventId: string, creatorId: string, eventData: CreateEventData) {
+    console.log('💬 [EventService] Création de la conversation pour l\'événement', eventId);
+    
+    try {
+      // 1. Créer le chat pour l'événement
+      const chatName = eventData.title || 'Conversation de l\'événement';
+      const { data: chat, error: chatError } = await supabase
+        .from('chats')
+        .insert([{
+          name: chatName,
+          is_group: true,
+          event_id: eventId,
+          created_by: creatorId
+        }])
+        .select()
+        .single();
+
+      if (chatError) {
+        console.error('❌ [EventService] Erreur lors de la création du chat:', chatError);
+        throw chatError;
+      }
+
+      console.log('✅ [EventService] Chat créé avec succès:', chat.id);
+
+      // 2. Ajouter les participants initiaux
+      const participants = [];
+      
+      // Ajouter le créateur comme admin
+      participants.push({
+        chat_id: chat.id,
+        user_id: creatorId,
+        is_admin: true
+      });
+
+      // Ajouter les co-hosts comme admins
+      if (eventData.coHosts && eventData.coHosts.length > 0) {
+        console.log('👥 [EventService] Ajout de', eventData.coHosts.length, 'co-hosts comme admins du chat');
+        eventData.coHosts.forEach(coHost => {
+          participants.push({
+            chat_id: chat.id,
+            user_id: coHost.id,
+            is_admin: true
+          });
+        });
+      }
+
+      // Insérer tous les participants
+      const { error: participantsError } = await supabase
+        .from('chat_participants')
+        .insert(participants);
+
+      if (participantsError) {
+        console.error('❌ [EventService] Erreur lors de l\'ajout des participants au chat:', participantsError);
+        throw participantsError;
+      }
+
+      console.log('✅ [EventService] Participants ajoutés au chat avec succès');
+
+      // 3. Envoyer un message de bienvenue système
+      const welcomeMessage = {
+        chat_id: chat.id,
+        user_id: creatorId,
+        content: `Bienvenue dans la conversation de "${chatName}" ! 🎉`,
+        type: 'system',
+        metadata: {
+          event_id: eventId,
+          action: 'chat_created'
+        }
+      };
+
+      const { error: messageError } = await supabase
+        .from('messages')
+        .insert([welcomeMessage]);
+
+      if (messageError) {
+        console.error('⚠️ [EventService] Erreur lors de l\'envoi du message de bienvenue:', messageError);
+        // Ne pas faire échouer pour ça
+      }
+
+      console.log('✅ [EventService] Conversation de l\'événement créée avec succès');
+      return chat;
+    } catch (error) {
+      console.error('❌ [EventService] Erreur fatale lors de la création de la conversation:', error);
+      throw error;
+    }
+  }
+
+  static async addParticipantToEventChat(eventId: string, userId: string) {
+    console.log('👤 [EventService] Ajout d\'un participant à la conversation de l\'événement');
+    
+    try {
+      // Validation des paramètres
+      if (!eventId || !userId) {
+        console.error('❌ [EventService] Paramètres invalides:', { eventId, userId });
+        throw new Error('Paramètres invalides');
+      }
+
+      // 1. Récupérer le chat associé à l'événement
+      const { data: chats, error: chatError } = await supabase
+        .from('chats')
+        .select('*')
+        .eq('event_id', eventId);
+
+      if (chatError) {
+        console.error('❌ [EventService] Erreur lors de la récupération du chat:', chatError);
+        throw chatError;
+      }
+
+      if (!chats || chats.length === 0) {
+        console.warn('⚠️ [EventService] Aucun chat trouvé pour l\'événement:', eventId);
+        // Pas d'erreur critique, l'événement peut ne pas avoir de chat
+        return;
+      }
+
+      const chat = chats[0];
+
+      // 2. Vérifier si l'utilisateur est déjà dans le chat
+      const { data: existingParticipant, error: checkError } = await supabase
+        .from('chat_participants')
+        .select('*')
+        .eq('chat_id', chat.id)
+        .eq('user_id', userId)
+        .single();
+
+      if (!checkError && existingParticipant) {
+        console.log('ℹ️ [EventService] L\'utilisateur est déjà dans le chat');
+        return;
+      }
+
+      // 3. Ajouter l'utilisateur au chat
+      const { error: addError } = await supabase
+        .from('chat_participants')
+        .insert([{
+          chat_id: chat.id,
+          user_id: userId,
+          is_admin: false
+        }]);
+
+      if (addError) {
+        console.error('❌ [EventService] Erreur lors de l\'ajout au chat:', addError);
+        throw addError;
+      }
+
+      // 4. Récupérer les infos de l'utilisateur pour le message système
+      const { data: userData, error: userError } = await supabase
+        .from('profiles')
+        .select('full_name, username')
+        .eq('id', userId)
+        .single();
+
+      const userName = userData?.full_name || userData?.username || 'Un participant';
+
+      // 5. Envoyer un message système
+      const { error: messageError } = await supabase
+        .from('messages')
+        .insert([{
+          chat_id: chat.id,
+          user_id: userId,
+          content: `${userName} a rejoint l'événement`,
+          type: 'system',
+          metadata: {
+            event_id: eventId,
+            action: 'participant_joined'
+          }
+        }]);
+
+      if (messageError) {
+        console.error('⚠️ [EventService] Erreur lors de l\'envoi du message système:', messageError);
+      }
+
+      console.log('✅ [EventService] Participant ajouté à la conversation avec succès');
+    } catch (error) {
+      console.error('❌ [EventService] Erreur lors de l\'ajout du participant au chat:', error);
+      throw error;
+    }
+  }
+
+  static async removeParticipantFromEventChat(eventId: string, userId: string) {
+    console.log('👤 [EventService] Retrait d\'un participant de la conversation de l\'événement');
+    
+    try {
+      // 1. Récupérer le chat associé à l'événement
+      const { data: chats, error: chatError } = await supabase
+        .from('chats')
+        .select('*')
+        .eq('event_id', eventId);
+
+      if (chatError || !chats || chats.length === 0) {
+        console.error('❌ [EventService] Aucun chat trouvé pour l\'événement:', eventId);
+        return;
+      }
+
+      const chat = chats[0];
+
+      // 2. Récupérer les infos de l'utilisateur avant de le retirer
+      const { data: userData, error: userError } = await supabase
+        .from('profiles')
+        .select('full_name, username')
+        .eq('id', userId)
+        .single();
+
+      const userName = userData?.full_name || userData?.username || 'Un participant';
+
+      // 3. Retirer l'utilisateur du chat
+      const { error: removeError } = await supabase
+        .from('chat_participants')
+        .delete()
+        .eq('chat_id', chat.id)
+        .eq('user_id', userId);
+
+      if (removeError) {
+        console.error('❌ [EventService] Erreur lors du retrait du chat:', removeError);
+        throw removeError;
+      }
+
+      // 4. Envoyer un message système
+      const { error: messageError } = await supabase
+        .from('messages')
+        .insert([{
+          chat_id: chat.id,
+          user_id: userId,
+          content: `${userName} a quitté l'événement`,
+          type: 'system',
+          metadata: {
+            event_id: eventId,
+            action: 'participant_left'
+          }
+        }]);
+
+      if (messageError) {
+        console.error('⚠️ [EventService] Erreur lors de l\'envoi du message système:', messageError);
+      }
+
+      console.log('✅ [EventService] Participant retiré de la conversation avec succès');
+    } catch (error) {
+      console.error('❌ [EventService] Erreur lors du retrait du participant du chat:', error);
       throw error;
     }
   }

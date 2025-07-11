@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import { LinearGradient } from 'expo-linear-gradient';
-import React from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, View, ViewStyle } from 'react-native';
-
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, Text, TouchableOpacity, View, ViewStyle } from 'react-native';
+import { useRatings } from '@/hooks/useRatings';
+import { CachedImage } from '@/shared/components/CachedImage';
 
 import type { EventAdvanced } from '@/hooks/useEventsAdvanced';
 
@@ -17,6 +18,28 @@ export default function EventCardNew({ event, style, onPress }: Props) {
   const eventDate = event.startTime || event.start_time || event.date;
   const formattedDate = eventDate ? format(new Date(eventDate), 'MMM d') : '';
   const formattedTime = eventDate ? format(new Date(eventDate), 'h:mm a') : '';
+  const { getUserRatingStats } = useRatings();
+  const [organizerRating, setOrganizerRating] = useState<{
+    average_rating: number;
+    total_ratings: number;
+  } | null>(null);
+
+  useEffect(() => {
+    const loadOrganizerRating = async () => {
+      if (event?.creator?.id || event?.created_by) {
+        const organizerId = event.creator?.id || event.created_by;
+        const stats = await getUserRatingStats(organizerId);
+        if (stats) {
+          setOrganizerRating({
+            average_rating: stats.average_rating,
+            total_ratings: stats.total_ratings
+          });
+        }
+      }
+    };
+
+    loadOrganizerRating();
+  }, [event?.creator?.id, event?.created_by, getUserRatingStats]);
 
   return (
     <TouchableOpacity 
@@ -25,9 +48,10 @@ export default function EventCardNew({ event, style, onPress }: Props) {
       activeOpacity={0.9}
     >
       {event.coverData?.media?.url || event.cover_image || event.image_url ? (
-        <Image 
-          source={{ uri: event.coverData?.media?.url || event.cover_image || event.image_url }} 
+        <CachedImage 
+          uri={event.coverData?.media?.url || event.cover_image || event.image_url}
           style={styles.image}
+          priority="high"
         />
       ) : (
         <LinearGradient
@@ -95,6 +119,28 @@ export default function EventCardNew({ event, style, onPress }: Props) {
             )}
           </View>
         </View>
+
+        {/* Organizer info with rating */}
+        {event.creator && (
+          <View style={styles.organizerSection}>
+            <View style={styles.organizerInfo}>
+              <CachedImage 
+                uri={event.creator.avatar_url || 'https://via.placeholder.com/32'}
+                style={styles.organizerAvatar}
+                priority="low"
+              />
+              <Text style={styles.organizerName}>{event.creator.full_name || 'Organizer'}</Text>
+              {organizerRating && organizerRating.total_ratings > 0 && (
+                <View style={styles.organizerRating}>
+                  <Ionicons name="star" size={12} color="#FFD700" />
+                  <Text style={styles.organizerRatingText}>
+                    {organizerRating.average_rating.toFixed(1)}
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
+        )}
       </View>
     </TouchableOpacity>
   );
@@ -232,5 +278,40 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: '#FF6B6B',
+  },
+  organizerSection: {
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+    paddingTop: 12,
+    marginTop: 12,
+  },
+  organizerInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  organizerAvatar: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    marginRight: 8,
+  },
+  organizerName: {
+    fontSize: 13,
+    color: '#666',
+    flex: 1,
+  },
+  organizerRating: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF9E6',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 12,
+  },
+  organizerRatingText: {
+    fontSize: 12,
+    color: '#666',
+    marginLeft: 3,
+    fontWeight: '600',
   },
 });

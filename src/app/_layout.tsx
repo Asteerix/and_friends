@@ -10,6 +10,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { SessionProvider } from '@/shared/providers/SessionContext';
 import { NavigationErrorBoundary } from '@/shared/ui/NavigationErrorBoundary';
 import { NetworkErrorProvider } from '@/shared/providers/NetworkErrorProvider';
+import { NetworkProvider } from '@/shared/providers/NetworkProvider';
 import { StoriesProvider } from '@/shared/providers/StoriesContext';
 import { UploadProvider } from '@/shared/providers/UploadProvider';
 import { ProfileProvider } from '@/shared/providers/ProfileProvider';
@@ -17,8 +18,12 @@ import { NotificationProvider } from '@/shared/providers/NotificationProvider';
 import { MemoriesProvider } from '@/shared/providers/MemoriesProvider';
 import { UploadProgressBar } from '@/shared/ui/UploadProgressBar';
 import { NetworkErrorModal } from '@/shared/ui/NetworkErrorModal';
+import { NetworkBanner } from '@/shared/components/NetworkBanner';
 import { EventCoverProvider } from '@/features/events/context/EventCoverContext';
 import { EventProvider } from '@/features/events/context/EventProvider';
+import { CacheProvider } from '@/shared/providers/CacheProvider';
+import { initializeNetworkMonitoring } from '@/shared/stores/networkStore';
+import '@/i18n/i18n';
 
 // import { PlayfairDisplay_700Bold } from '@expo-google-fonts/playfair-display';
 // Prevent auto-hiding splash screen
@@ -40,6 +45,11 @@ export default function RootLayout() {
     }
   }, [error]);
 
+  // Initialize network monitoring
+  useEffect(() => {
+    initializeNetworkMonitoring();
+  }, []);
+
   useEffect(() => {
     if (loaded || error) {
       // Hide splash screen even if fonts fail to load
@@ -57,18 +67,21 @@ export default function RootLayout() {
     <NavigationErrorBoundary>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <SafeAreaProvider>
-          <NetworkErrorProvider>
-            <SessionProvider>
-              <UploadProvider>
-                <NotificationProvider>
-                  <ProfileProvider>
-                    <StoriesProvider>
-                      <MemoriesProvider>
-                        <EventCoverProvider>
-                          <EventProvider>
-                            <StatusBar style="dark" />
-                            <UploadProgressBar />
-                            <NetworkErrorModal />
+          <NetworkProvider>
+            <NetworkErrorProvider>
+              <SessionProvider>
+                <CacheProvider>
+                  <UploadProvider>
+                    <NotificationProvider>
+                      <ProfileProvider>
+                        <StoriesProvider>
+                          <MemoriesProvider>
+                            <EventCoverProvider>
+                              <EventProvider>
+                                <StatusBar style="dark" />
+                                <NetworkBanner />
+                                <UploadProgressBar />
+                                <NetworkErrorModal />
                             <Stack
                       screenOptions={{
                         headerShown: false,
@@ -105,15 +118,17 @@ export default function RootLayout() {
             <Stack.Screen name="screens/notifications-full" />
             <Stack.Screen name="screens/story-viewer" />
           </Stack>
-                          </EventProvider>
-                        </EventCoverProvider>
-                      </MemoriesProvider>
-                    </StoriesProvider>
-                  </ProfileProvider>
-                </NotificationProvider>
-              </UploadProvider>
-            </SessionProvider>
-          </NetworkErrorProvider>
+                              </EventProvider>
+                            </EventCoverProvider>
+                          </MemoriesProvider>
+                        </StoriesProvider>
+                      </ProfileProvider>
+                    </NotificationProvider>
+                  </UploadProvider>
+                </CacheProvider>
+              </SessionProvider>
+            </NetworkErrorProvider>
+          </NetworkProvider>
         </SafeAreaProvider>
       </GestureHandlerRootView>
     </NavigationErrorBoundary>

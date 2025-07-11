@@ -11,13 +11,16 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 import { useProfile } from '@/hooks/useProfile';
 import { Colors } from '@/shared/config/Colors';
 import CustomText from '@/shared/ui/CustomText';
+import { LanguageSwitcher } from '@/shared/components/LanguageSwitcher';
 
 export default function PreferencesScreen() {
   const { loading } = useProfile();
+  const { t } = useTranslation();
 
   const [notifications, setNotifications] = useState({
     eventInvites: true,
@@ -41,9 +44,9 @@ export default function PreferencesScreen() {
     setSaving(true);
     try {
       // TODO: Save settings to user preferences table
-      Alert.alert('Success', 'Settings saved successfully');
+      Alert.alert(t('common.success'), t('settings.preferences.settingsSaved', 'Settings saved successfully'));
     } catch (error) {
-      Alert.alert('Error', 'Failed to save settings');
+      Alert.alert(t('errors.general'), t('settings.preferences.failedToSave', 'Failed to save settings'));
     } finally {
       setSaving(false);
     }
@@ -64,59 +67,74 @@ export default function PreferencesScreen() {
   };
 
   const handleClearCache = () => {
-    Alert.alert('Clear Cache', 'This will clear all cached data. Continue?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Clear',
-        style: 'destructive',
-        onPress: () => {
-          // TODO: Implement cache clearing
-          Alert.alert('Success', 'Cache cleared');
+    Alert.alert(
+      t('settings.preferences.clearCache', 'Clear Cache'), 
+      t('settings.preferences.clearCacheMessage', 'This will clear all cached data. Continue?'), 
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('common.clear', 'Clear'),
+          style: 'destructive',
+          onPress: () => {
+            // TODO: Implement cache clearing
+            Alert.alert(t('common.success'), t('settings.preferences.cacheCleared', 'Cache cleared'));
+          },
         },
-      },
-    ]);
+      ]
+    );
   };
 
   const handleDownloadData = () => {
-    Alert.alert('Download Data', 'Your data will be sent to your email address', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Request',
-        onPress: () => {
-          // TODO: Implement data export
-          Alert.alert(
-            'Success',
-            'Data request submitted. You will receive an email within 24 hours.'
-          );
+    Alert.alert(
+      t('settings.account.downloadData'), 
+      t('settings.preferences.downloadDataMessage', 'Your data will be sent to your email address'), 
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('settings.preferences.request', 'Request'),
+          onPress: () => {
+            // TODO: Implement data export
+            Alert.alert(
+              t('common.success'),
+              t('settings.preferences.dataRequestSubmitted', 'Data request submitted. You will receive an email within 24 hours.')
+            );
+          },
         },
-      },
-    ]);
+      ]
+    );
   };
 
   const handleDeleteAccount = () => {
     Alert.alert(
-      'Delete Account',
-      'This action cannot be undone. All your data will be permanently deleted.',
+      t('settings.account.deleteAccount'),
+      t('settings.preferences.deleteAccountWarning', 'This action cannot be undone. All your data will be permanently deleted.'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: () => {
-            Alert.alert('Confirm Deletion', 'Please type "DELETE" to confirm', [
-              {
-                text: 'Cancel',
-                style: 'cancel',
-              },
-              {
-                text: 'Confirm',
-                style: 'destructive',
-                onPress: async () => {
-                  // TODO: Implement account deletion
-                  Alert.alert('Account Deleted', 'Your account has been deleted');
+            Alert.alert(
+              t('settings.preferences.confirmDeletion', 'Confirm Deletion'), 
+              t('settings.preferences.typeDeleteToConfirm', 'Please type "DELETE" to confirm'), 
+              [
+                {
+                  text: t('common.cancel'),
+                  style: 'cancel',
                 },
-              },
-            ]);
+                {
+                  text: t('common.confirm'),
+                  style: 'destructive',
+                  onPress: async () => {
+                    // TODO: Implement account deletion
+                    Alert.alert(
+                      t('settings.preferences.accountDeleted', 'Account Deleted'), 
+                      t('settings.preferences.accountDeletedMessage', 'Your account has been deleted')
+                    );
+                  },
+                },
+              ]
+            );
           },
         },
       ]
@@ -125,38 +143,38 @@ export default function PreferencesScreen() {
 
   const notificationSettings = [
     {
-      label: 'Event Invites',
-      description: 'Get notified when someone invites you to an event',
+      label: t('settings.notifications.eventInvites', 'Event Invites'),
+      description: t('settings.notifications.eventInvitesDesc', 'Get notified when someone invites you to an event'),
       value: notifications.eventInvites,
       onToggle: handleNotificationToggle('eventInvites'),
     },
     {
-      label: 'Event Reminders',
-      description: 'Reminders for upcoming events',
+      label: t('settings.notifications.eventReminders'),
+      description: t('settings.notifications.eventRemindersDesc', 'Reminders for upcoming events'),
       value: notifications.eventReminders,
       onToggle: handleNotificationToggle('eventReminders'),
     },
     {
-      label: 'Event Updates',
-      description: "Changes to events you're attending",
+      label: t('settings.notifications.eventUpdates', 'Event Updates'),
+      description: t('settings.notifications.eventUpdatesDesc', "Changes to events you're attending"),
       value: notifications.eventUpdates,
       onToggle: handleNotificationToggle('eventUpdates'),
     },
     {
-      label: 'New Followers',
-      description: 'When someone follows you',
+      label: t('settings.notifications.newFollowers'),
+      description: t('settings.notifications.newFollowersDesc', 'When someone follows you'),
       value: notifications.newFollowers,
       onToggle: handleNotificationToggle('newFollowers'),
     },
     {
-      label: 'Messages',
-      description: 'Direct messages from friends',
+      label: t('settings.notifications.messages'),
+      description: t('settings.notifications.messagesDesc', 'Direct messages from friends'),
       value: notifications.messages,
       onToggle: handleNotificationToggle('messages'),
     },
     {
-      label: 'Stories',
-      description: 'New stories from friends',
+      label: t('settings.notifications.stories', 'Stories'),
+      description: t('settings.notifications.storiesDesc', 'New stories from friends'),
       value: notifications.stories,
       onToggle: handleNotificationToggle('stories'),
     },
@@ -164,26 +182,26 @@ export default function PreferencesScreen() {
 
   const privacySettings = [
     {
-      label: 'Public Profile',
-      description: 'Anyone can see your profile',
+      label: t('settings.privacy.profileVisibility'),
+      description: t('settings.privacy.publicProfileDesc', 'Anyone can see your profile'),
       value: privacy.profilePublic,
       onToggle: handlePrivacyToggle('profilePublic'),
     },
     {
-      label: 'Show Location',
-      description: 'Show your general location on profile',
+      label: t('settings.privacy.showLocation'),
+      description: t('settings.privacy.showLocationDesc', 'Show your general location on profile'),
       value: privacy.showLocation,
       onToggle: handlePrivacyToggle('showLocation'),
     },
     {
-      label: 'Show Age',
-      description: 'Display your age on profile',
+      label: t('settings.privacy.showAge', 'Show Age'),
+      description: t('settings.privacy.showAgeDesc', 'Display your age on profile'),
       value: privacy.showAge,
       onToggle: handlePrivacyToggle('showAge'),
     },
     {
-      label: 'Allow Messages',
-      description: 'Who can send you direct messages',
+      label: t('settings.privacy.allowMessages'),
+      description: t('settings.privacy.allowMessagesDesc', 'Who can send you direct messages'),
       value: privacy.allowMessages,
       onToggle: handlePrivacyToggle('allowMessages'),
     },
@@ -205,19 +223,19 @@ export default function PreferencesScreen() {
           <TouchableOpacity onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={24} color={Colors.light.text} />
           </TouchableOpacity>
-          <CustomText style={styles.title}>Preferences</CustomText>
+          <CustomText style={styles.title}>{t('settings.preferences.title')}</CustomText>
           <TouchableOpacity onPress={saveSettings} disabled={saving}>
             {saving ? (
               <ActivityIndicator size="small" color={Colors.light.tint} />
             ) : (
-              <CustomText style={styles.saveButton}>Save</CustomText>
+              <CustomText style={styles.saveButton}>{t('common.save')}</CustomText>
             )}
           </TouchableOpacity>
         </View>
 
         {/* Notifications Section */}
         <View style={styles.section}>
-          <CustomText style={styles.sectionTitle}>Notifications</CustomText>
+          <CustomText style={styles.sectionTitle}>{t('settings.notifications.title')}</CustomText>
           {notificationSettings.map((setting, index) => (
             <View key={index} style={styles.settingRow}>
               <View style={styles.settingInfo}>
@@ -240,7 +258,7 @@ export default function PreferencesScreen() {
 
         {/* Privacy Section */}
         <View style={styles.section}>
-          <CustomText style={styles.sectionTitle}>Privacy</CustomText>
+          <CustomText style={styles.sectionTitle}>{t('settings.privacy.title')}</CustomText>
           {privacySettings.map((setting, index) => (
             <View key={index} style={styles.settingRow}>
               <View style={styles.settingInfo}>
@@ -261,18 +279,32 @@ export default function PreferencesScreen() {
           ))}
         </View>
 
+        {/* Language Section */}
+        <View style={styles.section}>
+          <CustomText style={styles.sectionTitle}>{t('settings.preferences.language')}</CustomText>
+          <View style={styles.settingRow}>
+            <View style={styles.settingInfo}>
+              <CustomText style={styles.settingLabel}>{t('settings.preferences.language')}</CustomText>
+              <CustomText style={styles.settingDescription}>
+                {t('settings.preferences.languageDesc', 'Choose your preferred language')}
+              </CustomText>
+            </View>
+            <LanguageSwitcher showLabel={false} />
+          </View>
+        </View>
+
         {/* Account Actions */}
         <View style={styles.section}>
-          <CustomText style={styles.sectionTitle}>Account</CustomText>
+          <CustomText style={styles.sectionTitle}>{t('settings.account.title')}</CustomText>
 
           <TouchableOpacity style={styles.actionRow} onPress={handleClearCache}>
             <Ionicons name="trash-outline" size={24} color={Colors.light.text} />
-            <CustomText style={styles.actionLabel}>Clear Cache</CustomText>
+            <CustomText style={styles.actionLabel}>{t('settings.preferences.clearCache', 'Clear Cache')}</CustomText>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.actionRow} onPress={handleDownloadData}>
             <Ionicons name="download-outline" size={24} color={Colors.light.text} />
-            <CustomText style={styles.actionLabel}>Download My Data</CustomText>
+            <CustomText style={styles.actionLabel}>{t('settings.account.downloadData')}</CustomText>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -280,7 +312,7 @@ export default function PreferencesScreen() {
             onPress={handleDeleteAccount}
           >
             <Ionicons name="warning-outline" size={24} color={Colors.light.error} />
-            <CustomText style={[styles.actionLabel, styles.dangerText]}>Delete Account</CustomText>
+            <CustomText style={[styles.actionLabel, styles.dangerText]}>{t('settings.account.deleteAccount')}</CustomText>
           </TouchableOpacity>
         </View>
       </ScrollView>

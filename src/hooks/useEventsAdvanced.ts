@@ -1,10 +1,12 @@
 import type { PostgrestError } from '@supabase/supabase-js';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 import { supabase } from '@/shared/lib/supabase/client';
 import { useSession } from '@/shared/providers/SessionContext';
 import { supabaseQuery } from '@/shared/lib/supabase/withNetworkRetry';
 import { useNetworkError } from '@/shared/providers/NetworkErrorProvider';
+import { useAdaptiveRequest } from '@/shared/hooks/useAdaptiveRequest';
+import { cachedRequest } from '@/shared/utils/offlineCache';
 
 export interface EventParticipant {
   id: string;
@@ -70,44 +72,46 @@ export function useEventsAdvanced() {
   const [events, setEvents] = useState<EventAdvanced[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<PostgrestError | null>(null);
+  
+  // Use adaptive request hook for better network handling
+  const { execute: executeRequest } = useAdaptiveRequest({
+    baseTimeout: 15000,
+    maxRetries: 3,
+    enableCache: true,
+    cacheKey: 'events-list',
+    cacheTTL: 5 * 60 * 1000, // 5 minutes
+  });
 
-  const fetchEvents = async () => {
+  const fetchEvents = useCallback(async () => {
     setLoading(true);
     setError(null);
 
-    try {
+    const eventsData = await executeRequest(async () => {
       // Fetch all public events + events user is participating in
-      const { data: eventsData, error: eventsError } = await supabaseQuery(async () => 
-        await supabase
-          .from('events')
-          .select(
-            `
-            *,
-            profiles:created_by (
-              id,
-              full_name,
-              avatar_url
-            )
+      const { data, error } = await supabase
+        .from('events')
+        .select(
           `
+          *,
+          profiles:created_by (
+            id,
+            full_name,
+            avatar_url
           )
-          .order('date', { ascending: true })
-      );
+        `
+        )
+        .order('date', { ascending: true });
+      
+      if (error) throw error;
+      return data;
+    });
 
-      if (eventsError) {
-        setError(eventsError);
-        console.error('Error fetching events:', eventsError);
-        
-        // Show network error modal if it's a network issue
-        if (eventsError.code === 'NETWORK_ERROR') {
-          showNetworkError({
-            message: eventsError.message,
-            timestamp: Date.now(),
-            retryAction: fetchEvents,
-          });
-        }
-        return;
-      }
+    if (!eventsData) {
+      setLoading(false);
+      return;
+    }
 
+    try {
       // For each event, get participation data
       const enrichedEvents: EventAdvanced[] = await Promise.all(
         ((eventsData as any[]) || []).map(async (event: any) => {
@@ -225,7 +229,7 @@ export function useEventsAdvanced() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [executeRequest, session?.user]);
 
   const createEvent = async (eventData: {
     title: string;

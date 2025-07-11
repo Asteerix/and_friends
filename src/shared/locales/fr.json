@@ -23,6 +23,49 @@
   "unexpected_error": "Une erreur inattendue est survenue. Veuillez réessayer.",
   "resend_code_link": "Renvoyer le code",
   "invalid_phone": "Numéro invalide",
+  "auth": {
+    "phoneVerification": {
+      "title": "Tu es réel ou quoi ?",
+      "subtitle": "Faisons en sorte que tu sois une vraie personne. Entre ton numéro de téléphone pour garder les choses sûres.",
+      "countryCode": "Code pays",
+      "phoneNumber": "Numéro de téléphone",
+      "selectCountry": "Sélectionne ton pays",
+      "tooManyAttempts": "Trop de tentatives",
+      "waitBeforeRetry": "Veuillez attendre {{time}} avant de demander un nouveau code.",
+      "codeSent": "SMS envoyé !",
+      "codeAlreadySent": "Un code a déjà été envoyé à ce numéro. Vérifiez vos SMS.",
+      "codeSentTo": "Un code de vérification a été envoyé au {{phoneNumber}}",
+      "serviceUnavailable": "Service temporairement indisponible",
+      "serviceUnavailableMessage": "Le service SMS est temporairement indisponible. Que voulez-vous faire ?",
+      "testMode": "Mode Test",
+      "testModeInstructions": "Utilisez:\nNuméro: +33612345678\nCode: 123456",
+      "useTestMode": "Utiliser",
+      "help": "Aide",
+      "smsFailed": "Impossible d'envoyer le SMS",
+      "checkNumberAndRetry": "Vérifiez votre numéro et réessayez.",
+      "warning": "Avertissement",
+      "offlineMessage": "Votre demande sera traitée une fois la connexion rétablie.",
+      "notReceivingSMS": "Vous ne recevez pas de SMS ?",
+      "smsHelpLabel": "Aide pour la réception des SMS"
+    }
+  },
+  "errors": {
+    "general": "Erreur",
+    "requiredField": "Veuillez entrer un numéro de téléphone",
+    "invalidPhone": "Format de numéro incorrect",
+    "networkError": "Problème de connexion"
+  },
+  "network": {
+    "offline": "Mode hors ligne",
+    "checkConnection": "Vérifiez votre connexion internet et réessayez.",
+    "stillNoConnection": "Toujours pas de connexion"
+  },
+  "common": {
+    "ok": "OK",
+    "cancel": "Annuler",
+    "continue": "Continuer",
+    "retry": "Réessayer"
+  },
   "hide_from_profile": "Cacher du profil",
   "name_input_subtitle": "Dis-nous ton prénom et choisis un pseudo pour que tes amis te trouvent.",
   "name_input_fullname_placeholder": "Entre ton prénom et nom",

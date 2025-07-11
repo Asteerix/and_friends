@@ -1,5 +1,6 @@
 import React from 'react';
 import { Platform, StyleSheet, Text, TouchableOpacity, View, Dimensions } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import UnderlineDecoration from './UnderlineDecoration.svg';
 import LongUnderlineDecoration from './LongUnderlineDecoration.svg';
 
@@ -18,7 +19,8 @@ const LONG_UNDERLINE_TITLES = [
 ];
 
 export default function SectionHeader({ title, onViewAll }: Props) {
-  const useLongUnderline = LONG_UNDERLINE_TITLES.includes(title);
+  const { t } = useTranslation();
+  const useLongUnderline = LONG_UNDERLINE_TITLES.includes(title) || title.length > 20;
   
   return (
     <View style={styles.wrapper}>
@@ -26,7 +28,7 @@ export default function SectionHeader({ title, onViewAll }: Props) {
         <Text style={styles.title}>{title}</Text>
         {onViewAll && (
           <TouchableOpacity onPress={onViewAll}>
-            <Text style={styles.viewAll}>View All</Text>
+            <Text style={styles.viewAll}>{t('common.viewAll')}</Text>
           </TouchableOpacity>
         )}
       </View>

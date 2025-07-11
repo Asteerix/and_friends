@@ -28,6 +28,7 @@ import { Video, ResizeMode } from 'expo-av';
 import { useResponsive } from '@/shared/hooks/useResponsive';
 import { supabase } from '@/shared/lib/supabase/client';
 import { useStories } from '@/shared/providers/StoriesContext';
+import ReportModal from '@/features/reports/components/ReportModal';
 
 type Reply = {
   id: string;

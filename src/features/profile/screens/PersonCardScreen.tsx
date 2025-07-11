@@ -15,6 +15,8 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { supabase } from '@/shared/lib/supabase/client';
 import CustomText, { AfterHoursText, PlayfairText } from '@/shared/ui/CustomText';
+import { useSession } from '@/shared/providers/SessionContext';
+import ProfileOptionsButton from '@/features/profiles/components/ProfileOptionsButton';
 
 const { height } = Dimensions.get('window');
 
@@ -22,6 +24,7 @@ export default function PersonCardScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ userId: string }>();
   const userId = params.userId;
+  const { session } = useSession();
 
   const [userProfile, setUserProfile] = useState<any>(null);
   const [isFollowing, setIsFollowing] = useState(false);
@@ -97,9 +100,16 @@ export default function PersonCardScreen() {
           <TouchableOpacity style={styles.iconBtn} onPress={handleMessage}>
             <Ionicons name="chatbubble-ellipses-outline" size={26} color="#fff" />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.iconBtn}>
-            <Ionicons name="notifications-outline" size={26} color="#fff" />
-          </TouchableOpacity>
+          <ProfileOptionsButton
+            userId={userId}
+            userName={userProfile.full_name || userProfile.username || 'Unknown'}
+            isOwnProfile={userId === session?.user?.id}
+            trigger={
+              <View style={styles.iconBtn}>
+                <Ionicons name="ellipsis-horizontal" size={26} color="#fff" />
+              </View>
+            }
+          />
         </View>
       </View>
 
