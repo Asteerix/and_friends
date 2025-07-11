@@ -2,7 +2,8 @@ import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
 import * as MediaLibrary from 'expo-media-library';
 import * as DocumentPicker from 'expo-document-picker';
-import { Audio } from 'expo-av';
+import { AudioModule } from 'expo-audio';
+// Note: Recording functionality requires hooks and should be used in components
 import { supabase } from '@/shared/lib/supabase/client';
 import { CONVERSATION_CONSTANTS } from '../constants/conversation.constants';
 import type { MessageType } from '@/types/conversation.types';
@@ -27,7 +28,7 @@ export class MediaService {
   static async requestMediaPermissions(): Promise<boolean> {
     const { status: cameraStatus } = await ImagePicker.requestCameraPermissionsAsync();
     const { status: mediaLibraryStatus } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    const { status: audioStatus } = await Audio.requestPermissionsAsync();
+    const { status: audioStatus } = await AudioModule.requestRecordingPermissionsAsync();
     
     return (
       cameraStatus === 'granted' &&
@@ -136,35 +137,18 @@ export class MediaService {
   }
 
   // Enregistrer un message vocal
+  // Note: This method needs to be refactored to use hooks in a component
+  // expo-audio uses hooks (useAudioRecorder) which can't be used in static methods
   static async recordVoiceMessage(): Promise<MediaUploadResult | null> {
-    try {
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
-      });
-
-      const recording = new Audio.Recording();
-      await recording.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
-      await recording.startAsync();
-
-      // Interface utilisateur pour arrêter l'enregistrement
-      // (À implémenter dans le composant UI)
-      
-      // Simuler un délai pour l'exemple
-      await new Promise(resolve => setTimeout(resolve, 3000));
-
-      await recording.stopAndUnloadAsync();
-      const uri = recording.getURI();
-      
-      if (uri) {
-        const status = await recording.getStatusAsync();
-        return await this.uploadAudio(uri, {
-          duration: Math.round(status.durationMillis / 1000),
-        });
-      }
-    } catch (error) {
-      console.error('Erreur lors de l\'enregistrement vocal:', error);
-    }
+    console.error('recordVoiceMessage needs to be refactored to use useAudioRecorder hook in a component');
+    // The recording logic should be moved to a React component that can use hooks
+    // Example usage in a component:
+    // const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+    // await audioRecorder.prepareToRecordAsync();
+    // audioRecorder.record();
+    // ... later ...
+    // await audioRecorder.stop();
+    // const uri = audioRecorder.uri;
     return null;
   }
 

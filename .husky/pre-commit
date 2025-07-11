@@ -1,0 +1,57 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+# Vérifier la présence de fichiers sensibles
+echo "🔍 Vérification des fichiers sensibles..."
+
+# Liste des fichiers qui ne doivent jamais être commités
+FORBIDDEN_FILES=(
+  ".env"
+  ".env.local"
+  ".env.production"
+  ".env.development"
+  "ios/.xcode.env"
+)
+
+# Vérifier chaque fichier
+for file in "${FORBIDDEN_FILES[@]}"; do
+  if git diff --cached --name-only | grep -q "^$file$"; then
+    echo "❌ ERREUR: Tentative de commit du fichier sensible: $file"
+    echo "📝 Utilisez 'git rm --cached $file' pour le retirer du commit"
+    exit 1
+  fi
+done
+
+# Vérifier la présence de secrets dans le code
+echo "🔍 Recherche de secrets potentiels..."
+
+# Patterns de secrets à détecter
+SECRET_PATTERNS=(
+  "SUPABASE_SERVICE_ROLE_KEY"
+  "supabase_service_role_key"
+  "service_role_key"
+  "eyJhbGciOiJ"  # Début d'un JWT
+  "sk_live_"     # Stripe secret key
+  "sk_test_"     # Stripe test key
+  "\+33612345678" # Numéro de test
+  "123456"       # Code OTP de test
+)
+
+# Vérifier les fichiers modifiés
+for pattern in "${SECRET_PATTERNS[@]}"; do
+  if git diff --cached --name-only -z | xargs -0 grep -l "$pattern" 2>/dev/null; then
+    echo "❌ ERREUR: Secret potentiel détecté: $pattern"
+    echo "📝 Vérifiez vos fichiers avant de commiter"
+    exit 1
+  fi
+done
+
+echo "✅ Aucun fichier sensible ou secret détecté"
+
+# Optionnel: Exécuter les tests
+# npm test
+
+# Optionnel: Vérifier le linting
+# npm run lint
+
+exit 0

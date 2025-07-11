@@ -182,6 +182,15 @@
   "calendar_no_events": "No events scheduled",
   "calendar_add_event": "Add Event",
   
+  "map": {
+    "title": "Map",
+    "searchPlaceholder": "Search city, place or event",
+    "loadingEvents": "Loading events...",
+    "viewDetails": "View Details",
+    "going": "going",
+    "offlineMode": "Offline mode",
+    "slowConnection": "Slow connection"
+  },
   "map_title": "Map",
   "map_nearby_events": "Nearby Events",
   "map_filter": "Filter",

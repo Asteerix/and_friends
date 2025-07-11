@@ -45,7 +45,7 @@ export async function sendOTPWithRetry(
   
   // Use NetworkRetry for intelligent retry logic
   try {
-    const result = await NetworkRetry.withRetry(
+    await NetworkRetry.withRetry(
       async () => {
         console.log('📤 [OTP] Sending OTP...');
         
@@ -142,7 +142,7 @@ export async function checkSMSProviderStatus(): Promise<{
 }> {
   try {
     // Try to get auth settings (this might not work with anon key)
-    const { data, error } = await supabase.auth.getSession();
+    const { error } = await supabase.auth.getSession();
     
     if (error) {
       console.warn('⚠️ [OTP] Cannot check SMS provider status:', error);

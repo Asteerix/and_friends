@@ -27,6 +27,7 @@ import { useMemories } from '@/shared/providers/MemoriesProvider';
 import CustomText from '@/shared/ui/CustomText';
 import { StoryFrame } from '../components/StoryFrame';
 import { supabase } from '@/shared/lib/supabase/client';
+import ReportModal from '@/features/reports/components/ReportModal';
 
 const { height: screenHeight } = Dimensions.get('window');
 
@@ -71,6 +72,7 @@ export default function StoryViewerScreen() {
   const [showComments, setShowComments] = useState(false);
   const [showLikes, setShowLikes] = useState(false);
   const [viewers, setViewers] = useState<any[]>([]);
+  const [showReportModal, setShowReportModal] = useState(false);
   const [likes, setLikes] = useState<any[]>([]);
   const [localReplies, setLocalReplies] = useState<Reply[]>([]);
   const [hasLiked, setHasLiked] = useState(false);
@@ -625,29 +627,8 @@ export default function StoryViewerScreen() {
   };
 
   const handleReport = () => {
-    Alert.alert('Signaler cette story', 'Pourquoi signalez-vous cette story?', [
-      { text: 'Annuler', style: 'cancel' },
-      { text: 'Contenu inapproprié', onPress: () => reportStory('inappropriate') },
-      { text: 'Spam', onPress: () => reportStory('spam') },
-      { text: 'Harcèlement', onPress: () => reportStory('harassment') },
-      { text: 'Autre', onPress: () => reportStory('other') },
-    ]);
-  };
-
-  const reportStory = async (reason: string) => {
-    if (!session?.user?.id || !currentStory) return;
-
-    try {
-      await supabase.from('story_reports').insert({
-        story_id: currentStory.id,
-        reporter_id: session.user.id,
-        reason,
-      });
-
-      Alert.alert('Story signalée', 'Merci de nous avoir signalé ce contenu.');
-    } catch (error) {
-      console.error('Error reporting story:', error);
-    }
+    if (!currentStory) return;
+    setShowReportModal(true);
   };
 
   const handleLikeComment = async (reply: Reply) => {
@@ -1342,6 +1323,16 @@ export default function StoryViewerScreen() {
             </View>
           </View>
         </KeyboardAvoidingView>
+      )}
+      
+      {showReportModal && currentStory && (
+        <ReportModal
+          visible={showReportModal}
+          onClose={() => setShowReportModal(false)}
+          type="story"
+          targetId={currentStory.id}
+          targetName={`Story de ${currentStory.user?.username || 'User'}`}
+        />
       )}
     </View>
   );

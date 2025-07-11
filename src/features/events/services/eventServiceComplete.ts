@@ -189,6 +189,7 @@ export class EventServiceComplete {
         // Cover data complète
         coverData: {
           ...eventData.coverData,
+          coverImage: finalCoverImageUrl || eventData.coverData.coverImage || '',
           finalCoverImageUrl,
         },
         

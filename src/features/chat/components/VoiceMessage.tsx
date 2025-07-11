@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
-import { Audio } from 'expo-av';
+import { useAudioPlayer } from 'expo-audio';
 import React, { useState, useRef, useEffect } from 'react';
 import {
   ActivityIndicator,
@@ -25,72 +25,54 @@ export default function VoiceMessage({
   transcription,
   onTranscribe,
 }: VoiceMessageProps) {
-  const [sound, setSound] = useState<Audio.Sound | null>(null);
+  const player = useAudioPlayer({ uri });
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [playbackPosition, setPlaybackPosition] = useState(0);
   const [playbackDuration, setPlaybackDuration] = useState(duration * 1000);
 
   const progressAnim = useRef(new Animated.Value(0)).current;
-  // const playbackSubscription = useRef<any>(null);
 
   useEffect(() => {
     return () => {
-      if (sound) {
-        void sound.unloadAsync();
+      // Clean up player on unmount
+      if (player) {
+        player.remove();
       }
     };
-  }, [sound]);
+  }, [player]);
 
-  const loadAudio = async () => {
-    try {
-      setIsLoading(true);
-      const { sound: newSound } = await Audio.Sound.createAsync(
-        { uri },
-        { shouldPlay: false },
-        onPlaybackStatusUpdate
-      );
-      setSound(newSound);
-      setIsLoading(false);
-      return newSound;
-    } catch (error) {
-      console.error('Failed to load audio:', error);
-      setIsLoading(false);
-      return null;
-    }
-  };
+  // Monitor playback status
+  useEffect(() => {
+    const statusInterval = setInterval(() => {
+      if (player) {
+        setPlaybackPosition(player.currentTime * 1000);
+        setPlaybackDuration(player.duration * 1000 || duration * 1000);
 
-  const onPlaybackStatusUpdate = (status: any) => {
-    if (status.isLoaded) {
-      setPlaybackPosition(status.positionMillis || 0);
-      setPlaybackDuration(status.durationMillis || duration * 1000);
-
-      if (status.didJustFinish) {
-        setIsPlaying(false);
-        setPlaybackPosition(0);
-        progressAnim.setValue(0);
+        // Check if playback finished
+        if (player.currentTime >= player.duration && player.duration > 0) {
+          setIsPlaying(false);
+          setPlaybackPosition(0);
+          progressAnim.setValue(0);
+          player.seekTo(0);
+        }
       }
-    }
-  };
+    }, 100);
+
+    return () => clearInterval(statusInterval);
+  }, [player, duration, progressAnim]);
 
   const togglePlayback = async () => {
     try {
-      let currentSound = sound;
-
-      if (!currentSound) {
-        currentSound = await loadAudio();
-        if (!currentSound) return;
-      }
-
       if (isPlaying) {
-        await currentSound.pauseAsync();
+        player.pause();
         setIsPlaying(false);
       } else {
         // Reset if at the end
         if (playbackPosition >= playbackDuration - 100) {
-          await currentSound.setPositionAsync(0);
+          player.seekTo(0);
         }
-        await currentSound.playAsync();
+        player.play();
         setIsPlaying(true);
       }
     } catch (error) {
@@ -99,10 +81,10 @@ export default function VoiceMessage({
   };
 
   const handleSliderChange = async (value: number) => {
-    if (sound) {
-      const position = value * playbackDuration;
-      await sound.setPositionAsync(position);
-      setPlaybackPosition(position);
+    if (player) {
+      const position = value * playbackDuration / 1000; // Convert to seconds
+      player.seekTo(position);
+      setPlaybackPosition(value * playbackDuration);
     }
   };
 

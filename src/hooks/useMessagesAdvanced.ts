@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 
 import { supabase } from '@/shared/lib/supabase/client';
 import { useSession } from '@/shared/providers/SessionContext';
+import { MessageCacheService } from '@/features/chats/services/messageCacheService';
 
 export interface MessageAdvanced {
   id: string;
@@ -58,6 +59,19 @@ export function useMessagesAdvanced(chatId?: string) {
     setError(null);
 
     try {
+      // Essayer de récupérer depuis le cache d'abord
+      const cachedMessages = await MessageCacheService.getCachedMessages(targetId);
+      if (cachedMessages && cachedMessages.length > 0) {
+        const formattedMessages: MessageAdvanced[] = cachedMessages.map((msg: any) => ({
+          ...msg,
+          sender: msg.profiles,
+          is_own_message: msg.user_id === session.user.id,
+        }));
+        setMessages(formattedMessages);
+        setLoading(false);
+      }
+
+      // Puis récupérer les données fraîches
       const { data, error } = await supabase
         .from('messages')
         .select(
@@ -94,6 +108,9 @@ export function useMessagesAdvanced(chatId?: string) {
       }));
 
       setMessages(formattedMessages);
+      
+      // Mettre en cache les messages
+      await MessageCacheService.cacheMessages(targetId, formattedMessages);
     } catch (err: unknown) {
       setError(err as PostgrestError);
       console.error('Unexpected error fetching messages:', err);
@@ -107,6 +124,12 @@ export function useMessagesAdvanced(chatId?: string) {
     if (!session?.user) return;
 
     try {
+      // Essayer de récupérer depuis le cache d'abord
+      const cachedChats = await MessageCacheService.getCachedChats();
+      if (cachedChats && cachedChats.length > 0) {
+        setChats(cachedChats as ChatAdvanced[]);
+      }
+
       const { data: chatParticipations, error } = await supabase
         .from('chat_participants')
         .select(
@@ -234,6 +257,9 @@ export function useMessagesAdvanced(chatId?: string) {
       );
 
       setChats(enrichedChats);
+      
+      // Mettre en cache la liste des chats
+      await MessageCacheService.cacheChats(enrichedChats);
     } catch (error) {
       console.error('Error in fetchChats:', error);
     }

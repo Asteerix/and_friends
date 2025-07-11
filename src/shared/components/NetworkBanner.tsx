@@ -23,7 +23,7 @@ export function NetworkBanner({ autoHideDelay, onRetry }: NetworkBannerProps) {
   const [animatedValue] = useState(new Animated.Value(0));
   const insets = useSafeAreaInsets();
 
-  const shouldShow = connectionQuality !== 'good';
+  const shouldShow = connectionQuality === 'offline' || connectionQuality === 'poor' || connectionQuality === 'fair';
 
   useEffect(() => {
     if (shouldShow && !isVisible) {
@@ -58,7 +58,7 @@ export function NetworkBanner({ autoHideDelay, onRetry }: NetworkBannerProps) {
 
   if (!isVisible && !shouldShow) return null;
 
-  const config = {
+  const config: Record<string, { bg: string; text: string; icon: any; showRetry: boolean }> = {
     offline: {
       bg: '#ef4444',
       text: 'Aucune connexion internet',
@@ -71,15 +71,29 @@ export function NetworkBanner({ autoHideDelay, onRetry }: NetworkBannerProps) {
       icon: 'network-check' as const,
       showRetry: false
     },
+    fair: {
+      bg: '#f59e0b', 
+      text: 'Connexion moyenne',
+      icon: 'network-check' as const,
+      showRetry: false
+    },
     good: {
       bg: '#22c55e',
       text: 'Connexion rétablie',
       icon: 'wifi' as const,
       showRetry: false
+    },
+    excellent: {
+      bg: '#22c55e',
+      text: 'Excellente connexion',
+      icon: 'wifi' as const,
+      showRetry: false
     }
   };
 
-  const { bg, text, icon, showRetry } = config[connectionQuality];
+  // Fallback to 'good' if connectionQuality is undefined or not in config
+  const quality = connectionQuality && config[connectionQuality] ? connectionQuality : 'good';
+  const { bg, text, icon, showRetry } = config[quality];
 
   const translateY = animatedValue.interpolate({
     inputRange: [0, 1],

@@ -35,7 +35,15 @@ config.resolver = {
     timers: require.resolve('timers-browserify'),
     string_decoder: require.resolve('string_decoder/'),
     constants: require.resolve('constants-browserify'),
-    fs: require.resolve('react-native-fs'),
+    fs: require.resolve('expo-file-system'),
+  },
+  resolveRequest: (context, moduleName, platform) => {
+    // Fix for jest-util missing module
+    if (moduleName === './testPathPatternToRegExp') {
+      return { type: 'empty' };
+    }
+    // Default resolution
+    return context.resolveRequest(context, moduleName, platform);
   },
 };
 

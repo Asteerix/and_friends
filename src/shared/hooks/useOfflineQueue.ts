@@ -1,9 +1,9 @@
 import { useEffect, useState, useCallback } from 'react';
-import { MMKV } from 'react-native-mmkv';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
 import { v4 as uuidv4 } from 'uuid';
 
-const storage = new MMKV({ id: 'offline-queue' });
+const STORAGE_KEY = 'offline-queue';
 
 export interface QueuedAction {
   id: string;
@@ -54,9 +54,9 @@ class OfflineQueueManager {
       status: 'pending',
     };
 
-    const queue = this.getQueue();
+    const queue = await this.getQueue();
     queue.push(action);
-    this.saveQueue(queue);
+    await this.saveQueue(queue);
 
     // Try to process immediately if online
     if (this.isOnline) {
@@ -66,20 +66,29 @@ class OfflineQueueManager {
     return action.id;
   }
 
-  private getQueue(): QueuedAction[] {
-    const data = storage.getString('queue');
-    return data ? JSON.parse(data) : [];
+  private async getQueue(): Promise<QueuedAction[]> {
+    try {
+      const data = await AsyncStorage.getItem(`${STORAGE_KEY}:queue`);
+      return data ? JSON.parse(data) : [];
+    } catch (error) {
+      console.error('Error reading queue from AsyncStorage:', error);
+      return [];
+    }
   }
 
-  private saveQueue(queue: QueuedAction[]) {
-    storage.set('queue', JSON.stringify(queue));
+  private async saveQueue(queue: QueuedAction[]): Promise<void> {
+    try {
+      await AsyncStorage.setItem(`${STORAGE_KEY}:queue`, JSON.stringify(queue));
+    } catch (error) {
+      console.error('Error saving queue to AsyncStorage:', error);
+    }
   }
 
   async processQueue() {
     if (this.isProcessing || !this.isOnline) return;
 
     this.isProcessing = true;
-    const queue = this.getQueue();
+    const queue = await this.getQueue();
     const pendingActions = queue.filter(a => a.status === 'pending');
 
     for (const action of pendingActions) {
@@ -91,7 +100,7 @@ class OfflineQueueManager {
     const cleanedQueue = queue.filter(
       a => a.status !== 'completed' || a.timestamp > oneDayAgo
     );
-    this.saveQueue(cleanedQueue);
+    await this.saveQueue(cleanedQueue);
 
     this.isProcessing = false;
   }
@@ -103,18 +112,18 @@ class OfflineQueueManager {
       return;
     }
 
-    const queue = this.getQueue();
+    const queue = await this.getQueue();
     const actionIndex = queue.findIndex(a => a.id === action.id);
     if (actionIndex === -1) return;
 
     try {
       queue[actionIndex].status = 'processing';
-      this.saveQueue(queue);
+      await this.saveQueue(queue);
 
       await handler(action);
 
       queue[actionIndex].status = 'completed';
-      this.saveQueue(queue);
+      await this.saveQueue(queue);
     } catch (error: any) {
       queue[actionIndex].retryCount++;
       queue[actionIndex].error = error.message;
@@ -125,38 +134,38 @@ class OfflineQueueManager {
         queue[actionIndex].status = 'pending';
       }
 
-      this.saveQueue(queue);
+      await this.saveQueue(queue);
     }
   }
 
-  getQueuedActions(): QueuedAction[] {
-    return this.getQueue();
+  async getQueuedActions(): Promise<QueuedAction[]> {
+    return await this.getQueue();
   }
 
-  getActionStatus(actionId: string): QueuedAction | undefined {
-    const queue = this.getQueue();
+  async getActionStatus(actionId: string): Promise<QueuedAction | undefined> {
+    const queue = await this.getQueue();
     return queue.find(a => a.id === actionId);
   }
 
-  removeAction(actionId: string) {
-    const queue = this.getQueue();
+  async removeAction(actionId: string): Promise<void> {
+    const queue = await this.getQueue();
     const filtered = queue.filter(a => a.id !== actionId);
-    this.saveQueue(filtered);
+    await this.saveQueue(filtered);
   }
 
-  clearQueue() {
-    this.saveQueue([]);
+  async clearQueue(): Promise<void> {
+    await this.saveQueue([]);
   }
 
-  retryFailedActions() {
-    const queue = this.getQueue();
+  async retryFailedActions(): Promise<void> {
+    const queue = await this.getQueue();
     queue.forEach(action => {
       if (action.status === 'failed') {
         action.status = 'pending';
         action.retryCount = 0;
       }
     });
-    this.saveQueue(queue);
+    await this.saveQueue(queue);
     this.processQueue();
   }
 }
@@ -168,8 +177,9 @@ export function useOfflineQueue() {
   const [isOnline, setIsOnline] = useState(true);
 
   useEffect(() => {
-    const updateQueue = () => {
-      setQueue(queueManager.getQueuedActions());
+    const updateQueue = async () => {
+      const actions = await queueManager.getQueuedActions();
+      setQueue(actions);
     };
 
     updateQueue();
@@ -188,7 +198,8 @@ export function useOfflineQueue() {
   const enqueue = useCallback(
     async (type: string, payload: any, maxRetries?: number) => {
       const actionId = await queueManager.enqueue(type, payload, maxRetries);
-      setQueue(queueManager.getQueuedActions());
+      const actions = await queueManager.getQueuedActions();
+      setQueue(actions);
       return actionId;
     },
     []
@@ -201,22 +212,24 @@ export function useOfflineQueue() {
     []
   );
 
-  const getActionStatus = useCallback((actionId: string) => {
-    return queueManager.getActionStatus(actionId);
+  const getActionStatus = useCallback(async (actionId: string) => {
+    return await queueManager.getActionStatus(actionId);
   }, []);
 
-  const removeAction = useCallback((actionId: string) => {
-    queueManager.removeAction(actionId);
-    setQueue(queueManager.getQueuedActions());
+  const removeAction = useCallback(async (actionId: string) => {
+    await queueManager.removeAction(actionId);
+    const actions = await queueManager.getQueuedActions();
+    setQueue(actions);
   }, []);
 
-  const retryFailedActions = useCallback(() => {
-    queueManager.retryFailedActions();
-    setQueue(queueManager.getQueuedActions());
+  const retryFailedActions = useCallback(async () => {
+    await queueManager.retryFailedActions();
+    const actions = await queueManager.getQueuedActions();
+    setQueue(actions);
   }, []);
 
-  const clearQueue = useCallback(() => {
-    queueManager.clearQueue();
+  const clearQueue = useCallback(async () => {
+    await queueManager.clearQueue();
     setQueue([]);
   }, []);
 

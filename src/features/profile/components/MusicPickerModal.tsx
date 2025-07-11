@@ -12,7 +12,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { Audio } from 'expo-av';
+import { useAudioPlayer } from 'expo-audio';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import SearchIcon from '@/assets/svg/search.svg';
 
@@ -56,40 +56,44 @@ const AudioPreviewPlayer: React.FC<{
   playing: boolean;
   onFinish: () => void;
 }> = ({ uri, playing, onFinish }) => {
-  const [sound, setSound] = useState<Audio.Sound | null>(null);
+  const player = useAudioPlayer({ uri });
 
   useEffect(() => {
     return () => {
-      if (sound) {
-        void sound.unloadAsync();
+      // Clean up player on unmount
+      if (player) {
+        player.remove();
       }
     };
-  }, [sound]);
+  }, [player]);
 
   useEffect(() => {
-    const loadAndPlaySound = async () => {
+    const handlePlayback = async () => {
       if (playing && uri) {
         try {
-          const { sound: newSound } = await Audio.Sound.createAsync(
-            { uri },
-            { shouldPlay: true },
-            (status) => {
-              if (status.isLoaded && status.didJustFinish) {
-                onFinish();
-              }
-            }
-          );
-          setSound(newSound);
+          player.play();
         } catch (error) {
-          console.error('Error loading sound:', error);
+          console.error('Error playing sound:', error);
         }
-      } else if (!playing && sound) {
-        await sound.pauseAsync();
+      } else if (!playing) {
+        player.pause();
       }
     };
 
-    loadAndPlaySound();
-  }, [playing, uri, onFinish]);
+    handlePlayback();
+  }, [playing, uri, player]);
+
+  // Listen for playback completion
+  useEffect(() => {
+    const checkPlaybackStatus = setInterval(() => {
+      if (player.currentTime >= player.duration && player.duration > 0) {
+        onFinish();
+        clearInterval(checkPlaybackStatus);
+      }
+    }, 100);
+
+    return () => clearInterval(checkPlaybackStatus);
+  }, [player, onFinish]);
 
   return null;
 };

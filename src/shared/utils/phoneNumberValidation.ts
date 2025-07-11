@@ -162,8 +162,8 @@ export class PhoneNumberValidator {
     let descending = 0;
     
     for (let i = 1; i < digits.length; i++) {
-      const curr = parseInt(digits[i]);
-      const prev = parseInt(digits[i - 1]);
+      const curr = parseInt(digits[i], 10);
+      const prev = parseInt(digits[i - 1], 10);
       
       if (curr === prev + 1) {
         ascending++;

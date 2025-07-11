@@ -1,19 +1,32 @@
 import { QueryClient } from '@tanstack/react-query';
 import { persistQueryClient } from '@tanstack/react-query-persist-client';
-import { MMKV } from 'react-native-mmkv';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const storage = new MMKV({ id: 'react-query-cache' });
+const STORAGE_KEY = 'react-query-cache';
 
-const mmkvPersister = {
+const asyncStoragePersister = {
   persistClient: async (client: any) => {
-    storage.set('react-query-cache', JSON.stringify(client));
+    try {
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(client));
+    } catch (error) {
+      console.error('Error persisting query client:', error);
+    }
   },
   restoreClient: async () => {
-    const cache = storage.getString('react-query-cache');
-    return cache ? JSON.parse(cache) : undefined;
+    try {
+      const cache = await AsyncStorage.getItem(STORAGE_KEY);
+      return cache ? JSON.parse(cache) : undefined;
+    } catch (error) {
+      console.error('Error restoring query client:', error);
+      return undefined;
+    }
   },
   removeClient: async () => {
-    storage.delete('react-query-cache');
+    try {
+      await AsyncStorage.removeItem(STORAGE_KEY);
+    } catch (error) {
+      console.error('Error removing query client:', error);
+    }
   },
 };
 
@@ -41,6 +54,6 @@ export const queryClient = new QueryClient({
 // Persist the query client
 persistQueryClient({
   queryClient,
-  persister: mmkvPersister,
+  persister: asyncStoragePersister,
   maxAge: 24 * 60 * 60 * 1000, // 24 hours
 });

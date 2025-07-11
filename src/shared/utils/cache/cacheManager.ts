@@ -1,4 +1,4 @@
-import { MMKV } from 'react-native-mmkv';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface CacheConfig {
   ttl?: number; // Time to live in milliseconds
@@ -14,38 +14,47 @@ export interface CacheEntry<T> {
 }
 
 export class CacheManager {
-  private storage: MMKV;
+  private storagePrefix: string;
   private config: Required<CacheConfig>;
   private sizeTracker: Map<string, number> = new Map();
   private totalSize = 0;
 
   constructor(id: string = 'app-cache', config: CacheConfig = {}) {
-    this.storage = new MMKV({ id });
+    this.storagePrefix = id;
     this.config = {
       ttl: config.ttl || 3600000, // 1 hour default
       maxSize: config.maxSize || 50 * 1024 * 1024, // 50MB default
       compress: config.compress || false,
     };
-    this.initializeSizeTracking();
+    // Initialize size tracking asynchronously
+    this.initializeSizeTracking().catch(error => 
+      console.error('Failed to initialize size tracking:', error)
+    );
   }
 
-  private initializeSizeTracking(): void {
-    const keys = this.storage.getAllKeys();
-    this.totalSize = 0;
-    this.sizeTracker.clear();
-
-    keys.forEach(key => {
-      const size = this.getEntrySize(key);
-      if (size > 0) {
-        this.sizeTracker.set(key, size);
-        this.totalSize += size;
-      }
-    });
-  }
-
-  private getEntrySize(key: string): number {
+  private async initializeSizeTracking(): Promise<void> {
     try {
-      const value = this.storage.getString(key);
+      const allKeys = await AsyncStorage.getAllKeys();
+      const keys = allKeys.filter(key => key.startsWith(this.storagePrefix + ':'));
+      this.totalSize = 0;
+      this.sizeTracker.clear();
+
+      for (const key of keys) {
+        const size = await this.getEntrySize(key);
+        if (size > 0) {
+          const shortKey = key.substring(this.storagePrefix.length + 1);
+          this.sizeTracker.set(shortKey, size);
+          this.totalSize += size;
+        }
+      }
+    } catch (error) {
+      console.error('Error initializing size tracking:', error);
+    }
+  }
+
+  private async getEntrySize(key: string): Promise<number> {
+    try {
+      const value = await AsyncStorage.getItem(key);
       return value ? new Blob([value]).size : 0;
     } catch {
       return 0;
@@ -74,7 +83,7 @@ export class CacheManager {
       await this.evictOldestEntries(size);
     }
 
-    this.storage.set(key, serialized);
+    await AsyncStorage.setItem(`${this.storagePrefix}:${key}`, serialized);
     
     // Update size tracking
     const oldSize = this.sizeTracker.get(key) || 0;
@@ -82,16 +91,16 @@ export class CacheManager {
     this.totalSize = this.totalSize - oldSize + size;
   }
 
-  get<T>(key: string): T | null {
+  async get<T>(key: string): Promise<T | null> {
     try {
-      const value = this.storage.getString(key);
+      const value = await AsyncStorage.getItem(`${this.storagePrefix}:${key}`);
       if (!value) return null;
 
       const entry: CacheEntry<T> = JSON.parse(value);
       
       // Check if expired
       if (entry.expiresAt && Date.now() > entry.expiresAt) {
-        this.delete(key);
+        await this.delete(key);
         return null;
       }
 
@@ -107,7 +116,7 @@ export class CacheManager {
     fetcher: () => Promise<T>,
     options: { ttl?: number; compress?: boolean } = {}
   ): Promise<T> {
-    const cached = this.get<T>(key);
+    const cached = await this.get<T>(key);
     if (cached !== null) {
       return cached;
     }
@@ -117,70 +126,93 @@ export class CacheManager {
     return data;
   }
 
-  delete(key: string): void {
-    const size = this.sizeTracker.get(key) || 0;
-    this.storage.delete(key);
-    this.sizeTracker.delete(key);
-    this.totalSize -= size;
+  async delete(key: string): Promise<void> {
+    try {
+      const size = this.sizeTracker.get(key) || 0;
+      await AsyncStorage.removeItem(`${this.storagePrefix}:${key}`);
+      this.sizeTracker.delete(key);
+      this.totalSize -= size;
+    } catch (error) {
+      console.error(`Cache delete error for key ${key}:`, error);
+    }
   }
 
-  clear(): void {
-    this.storage.clearAll();
-    this.sizeTracker.clear();
-    this.totalSize = 0;
+  async clear(): Promise<void> {
+    try {
+      const allKeys = await AsyncStorage.getAllKeys();
+      const keysToRemove = allKeys.filter(key => key.startsWith(this.storagePrefix + ':'));
+      await AsyncStorage.multiRemove(keysToRemove);
+      this.sizeTracker.clear();
+      this.totalSize = 0;
+    } catch (error) {
+      console.error('Cache clear error:', error);
+    }
   }
 
-  clearExpired(): void {
-    const keys = this.storage.getAllKeys();
-    const now = Date.now();
+  async clearExpired(): Promise<void> {
+    try {
+      const allKeys = await AsyncStorage.getAllKeys();
+      const keys = allKeys.filter(key => key.startsWith(this.storagePrefix + ':'));
+      const now = Date.now();
 
-    keys.forEach(key => {
-      try {
-        const value = this.storage.getString(key);
-        if (value) {
-          const entry = JSON.parse(value);
-          if (entry.expiresAt && now > entry.expiresAt) {
-            this.delete(key);
+      for (const fullKey of keys) {
+        try {
+          const value = await AsyncStorage.getItem(fullKey);
+          if (value) {
+            const entry = JSON.parse(value);
+            if (entry.expiresAt && now > entry.expiresAt) {
+              const shortKey = fullKey.substring(this.storagePrefix.length + 1);
+              await this.delete(shortKey);
+            }
           }
+        } catch {
+          // Invalid entry, remove it
+          const shortKey = fullKey.substring(this.storagePrefix.length + 1);
+          await this.delete(shortKey);
         }
-      } catch {
-        // Invalid entry, remove it
-        this.delete(key);
       }
-    });
+    } catch (error) {
+      console.error('Clear expired error:', error);
+    }
   }
 
   private async evictOldestEntries(requiredSpace: number): Promise<void> {
-    const entries: Array<{ key: string; timestamp: number; size: number }> = [];
-    const keys = this.storage.getAllKeys();
+    try {
+      const entries: Array<{ key: string; timestamp: number; size: number }> = [];
+      const allKeys = await AsyncStorage.getAllKeys();
+      const keys = allKeys.filter(key => key.startsWith(this.storagePrefix + ':'));
 
-    // Collect all entries with their timestamps
-    keys.forEach(key => {
-      try {
-        const value = this.storage.getString(key);
-        if (value) {
-          const entry = JSON.parse(value);
-          const size = this.sizeTracker.get(key) || 0;
-          entries.push({
-            key,
-            timestamp: entry.timestamp || 0,
-            size,
-          });
+      // Collect all entries with their timestamps
+      for (const fullKey of keys) {
+        try {
+          const value = await AsyncStorage.getItem(fullKey);
+          if (value) {
+            const entry = JSON.parse(value);
+            const shortKey = fullKey.substring(this.storagePrefix.length + 1);
+            const size = this.sizeTracker.get(shortKey) || 0;
+            entries.push({
+              key: shortKey,
+              timestamp: entry.timestamp || 0,
+              size,
+            });
+          }
+        } catch {
+          // Invalid entry
         }
-      } catch {
-        // Invalid entry
       }
-    });
 
-    // Sort by timestamp (oldest first)
-    entries.sort((a, b) => a.timestamp - b.timestamp);
+      // Sort by timestamp (oldest first)
+      entries.sort((a, b) => a.timestamp - b.timestamp);
 
-    // Evict until we have enough space
-    let freedSpace = 0;
-    for (const entry of entries) {
-      if (freedSpace >= requiredSpace) break;
-      this.delete(entry.key);
-      freedSpace += entry.size;
+      // Evict until we have enough space
+      let freedSpace = 0;
+      for (const entry of entries) {
+        if (freedSpace >= requiredSpace) break;
+        await this.delete(entry.key);
+        freedSpace += entry.size;
+      }
+    } catch (error) {
+      console.error('Evict oldest entries error:', error);
     }
   }
 
@@ -200,13 +232,22 @@ export class CacheManager {
     };
   }
 
-  exists(key: string): boolean {
-    const value = this.get(key);
+  async exists(key: string): Promise<boolean> {
+    const value = await this.get(key);
     return value !== null;
   }
 
-  getAllKeys(): string[] {
-    return this.storage.getAllKeys();
+  async getAllKeys(): Promise<string[]> {
+    try {
+      const allKeys = await AsyncStorage.getAllKeys();
+      const prefix = this.storagePrefix + ':';
+      return allKeys
+        .filter(key => key.startsWith(prefix))
+        .map(key => key.substring(prefix.length));
+    } catch (error) {
+      console.error('Get all keys error:', error);
+      return [];
+    }
   }
 
   // Batch operations
@@ -218,16 +259,19 @@ export class CacheManager {
     }
   }
 
-  getMany<T>(keys: string[]): Map<string, T | null> {
+  async getMany<T>(keys: string[]): Promise<Map<string, T | null>> {
     const result = new Map<string, T | null>();
-    keys.forEach(key => {
-      result.set(key, this.get<T>(key));
-    });
+    for (const key of keys) {
+      const value = await this.get<T>(key);
+      result.set(key, value);
+    }
     return result;
   }
 
-  deleteMany(keys: string[]): void {
-    keys.forEach(key => this.delete(key));
+  async deleteMany(keys: string[]): Promise<void> {
+    for (const key of keys) {
+      await this.delete(key);
+    }
   }
 }
 

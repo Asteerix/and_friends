@@ -110,7 +110,7 @@ export class OTPCache {
       
       // Remove expired entries
       Object.keys(cache).forEach(key => {
-        if (cache[key].expiresAt < now) {
+        if (cache[key] && cache[key].expiresAt < now) {
           delete cache[key];
         }
       });

@@ -1,16 +1,16 @@
 
 import { Ionicons } from '@expo/vector-icons';
-import { Audio } from 'expo-av';
+import { useAudioRecorder, RecordingPresets, AudioModule } from 'expo-audio';
 import * as Haptics from 'expo-haptics';
 import React, { useState, useRef, useEffect } from 'react';
-import { Alert, Animated, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface VoiceRecorderProps {
   onRecordingComplete: (uri: string, duration: number) => void;
   onCancel: () => void;
 }
 export default function VoiceRecorder({ onRecordingComplete, onCancel }: VoiceRecorderProps) {
-  const [recording, setRecording] = useState<Audio.Recording | null>(null);
+  const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const [duration, setDuration] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
   // const [amplitude, setAmplitude] = useState(0);
@@ -21,22 +21,22 @@ export default function VoiceRecorder({ onRecordingComplete, onCancel }: VoiceRe
   const durationInterval = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    // Request permissions and setup audio
+    // Request permissions
     (async () => {
       try {
-        await Audio.requestPermissionsAsync();
-        await Audio.setAudioModeAsync({
-          allowsRecordingIOS: true,
-          playsInSilentModeIOS: true,
-        });
+        const { status } = await AudioModule.requestRecordingPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert('Permission required', 'Please grant audio recording permission to use this feature.');
+        }
       } catch (error) {
         console.error('Failed to get audio permissions:', error);
       }
     })();
 
     return () => {
-      if (recording) {
-        recording.stopAndUnloadAsync();
+      // Cleanup on unmount
+      if (audioRecorder.isRecording) {
+        audioRecorder.stop();
       }
     };
   }, []);
@@ -68,36 +68,10 @@ export default function VoiceRecorder({ onRecordingComplete, onCancel }: VoiceRe
       // Haptic feedback
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-      // Configure recording options
-      const recordingOptions: Audio.RecordingOptions = {
-        android: {
-          extension: '.m4a',
-          outputFormat: Audio.AndroidOutputFormat.MPEG_4,
-          audioEncoder: Audio.AndroidAudioEncoder.AAC,
-          sampleRate: 44100,
-          numberOfChannels: 2,
-          bitRate: 128000,
-        },
-        ios: {
-          extension: '.m4a',
-          outputFormat: Audio.IOSOutputFormat.MPEG4AAC,
-          audioQuality: Audio.IOSAudioQuality.HIGH,
-          sampleRate: 44100,
-          numberOfChannels: 2,
-          bitRate: 128000,
-        },
-        web: {
-          mimeType: 'audio/mp4',
-        },
-      };
+      // Prepare and start recording
+      await audioRecorder.prepareToRecordAsync();
+      audioRecorder.record();
 
-      // Create and start recording
-      const { recording: newRecording } = await Audio.Recording.createAsync(
-        recordingOptions,
-        onRecordingStatusUpdate
-      );
-
-      setRecording(newRecording);
       setIsRecording(true);
       setDuration(0);
 
@@ -118,7 +92,7 @@ export default function VoiceRecorder({ onRecordingComplete, onCancel }: VoiceRe
   };
 
   const stopRecording = async () => {
-    if (!recording) return;
+    if (!audioRecorder.isRecording) return;
 
     try {
       // Haptic feedback
@@ -129,9 +103,9 @@ export default function VoiceRecorder({ onRecordingComplete, onCancel }: VoiceRe
         clearInterval(durationInterval.current);
       }
 
-      // Stop and unload recording
-      await recording.stopAndUnloadAsync();
-      const uri = recording.getURI();
+      // Stop recording
+      await audioRecorder.stop();
+      const uri = audioRecorder.uri;
 
       if (uri && duration >= 1) {
         // Minimum 1 second recording
@@ -142,7 +116,6 @@ export default function VoiceRecorder({ onRecordingComplete, onCancel }: VoiceRe
       }
 
       // Reset state
-      setRecording(null);
       setIsRecording(false);
       setDuration(0);
 
@@ -158,7 +131,7 @@ export default function VoiceRecorder({ onRecordingComplete, onCancel }: VoiceRe
   };
 
   const cancelRecording = async () => {
-    if (!recording) return;
+    if (!audioRecorder.isRecording) return;
 
     try {
       // Haptic feedback
@@ -170,10 +143,9 @@ export default function VoiceRecorder({ onRecordingComplete, onCancel }: VoiceRe
       }
 
       // Stop and discard recording
-      await recording.stopAndUnloadAsync();
+      await audioRecorder.stop();
 
       // Reset state
-      setRecording(null);
       setIsRecording(false);
       setDuration(0);
 
@@ -189,23 +161,23 @@ export default function VoiceRecorder({ onRecordingComplete, onCancel }: VoiceRe
     }
   };
 
-  const onRecordingStatusUpdate = (status: Audio.RecordingStatus) => {
-    if (status.isRecording && status.metering !== undefined) {
-      // Normalize amplitude (iOS: -160 to 0, Android: varies)
-      const normalizedAmplitude = Platform.OS === 'ios'
-        ? (status.metering + 160) / 160
-        : Math.min(status.metering / 100, 1);
-      
-      // setAmplitude(normalizedAmplitude);
-      
-      // Animate waveform
-      Animated.timing(amplitudeAnim, {
-        toValue: normalizedAmplitude,
-        duration: 100,
-        useNativeDriver: true,
-      }).start();
+  // Note: expo-audio doesn't provide real-time metering updates
+  // The waveform animation will be simplified
+  useEffect(() => {
+    if (isRecording) {
+      // Simulate waveform animation
+      const waveInterval = setInterval(() => {
+        const randomAmplitude = Math.random();
+        Animated.timing(amplitudeAnim, {
+          toValue: randomAmplitude,
+          duration: 100,
+          useNativeDriver: true,
+        }).start();
+      }, 100);
+
+      return () => clearInterval(waveInterval);
     }
-  };
+  }, [isRecording, amplitudeAnim]);
 
   const formatDuration = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);

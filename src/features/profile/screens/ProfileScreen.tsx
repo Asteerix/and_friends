@@ -17,9 +17,11 @@ import CountryFlag from 'react-native-country-flag';
 import UnderlineDecoration from '@/features/home/components/UnderlineDecoration.svg';
 import { create } from 'react-native-pixel-perfect';
 import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 
 import { useProfile } from '@/hooks/useProfile';
+import { RootStackParamList } from '@/types/navigation';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { useEventsAdvanced } from '@/hooks/useEventsAdvanced';
 import { useFriends } from '@/hooks/useFriends';
@@ -32,6 +34,7 @@ import ChatButton from '@/assets/svg/chat-button.svg';
 import NotificationButton from '@/assets/svg/notification-button.svg';
 import { useResponsive } from '@/shared/hooks/useResponsive';
 import { supabase } from '@/shared/lib/supabase/client';
+import ProfileOptionsButton from '@/features/profiles/components/ProfileOptionsButton';
 
 const getTabs = (t: any) => [
   { key: 'about', label: t('profile.tabs.about', 'About') },
@@ -64,7 +67,7 @@ interface ProfileScreenProps {
 }
 
 export default function ProfileScreen({ userId }: ProfileScreenProps = {}) {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { t } = useTranslation();
   const {
     profile: currentUserProfile,
@@ -75,7 +78,7 @@ export default function ProfileScreen({ userId }: ProfileScreenProps = {}) {
     userId && userId !== currentUserProfile?.id ? userId : null
   );
   const { getUserEvents } = useEventsAdvanced();
-  const { 
+  const {
     friends: userFriends,
     friendRequests,
     sentRequests,
@@ -84,14 +87,10 @@ export default function ProfileScreen({ userId }: ProfileScreenProps = {}) {
     acceptFriendRequest,
     declineFriendRequest,
     removeFriend,
-    checkFriendStatus
+    checkFriendStatus,
   } = useFriends();
-  const {
-    getUserRatingStats,
-    getUserGivenRatings,
-    getUserReceivedRatings,
-    canRateUser,
-  } = useRatings();
+  const { getUserRatingStats, getUserGivenRatings, getUserReceivedRatings, canRateUser } =
+    useRatings();
   // const [editing, setEditing] = useState(false);
   // const [editedProfile, setEditedProfile] = useState<Partial<UserProfile>>({});
   // const [profileStats, setProfileStats] = useState<{
@@ -113,7 +112,9 @@ export default function ProfileScreen({ userId }: ProfileScreenProps = {}) {
     rating_distribution: Record<string, number>;
   } | null>(null);
   // Friends tab states
-  const [friendsSubTab, setFriendsSubTab] = useState<'friends' | 'received' | 'sent' | 'search'>('friends');
+  const [friendsSubTab, setFriendsSubTab] = useState<'friends' | 'received' | 'sent' | 'search'>(
+    'friends'
+  );
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -123,7 +124,9 @@ export default function ProfileScreen({ userId }: ProfileScreenProps = {}) {
   const [receivedSearchQuery, setReceivedSearchQuery] = useState('');
   // Events tab states
   const [attendedSubTab, setAttendedSubTab] = useState<'upcoming' | 'ongoing' | 'past'>('upcoming');
-  const [organizedSubTab, setOrganizedSubTab] = useState<'upcoming' | 'ongoing' | 'past'>('upcoming');
+  const [organizedSubTab, setOrganizedSubTab] = useState<'upcoming' | 'ongoing' | 'past'>(
+    'upcoming'
+  );
   const [eventsSearchQuery, setEventsSearchQuery] = useState('');
   const [eventsSortBy, setEventsSortBy] = useState<'date' | 'name' | 'participants'>('date');
   // const insets = useSafeAreaInsets();
@@ -148,7 +151,9 @@ export default function ProfileScreen({ userId }: ProfileScreenProps = {}) {
   const responsive = useResponsive();
   const styles = createStyles(responsive);
   const [showRatingModal, setShowRatingModal] = useState(false);
-  const [existingRating, setExistingRating] = useState<{ rating: number; comment: string | null } | undefined>();
+  const [existingRating, setExistingRating] = useState<
+    { rating: number; comment: string | null } | undefined
+  >();
   const [canRate, setCanRate] = useState(false);
 
   useEffect(() => {
@@ -166,7 +171,7 @@ export default function ProfileScreen({ userId }: ProfileScreenProps = {}) {
         jam_artist: profile.jam_artist,
         selected_restaurant_name: profile.selected_restaurant_name,
         hobbies: profile.hobbies,
-        location: profile.location
+        location: profile.location,
       });
 
       // Load jam/music preference from individual fields
@@ -206,7 +211,7 @@ export default function ProfileScreen({ userId }: ProfileScreenProps = {}) {
         } else {
           allEvents = await fetchUserEvents(profile.id);
         }
-        
+
         setUserEvents((allEvents || []).filter((e: any) => !e.is_creator));
         setOrganizedEvents((allEvents || []).filter((e: any) => e.is_creator));
       })();
@@ -238,7 +243,8 @@ export default function ProfileScreen({ userId }: ProfileScreenProps = {}) {
     try {
       const { data, error } = await supabase
         .from('event_participants')
-        .select(`
+        .select(
+          `
           status,
           events (
             id,
@@ -255,7 +261,8 @@ export default function ProfileScreen({ userId }: ProfileScreenProps = {}) {
               avatar_url
             )
           )
-        `)
+        `
+        )
         .eq('user_id', userId)
         .eq('status', 'going');
 
@@ -264,11 +271,13 @@ export default function ProfileScreen({ userId }: ProfileScreenProps = {}) {
         return [];
       }
 
-      return data?.map((item: any) => ({
-        ...item.events,
-        is_creator: item.events.created_by === userId,
-        organizer: item.events.profiles
-      })) || [];
+      return (
+        data?.map((item: any) => ({
+          ...item.events,
+          is_creator: item.events.created_by === userId,
+          organizer: item.events.profiles,
+        })) || []
+      );
     } catch (error) {
       console.error('Error in fetchUserEvents:', error);
       return [];
@@ -283,7 +292,7 @@ export default function ProfileScreen({ userId }: ProfileScreenProps = {}) {
         setRatingStats({
           average_rating: stats.average_rating,
           total_ratings: stats.total_ratings,
-          rating_distribution: stats.rating_distribution
+          rating_distribution: stats.rating_distribution,
         });
       }
 
@@ -302,11 +311,11 @@ export default function ProfileScreen({ userId }: ProfileScreenProps = {}) {
 
         // Check if user has already rated this person
         const myGivenRatings = await getUserGivenRatings(currentUserProfile.id);
-        const existingUserRating = myGivenRatings.find(r => r.to_user_id === targetUserId);
+        const existingUserRating = myGivenRatings.find((r) => r.to_user_id === targetUserId);
         if (existingUserRating) {
           setExistingRating({
             rating: existingUserRating.rating,
-            comment: existingUserRating.comment
+            comment: existingUserRating.comment,
           });
         }
       }
@@ -504,7 +513,7 @@ export default function ProfileScreen({ userId }: ProfileScreenProps = {}) {
       setSearchResults([]);
       return;
     }
-    
+
     setIsSearching(true);
     try {
       const results = await searchUsers(query);
@@ -520,10 +529,10 @@ export default function ProfileScreen({ userId }: ProfileScreenProps = {}) {
   // Sort friends based on selected criteria
   const getSortedFriends = () => {
     const friendsCopy = [...userFriends];
-    
+
     switch (friendsSortBy) {
       case 'name':
-        return friendsCopy.sort((a, b) => 
+        return friendsCopy.sort((a, b) =>
           (a.full_name || a.username).localeCompare(b.full_name || b.username)
         );
       case 'date':
@@ -556,35 +565,38 @@ export default function ProfileScreen({ userId }: ProfileScreenProps = {}) {
   // Filter friends based on search query
   const getFilteredFriends = () => {
     if (!friendsSearchQuery.trim()) return getSortedFriends();
-    
+
     const query = friendsSearchQuery.toLowerCase();
-    return getSortedFriends().filter(friend => 
-      friend.username?.toLowerCase().includes(query) ||
-      friend.full_name?.toLowerCase().includes(query) ||
-      friend.bio?.toLowerCase().includes(query)
+    return getSortedFriends().filter(
+      (friend) =>
+        friend.username?.toLowerCase().includes(query) ||
+        friend.full_name?.toLowerCase().includes(query) ||
+        friend.bio?.toLowerCase().includes(query)
     );
   };
 
   // Filter received requests based on search query
   const getFilteredReceivedRequests = () => {
     if (!receivedSearchQuery.trim()) return friendRequests;
-    
+
     const query = receivedSearchQuery.toLowerCase();
-    return friendRequests.filter(request => 
-      request.username?.toLowerCase().includes(query) ||
-      request.full_name?.toLowerCase().includes(query)
+    return friendRequests.filter(
+      (request) =>
+        request.username?.toLowerCase().includes(query) ||
+        request.full_name?.toLowerCase().includes(query)
     );
   };
-
 
   // Filter events by status (upcoming, ongoing, past)
   const filterEventsByStatus = (events: any[], status: 'upcoming' | 'ongoing' | 'past') => {
     const now = new Date();
-    
-    return events.filter(event => {
+
+    return events.filter((event) => {
       const eventDate = new Date(event.date);
-      const eventEndDate = event.end_date ? new Date(event.end_date) : new Date(eventDate.getTime() + 3 * 60 * 60 * 1000); // Default 3 hours duration
-      
+      const eventEndDate = event.end_date
+        ? new Date(event.end_date)
+        : new Date(eventDate.getTime() + 3 * 60 * 60 * 1000); // Default 3 hours duration
+
       switch (status) {
         case 'upcoming':
           return eventDate > now;
@@ -601,20 +613,16 @@ export default function ProfileScreen({ userId }: ProfileScreenProps = {}) {
   // Sort events based on selected criteria
   const sortEvents = (events: any[], sortBy: string) => {
     const eventsCopy = [...events];
-    
+
     switch (sortBy) {
       case 'date':
         return eventsCopy.sort((a, b) => {
           return new Date(a.date).getTime() - new Date(b.date).getTime();
         });
       case 'name':
-        return eventsCopy.sort((a, b) => 
-          (a.title || '').localeCompare(b.title || '')
-        );
+        return eventsCopy.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
       case 'participants':
-        return eventsCopy.sort((a, b) => 
-          (b.participants_count || 0) - (a.participants_count || 0)
-        );
+        return eventsCopy.sort((a, b) => (b.participants_count || 0) - (a.participants_count || 0));
       default:
         return eventsCopy;
     }
@@ -623,12 +631,13 @@ export default function ProfileScreen({ userId }: ProfileScreenProps = {}) {
   // Filter events by search query
   const filterEventsBySearch = (events: any[], query: string) => {
     if (!query.trim()) return events;
-    
+
     const searchQuery = query.toLowerCase();
-    return events.filter(event => 
-      event.title?.toLowerCase().includes(searchQuery) ||
-      event.location?.toLowerCase().includes(searchQuery) ||
-      event.description?.toLowerCase().includes(searchQuery)
+    return events.filter(
+      (event) =>
+        event.title?.toLowerCase().includes(searchQuery) ||
+        event.location?.toLowerCase().includes(searchQuery) ||
+        event.description?.toLowerCase().includes(searchQuery)
     );
   };
 
@@ -670,675 +679,535 @@ export default function ProfileScreen({ userId }: ProfileScreenProps = {}) {
 
   return (
     <>
-    <ScrollView style={{ flex: 1, backgroundColor: '#fff' }} showsVerticalScrollIndicator={false}>
-      {/* HEADER bloc avec image et overlays */}
-      <View
-        style={{
-          height: responsive.headerHeight,
-          width: '100%',
-          position: 'relative',
-          backgroundColor: '#222',
-          overflow: 'hidden',
-        }}
-      >
-        <Image
-          source={
-            profile && isValidAvatar(profile.cover_url)
-              ? { uri: profile.cover_url }
-              : profile && isValidAvatar(profile.avatar_url)
-                ? { uri: profile.avatar_url }
-                : DEFAULT_AVATAR
-          }
-          style={styles.headerImage}
-        />
-        {/* Overlay sombre léger pour lisibilité des boutons */}
-        <View style={styles.headerOverlay} pointerEvents="none" />
-        {/* Ligne d'icônes avec pseudo centré entre back, messages et notifications */}
+      <ScrollView style={{ flex: 1, backgroundColor: '#fff' }} showsVerticalScrollIndicator={false}>
+        {/* HEADER bloc avec image et overlays */}
         <View
-          style={[
-            styles.topIconsRowOverlay,
-            {
-              top: 64,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            },
-          ]}
+          style={{
+            height: responsive.headerHeight,
+            width: '100%',
+            position: 'relative',
+            backgroundColor: '#222',
+            overflow: 'hidden',
+          }}
         >
-          <TouchableOpacity
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-            onPress={() => navigation.goBack()}
-            disabled={isMyProfile}
-          >
-            <View style={{ opacity: isMyProfile ? 0 : 1 }}>
-              <BackButton width={24} height={24} fill="#FFF" color="#FFF" stroke="#FFF" />
-            </View>
-          </TouchableOpacity>
+          <Image
+            source={
+              profile && isValidAvatar(profile.cover_url)
+                ? { uri: profile.cover_url }
+                : profile && isValidAvatar(profile.avatar_url)
+                  ? { uri: profile.avatar_url }
+                  : DEFAULT_AVATAR
+            }
+            style={styles.headerImage}
+          />
+          {/* Overlay sombre léger pour lisibilité des boutons */}
+          <View style={styles.headerOverlay} pointerEvents="none" />
+          {/* Ligne d'icônes avec pseudo centré entre back, messages et notifications */}
           <View
-            style={{
-              flex: 1,
-              alignItems: 'center',
-              flexDirection: 'row',
-              justifyContent: 'center',
-              minWidth: 0,
-            }}
+            style={[
+              styles.topIconsRowOverlay,
+              {
+                top: 64,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              },
+            ]}
           >
-            <Text
-              style={styles.usernameInline}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.7}
-              accessibilityRole="text"
-            >
-              @{profile?.username || 'user'}
-            </Text>
-          </View>
-          {isMyProfile && (
-            <View style={{ flexDirection: 'row', marginLeft: 'auto' }}>
-              <TouchableOpacity
-                accessibilityRole="button"
-                accessibilityLabel="Messages"
-                style={{ paddingHorizontal: 4 }}
-              >
-                <ChatButton width={40} height={40} />
-              </TouchableOpacity>
-              <TouchableOpacity
-                accessibilityRole="button"
-                accessibilityLabel="Notifications"
-                style={{ paddingHorizontal: 4 }}
-              >
-                <NotificationButton width={40} height={40} />
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
-        {/* Infos en bas à gauche */}
-        <View style={styles.infoOverlay}>
-          <View style={styles.flagRow}>
-            {locationDisplay && (
-              <>
-                <View style={styles.flagCircle}>
-                  <CountryFlag
-                    isoCode={getCountryISOCode(locationDisplay)}
-                    size={32}
-                    style={{ width: 32, height: 32, borderRadius: 16 }}
-                  />
-                </View>
-                <Text style={{ color: '#fff', fontSize: 16, marginLeft: 8 }}>
-                  {locationDisplay}
-                </Text>
-              </>
-            )}
-          </View>
-          <Text style={styles.nameOverlay}>
-            {profile?.full_name || profile?.display_name || 'User'}
-            {profile?.birth_date && !profile?.hide_birth_date
-              ? `, ${calculateAge(profile.birth_date)}`
-              : ''}
-          </Text>
-          <Text style={styles.metaOverlay}>
-            {profile?.path || 'Explorer'} • {userFriends.length} friends
-            {ratingStats && ratingStats.total_ratings > 0 && (
-              <>
-                {' • '}
-                <Text style={{ color: '#FFD700' }}>★</Text> {ratingStats.average_rating.toFixed(1)}
-              </>
-            )}
-          </Text>
-        </View>
-        {/* Boutons Connect/Modifier et Paramètres en bas à gauche */}
-        <View style={styles.bottomButtonsContainer}>
-          <TouchableOpacity
-            style={styles.connectBtnOverlay}
-            onPress={() => {
-              if (isMyProfile) {
-                navigation.navigate('screens/profile/edit');
-              }
-            }}
-          >
-            <Text style={styles.connectBtnTextOverlay}>
-              {isMyProfile ? 'Edit Profile' : 'Connect'}
-            </Text>
-          </TouchableOpacity>
-          {!isMyProfile && profile && canRate && (
             <TouchableOpacity
-              style={styles.rateBtnOverlay}
-              onPress={() => setShowRatingModal(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Go back"
+              onPress={() => navigation.goBack()}
+              disabled={isMyProfile}
             >
-              <Ionicons name="star" size={16} color="#FFF" />
-              <Text style={styles.rateBtnTextOverlay}>
-                {existingRating ? t('profile.updateRating', 'Update Rating') : t('profile.rate', 'Rate')}
-              </Text>
+              <View style={{ opacity: isMyProfile ? 0 : 1 }}>
+                <BackButton width={24} height={24} fill="#FFF" color="#FFF" stroke="#FFF" />
+              </View>
             </TouchableOpacity>
-          )}
-          {isMyProfile && (
-            <TouchableOpacity
-              style={styles.settingsBtnOverlay}
-              onPress={() => navigation.navigate('screens/settings/index')}
-            >
-              <Text style={styles.settingsBtnTextOverlay}>{t('settings.title', 'Settings')}</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
-      {/* Sheet blanche avec tabs, arrondi qui remonte sur l'image */}
-      <View style={styles.tabsSheet}>
-        {/* Nouvelle barre d'onglets animée avec scroll horizontal */}
-        <View style={{ paddingTop: perfectSize(20) }}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            bounces={false}
-            contentContainerStyle={{
-              paddingHorizontal: perfectSize(20),
-            }}
-          >
             <View
               style={{
+                flex: 1,
+                alignItems: 'center',
                 flexDirection: 'row',
-                alignItems: 'flex-end',
-                minHeight: perfectSize(44),
-                position: 'relative',
+                justifyContent: 'center',
+                minWidth: 0,
               }}
             >
-              {TABS.map((tab, idx) => (
-                <Pressable
-                  key={tab.key}
-                  onPress={() => setActiveTab(tab.key)}
-                  style={({ pressed }) => [
-                    {
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      minHeight: perfectSize(44),
-                      paddingVertical: perfectSize(6),
-                      paddingHorizontal: perfectSize(16),
-                      marginRight: idx < TABS.length - 1 ? perfectSize(8) : 0,
-                    },
-                    pressed && { opacity: 0.7 },
-                  ]}
-                  accessibilityRole="button"
-                  accessibilityLabel={tab.label}
-                >
-                  <View style={{ alignItems: 'center' }}>
-                    <Text
-                      style={{
-                        fontSize: perfectSize(14),
-                        fontWeight: '500',
-                        color: activeTab === tab.key ? '#222' : '#888',
-                        textAlign: 'center',
-                      }}
-                      numberOfLines={1}
-                    >
-                      {tab.label}
-                    </Text>
-                    <View
-                      style={{
-                        height: perfectSize(8),
-                        marginTop: perfectSize(4),
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        minWidth: perfectSize(56),
-                      }}
-                    >
-                      {activeTab === tab.key ? (
-                        <UnderlineDecoration
-                          width={perfectSize(56)}
-                          height={perfectSize(4)}
-                          style={{ alignSelf: 'center' }}
-                          accessibilityLabel={`${tab.label} underline`}
-                        />
-                      ) : (
-                        <View style={{ height: perfectSize(4) }} />
-                      )}
-                    </View>
-                  </View>
-                </Pressable>
-              ))}
+              <Text
+                style={styles.usernameInline}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.7}
+                accessibilityRole="text"
+              >
+                @{profile?.username || 'user'}
+              </Text>
             </View>
-          </ScrollView>
-        </View>
-        {/* Tab content */}
-        <View style={{ minHeight: 300 }}>
-          {activeTab === 'about' && (
-            <View style={styles.aboutContainer}>
-              {/* Bio Section - First thing shown */}
-              {profile?.bio && (
-                <View style={styles.bioSection}>
-                  <Text style={styles.bioText}>{profile.bio}</Text>
-                </View>
+            {isMyProfile ? (
+              <View style={{ flexDirection: 'row', marginLeft: 'auto' }}>
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel="Messages"
+                  style={{ paddingHorizontal: 4 }}
+                >
+                  <ChatButton width={40} height={40} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel="Notifications"
+                  style={{ paddingHorizontal: 4 }}
+                >
+                  <NotificationButton width={40} height={40} />
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <ProfileOptionsButton
+                userId={profile?.id || ''}
+                userName={profile?.full_name || profile?.username || 'User'}
+                isOwnProfile={false}
+              />
+            )}
+          </View>
+          {/* Infos en bas à gauche */}
+          <View style={styles.infoOverlay}>
+            <View style={styles.flagRow}>
+              {locationDisplay && (
+                <>
+                  <View style={styles.flagCircle}>
+                    <CountryFlag
+                      isoCode={getCountryISOCode(locationDisplay)}
+                      size={32}
+                      style={{ width: 32, height: 32, borderRadius: 16 }}
+                    />
+                  </View>
+                  <Text style={{ color: '#fff', fontSize: 16, marginLeft: 8 }}>
+                    {locationDisplay}
+                  </Text>
+                </>
               )}
-
-              {/* Profile Completion Card - Only show if profile is incomplete and it's my profile */}
-              {isMyProfile &&
-                profile &&
-                (!profile.bio ||
-                  !profile.hobbies ||
-                  profile.hobbies.length < 3 ||
-                  !profile.avatar_url) && (
-                  <View style={styles.profileCompletionCard}>
-                    <View style={styles.profileCompletionHeader}>
-                      <Text style={styles.profileCompletionTitle}>Complete Your Profile</Text>
-                      <TouchableOpacity style={styles.dismissButton}>
-                        <Text style={styles.dismissButtonText}>×</Text>
-                      </TouchableOpacity>
+            </View>
+            <Text style={styles.nameOverlay}>
+              {profile?.full_name || profile?.display_name || 'User'}
+              {profile?.birth_date && !profile?.hide_birth_date
+                ? `, ${calculateAge(profile.birth_date)}`
+                : ''}
+            </Text>
+            <Text style={styles.metaOverlay}>
+              {profile?.path || 'Explorer'} • {userFriends.length} friends
+              {ratingStats && ratingStats.total_ratings > 0 && (
+                <>
+                  {' • '}
+                  <Text style={{ color: '#FFD700' }}>★</Text>{' '}
+                  {ratingStats.average_rating.toFixed(1)}
+                </>
+              )}
+            </Text>
+          </View>
+          {/* Boutons Connect/Modifier et Paramètres en bas à gauche */}
+          <View style={styles.bottomButtonsContainer}>
+            <TouchableOpacity
+              style={styles.connectBtnOverlay}
+              onPress={() => {
+                if (isMyProfile) {
+                  navigation.navigate('screens/profile/edit');
+                }
+              }}
+            >
+              <Text style={styles.connectBtnTextOverlay}>
+                {isMyProfile ? 'Edit Profile' : 'Connect'}
+              </Text>
+            </TouchableOpacity>
+            {!isMyProfile && profile && canRate && (
+              <TouchableOpacity
+                style={styles.rateBtnOverlay}
+                onPress={() => setShowRatingModal(true)}
+              >
+                <Ionicons name="star" size={16} color="#FFF" />
+                <Text style={styles.rateBtnTextOverlay}>
+                  {existingRating
+                    ? t('profile.updateRating', 'Update Rating')
+                    : t('profile.rate', 'Rate')}
+                </Text>
+              </TouchableOpacity>
+            )}
+            {isMyProfile && (
+              <TouchableOpacity
+                style={styles.settingsBtnOverlay}
+                onPress={() => navigation.navigate('screens/settings/index')}
+              >
+                <Text style={styles.settingsBtnTextOverlay}>{t('settings.title', 'Settings')}</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+        {/* Sheet blanche avec tabs, arrondi qui remonte sur l'image */}
+        <View style={styles.tabsSheet}>
+          {/* Nouvelle barre d'onglets animée avec scroll horizontal */}
+          <View style={{ paddingTop: perfectSize(20) }}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              bounces={false}
+              contentContainerStyle={{
+                paddingHorizontal: perfectSize(20),
+              }}
+            >
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'flex-end',
+                  minHeight: perfectSize(44),
+                  position: 'relative',
+                }}
+              >
+                {getTabs(t).map((tab, idx) => (
+                  <Pressable
+                    key={tab.key}
+                    onPress={() => setActiveTab(tab.key)}
+                    style={({ pressed }) => [
+                      {
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        minHeight: perfectSize(44),
+                        paddingVertical: perfectSize(6),
+                        paddingHorizontal: perfectSize(16),
+                        marginRight: idx < getTabs(t).length - 1 ? perfectSize(8) : 0,
+                      },
+                      pressed && { opacity: 0.7 },
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityLabel={tab.label}
+                  >
+                    <View style={{ alignItems: 'center' }}>
+                      <Text
+                        style={{
+                          fontSize: perfectSize(14),
+                          fontWeight: '500',
+                          color: activeTab === tab.key ? '#222' : '#888',
+                          textAlign: 'center',
+                        }}
+                        numberOfLines={1}
+                      >
+                        {tab.label}
+                      </Text>
+                      <View
+                        style={{
+                          height: perfectSize(8),
+                          marginTop: perfectSize(4),
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          minWidth: perfectSize(56),
+                        }}
+                      >
+                        {activeTab === tab.key ? (
+                          <UnderlineDecoration
+                            width={perfectSize(56)}
+                            height={perfectSize(4)}
+                            style={{ alignSelf: 'center' }}
+                            accessibilityLabel={`${tab.label} underline`}
+                          />
+                        ) : (
+                          <View style={{ height: perfectSize(4) }} />
+                        )}
+                      </View>
                     </View>
-                    <Text style={styles.profileCompletionText}>
-                      {!profile.bio
-                        ? 'Add a bio to introduce yourself'
-                        : 'Drop a few more details — someone might just vibe with you.'}
-                    </Text>
-                    <TouchableOpacity
-                      style={styles.completeProfileButton}
-                      onPress={() => navigation.navigate('screens/profile/edit')}
-                    >
-                      <Text style={styles.completeProfileButtonText}>Complete Profile</Text>
-                    </TouchableOpacity>
+                  </Pressable>
+                ))}
+              </View>
+            </ScrollView>
+          </View>
+          {/* Tab content */}
+          <View style={{ minHeight: 300 }}>
+            {activeTab === 'about' && (
+              <View style={styles.aboutContainer}>
+                {/* Bio Section - First thing shown */}
+                {profile?.bio && (
+                  <View style={styles.bioSection}>
+                    <Text style={styles.bioText}>{profile.bio}</Text>
                   </View>
                 )}
 
-              {/* Talk to Me About Section */}
-              {profile?.hobbies && profile.hobbies.length > 0 && (
-                <>
-                  <Text style={styles.sectionTitle}>Talk to Me About</Text>
-                  <View style={styles.interestsContainer}>
-                    {profile.hobbies.map((interest: any, i: any) => (
+                {/* Profile Completion Card - Only show if profile is incomplete and it's my profile */}
+                {isMyProfile &&
+                  profile &&
+                  (!profile.bio ||
+                    !profile.hobbies ||
+                    profile.hobbies.length < 3 ||
+                    !profile.avatar_url) && (
+                    <View style={styles.profileCompletionCard}>
+                      <View style={styles.profileCompletionHeader}>
+                        <Text style={styles.profileCompletionTitle}>Complete Your Profile</Text>
+                        <TouchableOpacity style={styles.dismissButton}>
+                          <Text style={styles.dismissButtonText}>×</Text>
+                        </TouchableOpacity>
+                      </View>
+                      <Text style={styles.profileCompletionText}>
+                        {!profile.bio
+                          ? 'Add a bio to introduce yourself'
+                          : 'Drop a few more details — someone might just vibe with you.'}
+                      </Text>
                       <TouchableOpacity
-                        key={i}
-                        style={styles.interestTag}
-                        accessibilityRole="button"
-                        accessibilityLabel={interest}
+                        style={styles.completeProfileButton}
+                        onPress={() => navigation.navigate('screens/profile/edit')}
                       >
-                        <Text style={styles.interestTagText}>{interest}</Text>
+                        <Text style={styles.completeProfileButtonText}>Complete Profile</Text>
                       </TouchableOpacity>
-                    ))}
-                  </View>
-                </>
-              )}
+                    </View>
+                  )}
 
-              {/* On Repeat Section */}
-              {jam.title && (
-                <>
-                  <Text style={styles.sectionTitle}>On Repeat</Text>
-                  <TouchableOpacity style={styles.songCard} activeOpacity={0.8}>
-                    <View style={styles.songAlbumArt}>
-                      {jam.cover_url ? (
-                        <Image source={{ uri: jam.cover_url }} style={styles.albumCover} />
-                      ) : (
-                        <View style={styles.albumPlaceholder}>
-                          <Ionicons name="musical-note" size={24} color="#FFF" />
-                        </View>
-                      )}
+                {/* Talk to Me About Section */}
+                {profile?.hobbies && profile.hobbies.length > 0 && (
+                  <>
+                    <Text style={styles.sectionTitle}>Talk to Me About</Text>
+                    <View style={styles.interestsContainer}>
+                      {profile.hobbies.map((interest: any, i: any) => (
+                        <TouchableOpacity
+                          key={i}
+                          style={styles.interestTag}
+                          accessibilityRole="button"
+                          accessibilityLabel={interest}
+                        >
+                          <Text style={styles.interestTagText}>{interest}</Text>
+                        </TouchableOpacity>
+                      ))}
                     </View>
-                    <View style={styles.songInfo}>
-                      <Text style={styles.songTitle}>{jam.title}</Text>
-                      <Text style={styles.songArtist}>{jam.artist}</Text>
-                    </View>
-                    <TouchableOpacity
-                      style={styles.playButton}
-                      onPress={() => setIsPlaying(!isPlaying)}
-                      accessibilityRole="button"
-                      accessibilityLabel={isPlaying ? 'Pause' : 'Play'}
-                    >
-                      <Ionicons
-                        name={isPlaying ? 'pause' : 'play'}
-                        size={20}
-                        color="#FFF"
-                        style={isPlaying ? {} : { marginLeft: 2 }}
-                      />
-                    </TouchableOpacity>
-                  </TouchableOpacity>
-                </>
-              )}
+                  </>
+                )}
 
-              {/* Go-To Spot Section */}
-              {restaurant.name && (
-                <>
-                  <Text style={styles.sectionTitle}>Go-To Spot</Text>
-                  <View style={styles.placeCard}>
-                    <View style={styles.placeIcon}>
-                      <Text style={styles.placeEmoji}>📍</Text>
-                    </View>
-                    <View style={styles.placeInfo}>
-                      <Text style={styles.placeName}>{restaurant.name}</Text>
-                      <Text style={styles.placeAddress}>{restaurant.address}</Text>
-                    </View>
-                  </View>
-                </>
-              )}
-
-              {/* Member Since - Moved before bio */}
-              <View style={styles.memberSinceContainer}>
-                <Text style={styles.memberSince}>{formatMemberSince(profile?.created_at)}</Text>
-              </View>
-            </View>
-          )}
-          {activeTab === 'friends' && (
-            <View style={styles.friendsContainer}>
-              {/* Friends sub-tabs - only show for own profile */}
-              {isMyProfile && (
-                <View style={styles.friendsSubTabContainer}>
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.friendsSubTabScroll}
-                  >
-                    <TouchableOpacity
-                      style={[
-                        styles.friendsSubTab,
-                        friendsSubTab === 'friends' && styles.friendsSubTabActive,
-                      ]}
-                      onPress={() => setFriendsSubTab('friends')}
-                    >
-                      <View style={styles.friendsSubTabContent}>
-                        <Text
-                          style={[
-                            styles.friendsSubTabText,
-                            friendsSubTab === 'friends' && styles.friendsSubTabTextActive,
-                          ]}
-                        >
-                          Friends
-                        </Text>
-                        <View style={[
-                          styles.tabCountBadge,
-                          friendsSubTab === 'friends' && styles.tabCountBadgeActive
-                        ]}>
-                          <Text style={[
-                            styles.tabCountText,
-                            friendsSubTab === 'friends' && styles.tabCountTextActive
-                          ]}>
-                            {userFriends.length}
-                          </Text>
-                        </View>
-                      </View>
-                    </TouchableOpacity>
-                    
-                    <TouchableOpacity
-                      style={[
-                        styles.friendsSubTab,
-                        friendsSubTab === 'search' && styles.friendsSubTabActive,
-                      ]}
-                      onPress={() => setFriendsSubTab('search')}
-                    >
-                      <View style={styles.friendsSubTabContent}>
-                        <Ionicons 
-                          name="search" 
-                          size={18} 
-                          color={friendsSubTab === 'search' ? '#FFF' : '#666'} 
-                        />
-                        <Text
-                          style={[
-                            styles.friendsSubTabText,
-                            friendsSubTab === 'search' && styles.friendsSubTabTextActive,
-                          ]}
-                        >
-                          Search
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
-                    
-                    <TouchableOpacity
-                      style={[
-                        styles.friendsSubTab,
-                        friendsSubTab === 'received' && styles.friendsSubTabActive,
-                      ]}
-                      onPress={() => setFriendsSubTab('received')}
-                    >
-                      <View style={styles.friendsSubTabContent}>
-                        <Text
-                          style={[
-                            styles.friendsSubTabText,
-                            friendsSubTab === 'received' && styles.friendsSubTabTextActive,
-                          ]}
-                        >
-                          Received
-                        </Text>
-                        {friendRequests.length > 0 ? (
-                          <View style={styles.requestBadge}>
-                            <Text style={styles.requestBadgeText}>{friendRequests.length}</Text>
-                          </View>
+                {/* On Repeat Section */}
+                {jam.title && (
+                  <>
+                    <Text style={styles.sectionTitle}>On Repeat</Text>
+                    <TouchableOpacity style={styles.songCard} activeOpacity={0.8}>
+                      <View style={styles.songAlbumArt}>
+                        {jam.cover_url ? (
+                          <Image source={{ uri: jam.cover_url }} style={styles.albumCover} />
                         ) : (
-                          <View style={[
-                            styles.tabCountBadge,
-                            friendsSubTab === 'received' && styles.tabCountBadgeActive
-                          ]}>
-                            <Text style={[
-                              styles.tabCountText,
-                              friendsSubTab === 'received' && styles.tabCountTextActive
-                            ]}>
-                              0
-                            </Text>
+                          <View style={styles.albumPlaceholder}>
+                            <Ionicons name="musical-note" size={24} color="#FFF" />
                           </View>
                         )}
                       </View>
-                    </TouchableOpacity>
-                    
-                    <TouchableOpacity
-                      style={[
-                        styles.friendsSubTab,
-                        friendsSubTab === 'sent' && styles.friendsSubTabActive,
-                      ]}
-                      onPress={() => setFriendsSubTab('sent')}
-                    >
-                      <View style={styles.friendsSubTabContent}>
-                        <Text
-                          style={[
-                            styles.friendsSubTabText,
-                            friendsSubTab === 'sent' && styles.friendsSubTabTextActive,
-                          ]}
-                        >
-                          Sent
-                        </Text>
-                        <View style={[
-                          styles.tabCountBadge,
-                          friendsSubTab === 'sent' && styles.tabCountBadgeActive
-                        ]}>
-                          <Text style={[
-                            styles.tabCountText,
-                            friendsSubTab === 'sent' && styles.tabCountTextActive
-                          ]}>
-                            {sentRequests.length}
-                          </Text>
-                        </View>
+                      <View style={styles.songInfo}>
+                        <Text style={styles.songTitle}>{jam.title}</Text>
+                        <Text style={styles.songArtist}>{jam.artist}</Text>
                       </View>
-                    </TouchableOpacity>
-                  </ScrollView>
-                </View>
-              )}
-
-              {/* Friends list */}
-              {(friendsSubTab === 'friends' || !isMyProfile) && (
-                userFriends.length === 0 ? (
-                  <View style={styles.emptySection}>
-                    <Ionicons name="people-outline" size={48} color="#CCC" />
-                    <Text style={styles.emptySectionText}>No friends yet</Text>
-                    <Text style={styles.emptySectionSubtext}>
-                      {isMyProfile
-                        ? 'Connect with people to grow your network'
-                        : "This user hasn't added any friends yet"}
-                    </Text>
-                    {isMyProfile && (
                       <TouchableOpacity
-                        style={styles.searchButton}
+                        style={styles.playButton}
+                        onPress={() => setIsPlaying(!isPlaying)}
+                        accessibilityRole="button"
+                        accessibilityLabel={isPlaying ? 'Pause' : 'Play'}
+                      >
+                        <Ionicons
+                          name={isPlaying ? 'pause' : 'play'}
+                          size={20}
+                          color="#FFF"
+                          style={isPlaying ? {} : { marginLeft: 2 }}
+                        />
+                      </TouchableOpacity>
+                    </TouchableOpacity>
+                  </>
+                )}
+
+                {/* Go-To Spot Section */}
+                {restaurant.name && (
+                  <>
+                    <Text style={styles.sectionTitle}>Go-To Spot</Text>
+                    <View style={styles.placeCard}>
+                      <View style={styles.placeIcon}>
+                        <Text style={styles.placeEmoji}>📍</Text>
+                      </View>
+                      <View style={styles.placeInfo}>
+                        <Text style={styles.placeName}>{restaurant.name}</Text>
+                        <Text style={styles.placeAddress}>{restaurant.address}</Text>
+                      </View>
+                    </View>
+                  </>
+                )}
+
+                {/* Member Since - Moved before bio */}
+                <View style={styles.memberSinceContainer}>
+                  <Text style={styles.memberSince}>{formatMemberSince(profile?.created_at)}</Text>
+                </View>
+              </View>
+            )}
+            {activeTab === 'friends' && (
+              <View style={styles.friendsContainer}>
+                {/* Friends sub-tabs - only show for own profile */}
+                {isMyProfile && (
+                  <View style={styles.friendsSubTabContainer}>
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={styles.friendsSubTabScroll}
+                    >
+                      <TouchableOpacity
+                        style={[
+                          styles.friendsSubTab,
+                          friendsSubTab === 'friends' && styles.friendsSubTabActive,
+                        ]}
+                        onPress={() => setFriendsSubTab('friends')}
+                      >
+                        <View style={styles.friendsSubTabContent}>
+                          <Text
+                            style={[
+                              styles.friendsSubTabText,
+                              friendsSubTab === 'friends' && styles.friendsSubTabTextActive,
+                            ]}
+                          >
+                            Friends
+                          </Text>
+                          <View
+                            style={[
+                              styles.tabCountBadge,
+                              friendsSubTab === 'friends' && styles.tabCountBadgeActive,
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.tabCountText,
+                                friendsSubTab === 'friends' && styles.tabCountTextActive,
+                              ]}
+                            >
+                              {userFriends.length}
+                            </Text>
+                          </View>
+                        </View>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={[
+                          styles.friendsSubTab,
+                          friendsSubTab === 'search' && styles.friendsSubTabActive,
+                        ]}
                         onPress={() => setFriendsSubTab('search')}
                       >
-                        <Text style={styles.searchButtonText}>Find Friends</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                ) : (
-                  <View style={styles.friendsList}>
-                    {/* Search bar for friends */}
-                    {isMyProfile && userFriends.length > 3 && (
-                      <View style={styles.friendsSearchContainer}>
-                        <View style={styles.friendsSearchInputContainer}>
-                          <Ionicons name="search" size={16} color="#999" />
-                          <TextInput
-                            style={styles.friendsSearchInput}
-                            placeholder="Search friends..."
-                            value={friendsSearchQuery}
-                            onChangeText={setFriendsSearchQuery}
-                            autoCapitalize="none"
-                            autoCorrect={false}
-                            clearButtonMode="while-editing"
+                        <View style={styles.friendsSubTabContent}>
+                          <Ionicons
+                            name="search"
+                            size={18}
+                            color={friendsSubTab === 'search' ? '#FFF' : '#666'}
                           />
-                        </View>
-                      </View>
-                    )}
-                    
-                    {/* Sort options for friends */}
-                    {isMyProfile && getFilteredFriends().length > 1 && (
-                      <View style={styles.sortContainer}>
-                        <TouchableOpacity 
-                          style={styles.sortButton}
-                          onPress={() => setShowSortOptions(!showSortOptions)}
-                        >
-                          <Ionicons name="funnel-outline" size={16} color="#007AFF" />
-                          <Text style={styles.sortButtonText}>
-                            Sort by {friendsSortBy === 'name' ? 'Name' : friendsSortBy === 'date' ? 'Friendship Date' : friendsSortBy === 'recent' ? 'Activity' : 'Mutual Friends'}
+                          <Text
+                            style={[
+                              styles.friendsSubTabText,
+                              friendsSubTab === 'search' && styles.friendsSubTabTextActive,
+                            ]}
+                          >
+                            Search
                           </Text>
-                          <Ionicons 
-                            name={showSortOptions ? "chevron-up" : "chevron-down"} 
-                            size={16} 
-                            color="#007AFF" 
-                          />
-                        </TouchableOpacity>
-                        
-                        {showSortOptions && (
-                          <View style={styles.sortOptions}>
-                            <TouchableOpacity 
-                              style={[styles.sortOption, friendsSortBy === 'name' && styles.sortOptionActive]}
-                              onPress={() => { setFriendsSortBy('name'); setShowSortOptions(false); }}
-                            >
-                              <Ionicons name="text-outline" size={16} color={friendsSortBy === 'name' ? '#007AFF' : '#666'} />
-                              <Text style={[styles.sortOptionText, friendsSortBy === 'name' && styles.sortOptionTextActive]}>
-                                Name (A-Z)
-                              </Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity 
-                              style={[styles.sortOption, friendsSortBy === 'date' && styles.sortOptionActive]}
-                              onPress={() => { setFriendsSortBy('date'); setShowSortOptions(false); }}
-                            >
-                              <Ionicons name="calendar-outline" size={16} color={friendsSortBy === 'date' ? '#007AFF' : '#666'} />
-                              <Text style={[styles.sortOptionText, friendsSortBy === 'date' && styles.sortOptionTextActive]}>
-                                Recently Added
-                              </Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity 
-                              style={[styles.sortOption, friendsSortBy === 'recent' && styles.sortOptionActive]}
-                              onPress={() => { setFriendsSortBy('recent'); setShowSortOptions(false); }}
-                            >
-                              <Ionicons name="time-outline" size={16} color={friendsSortBy === 'recent' ? '#007AFF' : '#666'} />
-                              <Text style={[styles.sortOptionText, friendsSortBy === 'recent' && styles.sortOptionTextActive]}>
-                                Recently Active
-                              </Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity 
-                              style={[styles.sortOption, friendsSortBy === 'mutual' && styles.sortOptionActive]}
-                              onPress={() => { setFriendsSortBy('mutual'); setShowSortOptions(false); }}
-                            >
-                              <Ionicons name="people-outline" size={16} color={friendsSortBy === 'mutual' ? '#007AFF' : '#666'} />
-                              <Text style={[styles.sortOptionText, friendsSortBy === 'mutual' && styles.sortOptionTextActive]}>
-                                Mutual Friends
-                              </Text>
-                            </TouchableOpacity>
-                          </View>
-                        )}
-                      </View>
-                    )}
-                    
-                    {getFilteredFriends().length === 0 && friendsSearchQuery ? (
-                      <View style={styles.emptySection}>
-                        <Ionicons name="search" size={48} color="#CCC" />
-                        <Text style={styles.emptySectionText}>No friends found</Text>
-                        <Text style={styles.emptySectionSubtext}>
-                          Try searching with a different name
-                        </Text>
-                      </View>
-                    ) : (
-                      getFilteredFriends().map((friend) => (
+                        </View>
+                      </TouchableOpacity>
+
                       <TouchableOpacity
-                        key={friend.id}
-                        style={styles.friendCard}
-                        onPress={() =>
-                          navigation.navigate('screens/profile/index', { userId: friend.id })
-                        }
+                        style={[
+                          styles.friendsSubTab,
+                          friendsSubTab === 'received' && styles.friendsSubTabActive,
+                        ]}
+                        onPress={() => setFriendsSubTab('received')}
                       >
-                        <Image
-                          source={friend.avatar_url ? { uri: friend.avatar_url } : DEFAULT_AVATAR}
-                          style={styles.friendAvatar}
-                        />
-                        <View style={styles.friendInfo}>
-                          <Text style={styles.friendName}>{friend.full_name || friend.username}</Text>
-                          <Text style={styles.friendUsername}>@{friend.username}</Text>
-                          {friend.bio && (
-                            <Text style={styles.friendBio} numberOfLines={1}>
-                              {friend.bio}
-                            </Text>
-                          )}
-                          {friend.mutual_friends_count && friend.mutual_friends_count > 0 && (
-                            <Text style={styles.mutualFriends}>
-                              {friend.mutual_friends_count} mutual friend{friend.mutual_friends_count > 1 ? 's' : ''}
-                            </Text>
-                          )}
-                          {friend.last_seen && (
-                            <View style={styles.lastSeenContainer}>
-                              <View style={[
-                                styles.activityDot,
-                                { 
-                                  backgroundColor: new Date(friend.last_seen).getTime() > Date.now() - 300000 
-                                    ? '#34C759' // Online (active in last 5 minutes)
-                                    : new Date(friend.last_seen).getTime() > Date.now() - 3600000
-                                    ? '#FFD60A' // Recently active (last hour)
-                                    : '#C7C7CC' // Offline
-                                }
-                              ]} />
-                              <Text style={styles.lastSeenText}>
-                                {new Date(friend.last_seen).getTime() > Date.now() - 300000
-                                  ? 'Active now'
-                                  : `Active ${formatStoryTime(friend.last_seen)}`}
+                        <View style={styles.friendsSubTabContent}>
+                          <Text
+                            style={[
+                              styles.friendsSubTabText,
+                              friendsSubTab === 'received' && styles.friendsSubTabTextActive,
+                            ]}
+                          >
+                            Received
+                          </Text>
+                          {friendRequests.length > 0 ? (
+                            <View style={styles.requestBadge}>
+                              <Text style={styles.requestBadgeText}>{friendRequests.length}</Text>
+                            </View>
+                          ) : (
+                            <View
+                              style={[
+                                styles.tabCountBadge,
+                                friendsSubTab === 'received' && styles.tabCountBadgeActive,
+                              ]}
+                            >
+                              <Text
+                                style={[
+                                  styles.tabCountText,
+                                  friendsSubTab === 'received' && styles.tabCountTextActive,
+                                ]}
+                              >
+                                0
                               </Text>
                             </View>
                           )}
                         </View>
-                        {isMyProfile && (
-                          <TouchableOpacity
-                            style={styles.moreButton}
-                            onPress={() => removeFriend(friend.id)}
-                          >
-                            <Ionicons name="ellipsis-horizontal" size={20} color="#666" />
-                          </TouchableOpacity>
-                        )}
                       </TouchableOpacity>
-                    ))
-                  )}
-                  </View>
-                )
-              )}
 
-              {/* Received Requests */}
-              {friendsSubTab === 'received' && isMyProfile && (
-                <View style={styles.requestsContainer}>
-                  {friendRequests.length === 0 ? (
+                      <TouchableOpacity
+                        style={[
+                          styles.friendsSubTab,
+                          friendsSubTab === 'sent' && styles.friendsSubTabActive,
+                        ]}
+                        onPress={() => setFriendsSubTab('sent')}
+                      >
+                        <View style={styles.friendsSubTabContent}>
+                          <Text
+                            style={[
+                              styles.friendsSubTabText,
+                              friendsSubTab === 'sent' && styles.friendsSubTabTextActive,
+                            ]}
+                          >
+                            Sent
+                          </Text>
+                          <View
+                            style={[
+                              styles.tabCountBadge,
+                              friendsSubTab === 'sent' && styles.tabCountBadgeActive,
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.tabCountText,
+                                friendsSubTab === 'sent' && styles.tabCountTextActive,
+                              ]}
+                            >
+                              {sentRequests.length}
+                            </Text>
+                          </View>
+                        </View>
+                      </TouchableOpacity>
+                    </ScrollView>
+                  </View>
+                )}
+
+                {/* Friends list */}
+                {(friendsSubTab === 'friends' || !isMyProfile) &&
+                  (userFriends.length === 0 ? (
                     <View style={styles.emptySection}>
-                      <Ionicons name="mail-open-outline" size={48} color="#CCC" />
-                      <Text style={styles.emptySectionText}>No received requests</Text>
+                      <Ionicons name="people-outline" size={48} color="#CCC" />
+                      <Text style={styles.emptySectionText}>No friends yet</Text>
                       <Text style={styles.emptySectionSubtext}>
-                        When someone sends you a friend request, it will appear here
+                        {isMyProfile
+                          ? 'Connect with people to grow your network'
+                          : "This user hasn't added any friends yet"}
                       </Text>
+                      {isMyProfile && (
+                        <TouchableOpacity
+                          style={styles.searchButton}
+                          onPress={() => setFriendsSubTab('search')}
+                        >
+                          <Text style={styles.searchButtonText}>Find Friends</Text>
+                        </TouchableOpacity>
+                      )}
                     </View>
                   ) : (
-                    <>
-                      {/* Search bar for received requests */}
-                      {friendRequests.length > 3 && (
+                    <View style={styles.friendsList}>
+                      {/* Search bar for friends */}
+                      {isMyProfile && userFriends.length > 3 && (
                         <View style={styles.friendsSearchContainer}>
                           <View style={styles.friendsSearchInputContainer}>
                             <Ionicons name="search" size={16} color="#999" />
                             <TextInput
                               style={styles.friendsSearchInput}
-                              placeholder="Search received requests..."
-                              value={receivedSearchQuery}
-                              onChangeText={setReceivedSearchQuery}
+                              placeholder="Search friends..."
+                              value={friendsSearchQuery}
+                              onChangeText={setFriendsSearchQuery}
                               autoCapitalize="none"
                               autoCorrect={false}
                               clearButtonMode="while-editing"
@@ -1346,353 +1215,683 @@ export default function ProfileScreen({ userId }: ProfileScreenProps = {}) {
                           </View>
                         </View>
                       )}
-                      
-                      <Text style={styles.requestSectionTitle}>
-                        {getFilteredReceivedRequests().length} Friend Request{getFilteredReceivedRequests().length !== 1 ? 's' : ''}
-                        {receivedSearchQuery && ` matching "${receivedSearchQuery}"`}
-                      </Text>
-                      
-                      {getFilteredReceivedRequests().length === 0 && receivedSearchQuery ? (
+
+                      {/* Sort options for friends */}
+                      {isMyProfile && getFilteredFriends().length > 1 && (
+                        <View style={styles.sortContainer}>
+                          <TouchableOpacity
+                            style={styles.sortButton}
+                            onPress={() => setShowSortOptions(!showSortOptions)}
+                          >
+                            <Ionicons name="funnel-outline" size={16} color="#007AFF" />
+                            <Text style={styles.sortButtonText}>
+                              Sort by{' '}
+                              {friendsSortBy === 'name'
+                                ? 'Name'
+                                : friendsSortBy === 'date'
+                                  ? 'Friendship Date'
+                                  : friendsSortBy === 'recent'
+                                    ? 'Activity'
+                                    : 'Mutual Friends'}
+                            </Text>
+                            <Ionicons
+                              name={showSortOptions ? 'chevron-up' : 'chevron-down'}
+                              size={16}
+                              color="#007AFF"
+                            />
+                          </TouchableOpacity>
+
+                          {showSortOptions && (
+                            <View style={styles.sortOptions}>
+                              <TouchableOpacity
+                                style={[
+                                  styles.sortOption,
+                                  friendsSortBy === 'name' && styles.sortOptionActive,
+                                ]}
+                                onPress={() => {
+                                  setFriendsSortBy('name');
+                                  setShowSortOptions(false);
+                                }}
+                              >
+                                <Ionicons
+                                  name="text-outline"
+                                  size={16}
+                                  color={friendsSortBy === 'name' ? '#007AFF' : '#666'}
+                                />
+                                <Text
+                                  style={[
+                                    styles.sortOptionText,
+                                    friendsSortBy === 'name' && styles.sortOptionTextActive,
+                                  ]}
+                                >
+                                  Name (A-Z)
+                                </Text>
+                              </TouchableOpacity>
+                              <TouchableOpacity
+                                style={[
+                                  styles.sortOption,
+                                  friendsSortBy === 'date' && styles.sortOptionActive,
+                                ]}
+                                onPress={() => {
+                                  setFriendsSortBy('date');
+                                  setShowSortOptions(false);
+                                }}
+                              >
+                                <Ionicons
+                                  name="calendar-outline"
+                                  size={16}
+                                  color={friendsSortBy === 'date' ? '#007AFF' : '#666'}
+                                />
+                                <Text
+                                  style={[
+                                    styles.sortOptionText,
+                                    friendsSortBy === 'date' && styles.sortOptionTextActive,
+                                  ]}
+                                >
+                                  Recently Added
+                                </Text>
+                              </TouchableOpacity>
+                              <TouchableOpacity
+                                style={[
+                                  styles.sortOption,
+                                  friendsSortBy === 'recent' && styles.sortOptionActive,
+                                ]}
+                                onPress={() => {
+                                  setFriendsSortBy('recent');
+                                  setShowSortOptions(false);
+                                }}
+                              >
+                                <Ionicons
+                                  name="time-outline"
+                                  size={16}
+                                  color={friendsSortBy === 'recent' ? '#007AFF' : '#666'}
+                                />
+                                <Text
+                                  style={[
+                                    styles.sortOptionText,
+                                    friendsSortBy === 'recent' && styles.sortOptionTextActive,
+                                  ]}
+                                >
+                                  Recently Active
+                                </Text>
+                              </TouchableOpacity>
+                              <TouchableOpacity
+                                style={[
+                                  styles.sortOption,
+                                  friendsSortBy === 'mutual' && styles.sortOptionActive,
+                                ]}
+                                onPress={() => {
+                                  setFriendsSortBy('mutual');
+                                  setShowSortOptions(false);
+                                }}
+                              >
+                                <Ionicons
+                                  name="people-outline"
+                                  size={16}
+                                  color={friendsSortBy === 'mutual' ? '#007AFF' : '#666'}
+                                />
+                                <Text
+                                  style={[
+                                    styles.sortOptionText,
+                                    friendsSortBy === 'mutual' && styles.sortOptionTextActive,
+                                  ]}
+                                >
+                                  Mutual Friends
+                                </Text>
+                              </TouchableOpacity>
+                            </View>
+                          )}
+                        </View>
+                      )}
+
+                      {getFilteredFriends().length === 0 && friendsSearchQuery ? (
                         <View style={styles.emptySection}>
                           <Ionicons name="search" size={48} color="#CCC" />
-                          <Text style={styles.emptySectionText}>No requests found</Text>
+                          <Text style={styles.emptySectionText}>No friends found</Text>
                           <Text style={styles.emptySectionSubtext}>
                             Try searching with a different name
                           </Text>
                         </View>
                       ) : (
-                        getFilteredReceivedRequests().sort((a, b) => {
-                        // Sort by mutual friends count (descending) then by name
-                        if (b.mutual_friends_count !== a.mutual_friends_count) {
-                          return b.mutual_friends_count - a.mutual_friends_count;
-                        }
-                        return (a.full_name || a.username).localeCompare(b.full_name || b.username);
-                      }).map((request) => (
-                        <View key={request.id} style={styles.requestCard}>
+                        getFilteredFriends().map((friend) => (
                           <TouchableOpacity
-                            style={styles.requestUserInfo}
+                            key={friend.id}
+                            style={styles.friendCard}
                             onPress={() =>
-                              navigation.navigate('screens/profile/index', { userId: request.id })
+                              navigation.navigate('screens/profile/index', { userId: friend.id })
                             }
                           >
                             <Image
-                              source={request.avatar_url ? { uri: request.avatar_url } : DEFAULT_AVATAR}
+                              source={
+                                friend.avatar_url ? { uri: friend.avatar_url } : DEFAULT_AVATAR
+                              }
                               style={styles.friendAvatar}
                             />
                             <View style={styles.friendInfo}>
-                              <Text style={styles.friendName}>{request.full_name || request.username}</Text>
-                              <Text style={styles.friendUsername}>@{request.username}</Text>
-                              {request.mutual_friends_count > 0 && (
-                                <Text style={styles.mutualFriends}>
-                                  {request.mutual_friends_count} mutual friends
+                              <Text style={styles.friendName}>
+                                {friend.full_name || friend.username}
+                              </Text>
+                              <Text style={styles.friendUsername}>@{friend.username}</Text>
+                              {friend.bio && (
+                                <Text style={styles.friendBio} numberOfLines={1}>
+                                  {friend.bio}
                                 </Text>
                               )}
+                              {friend.mutual_friends_count && friend.mutual_friends_count > 0 && (
+                                <Text style={styles.mutualFriends}>
+                                  {friend.mutual_friends_count} mutual friend
+                                  {friend.mutual_friends_count > 1 ? 's' : ''}
+                                </Text>
+                              )}
+                              {friend.last_seen && (
+                                <View style={styles.lastSeenContainer}>
+                                  <View
+                                    style={[
+                                      styles.activityDot,
+                                      {
+                                        backgroundColor:
+                                          new Date(friend.last_seen).getTime() > Date.now() - 300000
+                                            ? '#34C759' // Online (active in last 5 minutes)
+                                            : new Date(friend.last_seen).getTime() >
+                                                Date.now() - 3600000
+                                              ? '#FFD60A' // Recently active (last hour)
+                                              : '#C7C7CC', // Offline
+                                      },
+                                    ]}
+                                  />
+                                  <Text style={styles.lastSeenText}>
+                                    {new Date(friend.last_seen).getTime() > Date.now() - 300000
+                                      ? 'Active now'
+                                      : `Active ${formatStoryTime(friend.last_seen)}`}
+                                  </Text>
+                                </View>
+                              )}
                             </View>
+                            {isMyProfile && (
+                              <TouchableOpacity
+                                style={styles.moreButton}
+                                onPress={() => removeFriend(friend.id)}
+                              >
+                                <Ionicons name="ellipsis-horizontal" size={20} color="#666" />
+                              </TouchableOpacity>
+                            )}
                           </TouchableOpacity>
-                          <View style={styles.requestActions}>
-                            <TouchableOpacity
-                              style={styles.acceptButton}
-                              onPress={() => acceptFriendRequest(request.id)}
-                            >
-                              <Text style={styles.acceptButtonText}>Accept</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                              style={styles.declineButton}
-                              onPress={() => declineFriendRequest(request.id)}
-                            >
-                              <Text style={styles.declineButtonText}>Decline</Text>
-                            </TouchableOpacity>
-                          </View>
-                        </View>
-                      ))
-                    )}
-                    </>
-                  )}
-                </View>
-              )}
+                        ))
+                      )}
+                    </View>
+                  ))}
 
-              {/* Sent Requests */}
-              {friendsSubTab === 'sent' && isMyProfile && (
-                <View style={styles.requestsContainer}>
-                  {sentRequests.length === 0 ? (
+                {/* Received Requests */}
+                {friendsSubTab === 'received' && isMyProfile && (
+                  <View style={styles.requestsContainer}>
+                    {friendRequests.length === 0 ? (
+                      <View style={styles.emptySection}>
+                        <Ionicons name="mail-open-outline" size={48} color="#CCC" />
+                        <Text style={styles.emptySectionText}>No received requests</Text>
+                        <Text style={styles.emptySectionSubtext}>
+                          When someone sends you a friend request, it will appear here
+                        </Text>
+                      </View>
+                    ) : (
+                      <>
+                        {/* Search bar for received requests */}
+                        {friendRequests.length > 3 && (
+                          <View style={styles.friendsSearchContainer}>
+                            <View style={styles.friendsSearchInputContainer}>
+                              <Ionicons name="search" size={16} color="#999" />
+                              <TextInput
+                                style={styles.friendsSearchInput}
+                                placeholder="Search received requests..."
+                                value={receivedSearchQuery}
+                                onChangeText={setReceivedSearchQuery}
+                                autoCapitalize="none"
+                                autoCorrect={false}
+                                clearButtonMode="while-editing"
+                              />
+                            </View>
+                          </View>
+                        )}
+
+                        <Text style={styles.requestSectionTitle}>
+                          {getFilteredReceivedRequests().length} Friend Request
+                          {getFilteredReceivedRequests().length !== 1 ? 's' : ''}
+                          {receivedSearchQuery && ` matching "${receivedSearchQuery}"`}
+                        </Text>
+
+                        {getFilteredReceivedRequests().length === 0 && receivedSearchQuery ? (
+                          <View style={styles.emptySection}>
+                            <Ionicons name="search" size={48} color="#CCC" />
+                            <Text style={styles.emptySectionText}>No requests found</Text>
+                            <Text style={styles.emptySectionSubtext}>
+                              Try searching with a different name
+                            </Text>
+                          </View>
+                        ) : (
+                          getFilteredReceivedRequests()
+                            .sort((a, b) => {
+                              // Sort by mutual friends count (descending) then by name
+                              if (b.mutual_friends_count !== a.mutual_friends_count) {
+                                return b.mutual_friends_count - a.mutual_friends_count;
+                              }
+                              return (a.full_name || a.username).localeCompare(
+                                b.full_name || b.username
+                              );
+                            })
+                            .map((request) => (
+                              <View key={request.id} style={styles.requestCard}>
+                                <TouchableOpacity
+                                  style={styles.requestUserInfo}
+                                  onPress={() =>
+                                    navigation.navigate('screens/profile/index', {
+                                      userId: request.id,
+                                    })
+                                  }
+                                >
+                                  <Image
+                                    source={
+                                      request.avatar_url
+                                        ? { uri: request.avatar_url }
+                                        : DEFAULT_AVATAR
+                                    }
+                                    style={styles.friendAvatar}
+                                  />
+                                  <View style={styles.friendInfo}>
+                                    <Text style={styles.friendName}>
+                                      {request.full_name || request.username}
+                                    </Text>
+                                    <Text style={styles.friendUsername}>@{request.username}</Text>
+                                    {request.mutual_friends_count > 0 && (
+                                      <Text style={styles.mutualFriends}>
+                                        {request.mutual_friends_count} mutual friends
+                                      </Text>
+                                    )}
+                                  </View>
+                                </TouchableOpacity>
+                                <View style={styles.requestActions}>
+                                  <TouchableOpacity
+                                    style={styles.acceptButton}
+                                    onPress={() => acceptFriendRequest(request.id)}
+                                  >
+                                    <Text style={styles.acceptButtonText}>Accept</Text>
+                                  </TouchableOpacity>
+                                  <TouchableOpacity
+                                    style={styles.declineButton}
+                                    onPress={() => declineFriendRequest(request.id)}
+                                  >
+                                    <Text style={styles.declineButtonText}>Decline</Text>
+                                  </TouchableOpacity>
+                                </View>
+                              </View>
+                            ))
+                        )}
+                      </>
+                    )}
+                  </View>
+                )}
+
+                {/* Sent Requests */}
+                {friendsSubTab === 'sent' && isMyProfile && (
+                  <View style={styles.requestsContainer}>
+                    {sentRequests.length === 0 ? (
+                      <View style={styles.emptySection}>
+                        <Ionicons name="send-outline" size={48} color="#CCC" />
+                        <Text style={styles.emptySectionText}>No sent requests</Text>
+                        <Text style={styles.emptySectionSubtext}>
+                          Friend requests you've sent will appear here
+                        </Text>
+                      </View>
+                    ) : (
+                      <>
+                        <Text style={styles.requestSectionTitle}>
+                          {sentRequests.length} Pending Request{sentRequests.length > 1 ? 's' : ''}
+                        </Text>
+                        {sentRequests
+                          .sort((a, b) => {
+                            // Sort by request date (most recent first)
+                            return (
+                              new Date(b.request_date).getTime() -
+                              new Date(a.request_date).getTime()
+                            );
+                          })
+                          .map((request) => (
+                            <TouchableOpacity
+                              key={request.id}
+                              style={styles.requestCard}
+                              onPress={() =>
+                                navigation.navigate('screens/profile/index', { userId: request.id })
+                              }
+                            >
+                              <Image
+                                source={
+                                  request.avatar_url ? { uri: request.avatar_url } : DEFAULT_AVATAR
+                                }
+                                style={styles.friendAvatar}
+                              />
+                              <View style={styles.friendInfo}>
+                                <Text style={styles.friendName}>
+                                  {request.full_name || request.username}
+                                </Text>
+                                <Text style={styles.friendUsername}>@{request.username}</Text>
+                                <View style={styles.requestMetaContainer}>
+                                  <Text style={styles.pendingText}>
+                                    Sent {formatStoryTime(request.request_date)}
+                                  </Text>
+                                  {request.mutual_friends_count > 0 && (
+                                    <Text style={styles.mutualFriends}>
+                                      · {request.mutual_friends_count} mutual friend
+                                      {request.mutual_friends_count > 1 ? 's' : ''}
+                                    </Text>
+                                  )}
+                                </View>
+                              </View>
+                              <TouchableOpacity
+                                style={styles.cancelRequestButton}
+                                onPress={() => {
+                                  // Cancel request functionality can be added here
+                                  console.log('Cancel request:', request.id);
+                                }}
+                              >
+                                <Ionicons name="close-circle" size={22} color="#999" />
+                              </TouchableOpacity>
+                            </TouchableOpacity>
+                          ))}
+                      </>
+                    )}
+                  </View>
+                )}
+
+                {/* Search */}
+                {friendsSubTab === 'search' && isMyProfile && (
+                  <View style={styles.searchContainer}>
+                    <View style={styles.searchInputContainer}>
+                      <Ionicons name="search" size={20} color="#999" style={styles.searchIcon} />
+                      <TextInput
+                        style={styles.searchInput}
+                        placeholder="Search by username or name..."
+                        value={searchQuery}
+                        onChangeText={handleSearch}
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        clearButtonMode="while-editing"
+                      />
+                    </View>
+
+                    {isSearching && (
+                      <ActivityIndicator size="small" color="#007AFF" style={{ marginTop: 20 }} />
+                    )}
+
+                    {searchResults.length > 0 && (
+                      <ScrollView style={styles.searchResultsList}>
+                        <Text style={styles.searchResultsCount}>
+                          {searchResults.length} result{searchResults.length > 1 ? 's' : ''} found
+                        </Text>
+                        {searchResults
+                          .sort((a, b) => {
+                            // Sort by: 1) mutual friends count, 2) friend status, 3) name
+                            if (b.mutual_friends_count !== a.mutual_friends_count) {
+                              return b.mutual_friends_count - a.mutual_friends_count;
+                            }
+                            if (a.friend_status !== b.friend_status) {
+                              const statusOrder: Record<string, number> = {
+                                accepted: 0,
+                                pending: 1,
+                              };
+                              const aOrder = a.friend_status
+                                ? (statusOrder[a.friend_status] ?? 2)
+                                : 2;
+                              const bOrder = b.friend_status
+                                ? (statusOrder[b.friend_status] ?? 2)
+                                : 2;
+                              return aOrder - bOrder;
+                            }
+                            return (a.full_name || a.username).localeCompare(
+                              b.full_name || b.username
+                            );
+                          })
+                          .map((user) => (
+                            <View key={user.id} style={styles.searchResultCard}>
+                              <TouchableOpacity
+                                style={styles.searchResultUserInfo}
+                                onPress={() =>
+                                  navigation.navigate('screens/profile/index', { userId: user.id })
+                                }
+                              >
+                                <Image
+                                  source={
+                                    user.avatar_url ? { uri: user.avatar_url } : DEFAULT_AVATAR
+                                  }
+                                  style={styles.friendAvatar}
+                                />
+                                <View style={styles.friendInfo}>
+                                  <Text style={styles.friendName}>
+                                    {user.full_name || user.username}
+                                  </Text>
+                                  <Text style={styles.friendUsername}>@{user.username}</Text>
+                                  {user.mutual_friends_count > 0 && (
+                                    <Text style={styles.mutualFriends}>
+                                      {user.mutual_friends_count} mutual friends
+                                    </Text>
+                                  )}
+                                </View>
+                              </TouchableOpacity>
+                              {user.friend_status === 'accepted' ? (
+                                <View style={styles.friendStatusBadge}>
+                                  <Text style={styles.friendStatusText}>Friends</Text>
+                                </View>
+                              ) : user.friend_status === 'pending' ? (
+                                <View style={styles.pendingStatusBadge}>
+                                  <Text style={styles.pendingStatusText}>Pending</Text>
+                                </View>
+                              ) : (
+                                <TouchableOpacity
+                                  style={styles.addFriendButton}
+                                  onPress={async () => {
+                                    try {
+                                      await sendFriendRequest(user.id);
+                                      // Refresh search results to update status
+                                      handleSearch(searchQuery);
+                                    } catch (error) {
+                                      console.error('Failed to send friend request:', error);
+                                    }
+                                  }}
+                                >
+                                  <Ionicons name="person-add" size={18} color="#007AFF" />
+                                </TouchableOpacity>
+                              )}
+                            </View>
+                          ))}
+                      </ScrollView>
+                    )}
+
+                    {searchQuery.length >= 2 && searchResults.length === 0 && !isSearching && (
+                      <View style={styles.emptySection}>
+                        <Ionicons name="search" size={48} color="#CCC" />
+                        <Text style={styles.emptySectionText}>No users found</Text>
+                        <Text style={styles.emptySectionSubtext}>
+                          Try searching with a different username or name
+                        </Text>
+                      </View>
+                    )}
+
+                    {searchQuery.length === 0 && (
+                      <View style={styles.emptySection}>
+                        <Ionicons name="search" size={48} color="#CCC" />
+                        <Text style={styles.emptySectionText}>Find new friends</Text>
+                        <Text style={styles.emptySectionSubtext}>
+                          Search for people by their username or name
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                )}
+              </View>
+            )}
+            {activeTab === 'ratings' && (
+              <View style={styles.ratingsContainer}>
+                {/* Rating Statistics */}
+                {ratingStats && ratingStats.total_ratings > 0 && (
+                  <View style={styles.ratingStatsContainer}>
+                    <View style={styles.ratingStatsMain}>
+                      <Text style={styles.ratingAverage}>
+                        {ratingStats.average_rating.toFixed(1)}
+                      </Text>
+                      <View style={styles.ratingStarsLarge}>
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Ionicons
+                            key={star}
+                            name={
+                              star <= Math.round(ratingStats.average_rating)
+                                ? 'star'
+                                : 'star-outline'
+                            }
+                            size={24}
+                            color="#FFD700"
+                          />
+                        ))}
+                      </View>
+                      <Text style={styles.totalRatingsText}>
+                        {ratingStats.total_ratings} rating{ratingStats.total_ratings > 1 ? 's' : ''}
+                      </Text>
+                    </View>
+
+                    {/* Rating Distribution */}
+                    <View style={styles.ratingDistribution}>
+                      {[5, 4, 3, 2, 1].map((rating) => {
+                        const count = ratingStats.rating_distribution[rating.toString()] || 0;
+                        const percentage =
+                          ratingStats.total_ratings > 0
+                            ? (count / ratingStats.total_ratings) * 100
+                            : 0;
+
+                        return (
+                          <View key={rating} style={styles.ratingDistributionRow}>
+                            <Text style={styles.ratingDistributionLabel}>{rating}</Text>
+                            <View style={styles.ratingDistributionBarContainer}>
+                              <View
+                                style={[styles.ratingDistributionBar, { width: `${percentage}%` }]}
+                              />
+                            </View>
+                            <Text style={styles.ratingDistributionCount}>{count}</Text>
+                          </View>
+                        );
+                      })}
+                    </View>
+                  </View>
+                )}
+
+                {/* Rating tabs */}
+                <View style={styles.ratingTabsContainer}>
+                  <TouchableOpacity
+                    style={[
+                      styles.ratingTab,
+                      activeRatingTab === 'received' && styles.ratingTabActive,
+                    ]}
+                    onPress={() => setActiveRatingTab('received')}
+                  >
+                    <Text
+                      style={[
+                        styles.ratingTabText,
+                        activeRatingTab === 'received' && styles.ratingTabTextActive,
+                      ]}
+                    >
+                      Received
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.ratingTab,
+                      activeRatingTab === 'given' && styles.ratingTabActive,
+                    ]}
+                    onPress={() => setActiveRatingTab('given')}
+                  >
+                    <Text
+                      style={[
+                        styles.ratingTabText,
+                        activeRatingTab === 'given' && styles.ratingTabTextActive,
+                      ]}
+                    >
+                      Given
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Ratings content */}
+                {activeRatingTab === 'received' ? (
+                  ratingsReceived.length === 0 ? (
                     <View style={styles.emptySection}>
-                      <Ionicons name="send-outline" size={48} color="#CCC" />
-                      <Text style={styles.emptySectionText}>No sent requests</Text>
+                      <Ionicons name="star-outline" size={48} color="#CCC" />
+                      <Text style={styles.emptySectionText}>No ratings received yet</Text>
                       <Text style={styles.emptySectionSubtext}>
-                        Friend requests you've sent will appear here
+                        {isMyProfile
+                          ? 'Ratings from your friends will appear here'
+                          : "This user hasn't received any ratings yet"}
                       </Text>
                     </View>
                   ) : (
-                    <>
-                      <Text style={styles.requestSectionTitle}>
-                        {sentRequests.length} Pending Request{sentRequests.length > 1 ? 's' : ''}
-                      </Text>
-                      {sentRequests.sort((a, b) => {
-                        // Sort by request date (most recent first)
-                        return new Date(b.request_date).getTime() - new Date(a.request_date).getTime();
-                      }).map((request) => (
-                        <TouchableOpacity
-                          key={request.id}
-                          style={styles.requestCard}
-                          onPress={() =>
-                            navigation.navigate('screens/profile/index', { userId: request.id })
-                          }
-                        >
-                          <Image
-                            source={request.avatar_url ? { uri: request.avatar_url } : DEFAULT_AVATAR}
-                            style={styles.friendAvatar}
-                          />
-                          <View style={styles.friendInfo}>
-                            <Text style={styles.friendName}>{request.full_name || request.username}</Text>
-                            <Text style={styles.friendUsername}>@{request.username}</Text>
-                            <View style={styles.requestMetaContainer}>
-                              <Text style={styles.pendingText}>Sent {formatStoryTime(request.request_date)}</Text>
-                              {request.mutual_friends_count > 0 && (
-                                <Text style={styles.mutualFriends}>
-                                  · {request.mutual_friends_count} mutual friend{request.mutual_friends_count > 1 ? 's' : ''}
-                                </Text>
-                              )}
-                            </View>
-                          </View>
-                          <TouchableOpacity
-                            style={styles.cancelRequestButton}
-                            onPress={() => {
-                              // Cancel request functionality can be added here
-                              console.log('Cancel request:', request.id);
-                            }}
-                          >
-                            <Ionicons name="close-circle" size={22} color="#999" />
-                          </TouchableOpacity>
-                        </TouchableOpacity>
-                      ))}
-                    </>
-                  )}
-                </View>
-              )}
-
-              {/* Search */}
-              {friendsSubTab === 'search' && isMyProfile && (
-                <View style={styles.searchContainer}>
-                  <View style={styles.searchInputContainer}>
-                    <Ionicons name="search" size={20} color="#999" style={styles.searchIcon} />
-                    <TextInput
-                      style={styles.searchInput}
-                      placeholder="Search by username or name..."
-                      value={searchQuery}
-                      onChangeText={handleSearch}
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                      clearButtonMode="while-editing"
-                    />
-                  </View>
-
-                  {isSearching && (
-                    <ActivityIndicator size="small" color="#007AFF" style={{ marginTop: 20 }} />
-                  )}
-
-                  {searchResults.length > 0 && (
-                    <ScrollView style={styles.searchResultsList}>
-                      <Text style={styles.searchResultsCount}>
-                        {searchResults.length} result{searchResults.length > 1 ? 's' : ''} found
-                      </Text>
-                      {searchResults.sort((a, b) => {
-                        // Sort by: 1) mutual friends count, 2) friend status, 3) name
-                        if (b.mutual_friends_count !== a.mutual_friends_count) {
-                          return b.mutual_friends_count - a.mutual_friends_count;
-                        }
-                        if (a.friend_status !== b.friend_status) {
-                          const statusOrder: Record<string, number> = { 'accepted': 0, 'pending': 1 };
-                          const aOrder = a.friend_status ? (statusOrder[a.friend_status] ?? 2) : 2;
-                          const bOrder = b.friend_status ? (statusOrder[b.friend_status] ?? 2) : 2;
-                          return aOrder - bOrder;
-                        }
-                        return (a.full_name || a.username).localeCompare(b.full_name || b.username);
-                      }).map((user) => (
-                        <View key={user.id} style={styles.searchResultCard}>
-                          <TouchableOpacity
-                            style={styles.searchResultUserInfo}
-                            onPress={() =>
-                              navigation.navigate('screens/profile/index', { userId: user.id })
-                            }
-                          >
+                    <View style={styles.ratingsList}>
+                      {ratingsReceived.map((rating, index) => (
+                        <View key={index} style={styles.ratingCard}>
+                          <View style={styles.ratingHeader}>
                             <Image
-                              source={user.avatar_url ? { uri: user.avatar_url } : DEFAULT_AVATAR}
-                              style={styles.friendAvatar}
+                              source={
+                                rating.from_user?.avatar_url
+                                  ? { uri: rating.from_user.avatar_url }
+                                  : DEFAULT_AVATAR
+                              }
+                              style={styles.ratingUserAvatar}
                             />
-                            <View style={styles.friendInfo}>
-                              <Text style={styles.friendName}>{user.full_name || user.username}</Text>
-                              <Text style={styles.friendUsername}>@{user.username}</Text>
-                              {user.mutual_friends_count > 0 && (
-                                <Text style={styles.mutualFriends}>
-                                  {user.mutual_friends_count} mutual friends
-                                </Text>
-                              )}
+                            <View style={styles.ratingUserInfo}>
+                              <Text style={styles.ratingUserName}>
+                                {rating.from_user?.full_name || 'Anonymous'}
+                              </Text>
+                              <View style={styles.ratingStars}>
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <Ionicons
+                                    key={star}
+                                    name={star <= rating.rating ? 'star' : 'star-outline'}
+                                    size={16}
+                                    color="#FFD700"
+                                  />
+                                ))}
+                              </View>
                             </View>
-                          </TouchableOpacity>
-                          {user.friend_status === 'accepted' ? (
-                            <View style={styles.friendStatusBadge}>
-                              <Text style={styles.friendStatusText}>Friends</Text>
-                            </View>
-                          ) : user.friend_status === 'pending' ? (
-                            <View style={styles.pendingStatusBadge}>
-                              <Text style={styles.pendingStatusText}>Pending</Text>
-                            </View>
-                          ) : (
-                            <TouchableOpacity
-                              style={styles.addFriendButton}
-                              onPress={async () => {
-                                try {
-                                  await sendFriendRequest(user.id);
-                                  // Refresh search results to update status
-                                  handleSearch(searchQuery);
-                                } catch (error) {
-                                  console.error('Failed to send friend request:', error);
-                                }
-                              }}
-                            >
-                              <Ionicons name="person-add" size={18} color="#007AFF" />
-                            </TouchableOpacity>
+                            <Text style={styles.ratingDate}>
+                              {formatStoryTime(rating.created_at)}
+                            </Text>
+                          </View>
+                          {rating.comment && (
+                            <Text style={styles.ratingComment}>{rating.comment}</Text>
                           )}
                         </View>
                       ))}
-                    </ScrollView>
-                  )}
-
-                  {searchQuery.length >= 2 && searchResults.length === 0 && !isSearching && (
-                    <View style={styles.emptySection}>
-                      <Ionicons name="search" size={48} color="#CCC" />
-                      <Text style={styles.emptySectionText}>No users found</Text>
-                      <Text style={styles.emptySectionSubtext}>
-                        Try searching with a different username or name
-                      </Text>
                     </View>
-                  )}
-
-                  {searchQuery.length === 0 && (
-                    <View style={styles.emptySection}>
-                      <Ionicons name="search" size={48} color="#CCC" />
-                      <Text style={styles.emptySectionText}>Find new friends</Text>
-                      <Text style={styles.emptySectionSubtext}>
-                        Search for people by their username or name
-                      </Text>
-                    </View>
-                  )}
-                </View>
-              )}
-            </View>
-          )}
-          {activeTab === 'ratings' && (
-            <View style={styles.ratingsContainer}>
-              {/* Rating Statistics */}
-              {ratingStats && ratingStats.total_ratings > 0 && (
-                <View style={styles.ratingStatsContainer}>
-                  <View style={styles.ratingStatsMain}>
-                    <Text style={styles.ratingAverage}>
-                      {ratingStats.average_rating.toFixed(1)}
-                    </Text>
-                    <View style={styles.ratingStarsLarge}>
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Ionicons
-                          key={star}
-                          name={star <= Math.round(ratingStats.average_rating) ? 'star' : 'star-outline'}
-                          size={24}
-                          color="#FFD700"
-                        />
-                      ))}
-                    </View>
-                    <Text style={styles.totalRatingsText}>
-                      {ratingStats.total_ratings} rating{ratingStats.total_ratings > 1 ? 's' : ''}
-                    </Text>
-                  </View>
-                  
-                  {/* Rating Distribution */}
-                  <View style={styles.ratingDistribution}>
-                    {[5, 4, 3, 2, 1].map((rating) => {
-                      const count = ratingStats.rating_distribution[rating.toString()] || 0;
-                      const percentage = ratingStats.total_ratings > 0 
-                        ? (count / ratingStats.total_ratings) * 100 
-                        : 0;
-                      
-                      return (
-                        <View key={rating} style={styles.ratingDistributionRow}>
-                          <Text style={styles.ratingDistributionLabel}>{rating}</Text>
-                          <View style={styles.ratingDistributionBarContainer}>
-                            <View 
-                              style={[
-                                styles.ratingDistributionBar,
-                                { width: `${percentage}%` }
-                              ]} 
-                            />
-                          </View>
-                          <Text style={styles.ratingDistributionCount}>{count}</Text>
-                        </View>
-                      );
-                    })}
-                  </View>
-                </View>
-              )}
-
-              {/* Rating tabs */}
-              <View style={styles.ratingTabsContainer}>
-                <TouchableOpacity
-                  style={[
-                    styles.ratingTab,
-                    activeRatingTab === 'received' && styles.ratingTabActive,
-                  ]}
-                  onPress={() => setActiveRatingTab('received')}
-                >
-                  <Text
-                    style={[
-                      styles.ratingTabText,
-                      activeRatingTab === 'received' && styles.ratingTabTextActive,
-                    ]}
-                  >
-                    Received
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.ratingTab, activeRatingTab === 'given' && styles.ratingTabActive]}
-                  onPress={() => setActiveRatingTab('given')}
-                >
-                  <Text
-                    style={[
-                      styles.ratingTabText,
-                      activeRatingTab === 'given' && styles.ratingTabTextActive,
-                    ]}
-                  >
-                    Given
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Ratings content */}
-              {activeRatingTab === 'received' ? (
-                ratingsReceived.length === 0 ? (
+                  )
+                ) : ratingsGiven.length === 0 ? (
                   <View style={styles.emptySection}>
-                    <Ionicons name="star-outline" size={48} color="#CCC" />
-                    <Text style={styles.emptySectionText}>No ratings received yet</Text>
+                    <Ionicons name="star-half-outline" size={48} color="#CCC" />
+                    <Text style={styles.emptySectionText}>No ratings given yet</Text>
                     <Text style={styles.emptySectionSubtext}>
                       {isMyProfile
-                        ? 'Ratings from your friends will appear here'
-                        : "This user hasn't received any ratings yet"}
+                        ? 'Rate your friends after events'
+                        : "This user hasn't given any ratings yet"}
                     </Text>
                   </View>
                 ) : (
                   <View style={styles.ratingsList}>
-                    {ratingsReceived.map((rating, index) => (
+                    {ratingsGiven.map((rating, index) => (
                       <View key={index} style={styles.ratingCard}>
                         <View style={styles.ratingHeader}>
                           <Image
                             source={
-                              rating.from_user?.avatar_url
-                                ? { uri: rating.from_user.avatar_url }
+                              rating.to_user?.avatar_url
+                                ? { uri: rating.to_user.avatar_url }
                                 : DEFAULT_AVATAR
                             }
                             style={styles.ratingUserAvatar}
                           />
                           <View style={styles.ratingUserInfo}>
                             <Text style={styles.ratingUserName}>
-                              {rating.from_user?.full_name || 'Anonymous'}
+                              {rating.to_user?.full_name || 'User'}
                             </Text>
                             <View style={styles.ratingStars}>
                               {[1, 2, 3, 4, 5].map((star) => (
@@ -1715,436 +1914,397 @@ export default function ProfileScreen({ userId }: ProfileScreenProps = {}) {
                       </View>
                     ))}
                   </View>
-                )
-              ) : ratingsGiven.length === 0 ? (
-                <View style={styles.emptySection}>
-                  <Ionicons name="star-half-outline" size={48} color="#CCC" />
-                  <Text style={styles.emptySectionText}>No ratings given yet</Text>
-                  <Text style={styles.emptySectionSubtext}>
-                    {isMyProfile
-                      ? 'Rate your friends after events'
-                      : "This user hasn't given any ratings yet"}
-                  </Text>
-                </View>
-              ) : (
-                <View style={styles.ratingsList}>
-                  {ratingsGiven.map((rating, index) => (
-                    <View key={index} style={styles.ratingCard}>
-                      <View style={styles.ratingHeader}>
-                        <Image
-                          source={
-                            rating.to_user?.avatar_url
-                              ? { uri: rating.to_user.avatar_url }
-                              : DEFAULT_AVATAR
-                          }
-                          style={styles.ratingUserAvatar}
-                        />
-                        <View style={styles.ratingUserInfo}>
-                          <Text style={styles.ratingUserName}>
-                            {rating.to_user?.full_name || 'User'}
-                          </Text>
-                          <View style={styles.ratingStars}>
-                            {[1, 2, 3, 4, 5].map((star) => (
-                              <Ionicons
-                                key={star}
-                                name={star <= rating.rating ? 'star' : 'star-outline'}
-                                size={16}
-                                color="#FFD700"
-                              />
-                            ))}
-                          </View>
-                        </View>
-                        <Text style={styles.ratingDate}>{formatStoryTime(rating.created_at)}</Text>
-                      </View>
-                      {rating.comment && <Text style={styles.ratingComment}>{rating.comment}</Text>}
-                    </View>
-                  ))}
-                </View>
-              )}
-            </View>
-          )}
-          {activeTab === 'memories' && (
-            <View style={styles.memoriesContainer}>
-              {userStories.length === 0 ? (
-                <View style={styles.emptyMemories}>
-                  <Ionicons name="images-outline" size={48} color="#CCC" />
-                  <Text style={styles.emptyMemoriesText}>No memories yet</Text>
-                  <Text style={styles.emptyMemoriesSubtext}>Your stories will appear here</Text>
-                </View>
-              ) : (
-                <View style={styles.memoriesGrid}>
-                  {userStories.map((story) => {
-                    const storyHeight = ((responsive.width - 32 - 16) / 3) * (16 / 9);
-                    const captionPosition = story.caption_position || storyHeight * 0.5;
-                    const relativePosition = (captionPosition / responsive.height) * storyHeight;
+                )}
+              </View>
+            )}
+            {activeTab === 'memories' && (
+              <View style={styles.memoriesContainer}>
+                {userStories.length === 0 ? (
+                  <View style={styles.emptyMemories}>
+                    <Ionicons name="images-outline" size={48} color="#CCC" />
+                    <Text style={styles.emptyMemoriesText}>No memories yet</Text>
+                    <Text style={styles.emptyMemoriesSubtext}>Your stories will appear here</Text>
+                  </View>
+                ) : (
+                  <View style={styles.memoriesGrid}>
+                    {userStories.map((story) => {
+                      const storyHeight = ((responsive.width - 32 - 16) / 3) * (16 / 9);
+                      const captionPosition = story.caption_position || storyHeight * 0.5;
+                      const relativePosition = (captionPosition / responsive.height) * storyHeight;
 
-                    return (
-                      <TouchableOpacity
-                        key={story.id}
-                        style={styles.memoryCard}
-                        onPress={() => {
-                          // Navigate to user memories viewer
-                          navigation.navigate('screens/stories/userMemoriesViewer', {
-                            userId: profile?.id,
-                            storyId: story.id,
-                          });
-                        }}
-                      >
-                        <Image
-                          source={{ uri: story.image_url || story.media_url }}
-                          style={styles.memoryImage}
-                          resizeMode="cover"
-                        />
+                      return (
+                        <TouchableOpacity
+                          key={story.id}
+                          style={styles.memoryCard}
+                          onPress={() => {
+                            // Navigate to user memories viewer
+                            navigation.navigate('screens/stories/userMemoriesViewer', {
+                              userId: profile?.id,
+                              storyId: story.id,
+                            });
+                          }}
+                        >
+                          <Image
+                            source={{ uri: story.image_url || story.media_url }}
+                            style={styles.memoryImage}
+                            resizeMode="cover"
+                          />
 
-                        {/* Caption overlay - positioned like in the original story */}
-                        {(story.caption || story.text) && (
-                          <View
-                            style={[
-                              styles.memoryCaptionContainer,
-                              {
-                                top: relativePosition - 20, // Center the caption vertically
-                              },
-                            ]}
-                          >
-                            <View style={styles.memoryCaptionBox}>
-                              <Text style={styles.memoryCaptionText}>
-                                {story.caption || story.text}
+                          {/* Caption overlay - positioned like in the original story */}
+                          {(story.caption || story.text) && (
+                            <View
+                              style={[
+                                styles.memoryCaptionContainer,
+                                {
+                                  top: relativePosition - 20, // Center the caption vertically
+                                },
+                              ]}
+                            >
+                              <View style={styles.memoryCaptionBox}>
+                                <Text style={styles.memoryCaptionText}>
+                                  {story.caption || story.text}
+                                </Text>
+                              </View>
+                            </View>
+                          )}
+
+                          {/* Stats overlay at bottom */}
+                          <View style={styles.memoryBottomOverlay}>
+                            <View style={styles.memoryStats}>
+                              <Ionicons name="eye-outline" size={14} color="#FFF" />
+                              <Text style={styles.memoryViewCount}>
+                                {story.views_count || story.view_count || 0}
                               </Text>
                             </View>
-                          </View>
-                        )}
-
-                        {/* Stats overlay at bottom */}
-                        <View style={styles.memoryBottomOverlay}>
-                          <View style={styles.memoryStats}>
-                            <Ionicons name="eye-outline" size={14} color="#FFF" />
-                            <Text style={styles.memoryViewCount}>
-                              {story.views_count || story.view_count || 0}
+                            <Text style={styles.memoryTimeText}>
+                              {formatStoryTime(story.created_at)}
                             </Text>
                           </View>
-                          <Text style={styles.memoryTimeText}>
-                            {formatStoryTime(story.created_at)}
-                          </Text>
-                        </View>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              )}
-            </View>
-          )}
-          {activeTab === 'attended' && (
-            <View style={styles.eventsContainer}>
-              {/* Events sub-tabs */}
-              <View style={styles.eventsSubTabContainer}>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.eventsSubTabScroll}
-                >
-                  <TouchableOpacity
-                    style={[
-                      styles.eventsSubTab,
-                      attendedSubTab === 'upcoming' && styles.eventsSubTabActive,
-                    ]}
-                    onPress={() => setAttendedSubTab('upcoming')}
-                  >
-                    <Text
-                      style={[
-                        styles.eventsSubTabText,
-                        attendedSubTab === 'upcoming' && styles.eventsSubTabTextActive,
-                      ]}
-                    >
-                      Upcoming ({getProcessedEvents(userEvents, 'upcoming').length})
-                    </Text>
-                  </TouchableOpacity>
-                  
-                  <TouchableOpacity
-                    style={[
-                      styles.eventsSubTab,
-                      attendedSubTab === 'ongoing' && styles.eventsSubTabActive,
-                    ]}
-                    onPress={() => setAttendedSubTab('ongoing')}
-                  >
-                    <Text
-                      style={[
-                        styles.eventsSubTabText,
-                        attendedSubTab === 'ongoing' && styles.eventsSubTabTextActive,
-                      ]}
-                    >
-                      Ongoing ({getProcessedEvents(userEvents, 'ongoing').length})
-                    </Text>
-                  </TouchableOpacity>
-                  
-                  <TouchableOpacity
-                    style={[
-                      styles.eventsSubTab,
-                      attendedSubTab === 'past' && styles.eventsSubTabActive,
-                    ]}
-                    onPress={() => setAttendedSubTab('past')}
-                  >
-                    <Text
-                      style={[
-                        styles.eventsSubTabText,
-                        attendedSubTab === 'past' && styles.eventsSubTabTextActive,
-                      ]}
-                    >
-                      Past ({getProcessedEvents(userEvents, 'past').length})
-                    </Text>
-                  </TouchableOpacity>
-                </ScrollView>
-              </View>
-
-              {/* Search and sort */}
-              {userEvents.length > 0 && (
-                <View style={styles.eventsControlsContainer}>
-                  <View style={styles.eventsSearchContainer}>
-                    <Ionicons name="search" size={16} color="#999" />
-                    <TextInput
-                      style={styles.eventsSearchInput}
-                      placeholder="Search events..."
-                      value={eventsSearchQuery}
-                      onChangeText={setEventsSearchQuery}
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                      clearButtonMode="while-editing"
-                    />
+                        </TouchableOpacity>
+                      );
+                    })}
                   </View>
-                  
-                  <TouchableOpacity
-                    style={styles.eventsSortButton}
-                    onPress={() => {
-                      // Cycle through sort options
-                      const sortOptions = ['date', 'name', 'participants'];
-                      const currentIndex = sortOptions.indexOf(eventsSortBy);
-                      const nextIndex = (currentIndex + 1) % sortOptions.length;
-                      setEventsSortBy(sortOptions[nextIndex] as any);
-                    }}
-                  >
-                    <Ionicons 
-                      name={
-                        eventsSortBy === 'date' ? 'calendar-outline' :
-                        eventsSortBy === 'name' ? 'text-outline' :
-                        'people-outline'
-                      } 
-                      size={16} 
-                      color="#007AFF" 
-                    />
-                  </TouchableOpacity>
-                </View>
-              )}
-
-              {/* Events list */}
-              <View style={styles.eventsList}>
-                {getProcessedEvents(userEvents, attendedSubTab).length === 0 ? (
-                  <View style={styles.emptySection}>
-                    <Ionicons 
-                      name={
-                        attendedSubTab === 'upcoming' ? 'calendar' :
-                        attendedSubTab === 'ongoing' ? 'time' :
-                        'calendar-outline'
-                      } 
-                      size={48} 
-                      color="#CCC" 
-                    />
-                    <Text style={styles.emptySectionText}>
-                      No {attendedSubTab} events
-                    </Text>
-                    <Text style={styles.emptySectionSubtext}>
-                      {attendedSubTab === 'upcoming' 
-                        ? "You don't have any upcoming events"
-                        : attendedSubTab === 'ongoing'
-                        ? "No events happening right now"
-                        : "You haven't attended any past events"}
-                    </Text>
-                  </View>
-                ) : (
-                  getProcessedEvents(userEvents, attendedSubTab).map((event) => (
-                    <EventCard
-                      key={event.id}
-                      title={event.title}
-                      date={event.date}
-                      location={event.location || ''}
-                      thumbnail={event.image_url || ''}
-                      participants={(event.participants || []).map(
-                        (p: any) => p.avatar_url || DEFAULT_AVATAR
-                      )}
-                      goingText={`+${event.participants_count || 10} going`}
-                      onPress={() => {}}
-                      event={event}
-                    />
-                  ))
                 )}
               </View>
-            </View>
-          )}
-          {activeTab === 'organized' && (
-            <View style={styles.eventsContainer}>
-              {/* Events sub-tabs */}
-              <View style={styles.eventsSubTabContainer}>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.eventsSubTabScroll}
-                >
-                  <TouchableOpacity
-                    style={[
-                      styles.eventsSubTab,
-                      organizedSubTab === 'upcoming' && styles.eventsSubTabActive,
-                    ]}
-                    onPress={() => setOrganizedSubTab('upcoming')}
+            )}
+            {activeTab === 'attended' && (
+              <View style={styles.eventsContainer}>
+                {/* Events sub-tabs */}
+                <View style={styles.eventsSubTabContainer}>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.eventsSubTabScroll}
                   >
-                    <Text
+                    <TouchableOpacity
                       style={[
-                        styles.eventsSubTabText,
-                        organizedSubTab === 'upcoming' && styles.eventsSubTabTextActive,
+                        styles.eventsSubTab,
+                        attendedSubTab === 'upcoming' && styles.eventsSubTabActive,
                       ]}
+                      onPress={() => setAttendedSubTab('upcoming')}
                     >
-                      Upcoming ({getProcessedEvents(organizedEvents, 'upcoming').length})
-                    </Text>
-                  </TouchableOpacity>
-                  
-                  <TouchableOpacity
-                    style={[
-                      styles.eventsSubTab,
-                      organizedSubTab === 'ongoing' && styles.eventsSubTabActive,
-                    ]}
-                    onPress={() => setOrganizedSubTab('ongoing')}
-                  >
-                    <Text
-                      style={[
-                        styles.eventsSubTabText,
-                        organizedSubTab === 'ongoing' && styles.eventsSubTabTextActive,
-                      ]}
-                    >
-                      Ongoing ({getProcessedEvents(organizedEvents, 'ongoing').length})
-                    </Text>
-                  </TouchableOpacity>
-                  
-                  <TouchableOpacity
-                    style={[
-                      styles.eventsSubTab,
-                      organizedSubTab === 'past' && styles.eventsSubTabActive,
-                    ]}
-                    onPress={() => setOrganizedSubTab('past')}
-                  >
-                    <Text
-                      style={[
-                        styles.eventsSubTabText,
-                        organizedSubTab === 'past' && styles.eventsSubTabTextActive,
-                      ]}
-                    >
-                      Past ({getProcessedEvents(organizedEvents, 'past').length})
-                    </Text>
-                  </TouchableOpacity>
-                </ScrollView>
-              </View>
+                      <Text
+                        style={[
+                          styles.eventsSubTabText,
+                          attendedSubTab === 'upcoming' && styles.eventsSubTabTextActive,
+                        ]}
+                      >
+                        Upcoming ({getProcessedEvents(userEvents, 'upcoming').length})
+                      </Text>
+                    </TouchableOpacity>
 
-              {/* Search and sort */}
-              {organizedEvents.length > 0 && (
-                <View style={styles.eventsControlsContainer}>
-                  <View style={styles.eventsSearchContainer}>
-                    <Ionicons name="search" size={16} color="#999" />
-                    <TextInput
-                      style={styles.eventsSearchInput}
-                      placeholder="Search events..."
-                      value={eventsSearchQuery}
-                      onChangeText={setEventsSearchQuery}
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                      clearButtonMode="while-editing"
-                    />
-                  </View>
-                  
-                  <TouchableOpacity
-                    style={styles.eventsSortButton}
-                    onPress={() => {
-                      // Cycle through sort options
-                      const sortOptions = ['date', 'name', 'participants'];
-                      const currentIndex = sortOptions.indexOf(eventsSortBy);
-                      const nextIndex = (currentIndex + 1) % sortOptions.length;
-                      setEventsSortBy(sortOptions[nextIndex] as any);
-                    }}
-                  >
-                    <Ionicons 
-                      name={
-                        eventsSortBy === 'date' ? 'calendar-outline' :
-                        eventsSortBy === 'name' ? 'text-outline' :
-                        'people-outline'
-                      } 
-                      size={16} 
-                      color="#007AFF" 
-                    />
-                  </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[
+                        styles.eventsSubTab,
+                        attendedSubTab === 'ongoing' && styles.eventsSubTabActive,
+                      ]}
+                      onPress={() => setAttendedSubTab('ongoing')}
+                    >
+                      <Text
+                        style={[
+                          styles.eventsSubTabText,
+                          attendedSubTab === 'ongoing' && styles.eventsSubTabTextActive,
+                        ]}
+                      >
+                        Ongoing ({getProcessedEvents(userEvents, 'ongoing').length})
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[
+                        styles.eventsSubTab,
+                        attendedSubTab === 'past' && styles.eventsSubTabActive,
+                      ]}
+                      onPress={() => setAttendedSubTab('past')}
+                    >
+                      <Text
+                        style={[
+                          styles.eventsSubTabText,
+                          attendedSubTab === 'past' && styles.eventsSubTabTextActive,
+                        ]}
+                      >
+                        Past ({getProcessedEvents(userEvents, 'past').length})
+                      </Text>
+                    </TouchableOpacity>
+                  </ScrollView>
                 </View>
-              )}
 
-              {/* Events list */}
-              <View style={styles.eventsList}>
-                {getProcessedEvents(organizedEvents, organizedSubTab).length === 0 ? (
-                  <View style={styles.emptySection}>
-                    <Ionicons 
-                      name={
-                        organizedSubTab === 'upcoming' ? 'megaphone' :
-                        organizedSubTab === 'ongoing' ? 'mic' :
-                        'megaphone-outline'
-                      } 
-                      size={48} 
-                      color="#CCC" 
-                    />
-                    <Text style={styles.emptySectionText}>
-                      No {organizedSubTab} events organized
-                    </Text>
-                    <Text style={styles.emptySectionSubtext}>
-                      {organizedSubTab === 'upcoming' 
-                        ? "You haven't organized any upcoming events"
-                        : organizedSubTab === 'ongoing'
-                        ? "No events you're organizing are happening now"
-                        : "You haven't organized any past events"}
-                    </Text>
+                {/* Search and sort */}
+                {userEvents.length > 0 && (
+                  <View style={styles.eventsControlsContainer}>
+                    <View style={styles.eventsSearchContainer}>
+                      <Ionicons name="search" size={16} color="#999" />
+                      <TextInput
+                        style={styles.eventsSearchInput}
+                        placeholder="Search events..."
+                        value={eventsSearchQuery}
+                        onChangeText={setEventsSearchQuery}
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        clearButtonMode="while-editing"
+                      />
+                    </View>
+
+                    <TouchableOpacity
+                      style={styles.eventsSortButton}
+                      onPress={() => {
+                        // Cycle through sort options
+                        const sortOptions = ['date', 'name', 'participants'];
+                        const currentIndex = sortOptions.indexOf(eventsSortBy);
+                        const nextIndex = (currentIndex + 1) % sortOptions.length;
+                        setEventsSortBy(sortOptions[nextIndex] as any);
+                      }}
+                    >
+                      <Ionicons
+                        name={
+                          eventsSortBy === 'date'
+                            ? 'calendar-outline'
+                            : eventsSortBy === 'name'
+                              ? 'text-outline'
+                              : 'people-outline'
+                        }
+                        size={16}
+                        color="#007AFF"
+                      />
+                    </TouchableOpacity>
                   </View>
-                ) : (
-                  getProcessedEvents(organizedEvents, organizedSubTab).map((event) => (
-                    <EventCard
-                      key={event.id}
-                      title={event.title}
-                      date={event.date}
-                      location={event.location || ''}
-                      thumbnail={event.image_url || ''}
-                      participants={(event.participants || []).map(
-                        (p: any) => p.avatar_url || DEFAULT_AVATAR
-                      )}
-                      goingText={`+${event.participants_count || 10} going`}
-                      onPress={() => {}}
-                      event={event}
-                    />
-                  ))
                 )}
+
+                {/* Events list */}
+                <View style={styles.eventsList}>
+                  {getProcessedEvents(userEvents, attendedSubTab).length === 0 ? (
+                    <View style={styles.emptySection}>
+                      <Ionicons
+                        name={
+                          attendedSubTab === 'upcoming'
+                            ? 'calendar'
+                            : attendedSubTab === 'ongoing'
+                              ? 'time'
+                              : 'calendar-outline'
+                        }
+                        size={48}
+                        color="#CCC"
+                      />
+                      <Text style={styles.emptySectionText}>No {attendedSubTab} events</Text>
+                      <Text style={styles.emptySectionSubtext}>
+                        {attendedSubTab === 'upcoming'
+                          ? "You don't have any upcoming events"
+                          : attendedSubTab === 'ongoing'
+                            ? 'No events happening right now'
+                            : "You haven't attended any past events"}
+                      </Text>
+                    </View>
+                  ) : (
+                    getProcessedEvents(userEvents, attendedSubTab).map((event) => (
+                      <EventCard
+                        key={event.id}
+                        title={event.title}
+                        date={event.date}
+                        location={event.location || ''}
+                        thumbnail={event.image_url || ''}
+                        participants={(event.participants || []).map(
+                          (p: any) => p.avatar_url || DEFAULT_AVATAR
+                        )}
+                        goingText={`+${event.participants_count || 10} going`}
+                        onPress={() => {}}
+                        event={event}
+                      />
+                    ))
+                  )}
+                </View>
               </View>
-            </View>
-          )}
+            )}
+            {activeTab === 'organized' && (
+              <View style={styles.eventsContainer}>
+                {/* Events sub-tabs */}
+                <View style={styles.eventsSubTabContainer}>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.eventsSubTabScroll}
+                  >
+                    <TouchableOpacity
+                      style={[
+                        styles.eventsSubTab,
+                        organizedSubTab === 'upcoming' && styles.eventsSubTabActive,
+                      ]}
+                      onPress={() => setOrganizedSubTab('upcoming')}
+                    >
+                      <Text
+                        style={[
+                          styles.eventsSubTabText,
+                          organizedSubTab === 'upcoming' && styles.eventsSubTabTextActive,
+                        ]}
+                      >
+                        Upcoming ({getProcessedEvents(organizedEvents, 'upcoming').length})
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[
+                        styles.eventsSubTab,
+                        organizedSubTab === 'ongoing' && styles.eventsSubTabActive,
+                      ]}
+                      onPress={() => setOrganizedSubTab('ongoing')}
+                    >
+                      <Text
+                        style={[
+                          styles.eventsSubTabText,
+                          organizedSubTab === 'ongoing' && styles.eventsSubTabTextActive,
+                        ]}
+                      >
+                        Ongoing ({getProcessedEvents(organizedEvents, 'ongoing').length})
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[
+                        styles.eventsSubTab,
+                        organizedSubTab === 'past' && styles.eventsSubTabActive,
+                      ]}
+                      onPress={() => setOrganizedSubTab('past')}
+                    >
+                      <Text
+                        style={[
+                          styles.eventsSubTabText,
+                          organizedSubTab === 'past' && styles.eventsSubTabTextActive,
+                        ]}
+                      >
+                        Past ({getProcessedEvents(organizedEvents, 'past').length})
+                      </Text>
+                    </TouchableOpacity>
+                  </ScrollView>
+                </View>
+
+                {/* Search and sort */}
+                {organizedEvents.length > 0 && (
+                  <View style={styles.eventsControlsContainer}>
+                    <View style={styles.eventsSearchContainer}>
+                      <Ionicons name="search" size={16} color="#999" />
+                      <TextInput
+                        style={styles.eventsSearchInput}
+                        placeholder="Search events..."
+                        value={eventsSearchQuery}
+                        onChangeText={setEventsSearchQuery}
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        clearButtonMode="while-editing"
+                      />
+                    </View>
+
+                    <TouchableOpacity
+                      style={styles.eventsSortButton}
+                      onPress={() => {
+                        // Cycle through sort options
+                        const sortOptions = ['date', 'name', 'participants'];
+                        const currentIndex = sortOptions.indexOf(eventsSortBy);
+                        const nextIndex = (currentIndex + 1) % sortOptions.length;
+                        setEventsSortBy(sortOptions[nextIndex] as any);
+                      }}
+                    >
+                      <Ionicons
+                        name={
+                          eventsSortBy === 'date'
+                            ? 'calendar-outline'
+                            : eventsSortBy === 'name'
+                              ? 'text-outline'
+                              : 'people-outline'
+                        }
+                        size={16}
+                        color="#007AFF"
+                      />
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                {/* Events list */}
+                <View style={styles.eventsList}>
+                  {getProcessedEvents(organizedEvents, organizedSubTab).length === 0 ? (
+                    <View style={styles.emptySection}>
+                      <Ionicons
+                        name={
+                          organizedSubTab === 'upcoming'
+                            ? 'megaphone'
+                            : organizedSubTab === 'ongoing'
+                              ? 'mic'
+                              : 'megaphone-outline'
+                        }
+                        size={48}
+                        color="#CCC"
+                      />
+                      <Text style={styles.emptySectionText}>
+                        No {organizedSubTab} events organized
+                      </Text>
+                      <Text style={styles.emptySectionSubtext}>
+                        {organizedSubTab === 'upcoming'
+                          ? "You haven't organized any upcoming events"
+                          : organizedSubTab === 'ongoing'
+                            ? "No events you're organizing are happening now"
+                            : "You haven't organized any past events"}
+                      </Text>
+                    </View>
+                  ) : (
+                    getProcessedEvents(organizedEvents, organizedSubTab).map((event) => (
+                      <EventCard
+                        key={event.id}
+                        title={event.title}
+                        date={event.date}
+                        location={event.location || ''}
+                        thumbnail={event.image_url || ''}
+                        participants={(event.participants || []).map(
+                          (p: any) => p.avatar_url || DEFAULT_AVATAR
+                        )}
+                        goingText={`+${event.participants_count || 10} going`}
+                        onPress={() => {}}
+                        event={event}
+                      />
+                    ))
+                  )}
+                </View>
+              </View>
+            )}
+          </View>
         </View>
-      </View>
-    </ScrollView>
-    
-    {/* Rating Modal */}
-    {profile && !isMyProfile && (
-      <RatingModal
-        visible={showRatingModal}
-        onClose={() => setShowRatingModal(false)}
-        user={{
-          id: profile.id,
-          username: profile.username,
-          full_name: profile.full_name || profile.username,
-          avatar_url: profile.avatar_url,
-        }}
-        existingRating={existingRating}
-        onSuccess={() => {
-          // Reload ratings after successful submission
-          loadRatings(profile.id);
-        }}
-      />
-    )}
+      </ScrollView>
+
+      {/* Rating Modal */}
+      {profile && !isMyProfile && (
+        <RatingModal
+          visible={showRatingModal}
+          onClose={() => setShowRatingModal(false)}
+          user={{
+            id: profile.id,
+            username: profile.username,
+            full_name: profile.full_name || profile.username,
+            avatar_url: profile.avatar_url,
+          }}
+          existingRating={existingRating}
+          onSuccess={() => {
+            // Reload ratings after successful submission
+            loadRatings(profile.id);
+          }}
+        />
+      )}
     </>
   );
 }

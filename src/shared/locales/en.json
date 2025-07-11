@@ -23,6 +23,49 @@
   "unexpected_error": "An unexpected error occurred. Please try again.",
   "resend_code_link": "Resend Code",
   "invalid_phone": "Invalid phone number",
+  "auth": {
+    "phoneVerification": {
+      "title": "Are you real or something?",
+      "subtitle": "Let's make sure you're a real one. Enter your phone number to keep things safe.",
+      "countryCode": "Country code",
+      "phoneNumber": "Phone number",
+      "selectCountry": "Select your country",
+      "tooManyAttempts": "Too many attempts",
+      "waitBeforeRetry": "Please wait {{time}} before requesting another code.",
+      "codeSent": "SMS sent!",
+      "codeAlreadySent": "A code has already been sent to this number. Check your SMS.",
+      "codeSentTo": "A verification code has been sent to {{phoneNumber}}",
+      "serviceUnavailable": "Service temporarily unavailable",
+      "serviceUnavailableMessage": "SMS service is temporarily unavailable. What would you like to do?",
+      "testMode": "Test Mode",
+      "testModeInstructions": "Use:\nNumber: +33612345678\nCode: 123456",
+      "useTestMode": "Use",
+      "help": "Help",
+      "smsFailed": "Unable to send SMS",
+      "checkNumberAndRetry": "Check your number and try again.",
+      "warning": "Warning",
+      "offlineMessage": "Your request will be processed once the connection is restored.",
+      "notReceivingSMS": "Not receiving SMS?",
+      "smsHelpLabel": "Help for receiving SMS"
+    }
+  },
+  "errors": {
+    "general": "Error",
+    "requiredField": "Please enter a phone number",
+    "invalidPhone": "Invalid phone number format",
+    "networkError": "Connection problem"
+  },
+  "network": {
+    "offline": "Offline mode",
+    "checkConnection": "Check your internet connection and try again.",
+    "stillNoConnection": "Still no connection"
+  },
+  "common": {
+    "ok": "OK",
+    "cancel": "Cancel",
+    "continue": "Continue",
+    "retry": "Retry"
+  },
   "hide_from_profile": "Hide from Profile",
   "name_input_subtitle": "Tell us your name and pick a nickname friends can find you with.",
   "name_input_fullname_placeholder": "Enter your full name",

@@ -1,7 +1,7 @@
-const HERE_API_KEY = process.env.EXPO_PUBLIC_HERE_API_KEY;
+const HERE_API_KEY = String(process.env.EXPO_PUBLIC_HERE_API_KEY || '');
 
 // Log API key status on module load
-console.log('🔑 HERE API Key status:', HERE_API_KEY ? `Loaded (${HERE_API_KEY.substring(0, 8)}...)` : '❌ NOT LOADED - Check .env file');
+console.log('🔑 HERE API Key status:', HERE_API_KEY && typeof HERE_API_KEY === 'string' && HERE_API_KEY.length > 0 ? `Loaded (${HERE_API_KEY.slice(0, 8)}...)` : '❌ NOT LOADED - Check .env file');
 
 export interface HereGeocodingResult {
   items: HereLocation[];

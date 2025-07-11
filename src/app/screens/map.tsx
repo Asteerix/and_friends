@@ -1,2 +1,2 @@
 
-export { default } from '@/features/map/screens/MapScreen';
+export { default } from '@/features/map/screens/MapScreenFixed';

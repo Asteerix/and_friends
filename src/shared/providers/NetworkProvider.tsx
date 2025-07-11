@@ -23,7 +23,11 @@ export function NetworkProvider({ children }: NetworkProviderProps) {
     // Listener pour changements
     const unsubscribe = NetInfo.addEventListener(updateNetworkState);
     
-    return unsubscribe;
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
   }, [updateNetworkState]);
   
   return <>{children}</>;

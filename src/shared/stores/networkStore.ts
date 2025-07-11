@@ -15,6 +15,7 @@ interface NetworkStore {
   setNetworkType: (type: string | null) => void;
   setInternetReachable: (reachable: boolean | null) => void;
   updateLastChecked: () => void;
+  updateNetworkState: (state: any) => void;
   
   // Helpers
   isSlowConnection: () => boolean;
@@ -34,6 +35,47 @@ export const useNetworkStore = create<NetworkStore>()(
     setNetworkType: (type) => set({ networkType: type }),
     setInternetReachable: (reachable) => set({ isInternetReachable: reachable }),
     updateLastChecked: () => set({ lastChecked: Date.now() }),
+    
+    updateNetworkState: (state) => {
+      const store = get();
+      store.setConnected(state.isConnected ?? false);
+      store.setNetworkType(state.type);
+      store.setInternetReachable(state.isInternetReachable);
+      store.updateLastChecked();
+      
+      // Determine connection quality
+      let quality: NetworkStore['connectionQuality'] = 'good';
+      
+      if (!state.isConnected) {
+        quality = 'offline';
+      } else if (state.type === 'cellular') {
+        const cellularGeneration = state.details?.cellularGeneration;
+        
+        switch (cellularGeneration?.toLowerCase()) {
+          case '2g':
+          case 'slow-2g':
+            quality = 'poor';
+            break;
+          case '3g':
+            quality = 'fair';
+            break;
+          case '4g':
+            quality = 'good';
+            break;
+          case '5g':
+            quality = 'excellent';
+            break;
+          default:
+            quality = 'fair';
+        }
+      } else if (state.type === 'wifi') {
+        quality = 'excellent';
+      } else if (state.type === 'ethernet') {
+        quality = 'excellent';
+      }
+      
+      store.setConnectionQuality(quality);
+    },
     
     isSlowConnection: () => {
       const state = get();

@@ -1,8 +1,8 @@
-import RNFS from 'react-native-fs';
+import * as FileSystem from 'expo-file-system';
 import { Image } from 'react-native';
 import { CacheManager } from './cacheManager';
 import { CacheKeys } from './cacheKeys';
-import crypto from 'crypto-browserify';
+// Remove crypto-browserify import as it causes issues
 
 interface ImageCacheEntry {
   uri: string;
@@ -24,7 +24,7 @@ class ImageCacheManager {
       ttl: 7 * 24 * 60 * 60 * 1000, // 7 days
       maxSize: 10 * 1024 * 1024, // 10MB for metadata
     });
-    this.cacheDir = `${RNFS.DocumentDirectoryPath}/image-cache`;
+    this.cacheDir = `${FileSystem.documentDirectory}image-cache/`;
     this.maxDiskSize = 200 * 1024 * 1024; // 200MB
     this.initializeCache();
   }
@@ -32,9 +32,9 @@ class ImageCacheManager {
   private async initializeCache(): Promise<void> {
     try {
       // Create cache directory if it doesn't exist
-      const exists = await RNFS.exists(this.cacheDir);
-      if (!exists) {
-        await RNFS.mkdir(this.cacheDir);
+      const dirInfo = await FileSystem.getInfoAsync(this.cacheDir);
+      if (!dirInfo.exists) {
+        await FileSystem.makeDirectoryAsync(this.cacheDir, { intermediates: true });
       }
       
       // Calculate current disk usage
@@ -46,10 +46,21 @@ class ImageCacheManager {
 
   private async calculateDiskUsage(): Promise<void> {
     try {
-      const files = await RNFS.readDir(this.cacheDir);
-      this.currentDiskSize = files.reduce((total, file) => {
-        return total + parseInt(file.size || '0', 10);
-      }, 0);
+      const files = await FileSystem.readDirectoryAsync(this.cacheDir);
+      // Note: expo-file-system doesn't provide file sizes in readDirectoryAsync
+      // We'll need to get size for each file individually
+      let totalSize = 0;
+      for (const filename of files) {
+        try {
+          const fileInfo = await FileSystem.getInfoAsync(this.cacheDir + filename);
+          if (fileInfo.exists && fileInfo.size) {
+            totalSize += fileInfo.size;
+          }
+        } catch (error) {
+          // Ignore individual file errors
+        }
+      }
+      this.currentDiskSize = totalSize;
     } catch (error) {
       console.error('Failed to calculate disk usage:', error);
       this.currentDiskSize = 0;
@@ -57,8 +68,14 @@ class ImageCacheManager {
   }
 
   private generateCacheKey(uri: string): string {
-    const hash = crypto.createHash('md5').update(uri).digest('hex');
-    return hash;
+    // Simple hash function to replace crypto
+    let hash = 0;
+    for (let i = 0; i < uri.length; i++) {
+      const char = uri.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    return Math.abs(hash).toString(16);
   }
 
   private getLocalPath(uri: string): string {
@@ -70,16 +87,17 @@ class ImageCacheManager {
   async getCachedImage(uri: string): Promise<string | null> {
     try {
       const cacheKey = CacheKeys.IMAGE(uri);
-      const metadata = this.cache.get<ImageCacheEntry>(cacheKey);
+      const metadata = await this.cache.get<ImageCacheEntry>(cacheKey);
       
       if (!metadata) {
         return null;
       }
 
       // Check if file still exists
-      const exists = await RNFS.exists(metadata.localPath);
+      const fileInfo = await FileSystem.getInfoAsync(metadata.localPath);
+      const exists = fileInfo.exists;
       if (!exists) {
-        this.cache.delete(cacheKey);
+        await this.cache.delete(cacheKey);
         return null;
       }
 
@@ -101,20 +119,15 @@ class ImageCacheManager {
       const localPath = this.getLocalPath(uri);
       
       // Download image
-      const downloadResult = await RNFS.downloadFile({
-        fromUrl: uri,
-        toFile: localPath,
-        background: true,
-        discretionary: true,
-      }).promise;
+      const downloadResult = await FileSystem.downloadAsync(uri, localPath);
 
-      if (downloadResult.statusCode !== 200) {
-        throw new Error(`Failed to download image: ${downloadResult.statusCode}`);
+      if (downloadResult.status !== 200) {
+        throw new Error(`Failed to download image: ${downloadResult.status}`);
       }
 
       // Get file info
-      const fileInfo = await RNFS.stat(localPath);
-      const fileSize = parseInt(fileInfo.size, 10);
+      const fileInfo = await FileSystem.getInfoAsync(localPath);
+      const fileSize = (fileInfo.exists && 'size' in fileInfo ? fileInfo.size : 0) || 0;
 
       // Check if we need to evict old images
       if (this.currentDiskSize + fileSize > this.maxDiskSize) {
@@ -167,13 +180,13 @@ class ImageCacheManager {
 
   private async evictOldImages(requiredSpace: number): Promise<void> {
     try {
-      const allKeys = this.cache.getAllKeys();
+      const allKeys = await this.cache.getAllKeys();
       const imageEntries: Array<{ key: string; metadata: ImageCacheEntry }> = [];
 
       // Collect all image entries
       for (const key of allKeys) {
         if (key.startsWith('image:')) {
-          const metadata = this.cache.get<ImageCacheEntry>(key);
+          const metadata = await this.cache.get<ImageCacheEntry>(key);
           if (metadata) {
             imageEntries.push({ key, metadata });
           }
@@ -189,7 +202,7 @@ class ImageCacheManager {
         if (freedSpace >= requiredSpace) break;
 
         try {
-          await RNFS.unlink(entry.metadata.localPath);
+          await FileSystem.deleteAsync(entry.metadata.localPath, { idempotent: true });
           this.cache.delete(entry.key);
           this.currentDiskSize -= entry.metadata.size;
           freedSpace += entry.metadata.size;
@@ -204,8 +217,8 @@ class ImageCacheManager {
 
   async clearCache(): Promise<void> {
     try {
-      await RNFS.unlink(this.cacheDir);
-      await RNFS.mkdir(this.cacheDir);
+      await FileSystem.deleteAsync(this.cacheDir, { idempotent: true });
+      await FileSystem.makeDirectoryAsync(this.cacheDir, { intermediates: true });
       this.cache.clear();
       this.currentDiskSize = 0;
     } catch (error) {
@@ -219,7 +232,7 @@ class ImageCacheManager {
     maxSize: number;
   }> {
     try {
-      const files = await RNFS.readDir(this.cacheDir);
+      const files = await FileSystem.readDirectoryAsync(this.cacheDir);
       return {
         totalSize: this.currentDiskSize,
         fileCount: files.length,
@@ -238,11 +251,11 @@ class ImageCacheManager {
   async deleteImage(uri: string): Promise<void> {
     try {
       const cacheKey = CacheKeys.IMAGE(uri);
-      const metadata = this.cache.get<ImageCacheEntry>(cacheKey);
+      const metadata = await this.cache.get<ImageCacheEntry>(cacheKey);
       
       if (metadata) {
-        await RNFS.unlink(metadata.localPath);
-        this.cache.delete(cacheKey);
+        await FileSystem.deleteAsync(metadata.localPath, { idempotent: true });
+        await this.cache.delete(cacheKey);
         this.currentDiskSize -= metadata.size;
       }
     } catch (error) {

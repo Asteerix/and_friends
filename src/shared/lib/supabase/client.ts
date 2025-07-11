@@ -2,13 +2,13 @@ import 'react-native-url-polyfill/auto';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
+const supabaseUrl = String(process.env.EXPO_PUBLIC_SUPABASE_URL || '');
+const supabaseAnonKey = String(process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '');
 
 // Log de test Supabase au démarrage
 console.log('🚀 [SUPABASE INIT] Configuration de Supabase:');
-console.log('  - URL:', supabaseUrl ? `${supabaseUrl.substring(0, 30)}...` : 'MANQUANTE ❌');
-console.log('  - Anon Key:', supabaseAnonKey ? `${supabaseAnonKey.substring(0, 20)}...` : 'MANQUANTE ❌');
+console.log('  - URL:', supabaseUrl && typeof supabaseUrl === 'string' && supabaseUrl.length > 0 ? `${supabaseUrl.slice(0, 30)}...` : 'MANQUANTE ❌');
+console.log('  - Anon Key:', supabaseAnonKey && typeof supabaseAnonKey === 'string' && supabaseAnonKey.length > 0 ? `${supabaseAnonKey.slice(0, 20)}...` : 'MANQUANTE ❌');
 
 if (!supabaseUrl || !supabaseAnonKey) {
   console.error('❌ [SUPABASE INIT] Configuration Supabase manquante! Vérifiez vos variables d\'environnement.');

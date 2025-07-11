@@ -2,10 +2,10 @@ import { Region } from 'react-native-maps';
 import { create } from 'zustand';
 
 const DEFAULT_REGION: Region = {
-  latitude: 40.729,
-  longitude: -73.997,
-  latitudeDelta: 0.02,
-  longitudeDelta: 0.02,
+  latitude: 48.8566,
+  longitude: 2.3522,
+  latitudeDelta: 0.1,
+  longitudeDelta: 0.1,
 };
 
 type MapStore = {
