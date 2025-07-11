@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Video, ResizeMode } from 'expo-av';
+import { VideoView, useVideoPlayer } from 'expo-video';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
@@ -147,12 +147,14 @@ export default function StoriesScreen() {
         {currentStory.type === 'photo' ? (
           <Image source={{ uri: currentStory.mediaUrl }} style={styles.media} />
         ) : (
-          <Video
-            source={{ uri: currentStory.mediaUrl }}
+          <VideoView
             style={styles.media}
-            resizeMode={ResizeMode.COVER}
-            isLooping={false}
-            shouldPlay={!isPaused}
+            player={useVideoPlayer(currentStory.mediaUrl, (player) => {
+              player.loop = false;
+              player.play();
+            })}
+            allowsFullscreen
+            allowsPictureInPicture
           />
         )}
 

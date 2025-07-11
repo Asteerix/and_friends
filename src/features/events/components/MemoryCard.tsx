@@ -1,9 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { ResizeMode, Video } from 'expo-av';
+import { VideoView, useVideoPlayer } from 'expo-video';
 import React from 'react';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import {
   Alert,
   Dimensions,
@@ -43,7 +43,10 @@ export default function MemoryCard({
   const [comments, setComments] = useState<MemoryComment[]>([]);
   const [commentText, setCommentText] = useState('');
   const [loadingComments, setLoadingComments] = useState(false);
-  const videoRef = useRef<Video>(null);
+  const videoPlayer = useVideoPlayer(memory.type === 'video' ? memory.media_url : '', (player) => {
+    player.loop = true;
+    player.play();
+  });
 
   const isOwn = memory.user_id === session?.user?.id;
 
@@ -142,18 +145,15 @@ export default function MemoryCard({
             resizeMode="cover"
           />
         ) : (
-          <Video
-            ref={videoRef}
-            source={{ uri: memory.media_url }}
+          <VideoView
             style={{
               width: screenWidth - 32,
               height: screenWidth - 32,
+              backgroundColor: '#000',
             }}
-            useNativeControls
-            resizeMode={ResizeMode.CONTAIN}
-            isLooping={false}
-            shouldPlay={false}
-            posterSource={{ uri: memory.thumbnail_url }}
+            player={videoPlayer}
+            allowsFullscreen
+            allowsPictureInPicture
           />
         )}
 

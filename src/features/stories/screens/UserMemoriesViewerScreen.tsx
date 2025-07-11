@@ -24,7 +24,7 @@ import * as Haptics from 'expo-haptics';
 
 import { useMemories } from '@/shared/providers/MemoriesProvider';
 import { useSession } from '@/shared/providers/SessionContext';
-import { Video, ResizeMode } from 'expo-av';
+import { VideoView, useVideoPlayer } from 'expo-video';
 import { useResponsive } from '@/shared/hooks/useResponsive';
 import { supabase } from '@/shared/lib/supabase/client';
 import { useStories } from '@/shared/providers/StoriesContext';
@@ -108,6 +108,7 @@ export default function UserMemoriesViewerScreen() {
   const [showLikes, setShowLikes] = useState(false);
   const [likedUsers, setLikedUsers] = useState<any[]>([]);
   const [showOptions, setShowOptions] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [userProfile, setUserProfile] = useState<any>(null);
   const flatListRef = useRef<FlatList>(null);
@@ -543,44 +544,12 @@ export default function UserMemoriesViewerScreen() {
     }
   };
 
-  const handleReport = async () => {
+  const handleReport = () => {
     const currentMemory = memories[currentIndex];
     if (!currentMemory) return;
-
-    Alert.alert(
-      'Report Memory',
-      'Why are you reporting this memory?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Inappropriate content', onPress: () => reportMemory('inappropriate') },
-        { text: 'Spam', onPress: () => reportMemory('spam') },
-        { text: 'False information', onPress: () => reportMemory('false_info') },
-        { text: 'Other', onPress: () => reportMemory('other') },
-      ]
-    );
-  };
-
-  const reportMemory = async (reason: string) => {
-    if (!session?.user) return;
     
-    const currentMemory = memories[currentIndex];
-    if (!currentMemory) return;
-
-    try {
-      await supabase
-        .from('story_reports')
-        .insert({
-          story_id: currentMemory.id,
-          reporter_id: session.user.id,
-          reason: reason,
-        });
-      
-      Alert.alert('Reported', 'Thank you for your report. We will review this content.');
-      setShowOptions(false);
-    } catch (error) {
-      console.error('Error reporting memory:', error);
-      Alert.alert('Error', 'Failed to report memory. Please try again.');
-    }
+    setShowReportModal(true);
+    setShowOptions(false);
   };
 
   const handleBlockUser = async () => {
@@ -666,18 +635,20 @@ export default function UserMemoriesViewerScreen() {
     return count.toString();
   };
 
-  const renderMemory = ({ item, index }: { item: Story; index: number }) => {
+  const renderMemory = ({ item }: { item: Story }) => {
     
     return (
       <View style={[styles.memoryContainer, { height: responsive.height }]}>
         {/* Background Image/Video */}
         {item.media_type === 'video' ? (
-          <Video
-            source={{ uri: item.media_url }}
+          <VideoView
             style={styles.memoryMedia}
-            shouldPlay={index === currentIndex}
-            isLooping
-            resizeMode={ResizeMode.COVER}
+            player={useVideoPlayer(item.media_url, (player) => {
+              player.loop = true;
+              player.play();
+            })}
+            allowsFullscreen
+            allowsPictureInPicture
           />
         ) : (
           <Image
@@ -1099,6 +1070,16 @@ export default function UserMemoriesViewerScreen() {
             </View>
           </View>
         </KeyboardAvoidingView>
+      )}
+      
+      {showReportModal && memories[currentIndex] && (
+        <ReportModal
+          visible={showReportModal}
+          onClose={() => setShowReportModal(false)}
+          type="memory"
+          targetId={memories[currentIndex].id}
+          targetName={`Memory de ${memories[currentIndex].user?.username || userProfile?.username || 'User'}`}
+        />
       )}
     </View>
   );

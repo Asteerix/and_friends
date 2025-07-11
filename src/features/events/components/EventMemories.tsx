@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
-import { ResizeMode, Video } from 'expo-av';
+import { VideoView, useVideoPlayer } from 'expo-video';
 import { BlurView } from 'expo-blur';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -57,6 +57,16 @@ export const EventMemories: React.FC<EventMemoriesProps> = ({ eventId, eventStat
     uri: string;
     type: 'photo' | 'video';
   } | null>(null);
+  
+  const modalVideoPlayer = useVideoPlayer(selectedMemory?.type === 'video' ? selectedMemory.media_url : '', (player) => {
+    player.loop = true;
+    player.play();
+  });
+  
+  const previewVideoPlayer = useVideoPlayer(selectedMedia?.type === 'video' ? selectedMedia.uri : '', (player) => {
+    player.loop = true;
+    player.play();
+  });
 
   const handleAddMemory = () => {
     if (Platform.OS === 'ios') {
@@ -296,13 +306,11 @@ export const EventMemories: React.FC<EventMemoriesProps> = ({ eventId, eventStat
                   contentFit="contain"
                 />
               ) : (
-                <Video
-                  source={{ uri: selectedMemory.media_url }}
+                <VideoView
                   style={styles.modalVideo}
-                  resizeMode={ResizeMode.CONTAIN}
-                  shouldPlay
-                  isLooping
-                  useNativeControls
+                  player={modalVideoPlayer}
+                  allowsFullscreen
+                  allowsPictureInPicture
                 />
               )}
 
@@ -419,12 +427,11 @@ export const EventMemories: React.FC<EventMemoriesProps> = ({ eventId, eventStat
                       contentFit="cover"
                     />
                   ) : (
-                    <Video
-                      source={{ uri: selectedMedia.uri }}
+                    <VideoView
                       style={styles.previewVideo}
-                      resizeMode={ResizeMode.COVER}
-                      shouldPlay
-                      isLooping
+                      player={previewVideoPlayer}
+                      allowsFullscreen
+                      allowsPictureInPicture
                     />
                   )}
                 </View>

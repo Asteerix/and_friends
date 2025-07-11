@@ -2,7 +2,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Video, ResizeMode, Audio } from 'expo-av';
+import { VideoView, useVideoPlayer } from 'expo-video';
+import { useAudioPlayer } from 'expo-audio';
 import { router } from 'expo-router';
 import React from 'react';
 import {
@@ -27,28 +28,34 @@ const MAX_BUBBLE_WIDTH = screenWidth * 0.75;
 
 export default function MessageBubble({ message, isOwnMessage, onLongPress }: MessageBubbleProps) {
   const [isPlaying, setIsPlaying] = React.useState(false);
-  const [sound, setSound] = React.useState<Audio.Sound>();
-  const videoRef = React.useRef<Video>(null);
+  const [currentAudioUrl, setCurrentAudioUrl] = React.useState<string>('');
+  const audioPlayer = useAudioPlayer(currentAudioUrl ? { uri: currentAudioUrl } : undefined);
+  const videoPlayer = useVideoPlayer(message.message_type === 'video' && message.metadata?.video_url ? message.metadata.video_url : '', (player) => {
+    player.loop = false;
+  });
 
   React.useEffect(() => {
-    return sound
-      ? () => {
-        sound.unloadAsync();
+    return () => {
+      // Clean up player on unmount
+      if (audioPlayer) {
+        audioPlayer.remove();
       }
-      : undefined;
-  }, [sound]);
+    };
+  }, [audioPlayer]);
 
   const playAudio = async (url: string) => {
     try {
-      const { sound } = await Audio.Sound.createAsync({ uri: url });
-      setSound(sound);
+      setCurrentAudioUrl(url);
       setIsPlaying(true);
-      await sound.playAsync();
-      sound.setOnPlaybackStatusUpdate((status) => {
-        if (status.isLoaded && status.didJustFinish) {
+      audioPlayer.play();
+      
+      // Monitor playback completion
+      const checkInterval = setInterval(() => {
+        if (audioPlayer.currentTime >= audioPlayer.duration && audioPlayer.duration > 0) {
           setIsPlaying(false);
+          clearInterval(checkInterval);
         }
-      });
+      }, 100);
     } catch (error) {
       console.error('Error playing audio:', error);
     }
@@ -89,17 +96,16 @@ export default function MessageBubble({ message, isOwnMessage, onLongPress }: Me
     case 'video':
       return (
         <View style={{ width: MAX_BUBBLE_WIDTH }}>
-          <Video
-            ref={videoRef}
-            source={{ uri: message.metadata?.video_url || '' }}
+          <VideoView
             style={{
               width: '100%',
               height: 200,
               borderRadius: 12,
+              backgroundColor: '#000',
             }}
-            useNativeControls
-            resizeMode={ResizeMode.CONTAIN}
-            isLooping={false}
+            player={videoPlayer}
+            allowsFullscreen
+            allowsPictureInPicture
           />
         </View>
       );
