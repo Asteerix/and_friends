@@ -1,5 +1,6 @@
 import type { PostgrestError, RealtimeChannel } from '@supabase/supabase-js';
 import { useState, useEffect, useRef } from 'react';
+import { Alert } from 'react-native';
 
 import { supabase } from '@/shared/lib/supabase/client';
 import { useSession } from '@/shared/providers/SessionContext';
@@ -49,6 +50,7 @@ export function useMessagesAdvanced(chatId?: string) {
   const [error, setError] = useState<PostgrestError | null>(null);
   const [sending, setSending] = useState(false);
   const subscriptionRef = useRef<RealtimeChannel | null>(null);
+  const rlsErrorShownRef = useRef<boolean>(false);
 
   // Fetch messages for a specific chat
   const fetchMessages = async (targetChatId?: string) => {
@@ -130,6 +132,7 @@ export function useMessagesAdvanced(chatId?: string) {
         setChats(cachedChats as ChatAdvanced[]);
       }
 
+      // RLS has been disabled, we can now fetch normally
       const { data: chatParticipations, error } = await supabase
         .from('chat_participants')
         .select(

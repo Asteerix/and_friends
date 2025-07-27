@@ -306,6 +306,9 @@ export const EVENT_TEMPLATE_CATEGORIES: EventCategory[] = [
   }
 ];
 
+// Export TEMPLATES as an alias for EVENT_TEMPLATE_CATEGORIES for backward compatibility
+export const TEMPLATES = EVENT_TEMPLATE_CATEGORIES;
+
 // Export other constants that might be needed
 export const FONTS = [
   { id: '1', name: 'Classic Invite', value: 'System' },

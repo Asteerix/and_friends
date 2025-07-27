@@ -1,9 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   StyleSheet,
   View,
   Dimensions,
   ImageBackground,
+  Text,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import Animated, {
@@ -16,7 +18,9 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSession } from '@/shared/providers/SessionContext';
-import { supabase } from '@/shared/lib/supabase/client';
+import { supabase, isSupabaseConfigured } from '@/shared/lib/supabase/client';
+import { startupLogger } from '@/shared/utils/startupLogger';
+import { errorLogger } from '@/shared/utils/errorLogger';
 
 const { width, height } = Dimensions.get('window');
 
@@ -40,53 +44,101 @@ export default function SplashScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { session, loading } = useSession();
+  const [hasError, setHasError] = useState(false);
+  const [splashImage, setSplashImage] = useState<any>(null);
   const ampersandScale = useSharedValue(0);
   const ampersandOpacity = useSharedValue(0);
+  
+  // Load splash image with error handling
+  useEffect(() => {
+    try {
+      setSplashImage(require('@/assets/images/splash_background.png'));
+    } catch (error) {
+      startupLogger.log('Failed to load splash background', 'warning', error);
+      // Continue without background image
+    }
+  }, []);
 
   useEffect(() => {
+    startupLogger.log('Splash screen mounted');
+    
     // Animate the ampersand
-    ampersandScale.value = withSequence(
-      withTiming(1.2, { duration: 600, easing: Easing.out(Easing.back(1.8)) }),
-      withTiming(1, { duration: 300, easing: Easing.inOut(Easing.ease) })
-    );
-    ampersandOpacity.value = withTiming(1, { duration: 400 });
+    try {
+      ampersandScale.value = withSequence(
+        withTiming(1.2, { duration: 600, easing: Easing.out(Easing.back(1.8)) }),
+        withTiming(1, { duration: 300, easing: Easing.inOut(Easing.ease) })
+      );
+      ampersandOpacity.value = withTiming(1, { duration: 400 });
+    } catch (error) {
+      startupLogger.log('Animation error', 'warning', error);
+    }
 
     // Navigate after animation and session check
     const timer = setTimeout(async () => {
-      if (!loading) {
-        if (session) {
-          // Check registration progress
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('current_registration_step')
-            .eq('id', session.user.id)
-            .single();
-            
-          const step = profile?.current_registration_step;
-          console.log('🚀 [SplashScreen] User registration step:', step);
+      try {
+        if (!loading) {
+          startupLogger.log('Session check complete', 'info', { hasSession: !!session });
           
-          if (!step) {
-            // No step, user needs to start registration
+          if (!isSupabaseConfigured) {
+            startupLogger.log('Supabase not configured, going to onboarding', 'warning');
             router.replace('/(auth)/onboarding');
-          } else if (step === 'completed') {
-            // Registration completed, go to home
-            router.replace('/(tabs)/home');
-          } else if (step === 'code_verification') {
-            // If we're at code_verification, go back to phone_verification
-            console.log('🔄 [SplashScreen] Redirecting from code_verification to phone_verification');
-            router.replace('/(auth)/phone-verification');
-          } else {
-            // Resume registration at the appropriate step
-            const route = STEP_TO_ROUTE[step];
-            if (route) {
-              router.replace(route);
-            } else {
+            return;
+          }
+          
+          if (session) {
+            // Check registration progress with error handling
+            try {
+              const { data: profile, error } = await supabase
+                .from('profiles')
+                .select('current_registration_step')
+                .eq('id', session.user.id)
+                .single();
+              
+              if (error) {
+                startupLogger.log('Profile fetch error', 'error', error);
+                // If profile doesn't exist, start registration
+                router.replace('/(auth)/onboarding');
+                return;
+              }
+              
+              const step = profile?.current_registration_step;
+              startupLogger.log('User registration step', 'info', { step });
+              
+              if (!step) {
+                // No step, user needs to start registration
+                router.replace('/(auth)/onboarding');
+              } else if (step === 'completed') {
+                // Registration completed, go to home
+                router.replace('/(tabs)/home');
+              } else if (step === 'code_verification') {
+                // If we're at code_verification, go back to phone_verification
+                startupLogger.log('Redirecting from code_verification to phone_verification');
+                router.replace('/(auth)/phone-verification');
+              } else {
+                // Resume registration at the appropriate step
+                const route = STEP_TO_ROUTE[step];
+                if (route) {
+                  router.replace(route);
+                } else {
+                  router.replace('/(auth)/onboarding');
+                }
+              }
+            } catch (profileError) {
+              errorLogger.log(profileError as Error, { context: 'profile check' });
               router.replace('/(auth)/onboarding');
             }
+          } else {
+            router.replace('/(auth)/onboarding');
           }
-        } else {
-          router.replace('/(auth)/onboarding');
         }
+      } catch (error) {
+        const err = error as Error;
+        errorLogger.log(err, { context: 'splash navigation' });
+        setHasError(true);
+        // Fallback navigation
+        setTimeout(() => {
+          router.replace('/(auth)/onboarding');
+        }, 1000);
       }
     }, 2000);
 
@@ -98,29 +150,57 @@ export default function SplashScreen() {
     opacity: ampersandOpacity.value,
   }));
 
-  return (
-    <ImageBackground
-      source={require('@/assets/images/splash_background.png')}
-      style={styles.container}
-      resizeMode="cover"
-    >
-      <View style={[styles.content, { paddingTop: insets.top + 40 }]}>
-        {/* &Friends title */}
-        <Animated.Text
-          entering={FadeIn.delay(200).duration(600)}
-          style={styles.title}
-        >
-          &Friends
-        </Animated.Text>
-
-        {/* Animated & in the center */}
-        <View style={styles.ampersandContainer}>
-          <Animated.Text style={[styles.ampersand, ampersandAnimatedStyle]}>
-            &
-          </Animated.Text>
-        </View>
+  // Error state
+  if (hasError) {
+    return (
+      <View style={[styles.container, styles.errorContainer]}>
+        <Text style={styles.errorText}>Loading...</Text>
+        <ActivityIndicator size="large" color="#FF6B6B" style={{ marginTop: 20 }} />
       </View>
-    </ImageBackground>
+    );
+  }
+  
+  // Render with or without background image
+  const content = (
+    <View style={[styles.content, { paddingTop: insets.top + 40 }]}>
+      {/* &Friends title */}
+      <Animated.Text
+        entering={FadeIn.delay(200).duration(600)}
+        style={styles.title}
+      >
+        &Friends
+      </Animated.Text>
+
+      {/* Animated & in the center */}
+      <View style={styles.ampersandContainer}>
+        <Animated.Text style={[styles.ampersand, ampersandAnimatedStyle]}>
+          &
+        </Animated.Text>
+      </View>
+    </View>
+  );
+  
+  if (splashImage) {
+    return (
+      <ImageBackground
+        source={splashImage}
+        style={styles.container}
+        resizeMode="cover"
+        onError={(error) => {
+          startupLogger.log('Splash image load error', 'error', error);
+          setSplashImage(null);
+        }}
+      >
+        {content}
+      </ImageBackground>
+    );
+  }
+  
+  // Fallback without background image
+  return (
+    <View style={[styles.container, { backgroundColor: '#FF6B6B' }]}>
+      {content}
+    </View>
   );
 }
 
@@ -151,5 +231,15 @@ const styles = StyleSheet.create({
     fontSize: 120,
     fontWeight: 'bold',
     color: '#FFFFFF',
+  },
+  errorContainer: {
+    backgroundColor: '#FF6B6B',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorText: {
+    fontSize: 18,
+    color: '#FFFFFF',
+    marginBottom: 10,
   },
 });

@@ -51,8 +51,10 @@ const CodeVerificationScreen: React.FC<CodeVerificationScreenProps> = React.memo
   const phoneNumber = params.phoneNumber?.replace(/\s/g, '');
   const [code, setCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [timeRemaining, setTimeRemaining] = useState(300); // 5 minutes timer
+  const [timeRemaining, setTimeRemaining] = useState(300); // 5 minutes timer for code expiry
   const [timerExpiry, setTimerExpiry] = useState<number>(Date.now() + 300000); // Store actual expiry timestamp
+  const [resendCooldown, setResendCooldown] = useState(60); // 1 minute cooldown for resend
+  const [resendTimerExpiry, setResendTimerExpiry] = useState<number>(Date.now() + 60000); // Resend timer expiry
   
   // If no phone number, redirect back
   useEffect(() => {
@@ -81,29 +83,37 @@ const CodeVerificationScreen: React.FC<CodeVerificationScreenProps> = React.memo
   useEffect(() => {
     const handleAppStateChange = (nextAppState: any) => {
       if (appStateRef.current.match(/inactive|background/) && nextAppState === 'active') {
-        // App has come to foreground - recalculate timer based on actual expiry time
+        // App has come to foreground - recalculate timers based on actual expiry times
         const now = Date.now();
-        const remaining = Math.max(0, Math.floor((timerExpiry - now) / 1000));
+        const codeRemaining = Math.max(0, Math.floor((timerExpiry - now) / 1000));
+        const resendRemaining = Math.max(0, Math.floor((resendTimerExpiry - now) / 1000));
         
-        setTimeRemaining(remaining);
-        if (remaining === 0) {
+        setTimeRemaining(codeRemaining);
+        setResendCooldown(resendRemaining);
+        
+        if (resendRemaining === 0) {
           setCanResend(true);
         }
         
-        // Restart timer if there's time remaining
-        if (remaining > 0) {
+        // Restart timer if code hasn't expired
+        if (codeRemaining > 0) {
           if (timerRef.current) {
             clearInterval(timerRef.current);
           }
           
           timerRef.current = setInterval(() => {
             const currentTime = Date.now();
-            const timeLeft = Math.max(0, Math.floor((timerExpiry - currentTime) / 1000));
+            const codeTimeLeft = Math.max(0, Math.floor((timerExpiry - currentTime) / 1000));
+            const resendTimeLeft = Math.max(0, Math.floor((resendTimerExpiry - currentTime) / 1000));
             
-            setTimeRemaining(timeLeft);
+            setTimeRemaining(codeTimeLeft);
+            setResendCooldown(resendTimeLeft);
             
-            if (timeLeft === 0) {
+            if (resendTimeLeft === 0 && !canResend) {
               setCanResend(true);
+            }
+            
+            if (codeTimeLeft === 0) {
               if (timerRef.current) {
                 clearInterval(timerRef.current);
               }
@@ -119,7 +129,7 @@ const CodeVerificationScreen: React.FC<CodeVerificationScreenProps> = React.memo
     return () => {
       subscription.remove();
     };
-  }, [timerExpiry]);
+  }, [timerExpiry, resendTimerExpiry, canResend]);
 
   useEffect(() => {
     console.log('🔐 [CodeVerificationScreen] Écran chargé');
@@ -172,9 +182,13 @@ const CodeVerificationScreen: React.FC<CodeVerificationScreenProps> = React.memo
   };
 
   const startTimer = () => {
-    const expiryTime = Date.now() + 60000; // 1 minute from now
-    setTimerExpiry(expiryTime);
-    setTimeRemaining(60); // Reset to 1 minute
+    const codeExpiryTime = Date.now() + 300000; // 5 minutes for code expiry
+    const resendExpiryTime = Date.now() + 60000; // 1 minute for resend cooldown
+    
+    setTimerExpiry(codeExpiryTime);
+    setTimeRemaining(300); // 5 minutes
+    setResendTimerExpiry(resendExpiryTime);
+    setResendCooldown(60); // 1 minute
     setCanResend(false);
     
     if (timerRef.current) {
@@ -183,12 +197,19 @@ const CodeVerificationScreen: React.FC<CodeVerificationScreenProps> = React.memo
     
     timerRef.current = setInterval(() => {
       const now = Date.now();
-      const remaining = Math.max(0, Math.floor((expiryTime - now) / 1000));
+      const codeRemaining = Math.max(0, Math.floor((codeExpiryTime - now) / 1000));
+      const resendRemaining = Math.max(0, Math.floor((resendExpiryTime - now) / 1000));
       
-      setTimeRemaining(remaining);
+      setTimeRemaining(codeRemaining);
+      setResendCooldown(resendRemaining);
       
-      if (remaining === 0) {
+      // Enable resend button after 1 minute
+      if (resendRemaining === 0 && !canResend) {
         setCanResend(true);
+      }
+      
+      // Stop timer when code expires
+      if (codeRemaining === 0) {
         if (timerRef.current) {
           clearInterval(timerRef.current);
         }
@@ -203,32 +224,14 @@ const CodeVerificationScreen: React.FC<CodeVerificationScreenProps> = React.memo
       const rateLimit = await checkOTPRateLimit(phoneNumber);
       
       if (!rateLimit.canRequest && rateLimit.timeRemainingSeconds) {
-        // Set timer to remaining time from rate limit
-        const remainingTime = Math.min(rateLimit.timeRemainingSeconds, 60); // Max 1 minute
-        setTimeRemaining(remainingTime);
+        // Set resend timer to remaining time from rate limit
+        const remainingTime = Math.min(rateLimit.timeRemainingSeconds, 60); // Max 1 minute for resend cooldown
+        setResendCooldown(remainingTime);
         setCanResend(false);
         
-        // Start countdown from remaining time
-        if (timerRef.current) {
-          clearInterval(timerRef.current);
-        }
-        
-        const expiryTime = Date.now() + (remainingTime * 1000);
-        setTimerExpiry(expiryTime);
-        
-        timerRef.current = setInterval(() => {
-          const now = Date.now();
-          const remaining = Math.max(0, Math.floor((expiryTime - now) / 1000));
-          
-          setTimeRemaining(remaining);
-          
-          if (remaining === 0) {
-            setCanResend(true);
-            if (timerRef.current) {
-              clearInterval(timerRef.current);
-            }
-          }
-        }, 1000);
+        // Update resend timer expiry
+        const newResendExpiryTime = Date.now() + (remainingTime * 1000);
+        setResendTimerExpiry(newResendExpiryTime);
       }
     } catch (error) {
       console.error('❌ [CodeVerificationScreen] Erreur vérification rate limit:', error);
@@ -578,8 +581,11 @@ const CodeVerificationScreen: React.FC<CodeVerificationScreenProps> = React.memo
         console.log('✅ [CodeVerificationScreen] OTP renvoyé avec succès');
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         
-        // Restart timer
-        startTimer();
+        // Reset resend timer only (not the code expiry timer)
+        const newResendExpiryTime = Date.now() + 60000; // 1 minute cooldown
+        setResendTimerExpiry(newResendExpiryTime);
+        setResendCooldown(60);
+        setCanResend(false);
         
         Alert.alert('Code renvoyé', 'Un nouveau code de vérification a été envoyé.', [
           { text: 'OK' },
@@ -704,7 +710,7 @@ const CodeVerificationScreen: React.FC<CodeVerificationScreenProps> = React.memo
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
                 <Text style={[styles.resendButtonText, !canResend && styles.resendButtonTextDisabled]}>
-                  {canResend ? 'Renvoyer le code' : `Renvoyer dans ${timeRemaining}s`}
+                  {canResend ? 'Renvoyer le code' : `Renvoyer dans ${resendCooldown}s`}
                 </Text>
               </TouchableOpacity>
             </View>

@@ -287,7 +287,6 @@ export class EventServiceComplete {
         has_questionnaire_enabled: eventData.questionnaire && eventData.questionnaire.length > 0,
         has_items_enabled: eventData.itemsToBring && eventData.itemsToBring.length > 0,
         has_playlist_enabled: eventData.playlist && eventData.playlist.length > 0,
-        has_photo_album_enabled: eventData.eventPhotos && eventData.eventPhotos.length > 0,
         has_dress_code_enabled: !!eventData.dressCode,
         has_age_restriction_enabled: !!eventData.ageRestriction,
         has_parking_info_enabled: !!eventData.parkingInfo,
@@ -523,6 +522,47 @@ export class EventServiceComplete {
         });
       }
 
+      // 8. Créer automatiquement une conversation pour l'événement
+      console.log('💬 [EventServiceComplete] Création de la conversation de l\'événement...');
+      try {
+        const chatData = {
+          name: newEvent.title,
+          is_group: true,
+          event_id: newEvent.id,
+          created_by: user.id
+        };
+        
+        const { data: newChat, error: chatError } = await supabase
+          .from('chats')
+          .insert([chatData])
+          .select()
+          .single();
+        
+        if (chatError) {
+          console.error('⚠️ [EventServiceComplete] Erreur création chat:', chatError);
+          // On ne fait pas échouer la création de l'événement si le chat échoue
+        } else if (newChat) {
+          console.log('✅ [EventServiceComplete] Conversation créée:', newChat.id);
+          
+          // Ajouter le créateur comme participant à la conversation
+          const { error: participantError } = await supabase
+            .from('chat_participants')
+            .insert([{
+              chat_id: newChat.id,
+              user_id: user.id
+            }]);
+          
+          if (participantError) {
+            console.error('⚠️ [EventServiceComplete] Erreur ajout participant:', participantError);
+          } else {
+            console.log('✅ [EventServiceComplete] Créateur ajouté à la conversation');
+          }
+        }
+      } catch (chatError) {
+        console.error('⚠️ [EventServiceComplete] Erreur lors de la création du chat:', chatError);
+        // On continue quand même, l'événement est créé
+      }
+      
       console.log('');
       console.log('🎉 [EventServiceComplete] ========================================');
       console.log('🎉 [EventServiceComplete] CRÉATION TERMINÉE AVEC SUCCÈS!');
@@ -1158,7 +1198,6 @@ export class EventServiceComplete {
       }
       if (updates.eventPhotos !== undefined) {
         extraDataUpdates.eventPhotos = updates.eventPhotos;
-        updateData.has_photo_album_enabled = updates.eventPhotos && updates.eventPhotos.length > 0;
       }
       if (updates.questionnaire !== undefined) {
         extraDataUpdates.questionnaire = updates.questionnaire;

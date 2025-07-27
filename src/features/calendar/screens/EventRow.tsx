@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
+import { getEventImage } from '@/features/events/utils/getEventImage';
 
 const W = Dimensions.get('window').width;
 const CARD_W = W - 24 * 2;
@@ -18,6 +19,8 @@ export type EventRowProps = {
     cover_image?: string;
     participants?: { id: string; avatar_url?: string }[];
     going_count?: number;
+    extra_data?: any; // For template data
+    image_url?: string; // Alternative image source
   };
   onPress?: () => void;
 };
@@ -28,14 +31,32 @@ export default function EventRow({ event, onPress }: EventRowProps) {
     event.going_count && event.going_count > MAX_AVATARS
       ? `+${event.going_count - MAX_AVATARS} going`
       : null;
+  
+  const eventImage = getEventImage(event);
 
   return (
     <TouchableOpacity style={styles.container} activeOpacity={0.85} onPress={onPress}>
-      <Image
-        source={event.cover_image ? { uri: event.cover_image } : PLACEHOLDER}
-        style={styles.thumb}
-        resizeMode="cover"
-      />
+      {eventImage.hasImage ? (
+        eventImage.source ? (
+          <Image
+            source={eventImage.source}
+            style={styles.thumb}
+            resizeMode="cover"
+          />
+        ) : (
+          <Image
+            source={{ uri: eventImage.uri }}
+            style={styles.thumb}
+            resizeMode="cover"
+          />
+        )
+      ) : (
+        <Image
+          source={event.cover_image ? { uri: event.cover_image } : PLACEHOLDER}
+          style={styles.thumb}
+          resizeMode="cover"
+        />
+      )}
       <View style={styles.content}>
         <Text style={styles.title} numberOfLines={2}>
           {event.title}

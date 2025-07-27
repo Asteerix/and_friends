@@ -21,30 +21,12 @@ import { create } from 'react-native-pixel-perfect';
 import { useEventsAdvanced } from '@/hooks/useEventsAdvanced';
 import { useSession } from '@/shared/providers/SessionContext';
 import { supabase } from '@/shared/lib/supabase/client';
+import EventThumbnail from '@/shared/components/EventThumbnail';
 
 const { width } = Dimensions.get('window');
 
 const designResolution = { width: 375, height: 812 };
 const perfectSize = create(designResolution);
-
-// Category configuration
-const getCategoryConfig = (category?: string) => {
-  const configs: Record<string, { icon: string; color: string; label: string }> = {
-    party: { icon: 'musical-notes', color: '#FF2D55', label: 'Party' },
-    casual: { icon: 'cafe', color: '#FF9500', label: 'Casual' },
-    celebration: { icon: 'gift', color: '#AF52DE', label: 'Celebration' },
-    sports: { icon: 'football', color: '#34C759', label: 'Sports' },
-    music: { icon: 'musical-note', color: '#FF3B30', label: 'Music' },
-    food: { icon: 'restaurant', color: '#FF6000', label: 'Food' },
-    outdoor: { icon: 'leaf', color: '#00C7BE', label: 'Outdoor' },
-    culture: { icon: 'library', color: '#5856D6', label: 'Culture' },
-    networking: { icon: 'people', color: '#007AFF', label: 'Networking' },
-    education: { icon: 'school', color: '#32ADE6', label: 'Education' },
-    other: { icon: 'ellipsis-horizontal', color: '#8E8E93', label: 'Other' },
-  };
-  
-  return configs[category || 'other'] || configs.other;
-};
 
 // Time-based background images
 const getTimeBasedBackground = (): ImageSourcePropType => {
@@ -68,17 +50,34 @@ interface CalendarEvent {
   id: string;
   title: string;
   date: string;
+  start_time?: string;
+  end_time?: string;
   location?: string;
-  participants?: any[];
+  location_details?: {
+    name?: string;
+    address?: string;
+    coordinates?: {
+      latitude: number;
+      longitude: number;
+    };
+  };
+  participants?: {
+    id: string;
+    avatar_url?: string;
+    name?: string;
+  }[];
   participants_count?: number;
   cover_image?: string;
+  image_url?: string;
+  event_category?: string;
   category?: string;
+  extra_data?: any;
 }
 
 export default function CalendarPerfect() {
   const router = useRouter();
   const { session } = useSession();
-  const { events } = useEventsAdvanced();
+  const { events: allEvents } = useEventsAdvanced();
 
   const [activeTab, setActiveTab] = useState<'today' | 'calendar'>('today');
   const [searchQuery, setSearchQuery] = useState('');
@@ -94,7 +93,7 @@ export default function CalendarPerfect() {
     if (session?.user) {
       fetchCalendarEvents();
     }
-  }, [session, events]);
+  }, [session, allEvents]);
 
   // Update background image based on time every minute
   useEffect(() => {
@@ -130,70 +129,93 @@ export default function CalendarPerfect() {
     if (!session?.user) return;
 
     try {
-      const { data: participations, error } = await supabase
+      // First, get all event IDs the user is participating in
+      const { data: participations, error: participationsError } = await supabase
         .from('event_participants')
-        .select(
-          `
-          event_id,
-          status,
-          events:event_id (
-            id,
-            title,
-            date,
-            location,
-            cover_image,
-            created_by,
-            category
-          )
-        `
-        )
+        .select('event_id, status')
         .eq('user_id', session.user.id);
 
-      if (error) {
-        console.error('Error fetching calendar events:', error);
+      if (participationsError) {
+        console.error('Error fetching participations:', participationsError);
         return;
       }
 
-      const formattedEvents: CalendarEvent[] =
-        participations?.map((p: any) => ({
-          id: p.events.id,
-          title: p.events.title,
-          date: p.events.date,
-          location: p.events.location,
-          cover_image: p.events.cover_image,
-          category: p.events.category,
-          participants: [],
-          participants_count: 0,
-        })) || [];
-
-      // Get participant counts and avatars
-      for (const event of formattedEvents) {
-        const { count } = await supabase
-          .from('event_participants')
-          .select('*', { count: 'exact', head: true })
-          .eq('event_id', event.id);
-
-        event.participants_count = count || 0;
-
-        const { data: participants } = await supabase
-          .from('event_participants')
-          .select(
-            `
-            profiles:user_id (
-              id,
-              avatar_url
-            )
-          `
-          )
-          .eq('event_id', event.id)
-          .limit(4);
-
-        event.participants =
-          participants?.map((p: any) => ({
-            id: p.profiles.id,
-            avatar_url: p.profiles.avatar_url,
-          })) || [];
+      if (!participations || participations.length === 0) {
+        setCalendarEvents([]);
+        return;
       }
+
+      const eventIds = participations.map(p => p.event_id);
+
+      // Then fetch all events with those IDs
+      const { data: events, error: eventsError } = await supabase
+        .from('events')
+        .select(`
+          id,
+          title,
+          date,
+          start_time,
+          end_time,
+          location,
+          location_details,
+          cover_image,
+          image_url,
+          created_by,
+          event_category,
+          category,
+          extra_data
+        `)
+        .in('id', eventIds);
+
+      if (eventsError) {
+        console.error('Error fetching events:', eventsError);
+        return;
+      }
+
+      // Format events and get participant data
+      const formattedEvents: CalendarEvent[] = await Promise.all(
+        (events || []).map(async (event) => {
+          // Get participant count
+          const { count } = await supabase
+            .from('event_participants')
+            .select('*', { count: 'exact', head: true })
+            .eq('event_id', event.id);
+
+          // Get participant avatars
+          const { data: participants } = await supabase
+            .from('event_participants')
+            .select(`
+              profiles:user_id (
+                id,
+                avatar_url,
+                full_name
+              )
+            `)
+            .eq('event_id', event.id)
+            .limit(4);
+
+          return {
+            id: event.id,
+            title: event.title,
+            date: event.date,
+            start_time: event.start_time,
+            end_time: event.end_time,
+            location: event.location,
+            location_details: event.location_details,
+            cover_image: event.cover_image,
+            image_url: event.image_url,
+            event_category: event.event_category || event.category,
+            category: event.category,
+            extra_data: event.extra_data,
+            participants: participants?.map((p: any) => ({
+              id: p.profiles?.id,
+              avatar_url: p.profiles?.avatar_url,
+              name: p.profiles?.full_name,
+            })).filter(p => p.id) || [],
+            participants_count: count || 0,
+          };
+        })
+      );
 
       setCalendarEvents(formattedEvents);
     } catch (error) {
@@ -201,32 +223,10 @@ export default function CalendarPerfect() {
     }
   };
 
-  const formatEventDateTime = (dateStr: string) => {
-    const date = new Date(dateStr);
-    const dateOptions: Intl.DateTimeFormatOptions = {
-      month: 'long',
-      day: 'numeric',
-    };
-    const timeOptions: Intl.DateTimeFormatOptions = {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    };
-
-    const formattedDate = date.toLocaleDateString('en-US', dateOptions);
-    const startTime = date.toLocaleTimeString('en-US', timeOptions);
-    const endDate = new Date(date.getTime() + 3 * 60 * 60 * 1000);
-    const endTime = endDate.toLocaleTimeString('en-US', timeOptions);
-
-    return {
-      date: formattedDate,
-      time: `${startTime} – ${endTime}`,
-    };
-  };
-
   const getUpcomingEvents = () => {
     const now = new Date();
-    return calendarEvents
+    // Use allEvents from useEventsAdvanced which has all the data
+    return allEvents
       .filter((event) => new Date(event.date) >= now)
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   };
@@ -277,13 +277,33 @@ export default function CalendarPerfect() {
   };
 
   const hasEvent = (date: Date) => {
-    return calendarEvents.some((event) => {
+    return allEvents.some((event) => {
       const eventDate = new Date(event.date);
       return (
         eventDate.getDate() === date.getDate() &&
         eventDate.getMonth() === date.getMonth() &&
         eventDate.getFullYear() === date.getFullYear()
       );
+    });
+  };
+
+  // Get events for selected date with full data
+  const getEventsForDate = (date: Date) => {
+    // Get all events for the selected date
+    const dateEvents = allEvents.filter((event) => {
+      const eventDate = new Date(event.date);
+      return (
+        eventDate.getDate() === date.getDate() &&
+        eventDate.getMonth() === date.getMonth() &&
+        eventDate.getFullYear() === date.getFullYear()
+      );
+    });
+
+    // Sort by time
+    return dateEvents.sort((a, b) => {
+      const timeA = a.start_time || '00:00';
+      const timeB = b.start_time || '00:00';
+      return timeA.localeCompare(timeB);
     });
   };
 
@@ -405,98 +425,22 @@ export default function CalendarPerfect() {
               <View style={styles.sectionUnderline} />
 
               <View style={styles.eventsList}>
-                {filteredEvents.map((event) => {
-                  const { date, time } = formatEventDateTime(event.date);
-                  return (
-                    <TouchableOpacity
+                {filteredEvents.length > 0 ? (
+                  filteredEvents.map((event) => (
+                    <EventThumbnail
                       key={event.id}
-                      style={styles.eventCell}
+                      event={event}
                       onPress={() => router.push(`/screens/event-details?eventId=${event.id}`)}
-                      activeOpacity={0.9}
-                    >
-                      {/* Event Image */}
-                      <View style={styles.eventImageContainer}>
-                        {event.cover_image ? (
-                          <Image
-                            source={{ uri: event.cover_image }}
-                            style={styles.eventImage}
-                            resizeMode="cover"
-                          />
-                        ) : (
-                          <View style={styles.eventImagePlaceholder}>
-                            <Ionicons name="calendar" size={28} color="#C7C7CC" />
-                          </View>
-                        )}
-                      </View>
-
-                      {/* Event Info */}
-                      <View style={styles.eventInfo}>
-                        <View style={styles.eventHeader}>
-                          <Text style={styles.eventTitle} numberOfLines={1}>
-                            {event.title}
-                          </Text>
-                          {event.category && (
-                            <View style={[styles.categoryBadge, { backgroundColor: getCategoryConfig(event.category).color + '20' }]}>
-                              <Ionicons 
-                                name={getCategoryConfig(event.category).icon as any} 
-                                size={12} 
-                                color={getCategoryConfig(event.category).color} 
-                              />
-                              <Text style={[styles.categoryText, { color: getCategoryConfig(event.category).color }]}>
-                                {getCategoryConfig(event.category).label}
-                              </Text>
-                            </View>
-                          )}
-                        </View>
-                        <View style={styles.eventDetails}>
-                          <View style={styles.detailRow}>
-                            <Ionicons name="calendar-outline" size={14} color="#6E6E73" />
-                            <Text style={styles.eventDateTime}>
-                              {date}, {time}
-                            </Text>
-                          </View>
-                          <View style={styles.detailRow}>
-                            <Ionicons name="location-outline" size={14} color="#6E6E73" />
-                            <Text style={styles.eventLocation}>{event.location || 'Location TBD'}</Text>
-                          </View>
-                        </View>
-
-                        {/* Participants */}
-                        <View style={styles.participantsRow}>
-                          <View style={styles.avatarsContainer}>
-                            {event.participants
-                              ?.slice(0, 4)
-                              .map((participant, index) => (
-                                participant.avatar_url ? (
-                                  <Image
-                                    key={participant.id}
-                                    source={{ uri: participant.avatar_url }}
-                                    style={[
-                                      styles.avatar,
-                                      { marginLeft: index > 0 ? -8 : 0, zIndex: 4 - index },
-                                    ]}
-                                  />
-                                ) : (
-                                  <View
-                                    key={participant.id}
-                                    style={[
-                                      styles.avatar,
-                                      { marginLeft: index > 0 ? -8 : 0, zIndex: 4 - index },
-                                    ]}
-                                  >
-                                    <Ionicons name="person" size={12} color="#666" />
-                                  </View>
-                                )
-                              ))}
-                          </View>
-                          {event.participants_count && event.participants_count > 0 && (
-                            <Text style={styles.goingText}>+{event.participants_count} going</Text>
-                          )}
-                        </View>
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
+                    />
+                  ))
+                ) : (
+                  <View style={styles.noEventsContainer}>
+                    <Ionicons name="calendar-outline" size={48} color="#C7C7CC" />
+                    <Text style={styles.noEventsText}>
+                      {searchQuery ? 'No events match your search' : 'No upcoming events'}
+                    </Text>
+                  </View>
+                )}
               </View>
             </View>
           </ScrollView>
@@ -597,104 +541,32 @@ export default function CalendarPerfect() {
               </View>
             </View>
 
-            {/* Upcoming Events */}
+            {/* Selected Date Events */}
             <View style={styles.eventsSection}>
-              <Text style={styles.sectionTitle}>Upcoming Events</Text>
+              <Text style={styles.sectionTitle}>
+                {selectedDate.toLocaleDateString('en-US', { 
+                  weekday: 'long', 
+                  month: 'long', 
+                  day: 'numeric' 
+                })}
+              </Text>
               <View style={styles.sectionUnderline} />
 
               <View style={styles.eventsList}>
-                {getUpcomingEvents().map((event) => {
-                  const { date, time } = formatEventDateTime(event.date);
-                  return (
-                    <TouchableOpacity
+                {getEventsForDate(selectedDate).length > 0 ? (
+                  getEventsForDate(selectedDate).map((event) => (
+                    <EventThumbnail
                       key={event.id}
-                      style={styles.eventCell}
+                      event={event}
                       onPress={() => router.push(`/screens/event-details?eventId=${event.id}`)}
-                      activeOpacity={0.9}
-                    >
-                      {/* Event Image */}
-                      <View style={styles.eventImageContainer}>
-                        {event.cover_image ? (
-                          <Image
-                            source={{ uri: event.cover_image }}
-                            style={styles.eventImage}
-                            resizeMode="cover"
-                          />
-                        ) : (
-                          <View style={styles.eventImagePlaceholder}>
-                            <Ionicons name="calendar" size={28} color="#C7C7CC" />
-                          </View>
-                        )}
-                      </View>
-
-                      {/* Event Info */}
-                      <View style={styles.eventInfo}>
-                        <View style={styles.eventHeader}>
-                          <Text style={styles.eventTitle} numberOfLines={1}>
-                            {event.title}
-                          </Text>
-                          {event.category && (
-                            <View style={[styles.categoryBadge, { backgroundColor: getCategoryConfig(event.category).color + '20' }]}>
-                              <Ionicons 
-                                name={getCategoryConfig(event.category).icon as any} 
-                                size={12} 
-                                color={getCategoryConfig(event.category).color} 
-                              />
-                              <Text style={[styles.categoryText, { color: getCategoryConfig(event.category).color }]}>
-                                {getCategoryConfig(event.category).label}
-                              </Text>
-                            </View>
-                          )}
-                        </View>
-                        <View style={styles.eventDetails}>
-                          <View style={styles.detailRow}>
-                            <Ionicons name="calendar-outline" size={14} color="#6E6E73" />
-                            <Text style={styles.eventDateTime}>
-                              {date}, {time}
-                            </Text>
-                          </View>
-                          <View style={styles.detailRow}>
-                            <Ionicons name="location-outline" size={14} color="#6E6E73" />
-                            <Text style={styles.eventLocation}>{event.location || 'Location TBD'}</Text>
-                          </View>
-                        </View>
-
-                        {/* Participants */}
-                        <View style={styles.participantsRow}>
-                          <View style={styles.avatarsContainer}>
-                            {event.participants
-                              ?.slice(0, 4)
-                              .map((participant, index) => (
-                                participant.avatar_url ? (
-                                  <Image
-                                    key={participant.id}
-                                    source={{ uri: participant.avatar_url }}
-                                    style={[
-                                      styles.avatar,
-                                      { marginLeft: index > 0 ? -8 : 0, zIndex: 4 - index },
-                                    ]}
-                                  />
-                                ) : (
-                                  <View
-                                    key={participant.id}
-                                    style={[
-                                      styles.avatar,
-                                      { marginLeft: index > 0 ? -8 : 0, zIndex: 4 - index },
-                                    ]}
-                                  >
-                                    <Ionicons name="person" size={12} color="#666" />
-                                  </View>
-                                )
-                              ))}
-                          </View>
-                          {event.participants_count && event.participants_count > 0 && (
-                            <Text style={styles.goingText}>+{event.participants_count} going</Text>
-                          )}
-                        </View>
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
+                    />
+                  ))
+                ) : (
+                  <View style={styles.noEventsContainer}>
+                    <Ionicons name="calendar-outline" size={48} color="#C7C7CC" />
+                    <Text style={styles.noEventsText}>No events on this day</Text>
+                  </View>
+                )}
               </View>
             </View>
           </ScrollView>
@@ -821,6 +693,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   eventsList: {
+    paddingHorizontal: 20,
     paddingBottom: 40,
     paddingTop: 8,
   },
@@ -936,6 +809,16 @@ const styles = StyleSheet.create({
   goingText: {
     fontSize: 13,
     color: '#6E6E73',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'System',
+  },
+  noEventsContainer: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  noEventsText: {
+    fontSize: 16,
+    color: '#8E8E93',
+    marginTop: 12,
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'System',
   },
   calendarContainer: {

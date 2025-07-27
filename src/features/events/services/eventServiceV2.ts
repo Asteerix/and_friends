@@ -465,6 +465,47 @@ export class EventServiceV2 {
         console.log('📄 [EventServiceV2] Aucun extra à traiter');
       }
 
+      // 7. Créer automatiquement une conversation pour l'événement
+      console.log('💬 [EventServiceV2] Création de la conversation de l\'événement...');
+      try {
+        const chatData = {
+          name: newEvent.title,
+          is_group: true,
+          event_id: newEvent.id,
+          created_by: user.id
+        };
+        
+        const { data: newChat, error: chatError } = await supabase
+          .from('chats')
+          .insert([chatData])
+          .select()
+          .single();
+        
+        if (chatError) {
+          console.error('⚠️ [EventServiceV2] Erreur création chat:', chatError);
+          // On ne fait pas échouer la création de l'événement si le chat échoue
+        } else if (newChat) {
+          console.log('✅ [EventServiceV2] Conversation créée:', newChat.id);
+          
+          // Ajouter le créateur comme participant à la conversation
+          const { error: participantError } = await supabase
+            .from('chat_participants')
+            .insert([{
+              chat_id: newChat.id,
+              user_id: user.id
+            }]);
+          
+          if (participantError) {
+            console.error('⚠️ [EventServiceV2] Erreur ajout participant:', participantError);
+          } else {
+            console.log('✅ [EventServiceV2] Créateur ajouté à la conversation');
+          }
+        }
+      } catch (chatError) {
+        console.error('⚠️ [EventServiceV2] Erreur lors de la création du chat:', chatError);
+        // On continue quand même, l'événement est créé
+      }
+
       console.log('🎉 [EventServiceV2] ============================================');
       console.log('🎉 [EventServiceV2] CRÉATION TERMINÉE AVEC SUCCÈS!');
       console.log('🎉 [EventServiceV2] ============================================');

@@ -42,13 +42,13 @@ export default function MemoryItem({ imageUri, avatarUri, type, username, userId
     }
   }, [hasActiveStory, isViewed]);
 
-  console.log('[MemoryItem] Rendering:', {
-    type,
-    username,
-    hasActiveStory,
-    isViewed,
-    avatarUri: avatarUri?.substring(0, 50) + '...',
-  });
+  // console.log('[MemoryItem] Rendering:', {
+  //   type,
+  //   username,
+  //   hasActiveStory,
+  //   isViewed,
+  //   avatarUri: avatarUri?.substring(0, 50) + '...',
+  // });
 
   const handleAddStory = () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

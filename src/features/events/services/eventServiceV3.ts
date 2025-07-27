@@ -523,6 +523,48 @@ export class EventServiceV3 {
       console.log('');
       console.log('🔗 [V3] URL de l\'événement: /event/' + newEvent.id);
       console.log('');
+      
+      // 7. Créer automatiquement une conversation pour l'événement
+      console.log('💬 [V3] Création de la conversation de l\'événement...');
+      try {
+        const chatData = {
+          name: newEvent.title,
+          is_group: true,
+          event_id: newEvent.id,
+          created_by: user.id
+        };
+        
+        const { data: newChat, error: chatError } = await supabase
+          .from('chats')
+          .insert([chatData])
+          .select()
+          .single();
+        
+        if (chatError) {
+          console.error('⚠️ [V3] Erreur création chat:', chatError);
+          // On ne fait pas échouer la création de l'événement si le chat échoue
+        } else if (newChat) {
+          console.log('✅ [V3] Conversation créée:', newChat.id);
+          
+          // Ajouter le créateur comme participant à la conversation
+          const { error: participantError } = await supabase
+            .from('chat_participants')
+            .insert([{
+              chat_id: newChat.id,
+              user_id: user.id
+            }]);
+          
+          if (participantError) {
+            console.error('⚠️ [V3] Erreur ajout participant:', participantError);
+          } else {
+            console.log('✅ [V3] Créateur ajouté à la conversation');
+          }
+        }
+      } catch (chatError) {
+        console.error('⚠️ [V3] Erreur lors de la création du chat:', chatError);
+        // On continue quand même, l'événement est créé
+      }
+      
       console.log('🎉🎉🎉 [V3] ========================================');
       console.log('');
       

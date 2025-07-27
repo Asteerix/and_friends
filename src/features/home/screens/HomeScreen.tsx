@@ -5,7 +5,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
 import CategoryTabs from '@/features/home/components/CategoryTabs';
-import EventCard from '@/features/home/components/EventCard';
 import HeaderGreeting from '@/features/home/components/HeaderGreeting';
 import SearchBar from '@/features/home/components/SearchBar';
 import SectionHeader from '@/features/home/components/SectionHeader';
@@ -16,6 +15,8 @@ import { useProfile } from '@/hooks/useProfile';
 import { useOnboardingStatus } from '@/hooks/useOnboardingStatus';
 import { EVENT_CATEGORIES } from '@/features/events/utils/categoryHelpers';
 import { usePendingFriendRequests } from '@/shared/hooks/usePendingFriendRequests';
+import EventThumbnail from '@/shared/components/EventThumbnail';
+import { useSession } from '@/shared/providers/SessionContext';
 
 const getCategories = (t: any) => [
   { id: 'all', label: t('common.all') },
@@ -34,6 +35,7 @@ const getCategories = (t: any) => [
 const HomeScreen = () => {
   const router = useRouter();
   const { t } = useTranslation();
+  const { session } = useSession();
   const [activeCategory, setActiveCategory] = useState(0);
   const { events = [], loading: eventsLoading } = useEventsAdvanced();
   const { profile, loading: profileLoading } = useProfile();
@@ -196,40 +198,22 @@ const HomeScreen = () => {
         <MiniMap />
         <SectionHeader title={t('home.sections.allEvents', 'All Events')} onViewAll={() => router.push('/events-list?section=all')} />
         {allEventsSorted.slice(0, 2).map((event) => (
-          <EventCard
+          <EventThumbnail
             key={`all-${event.id}`}
-            title={event.title}
-            date={event.date}
-            location={event.location || ''}
-            thumbnail={event.image_url || ''}
-            participants={(event.participants || []).map(
-              (p) =>
-                p.avatar_url || `https://i.pravatar.cc/150?img=${Math.floor(Math.random() * 70)}`
-            )}
-            goingText={`+${event.participants_count || 0} going`}
-            onPress={() => handleEventPress(event.id)}
-            category={event.event_category}
             event={event}
+            onPress={() => handleEventPress(event.id)}
+            currentUserId={session?.user?.id}
           />
         ))}
         {interestEvents.length > 0 && (
           <>
             <SectionHeader title={t('home.sections.basedOnInterests', 'Based on Your Interests')} onViewAll={() => router.push('/events-list?section=interests')} />
             {interestEvents.map((event) => (
-          <EventCard
+          <EventThumbnail
             key={`interest-${event.id}`}
-            title={event.title}
-            date={event.date}
-            location={event.location || ''}
-            thumbnail={event.image_url || ''}
-            participants={(event.participants || []).map(
-              (p) =>
-                p.avatar_url || `https://i.pravatar.cc/150?img=${Math.floor(Math.random() * 70)}`
-            )}
-            goingText={`+${event.participants_count || 0} going`}
-            onPress={() => handleEventPress(event.id)}
-            category={event.event_category}
             event={event}
+            onPress={() => handleEventPress(event.id)}
+            currentUserId={session?.user?.id}
           />
         ))}
           </>
@@ -238,20 +222,11 @@ const HomeScreen = () => {
           <>
             <SectionHeader title={t('home.sections.friendsGoing', 'Your Friends Are Going To')} onViewAll={() => router.push('/events-list?section=friends')} />
             {friendsEvents.slice(0, 2).map((event) => (
-          <EventCard
+          <EventThumbnail
             key={`friends-${event.id}`}
-            title={event.title}
-            date={event.date}
-            location={event.location || ''}
-            thumbnail={event.image_url || ''}
-            participants={(event.participants || []).map(
-              (p) =>
-                p.avatar_url || `https://i.pravatar.cc/150?img=${Math.floor(Math.random() * 70)}`
-            )}
-            goingText={`+${event.participants_count || 0} going`}
-            onPress={() => handleEventPress(event.id)}
-            category={event.event_category}
             event={event}
+            onPress={() => handleEventPress(event.id)}
+            currentUserId={session?.user?.id}
           />
         ))}
           </>
@@ -260,20 +235,11 @@ const HomeScreen = () => {
           <>
             <SectionHeader title={t('home.sections.eventsYouAreGoing', 'Events You Are Going To')} onViewAll={() => router.push('/events-list?section=going')} />
             {userGoingEvents.slice(0, 2).map((event) => (
-          <EventCard
+          <EventThumbnail
             key={`going-${event.id}`}
-            title={event.title}
-            date={event.date}
-            location={event.location || ''}
-            thumbnail={event.image_url || ''}
-            participants={(event.participants || []).map(
-              (p) =>
-                p.avatar_url || `https://i.pravatar.cc/150?img=${Math.floor(Math.random() * 70)}`
-            )}
-            goingText={`+${event.participants_count || 0} going`}
-            onPress={() => handleEventPress(event.id)}
-            category={event.event_category}
             event={event}
+            onPress={() => handleEventPress(event.id)}
+            currentUserId={session?.user?.id}
           />
         ))}
           </>

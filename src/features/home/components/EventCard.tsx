@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { useResponsive } from '@/shared/hooks/useResponsive';
 import { getCategoryIcon } from '@/features/events/utils/categoryHelpers';
-import EventCoverPreview from '@/features/events/components/EventCoverPreview';
+import { getEventImage } from '@/features/events/utils/getEventImage';
 
 type Props = {
   thumbnail: string;
@@ -53,6 +53,8 @@ export default function EventCard({
     }
   };
   
+  const eventImage = event ? getEventImage(event) : null;
+  
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -60,13 +62,20 @@ export default function EventCard({
       style={styles.container}
     >
       <View style={styles.thumbnailContainer}>
-        {event && event.cover_data ? (
-          <EventCoverPreview 
-            event={event}
-            style={styles.thumbnail}
-            showTitle={false}
-            showOverlay={true}
-          />
+        {eventImage && eventImage.hasImage ? (
+          eventImage.source ? (
+            <Image 
+              source={eventImage.source}
+              style={styles.thumbnail}
+              resizeMode="cover"
+            />
+          ) : (
+            <Image 
+              source={{ uri: eventImage.uri }}
+              style={styles.thumbnail}
+              resizeMode="cover"
+            />
+          )
         ) : (
           <Image 
             source={{ uri: thumbnail || 'https://via.placeholder.com/400x400/f0f0f0/666666?text=Event' }} 

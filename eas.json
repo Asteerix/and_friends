@@ -1,37 +1,40 @@
 {
   "cli": {
-    "version": ">= 3.0.0"
+    "version": ">= 3.0.0",
+    "appVersionSource": "remote"
   },
   "build": {
     "development": {
       "developmentClient": true,
       "distribution": "internal",
       "ios": {
-        "resourceClass": "m1-medium"
+        "resourceClass": "m-medium"
       }
     },
     "preview": {
       "distribution": "internal",
       "ios": {
-        "resourceClass": "m1-medium"
+        "resourceClass": "m-medium",
+        "simulator": false
       }
     },
     "production": {
       "ios": {
-        "resourceClass": "m1-medium",
-        "buildConfiguration": "Release"
+        "resourceClass": "m-medium",
+        "buildConfiguration": "Release",
+        "distribution": "store"
       },
       "android": {
-        "buildType": "release"
+        "buildType": "app-bundle"
       }
     }
   },
   "submit": {
     "production": {
       "ios": {
-        "appleId": "your-apple-id@example.com",
-        "ascAppId": "your-app-store-connect-app-id",
-        "appleTeamId": "your-apple-team-id"
+        "appleId": "apoltavtseef@gmail.com",
+        "ascAppId": "6749200050",
+        "appleTeamId": "2798WUY9MP"
       },
       "android": {
         "serviceAccountKeyPath": "./path-to-google-service-account-key.json",
