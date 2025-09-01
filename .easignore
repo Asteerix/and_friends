@@ -1,5 +1,9 @@
 # .easignore - Files to exclude from EAS Build
 
+# Native directories (using Prebuild/CNG)
+ios/
+android/
+
 # Development files
 .env
 .env.local
