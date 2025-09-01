@@ -37,12 +37,46 @@ export PATH="/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
   // Install CocoaPods dependencies for iOS
   if (platform === 'ios') {
     console.log('📦 Installing CocoaPods dependencies...');
+    console.log('Current directory:', process.cwd());
+    
+    const iosDir = path.join(__dirname, '..', 'ios');
+    console.log('iOS directory:', iosDir);
+    
+    // Check if ios directory exists
+    if (!fs.existsSync(iosDir)) {
+      console.error('❌ iOS directory not found at:', iosDir);
+      process.exit(1);
+    }
+    
+    // Check if Podfile exists
+    const podfilePath = path.join(iosDir, 'Podfile');
+    if (!fs.existsSync(podfilePath)) {
+      console.error('❌ Podfile not found at:', podfilePath);
+      process.exit(1);
+    }
+    
     try {
       // Change to ios directory
-      process.chdir(path.join(__dirname, '..', 'ios'));
+      process.chdir(iosDir);
+      console.log('Changed to iOS directory:', process.cwd());
       
-      // Run pod install with deployment flag for stability
-      execSync('pod install --repo-update --deployment', { 
+      // Check if pod command is available
+      try {
+        execSync('which pod', { stdio: 'pipe' });
+        console.log('✅ CocoaPods is installed');
+      } catch (e) {
+        console.error('❌ CocoaPods not found. Installing via gem...');
+        try {
+          execSync('gem install cocoapods', { stdio: 'inherit' });
+        } catch (gemError) {
+          console.error('❌ Failed to install CocoaPods:', gemError.message);
+          process.exit(1);
+        }
+      }
+      
+      // Run pod install without deployment flag first
+      console.log('Running pod install...');
+      execSync('pod install --repo-update', { 
         stdio: 'inherit',
         env: { ...process.env }
       });
@@ -53,6 +87,7 @@ export PATH="/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
       process.chdir(path.join(__dirname, '..'));
     } catch (error) {
       console.error('❌ CocoaPods installation failed:', error.message);
+      console.error('Stack trace:', error.stack);
       process.exit(1);
     }
   }
