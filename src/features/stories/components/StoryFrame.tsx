@@ -1,11 +1,5 @@
 import React from 'react';
-import {
-  View,
-  Image,
-  StyleSheet,
-  Dimensions,
-  Platform,
-} from 'react-native';
+import { View, Image, StyleSheet, Dimensions, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import CustomText from '@/shared/ui/CustomText';
 
@@ -19,11 +13,11 @@ interface StoryFrameProps {
   captionPosition?: number;
 }
 
-export const StoryFrame: React.FC<StoryFrameProps> = ({ 
-  uri, 
-  caption, 
+export const StoryFrame: React.FC<StoryFrameProps> = ({
+  uri,
+  caption,
   aspectRatio,
-  captionPosition = screenHeight * 0.5
+  captionPosition = screenHeight * 0.5,
 }) => {
   // Calculate if we need blur background
   const imageAspectRatio = aspectRatio ? aspectRatio.width / aspectRatio.height : 1;
@@ -34,20 +28,16 @@ export const StoryFrame: React.FC<StoryFrameProps> = ({
     <View style={styles.container}>
       {/* Blurred Background - only if aspect ratio doesn't match */}
       {needsBlur && (
-        <Image 
-          source={{ uri }} 
-          style={styles.blurredBackground} 
+        <Image
+          source={{ uri }}
+          style={styles.blurredBackground}
           blurRadius={Platform.OS === 'ios' ? 50 : 25}
         />
       )}
-      
+
       {/* Main Image */}
       <View style={styles.imageContainer}>
-        <Image 
-          source={{ uri }} 
-          style={styles.image}
-          resizeMode="contain"
-        />
+        <Image source={{ uri }} style={styles.image} resizeMode="contain" />
       </View>
 
       {/* Top Gradient */}
@@ -63,17 +53,12 @@ export const StoryFrame: React.FC<StoryFrameProps> = ({
         style={styles.bottomGradient}
         pointerEvents="none"
       />
-      
+
       {/* Caption */}
       {caption && caption.trim().length > 0 && (
         <View style={[styles.captionContainer, { top: captionPosition }]}>
           <View style={styles.captionBackground}>
-            <CustomText 
-              size="lg" 
-              color="#FFF" 
-              style={styles.captionText}
-              numberOfLines={3}
-            >
+            <CustomText size="lg" color="#FFF" style={styles.captionText} numberOfLines={3}>
               {caption}
             </CustomText>
           </View>

@@ -1,11 +1,18 @@
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
 import * as MediaLibrary from 'expo-media-library';
-import * as DocumentPicker from 'expo-document-picker';
+// Document picker is optional - only import if available
+let DocumentPicker: any = null;
+try {
+  DocumentPicker = require('expo-document-picker');
+} catch (error) {
+  // expo-document-picker is not installed
+  console.warn('expo-document-picker not available. Document picking will be disabled.');
+}
 import { AudioModule } from 'expo-audio';
 // Note: Recording functionality requires hooks and should be used in components
-import { supabase } from '@/shared/lib/supabase/client';
 import { CONVERSATION_CONSTANTS } from '../constants/conversation.constants';
+import { supabase } from '@/shared/lib/supabase/client';
 import type { MessageType } from '@/types/conversation.types';
 
 export interface MediaUploadResult {
@@ -23,17 +30,15 @@ export interface MediaUploadResult {
 
 export class MediaService {
   private static readonly BUCKET_NAME = 'chat-media';
-  
+
   // Demander les permissions
   static async requestMediaPermissions(): Promise<boolean> {
     const { status: cameraStatus } = await ImagePicker.requestCameraPermissionsAsync();
     const { status: mediaLibraryStatus } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     const { status: audioStatus } = await AudioModule.requestRecordingPermissionsAsync();
-    
+
     return (
-      cameraStatus === 'granted' &&
-      mediaLibraryStatus === 'granted' &&
-      audioStatus === 'granted'
+      cameraStatus === 'granted' && mediaLibraryStatus === 'granted' && audioStatus === 'granted'
     );
   }
 
@@ -49,13 +54,13 @@ export class MediaService {
 
       if (!result.canceled && result.assets[0]) {
         const asset = result.assets[0];
-        return await this.uploadImage(asset.uri, {
+        return await MediaService.uploadImage(asset.uri, {
           width: asset.width,
           height: asset.height,
         });
       }
     } catch (error) {
-      console.error('Erreur lors de la sélection d\'image:', error);
+      console.error("Erreur lors de la sélection d'image:", error);
     }
     return null;
   }
@@ -71,7 +76,7 @@ export class MediaService {
 
       if (!result.canceled && result.assets[0]) {
         const asset = result.assets[0];
-        return await this.uploadImage(asset.uri, {
+        return await MediaService.uploadImage(asset.uri, {
           width: asset.width,
           height: asset.height,
         });
@@ -94,7 +99,7 @@ export class MediaService {
 
       if (!result.canceled && result.assets[0]) {
         const asset = result.assets[0];
-        return await this.uploadVideo(asset.uri, {
+        return await MediaService.uploadVideo(asset.uri, {
           duration: asset.duration,
           width: asset.width,
           height: asset.height,
@@ -108,6 +113,11 @@ export class MediaService {
 
   // Choisir un document
   static async pickDocument(): Promise<MediaUploadResult | null> {
+    if (!DocumentPicker) {
+      console.error('expo-document-picker is not available');
+      return null;
+    }
+
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: '*/*',
@@ -118,12 +128,14 @@ export class MediaService {
         // Vérifier la taille du fichier
         const fileInfo = await FileSystem.getInfoAsync(result.uri);
         const fileSizeMB = (fileInfo.size || 0) / (1024 * 1024);
-        
+
         if (fileSizeMB > CONVERSATION_CONSTANTS.MAX_FILE_SIZE_MB) {
-          throw new Error(`Le fichier est trop volumineux (max ${CONVERSATION_CONSTANTS.MAX_FILE_SIZE_MB}MB)`);
+          throw new Error(
+            `Le fichier est trop volumineux (max ${CONVERSATION_CONSTANTS.MAX_FILE_SIZE_MB}MB)`
+          );
         }
 
-        return await this.uploadFile(result.uri, {
+        return await MediaService.uploadFile(result.uri, {
           file_name: result.name,
           file_size: fileInfo.size,
           mime_type: result.mimeType,
@@ -140,7 +152,9 @@ export class MediaService {
   // Note: This method needs to be refactored to use hooks in a component
   // expo-audio uses hooks (useAudioRecorder) which can't be used in static methods
   static async recordVoiceMessage(): Promise<MediaUploadResult | null> {
-    console.error('recordVoiceMessage needs to be refactored to use useAudioRecorder hook in a component');
+    console.error(
+      'recordVoiceMessage needs to be refactored to use useAudioRecorder hook in a component'
+    );
     // The recording logic should be moved to a React component that can use hooks
     // Example usage in a component:
     // const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
@@ -158,8 +172,8 @@ export class MediaService {
     metadata: { width?: number; height?: number }
   ): Promise<MediaUploadResult> {
     const fileName = `images/${Date.now()}.jpg`;
-    const url = await this.uploadToSupabase(uri, fileName);
-    
+    const url = await MediaService.uploadToSupabase(uri, fileName);
+
     return {
       url,
       type: 'image',
@@ -176,8 +190,8 @@ export class MediaService {
     metadata: { duration?: number; width?: number; height?: number }
   ): Promise<MediaUploadResult> {
     const fileName = `videos/${Date.now()}.mp4`;
-    const url = await this.uploadToSupabase(uri, fileName);
-    
+    const url = await MediaService.uploadToSupabase(uri, fileName);
+
     return {
       url,
       type: 'video',
@@ -194,8 +208,8 @@ export class MediaService {
     metadata: { duration?: number }
   ): Promise<MediaUploadResult> {
     const fileName = `voice/${Date.now()}.m4a`;
-    const url = await this.uploadToSupabase(uri, fileName);
-    
+    const url = await MediaService.uploadToSupabase(uri, fileName);
+
     return {
       url,
       type: 'voice',
@@ -213,8 +227,8 @@ export class MediaService {
   ): Promise<MediaUploadResult> {
     const extension = metadata.file_name?.split('.').pop() || 'file';
     const fileName = `files/${Date.now()}.${extension}`;
-    const url = await this.uploadToSupabase(uri, fileName);
-    
+    const url = await MediaService.uploadToSupabase(uri, fileName);
+
     return {
       url,
       type: 'file',
@@ -231,11 +245,11 @@ export class MediaService {
       });
 
       // Créer un blob à partir du base64
-      const blob = this.base64ToBlob(fileData, 'application/octet-stream');
+      const blob = MediaService.base64ToBlob(fileData, 'application/octet-stream');
 
       // Upload vers Supabase
       const { data, error } = await supabase.storage
-        .from(this.BUCKET_NAME)
+        .from(MediaService.BUCKET_NAME)
         .upload(fileName, blob, {
           cacheControl: '3600',
           upsert: false,
@@ -247,13 +261,13 @@ export class MediaService {
       }
 
       // Obtenir l'URL publique
-      const { data: { publicUrl } } = supabase.storage
-        .from(this.BUCKET_NAME)
-        .getPublicUrl(fileName);
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from(MediaService.BUCKET_NAME).getPublicUrl(fileName);
 
       return publicUrl;
     } catch (error) {
-      console.error('Erreur lors de l\'upload:', error);
+      console.error("Erreur lors de l'upload:", error);
       throw error;
     }
   }
@@ -262,11 +276,11 @@ export class MediaService {
   private static base64ToBlob(base64: string, mimeType: string): Blob {
     const byteCharacters = atob(base64);
     const byteNumbers = new Array(byteCharacters.length);
-    
+
     for (let i = 0; i < byteCharacters.length; i++) {
       byteNumbers[i] = byteCharacters.charCodeAt(i);
     }
-    
+
     const byteArray = new Uint8Array(byteNumbers);
     return new Blob([byteArray], { type: mimeType });
   }
@@ -275,15 +289,15 @@ export class MediaService {
   static async downloadFile(url: string, fileName: string): Promise<string | null> {
     try {
       const downloadPath = `${FileSystem.documentDirectory}${fileName}`;
-      
+
       const downloadResult = await FileSystem.downloadAsync(url, downloadPath);
-      
+
       if (downloadResult.status === 200) {
         // Sauvegarder dans la galerie si c'est une image/vidéo
         if (fileName.match(/\.(jpg|jpeg|png|gif|mp4|mov)$/i)) {
           await MediaLibrary.createAssetAsync(downloadResult.uri);
         }
-        
+
         return downloadResult.uri;
       }
     } catch (error) {
@@ -304,14 +318,10 @@ export class MediaService {
   static async getImageDimensions(uri: string): Promise<{ width: number; height: number } | null> {
     try {
       return await new Promise((resolve, reject) => {
-        Image.getSize(
-          uri,
-          (width, height) => resolve({ width, height }),
-          reject
-        );
+        Image.getSize(uri, (width, height) => resolve({ width, height }), reject);
       });
     } catch (error) {
-      console.error('Erreur lors de l\'obtention des dimensions:', error);
+      console.error("Erreur lors de l'obtention des dimensions:", error);
       return null;
     }
   }

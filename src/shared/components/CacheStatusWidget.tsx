@@ -13,16 +13,16 @@ interface CacheStatusWidgetProps {
 export const CacheStatusWidget: React.FC<CacheStatusWidgetProps> = ({ style, onPress }) => {
   const [cacheSize, setCacheSize] = useState(0);
   const { pendingOperations, isOnline } = useOfflineSync();
-  const connectionQuality = useNetworkStore(state => state.connectionQuality);
+  const connectionQuality = useNetworkStore((state) => state.connectionQuality);
 
   useEffect(() => {
     const updateCacheSize = () => {
-      const totalSize = 
+      const totalSize =
         generalCache.getCacheSize() +
         userCache.getCacheSize() +
         eventCache.getCacheSize() +
         imageCache.getCacheSize();
-      
+
       setCacheSize(totalSize);
     };
 
@@ -72,30 +72,18 @@ export const CacheStatusWidget: React.FC<CacheStatusWidgetProps> = ({ style, onP
   };
 
   return (
-    <TouchableOpacity
-      style={[styles.container, style]}
-      onPress={onPress}
-      activeOpacity={0.8}
-    >
+    <TouchableOpacity style={[styles.container, style]} onPress={onPress} activeOpacity={0.8}>
       <View style={styles.row}>
         <View style={styles.item}>
-          <Ionicons 
-            name={getConnectionIcon()} 
-            size={16} 
-            color={getConnectionColor()} 
-          />
-          <Text style={[styles.text, { color: getConnectionColor() }]}>
-            {connectionQuality}
-          </Text>
+          <Ionicons name={getConnectionIcon()} size={16} color={getConnectionColor()} />
+          <Text style={[styles.text, { color: getConnectionColor() }]}>{connectionQuality}</Text>
         </View>
 
         <View style={styles.divider} />
 
         <View style={styles.item}>
           <Ionicons name="server" size={16} color="#666" />
-          <Text style={styles.text}>
-            {formatSize(cacheSize)}
-          </Text>
+          <Text style={styles.text}>{formatSize(cacheSize)}</Text>
         </View>
 
         {pendingOperations > 0 && (
@@ -103,9 +91,7 @@ export const CacheStatusWidget: React.FC<CacheStatusWidgetProps> = ({ style, onP
             <View style={styles.divider} />
             <View style={styles.item}>
               <Ionicons name="sync" size={16} color="#FF9800" />
-              <Text style={[styles.text, styles.pending]}>
-                {pendingOperations}
-              </Text>
+              <Text style={[styles.text, styles.pending]}>{pendingOperations}</Text>
             </View>
           </>
         )}

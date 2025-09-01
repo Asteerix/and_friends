@@ -1,8 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-
-import { supabase } from '@/shared/lib/supabase/client';
-
 import { Story, StoryHighlight } from '../types';
+import { supabase } from '@/shared/lib/supabase/client';
 
 interface UserStories {
   userId: string;
@@ -153,12 +151,12 @@ export function useStories() {
 
       // Add user to views array
       const updatedViews = [...currentViews, user.id];
-      
+
       const { error: updateError } = await supabase
         .from('stories')
-        .update({ 
+        .update({
           views: updatedViews,
-          views_count: updatedViews.length 
+          views_count: updatedViews.length,
         })
         .eq('id', storyId);
 

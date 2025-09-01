@@ -22,16 +22,16 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import * as Haptics from 'expo-haptics';
+import { BlurView } from 'expo-blur';
+import * as ImagePicker from 'expo-image-picker';
+import VoiceRecorderModal from '../components/VoiceRecorderModal';
 import { useMessagesAdvanced } from '@/hooks/useMessagesAdvanced';
 import { useSession } from '@/shared/providers/SessionContext';
 import { ChatService } from '@/features/chats/services/chatService';
 import { supabase } from '@/shared/lib/supabase/client';
-import * as Haptics from 'expo-haptics';
 import { usePresence } from '@/hooks/usePresence';
-import { BlurView } from 'expo-blur';
 import { MediaService } from '@/features/chats/services/mediaService';
-import * as ImagePicker from 'expo-image-picker';
-import VoiceRecorderModal from '../components/VoiceRecorderModal';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -63,7 +63,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     if (now - lastTapTime < 300) {
       // Double tap detected
       onDoubleTap();
-      
+
       // Heart animation
       Animated.sequence([
         Animated.timing(heartAnimation, {
@@ -78,7 +78,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           useNativeDriver: true,
         }),
       ]).start();
-      
+
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
     lastTapTime = now;
@@ -105,25 +105,23 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
     >
-      <Animated.View 
+      <Animated.View
         style={[
           styles.messageContainer,
           isOwnMessage ? styles.ownMessageContainer : styles.otherMessageContainer,
-          { transform: [{ scale: animatedScale }] }
+          { transform: [{ scale: animatedScale }] },
         ]}
       >
-        {!isOwnMessage && showAvatar && (
-          message.sender?.avatar_url ? (
+        {!isOwnMessage &&
+          showAvatar &&
+          (message.sender?.avatar_url ? (
             <Image source={{ uri: message.sender.avatar_url }} style={styles.messageAvatar} />
           ) : (
             <View style={[styles.messageAvatar, styles.defaultAvatar]}>
-              <Text style={styles.avatarText}>
-                {message.sender?.full_name?.charAt(0) || '?'}
-              </Text>
+              <Text style={styles.avatarText}>{message.sender?.full_name?.charAt(0) || '?'}</Text>
             </View>
-          )
-        )}
-        
+          ))}
+
         <View style={styles.bubbleContainer}>
           {message.reply_to && (
             <TouchableOpacity style={styles.replyContainer} activeOpacity={0.7}>
@@ -136,22 +134,24 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
               </View>
             </TouchableOpacity>
           )}
-          
-          <View style={[
-            styles.bubble,
-            isOwnMessage ? styles.ownBubble : styles.otherBubble,
-            message.reactions?.length > 0 && styles.bubbleWithReaction
-          ]}>
+
+          <View
+            style={[
+              styles.bubble,
+              isOwnMessage ? styles.ownBubble : styles.otherBubble,
+              message.reactions?.length > 0 && styles.bubbleWithReaction,
+            ]}
+          >
             {message.message_type === 'image' && message.media_url ? (
-              <Image 
-                source={{ uri: message.media_url }} 
+              <Image
+                source={{ uri: message.media_url }}
                 style={styles.messageImage}
                 resizeMode="cover"
               />
             ) : message.message_type === 'video' && message.media_url ? (
               <View style={styles.videoContainer}>
-                <Image 
-                  source={{ uri: message.media_url }} 
+                <Image
+                  source={{ uri: message.media_url }}
                   style={styles.messageImage}
                   resizeMode="cover"
                 />
@@ -161,11 +161,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
               </View>
             ) : message.message_type === 'voice' && message.media_url ? (
               <TouchableOpacity style={styles.voiceMessage}>
-                <Ionicons 
-                  name="play-circle" 
-                  size={32} 
-                  color={isOwnMessage ? "#fff" : "#3797F0"} 
-                />
+                <Ionicons name="play-circle" size={32} color={isOwnMessage ? '#fff' : '#3797F0'} />
                 <View style={styles.voiceWaveform}>
                   {[...Array(15)].map((_, i) => (
                     <View
@@ -174,69 +170,81 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                         styles.voiceWaveformBar,
                         {
                           height: Math.random() * 20 + 5,
-                          backgroundColor: isOwnMessage ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.2)',
-                        }
+                          backgroundColor: isOwnMessage
+                            ? 'rgba(255,255,255,0.5)'
+                            : 'rgba(0,0,0,0.2)',
+                        },
                       ]}
                     />
                   ))}
                 </View>
-                <Text style={[
-                  styles.voiceDuration,
-                  isOwnMessage ? styles.ownVoiceDuration : styles.otherVoiceDuration
-                ]}>
-                  {message.metadata?.duration ? `${Math.floor(message.metadata.duration / 60)}:${(message.metadata.duration % 60).toString().padStart(2, '0')}` : '0:00'}
+                <Text
+                  style={[
+                    styles.voiceDuration,
+                    isOwnMessage ? styles.ownVoiceDuration : styles.otherVoiceDuration,
+                  ]}
+                >
+                  {message.metadata?.duration
+                    ? `${Math.floor(message.metadata.duration / 60)}:${(message.metadata.duration % 60).toString().padStart(2, '0')}`
+                    : '0:00'}
                 </Text>
               </TouchableOpacity>
             ) : (
-              <Text style={[
-                styles.messageText,
-                isOwnMessage ? styles.ownMessageText : styles.otherMessageText
-              ]}>
+              <Text
+                style={[
+                  styles.messageText,
+                  isOwnMessage ? styles.ownMessageText : styles.otherMessageText,
+                ]}
+              >
                 {message.is_deleted ? 'Message supprimé' : message.content}
               </Text>
             )}
-            
+
             {showTime && (
-              <Text style={[
-                styles.messageTime,
-                isOwnMessage ? styles.ownMessageTime : styles.otherMessageTime
-              ]}>
+              <Text
+                style={[
+                  styles.messageTime,
+                  isOwnMessage ? styles.ownMessageTime : styles.otherMessageTime,
+                ]}
+              >
                 {format(new Date(message.created_at), 'HH:mm')}
               </Text>
             )}
           </View>
-          
+
           {message.reactions?.length > 0 && (
-            <View style={[
-              styles.reactionsContainer,
-              isOwnMessage ? styles.ownReactions : styles.otherReactions
-            ]}>
+            <View
+              style={[
+                styles.reactionsContainer,
+                isOwnMessage ? styles.ownReactions : styles.otherReactions,
+              ]}
+            >
               {message.reactions.map((reaction: any, index: number) => (
                 <View key={index} style={styles.reaction}>
                   <Text style={styles.reactionEmoji}>{reaction.emoji}</Text>
-                  {reaction.count > 1 && (
-                    <Text style={styles.reactionCount}>{reaction.count}</Text>
-                  )}
+                  {reaction.count > 1 && <Text style={styles.reactionCount}>{reaction.count}</Text>}
                 </View>
               ))}
             </View>
           )}
         </View>
-        
+
         {!isOwnMessage && !showAvatar && <View style={styles.avatarSpace} />}
-        
-        <Animated.View 
+
+        <Animated.View
           style={[
             styles.heartReaction,
             {
               opacity: heartAnimation,
               transform: [
-                { scale: heartAnimation.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0.8, 1.2]
-                })}
-              ]
-            }
+                {
+                  scale: heartAnimation.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.8, 1.2],
+                  }),
+                },
+              ],
+            },
           ]}
           pointerEvents="none"
         >
@@ -254,7 +262,7 @@ export default function InstagramConversationScreen() {
   const { session } = useSession();
   const { messages, sendMessage, loading, chats } = useMessagesAdvanced(chatId);
   const { isUserOnline } = usePresence();
-  
+
   const [inputText, setInputText] = useState('');
   const [participants, setParticipants] = useState<any[]>([]);
   const [chatInfo, setChatInfo] = useState<any>(null);
@@ -263,7 +271,7 @@ export default function InstagramConversationScreen() {
   const [replyingTo, setReplyingTo] = useState<any>(null);
   const [inputHeight, setInputHeight] = useState(40);
   const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
-  
+
   const flatListRef = useRef<FlatList>(null);
   const inputRef = useRef<TextInput>(null);
   const currentUserId = session?.user?.id;
@@ -275,7 +283,7 @@ export default function InstagramConversationScreen() {
   }, [chatId]);
 
   useEffect(() => {
-    const chat = chats.find(c => c.id === chatId);
+    const chat = chats.find((c) => c.id === chatId);
     if (chat) {
       setChatInfo(chat);
     }
@@ -290,7 +298,7 @@ export default function InstagramConversationScreen() {
     if (chatInfo?.is_group) {
       return chatInfo.name || 'Groupe';
     }
-    const otherParticipant = participants.find(p => p.user_id !== currentUserId);
+    const otherParticipant = participants.find((p) => p.user_id !== currentUserId);
     return otherParticipant?.profiles?.full_name || 'Conversation';
   };
 
@@ -298,7 +306,7 @@ export default function InstagramConversationScreen() {
     if (chatInfo?.is_group) {
       return `${participants.length} membres`;
     }
-    const otherParticipant = participants.find(p => p.user_id !== currentUserId);
+    const otherParticipant = participants.find((p) => p.user_id !== currentUserId);
     if (otherParticipant && isUserOnline(otherParticipant.user_id)) {
       return 'En ligne';
     }
@@ -310,26 +318,29 @@ export default function InstagramConversationScreen() {
       const messageData: any = {
         content: inputText.trim(),
       };
-      
+
       if (replyingTo) {
         messageData.reply_to_id = replyingTo.id;
       }
-      
+
       await sendMessage(inputText.trim());
       setInputText('');
       setReplyingTo(null);
       flatListRef.current?.scrollToEnd();
     }
   };
-  
+
   const handleCamera = async () => {
     try {
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission requise', 'L\'accès à la caméra est nécessaire pour prendre des photos.');
+        Alert.alert(
+          'Permission requise',
+          "L'accès à la caméra est nécessaire pour prendre des photos."
+        );
         return;
       }
-      
+
       const result = await MediaService.takePhoto();
       if (result) {
         await sendMediaMessage(result);
@@ -339,25 +350,28 @@ export default function InstagramConversationScreen() {
       Alert.alert('Erreur', 'Impossible de prendre la photo');
     }
   };
-  
+
   const handleImagePicker = async () => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission requise', 'L\'accès à la galerie est nécessaire pour sélectionner des photos.');
+        Alert.alert(
+          'Permission requise',
+          "L'accès à la galerie est nécessaire pour sélectionner des photos."
+        );
         return;
       }
-      
+
       const result = await MediaService.pickImage();
       if (result) {
         await sendMediaMessage(result);
       }
     } catch (error) {
       console.error('Error picking image:', error);
-      Alert.alert('Erreur', 'Impossible de sélectionner l\'image');
+      Alert.alert('Erreur', "Impossible de sélectionner l'image");
     }
   };
-  
+
   const sendMediaMessage = async (media: any) => {
     try {
       const messageData = {
@@ -366,19 +380,17 @@ export default function InstagramConversationScreen() {
         content: '',
         message_type: media.type,
         media_url: media.url,
-        metadata: media.metadata
+        metadata: media.metadata,
       };
-      
-      const { error } = await supabase
-        .from('messages')
-        .insert(messageData);
-        
+
+      const { error } = await supabase.from('messages').insert(messageData);
+
       if (error) throw error;
-      
+
       flatListRef.current?.scrollToEnd();
     } catch (error) {
       console.error('Error sending media:', error);
-      Alert.alert('Erreur', 'Impossible d\'envoyer le média');
+      Alert.alert('Erreur', "Impossible d'envoyer le média");
     }
   };
 
@@ -388,24 +400,19 @@ export default function InstagramConversationScreen() {
       const existingReaction = message.reactions?.find(
         (r: any) => r.user_id === currentUserId && r.emoji === '❤️'
       );
-      
+
       if (existingReaction) {
         // Remove reaction
-        await supabase
-          .from('message_reactions')
-          .delete()
-          .eq('id', existingReaction.id);
+        await supabase.from('message_reactions').delete().eq('id', existingReaction.id);
       } else {
         // Add heart reaction
-        await supabase
-          .from('message_reactions')
-          .insert({
-            message_id: message.id,
-            user_id: currentUserId,
-            emoji: '❤️'
-          });
+        await supabase.from('message_reactions').insert({
+          message_id: message.id,
+          user_id: currentUserId,
+          emoji: '❤️',
+        });
       }
-      
+
       // Refresh messages to show updated reactions
       // The real-time subscription should handle this automatically
     } catch (error) {
@@ -439,14 +446,14 @@ export default function InstagramConversationScreen() {
     try {
       await supabase
         .from('messages')
-        .update({ 
+        .update({
           content: 'Message supprimé',
           is_deleted: true,
-          deleted_at: new Date().toISOString()
+          deleted_at: new Date().toISOString(),
         })
         .eq('id', message.id)
         .eq('user_id', currentUserId); // Only allow deleting own messages
-        
+
       setShowMessageOptions(false);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error) {
@@ -459,14 +466,15 @@ export default function InstagramConversationScreen() {
     const isOwnMessage = item.user_id === currentUserId;
     const previousMessage = index > 0 ? messages[index - 1] : null;
     const nextMessage = index < messages.length - 1 ? messages[index + 1] : null;
-    
-    const showAvatar = !isOwnMessage && (
-      !nextMessage || 
-      nextMessage.user_id !== item.user_id ||
-      new Date(nextMessage.created_at).getTime() - new Date(item.created_at).getTime() > 60000
-    );
-    
-    const showTime = !previousMessage ||
+
+    const showAvatar =
+      !isOwnMessage &&
+      (!nextMessage ||
+        nextMessage.user_id !== item.user_id ||
+        new Date(nextMessage.created_at).getTime() - new Date(item.created_at).getTime() > 60000);
+
+    const showTime =
+      !previousMessage ||
       new Date(item.created_at).getTime() - new Date(previousMessage.created_at).getTime() > 300000;
 
     return (
@@ -484,9 +492,7 @@ export default function InstagramConversationScreen() {
 
   const renderDateSeparator = (date: string) => (
     <View style={styles.dateSeparator}>
-      <Text style={styles.dateText}>
-        {format(new Date(date), 'EEEE d MMMM', { locale: fr })}
-      </Text>
+      <Text style={styles.dateText}>{format(new Date(date), 'EEEE d MMMM', { locale: fr })}</Text>
     </View>
   );
 
@@ -497,8 +503,8 @@ export default function InstagramConversationScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={28} color="#000" />
         </TouchableOpacity>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={styles.headerInfo}
           onPress={() => router.push(`/screens/instagram-chat-details?id=${chatId}`)}
         >
@@ -508,34 +514,27 @@ export default function InstagramConversationScreen() {
                 <Ionicons name="people" size={24} color="#000" />
               </View>
             ) : participants[0]?.profiles?.avatar_url ? (
-              <Image 
-                source={{ uri: participants[0].profiles.avatar_url }} 
-                style={styles.avatar} 
-              />
+              <Image source={{ uri: participants[0].profiles.avatar_url }} style={styles.avatar} />
             ) : (
               <View style={[styles.avatar, styles.defaultAvatar]}>
-                <Text style={styles.avatarText}>
-                  {getChatTitle().charAt(0)}
-                </Text>
+                <Text style={styles.avatarText}>{getChatTitle().charAt(0)}</Text>
               </View>
             )}
           </View>
-          
+
           <View style={styles.headerText}>
             <Text style={styles.headerTitle} numberOfLines={1}>
               {getChatTitle()}
             </Text>
-            <Text style={styles.headerSubtitle}>
-              {getSubtitle()}
-            </Text>
+            <Text style={styles.headerSubtitle}>{getSubtitle()}</Text>
           </View>
         </TouchableOpacity>
-        
+
         <View style={styles.headerActions}>
           <TouchableOpacity onPress={() => router.push(`/screens/video-call?chatId=${chatId}`)}>
             <Ionicons name="call-outline" size={24} color="#000" />
           </TouchableOpacity>
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={() => router.push(`/screens/video-call?chatId=${chatId}&video=true`)}
             style={styles.videoCallButton}
           >
@@ -560,14 +559,12 @@ export default function InstagramConversationScreen() {
           showsVerticalScrollIndicator={false}
           onContentSizeChange={() => flatListRef.current?.scrollToEnd()}
         />
-        
+
         {/* Reply Preview */}
         {replyingTo && (
           <View style={styles.replyPreview}>
             <View style={styles.replyContent}>
-              <Text style={styles.replyLabel}>
-                Répondre à {replyingTo.sender?.full_name}
-              </Text>
+              <Text style={styles.replyLabel}>Répondre à {replyingTo.sender?.full_name}</Text>
               <Text style={styles.replyMessage} numberOfLines={1}>
                 {replyingTo.content}
               </Text>
@@ -577,13 +574,13 @@ export default function InstagramConversationScreen() {
             </TouchableOpacity>
           </View>
         )}
-        
+
         {/* Input Bar */}
         <View style={styles.inputContainer}>
           <TouchableOpacity style={styles.inputButton} onPress={handleCamera}>
             <Ionicons name="camera-outline" size={28} color="#3797F0" />
           </TouchableOpacity>
-          
+
           <View style={styles.inputWrapper}>
             <TextInput
               ref={inputRef}
@@ -597,11 +594,11 @@ export default function InstagramConversationScreen() {
                 setInputHeight(Math.min(100, e.nativeEvent.contentSize.height));
               }}
             />
-            
+
             <View style={styles.inputActions}>
               {inputText.length === 0 && (
                 <>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.inputAction}
                     onPress={() => setShowVoiceRecorder(true)}
                   >
@@ -617,7 +614,7 @@ export default function InstagramConversationScreen() {
               )}
             </View>
           </View>
-          
+
           {inputText.length > 0 && (
             <TouchableOpacity onPress={handleSend} style={styles.sendButton}>
               <Text style={styles.sendButtonText}>Envoyer</Text>
@@ -633,28 +630,23 @@ export default function InstagramConversationScreen() {
         animationType="fade"
         onRequestClose={() => setShowMessageOptions(false)}
       >
-        <Pressable 
-          style={styles.modalOverlay} 
-          onPress={() => setShowMessageOptions(false)}
-        >
+        <Pressable style={styles.modalOverlay} onPress={() => setShowMessageOptions(false)}>
           <BlurView intensity={100} style={StyleSheet.absoluteFillObject} />
-          
+
           <View style={styles.messageOptionsContainer}>
             <View style={styles.messageOptionsContent}>
               <View style={styles.reactionsRow}>
                 {['❤️', '😂', '😮', '😢', '😠', '👍'].map((emoji, index) => (
-                  <TouchableOpacity 
-                    key={index} 
+                  <TouchableOpacity
+                    key={index}
                     style={styles.reactionButton}
                     onPress={async () => {
                       try {
-                        await supabase
-                          .from('message_reactions')
-                          .insert({
-                            message_id: selectedMessage.id,
-                            user_id: currentUserId,
-                            emoji: emoji
-                          });
+                        await supabase.from('message_reactions').insert({
+                          message_id: selectedMessage.id,
+                          user_id: currentUserId,
+                          emoji: emoji,
+                        });
                         setShowMessageOptions(false);
                         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                       } catch (error) {
@@ -666,31 +658,31 @@ export default function InstagramConversationScreen() {
                   </TouchableOpacity>
                 ))}
               </View>
-              
+
               <View style={styles.messageOptions}>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.messageOption}
                   onPress={() => handleReply(selectedMessage)}
                 >
                   <Ionicons name="arrow-undo" size={24} color="#000" />
                   <Text style={styles.messageOptionText}>Répondre</Text>
                 </TouchableOpacity>
-                
-                <TouchableOpacity 
+
+                <TouchableOpacity
                   style={styles.messageOption}
                   onPress={() => handleCopy(selectedMessage)}
                 >
                   <Ionicons name="copy-outline" size={24} color="#000" />
                   <Text style={styles.messageOptionText}>Copier</Text>
                 </TouchableOpacity>
-                
+
                 <TouchableOpacity style={styles.messageOption}>
                   <Ionicons name="arrow-redo" size={24} color="#000" />
                   <Text style={styles.messageOptionText}>Transférer</Text>
                 </TouchableOpacity>
-                
+
                 {selectedMessage?.user_id === currentUserId && (
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.messageOption}
                     onPress={() => handleUnsend(selectedMessage)}
                   >
@@ -705,7 +697,7 @@ export default function InstagramConversationScreen() {
           </View>
         </Pressable>
       </Modal>
-      
+
       {/* Voice Recorder Modal */}
       <VoiceRecorderModal
         visible={showVoiceRecorder}
@@ -718,18 +710,16 @@ export default function InstagramConversationScreen() {
               content: '',
               message_type: 'voice',
               media_url: audioUrl,
-              metadata: { duration }
+              metadata: { duration },
             };
-            
-            const { error } = await supabase
-              .from('messages')
-              .insert(messageData);
-              
+
+            const { error } = await supabase.from('messages').insert(messageData);
+
             if (error) throw error;
             flatListRef.current?.scrollToEnd();
           } catch (error) {
             console.error('Error sending voice message:', error);
-            Alert.alert('Erreur', 'Impossible d\'envoyer le message vocal');
+            Alert.alert('Erreur', "Impossible d'envoyer le message vocal");
           }
         }}
         chatId={chatId!}

@@ -47,9 +47,7 @@ export default function ParkingInfoModal({
   initialParkingInfo,
 }: ParkingInfoModalProps) {
   const insets = useSafeAreaInsets();
-  const [parkingAvailable, setParkingAvailable] = useState(
-    initialParkingInfo?.available ?? true
-  );
+  const [parkingAvailable, setParkingAvailable] = useState(initialParkingInfo?.available ?? true);
   const [selectedType, setSelectedType] = useState(initialParkingInfo?.type || '');
   const [price, setPrice] = useState(initialParkingInfo?.price || '');
   const [instructions, setInstructions] = useState(initialParkingInfo?.instructions || '');
@@ -75,7 +73,7 @@ export default function ParkingInfoModal({
     if (!parkingAvailable && !nearbyOptions.trim()) {
       return; // Don't save if no parking and no alternatives provided
     }
-    
+
     const parkingInfo = {
       available: parkingAvailable,
       type: parkingAvailable ? selectedType : undefined,
@@ -111,12 +109,10 @@ export default function ParkingInfoModal({
         <Pressable style={styles.backdrop} onPress={onClose} />
         <View style={[styles.modalContent, { paddingBottom: insets.bottom || 20 }]}>
           <View style={styles.handle} />
-          
+
           <View style={styles.header}>
             <Text style={styles.title}>Parking Information</Text>
-            <Text style={styles.subtitle}>
-              Help guests plan their transportation
-            </Text>
+            <Text style={styles.subtitle}>Help guests plan their transportation</Text>
           </View>
 
           <ScrollView showsVerticalScrollIndicator={false}>
@@ -144,7 +140,9 @@ export default function ParkingInfoModal({
 
               {parkingAvailable ? (
                 <>
-                  <Text style={styles.sectionTitle}>Parking Type <Text style={{ color: '#FF3B30' }}>*</Text></Text>
+                  <Text style={styles.sectionTitle}>
+                    Parking Type <Text style={{ color: '#FF3B30' }}>*</Text>
+                  </Text>
                   <View style={styles.typeGrid}>
                     {PARKING_TYPES.map((type) => (
                       <Pressable
@@ -159,10 +157,12 @@ export default function ParkingInfoModal({
                         }}
                       >
                         <Text style={styles.typeIcon}>{type.icon}</Text>
-                        <Text style={[
-                          styles.typeLabel,
-                          selectedType === type.id && styles.typeLabelSelected,
-                        ]}>
+                        <Text
+                          style={[
+                            styles.typeLabel,
+                            selectedType === type.id && styles.typeLabelSelected,
+                          ]}
+                        >
                           {type.label}
                         </Text>
                       </Pressable>
@@ -183,7 +183,10 @@ export default function ParkingInfoModal({
                   )}
 
                   <View style={styles.inputSection}>
-                    <Text style={styles.inputLabel}>Parking Instructions <Text style={{ color: '#8E8E93', fontSize: 12 }}>(optional)</Text></Text>
+                    <Text style={styles.inputLabel}>
+                      Parking Instructions{' '}
+                      <Text style={{ color: '#8E8E93', fontSize: 12 }}>(optional)</Text>
+                    </Text>
                     <TextInput
                       style={[styles.textInput, styles.multilineInput]}
                       placeholder="e.g., Enter through the main gate, parking is on level B2"
@@ -197,7 +200,9 @@ export default function ParkingInfoModal({
                 </>
               ) : (
                 <View style={styles.inputSection}>
-                  <Text style={styles.inputLabel}>Alternative Parking Options <Text style={{ color: '#FF3B30' }}>*</Text></Text>
+                  <Text style={styles.inputLabel}>
+                    Alternative Parking Options <Text style={{ color: '#FF3B30' }}>*</Text>
+                  </Text>
                   <TextInput
                     style={[styles.textInput, styles.multilineInput]}
                     placeholder="e.g., Public parking garage 2 blocks away, street parking available on Main St"
@@ -225,11 +230,9 @@ export default function ParkingInfoModal({
                     <Ionicons name="car" size={20} color="#007AFF" />
                     <View style={styles.previewContent}>
                       <Text style={styles.previewMainText}>
-                        {PARKING_TYPES.find(t => t.id === selectedType)?.label}
+                        {PARKING_TYPES.find((t) => t.id === selectedType)?.label}
                       </Text>
-                      {price && (
-                        <Text style={styles.previewSubText}>{price}</Text>
-                      )}
+                      {price && <Text style={styles.previewSubText}>{price}</Text>}
                       {instructions && (
                         <Text style={styles.previewDescription}>{instructions}</Text>
                       )}
@@ -244,18 +247,28 @@ export default function ParkingInfoModal({
             <Pressable style={styles.cancelButton} onPress={handleCancel}>
               <Text style={styles.cancelButtonText}>Cancel</Text>
             </Pressable>
-            <Pressable 
+            <Pressable
               style={[
                 styles.saveButton,
-                ((parkingAvailable && !selectedType) || (!parkingAvailable && !nearbyOptions.trim())) && styles.saveButtonDisabled
-              ]} 
+                ((parkingAvailable && !selectedType) ||
+                  (!parkingAvailable && !nearbyOptions.trim())) &&
+                  styles.saveButtonDisabled,
+              ]}
               onPress={handleSave}
-              disabled={(parkingAvailable && !selectedType) || (!parkingAvailable && !nearbyOptions.trim())}
+              disabled={
+                (parkingAvailable && !selectedType) || (!parkingAvailable && !nearbyOptions.trim())
+              }
             >
-              <Text style={[
-                styles.saveButtonText,
-                ((parkingAvailable && !selectedType) || (!parkingAvailable && !nearbyOptions.trim())) && styles.saveButtonTextDisabled
-              ]}>Save</Text>
+              <Text
+                style={[
+                  styles.saveButtonText,
+                  ((parkingAvailable && !selectedType) ||
+                    (!parkingAvailable && !nearbyOptions.trim())) &&
+                    styles.saveButtonTextDisabled,
+                ]}
+              >
+                Save
+              </Text>
             </Pressable>
           </View>
         </View>

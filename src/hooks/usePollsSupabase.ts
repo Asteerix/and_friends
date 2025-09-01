@@ -1,6 +1,5 @@
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { useState, useEffect } from 'react';
-
 import { supabase } from '@/shared/lib/supabase/client';
 
 export interface PollOption {

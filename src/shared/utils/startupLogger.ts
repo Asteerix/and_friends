@@ -23,7 +23,7 @@ class StartupLogger {
       osVersion: Device.osVersion,
       modelName: Device.modelName,
       brand: Device.brand,
-      manufacturer: Device.manufacturer
+      manufacturer: Device.manufacturer,
     });
 
     // Check if app crashed last time
@@ -43,14 +43,14 @@ class StartupLogger {
       timestamp: new Date().toISOString(),
       message,
       level,
-      context
+      context,
     };
 
     this.logs.push(log);
-    
+
     const elapsed = Date.now() - this.startTime;
     const prefix = `[Startup +${elapsed}ms] [${level.toUpperCase()}]`;
-    
+
     if (level === 'error') {
       console.error(prefix, message, context);
     } else if (level === 'warning') {
@@ -62,12 +62,15 @@ class StartupLogger {
 
   async recordCrash(error: Error) {
     try {
-      await AsyncStorage.setItem('lastAppCrash', JSON.stringify({
-        timestamp: new Date().toISOString(),
-        error: error.message,
-        stack: error.stack,
-        logs: this.logs
-      }));
+      await AsyncStorage.setItem(
+        'lastAppCrash',
+        JSON.stringify({
+          timestamp: new Date().toISOString(),
+          error: error.message,
+          stack: error.stack,
+          logs: this.logs,
+        })
+      );
     } catch (e) {
       console.error('Failed to record crash', e);
     }

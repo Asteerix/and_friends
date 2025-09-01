@@ -2,7 +2,6 @@ import React from 'react';
 import { Alert, Share } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-
 import OptionsMenu, { OptionItem } from '@/shared/ui/OptionsMenu';
 import { useUserBlocks } from '@/hooks/useUserBlocks';
 import { useSession } from '@/shared/providers/SessionContext';

@@ -16,11 +16,6 @@ import {
   Switch,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-
-import { useProfile } from '@/hooks/useProfile';
-import BackButton from '@/assets/svg/back-button.svg';
-import ChatButton from '@/assets/svg/chat-button.svg';
-import NotificationButton from '@/assets/svg/notification-button.svg';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEventCover } from '../context/EventCoverContext';
 import { CreateEventData } from '../services/eventServiceComplete';
@@ -48,13 +43,17 @@ import EventCategoryModal from '../components/EventCategoryModal';
 import BottomModal from '../components/BottomModal';
 
 // Default event cover image
-const DEFAULT_EVENT_COVER = require('../../../assets/default_avatar.png');
 
 // Import fonts and backgrounds data
 import {
   FONTS as IMPORTED_FONTS,
   BACKGROUNDS as IMPORTED_BACKGROUNDS,
 } from '../data/eventTemplates';
+import NotificationButton from '@/assets/svg/notification-button.svg';
+import ChatButton from '@/assets/svg/chat-button.svg';
+import { useProfile } from '@/hooks/useProfile';
+import BackButton from '@/assets/svg/back-button.svg';
+const DEFAULT_EVENT_COVER = require('@/assets/default_avatar.png');
 
 // Map fonts with their styles
 const FONTS = IMPORTED_FONTS.map((font) => ({
@@ -88,20 +87,20 @@ export default function CreateEventScreen() {
   const searchParams = useLocalSearchParams();
   const { profile } = useProfile();
   const { coverData, loadCoverData, resetCoverData, updateCoverData } = useEventCover();
-  const { 
-    createEvent: createEventInProvider, 
-    updateEvent: updateEventInProvider, 
+  const {
+    createEvent: createEventInProvider,
+    updateEvent: updateEventInProvider,
     updateEventExtras,
     subscribeToEventUpdates,
     loadEvent,
-    currentEvent
+    currentEvent,
   } = useEvent();
-  
+
   // Check if we're in edit mode
   const isEditMode = searchParams.mode === 'edit';
   const eventId = searchParams.id as string | undefined;
   const [loadingEvent, setLoadingEvent] = useState(false);
-  
+
   // Debounce refs
   const titleDebounceRef = useRef<NodeJS.Timeout>();
   const subtitleDebounceRef = useRef<NodeJS.Timeout>();
@@ -113,7 +112,7 @@ export default function CreateEventScreen() {
   const [isEditingSubtitle, setIsEditingSubtitle] = useState(false);
   const [tempTitle, setTempTitle] = useState('');
   const [tempSubtitle, setTempSubtitle] = useState('');
-  
+
   // Helper function to safely update event in edit mode
   const safeUpdateEvent = async (updates: Partial<CreateEventData>) => {
     if (isEditMode && eventId && updateDebounceRef.current === undefined) {
@@ -183,9 +182,9 @@ export default function CreateEventScreen() {
   const [rsvpReminderEnabled, setRsvpReminderEnabled] = useState(false);
   const [rsvpReminderTiming, setRsvpReminderTiming] = useState('24h');
   const [questionnaire, setQuestionnaire] = useState<
-    Array<{ 
-      id: string; 
-      text: string; 
+    Array<{
+      id: string;
+      text: string;
       type: 'short' | 'multiple' | 'host-answer';
       options?: string[];
       hostAnswer?: string;
@@ -194,10 +193,16 @@ export default function CreateEventScreen() {
   >([]);
   const [questionnaireSettings, setQuestionnaireSettings] = useState({
     allowSkipAll: true,
-    showResponsesLive: true
+    showResponsesLive: true,
   });
   const [itemsToBring, setItemsToBring] = useState<
-    Array<{ id: string; name: string; quantity: number; assignedTo?: string; type?: 'required' | 'suggested' | 'open' }>
+    Array<{
+      id: string;
+      name: string;
+      quantity: number;
+      assignedTo?: string;
+      type?: 'required' | 'suggested' | 'open';
+    }>
   >([]);
   const [itemsSettings, setItemsSettings] = useState({
     allowGuestSuggestions: true,
@@ -237,16 +242,16 @@ export default function CreateEventScreen() {
       loadCoverData();
     }
   }, [isEditMode, eventId]);
-  
+
   // Debug category changes
   useEffect(() => {
     console.log('🏷️ [CreateEventScreen] eventCategory state changed to:', eventCategory);
   }, [eventCategory]);
-  
+
   // Load existing event data for editing
   const loadExistingEvent = async () => {
     if (!eventId) return;
-    
+
     setLoadingEvent(true);
     try {
       // Use provider to load event
@@ -261,248 +266,300 @@ export default function CreateEventScreen() {
       setLoadingEvent(false);
     }
   };
-  
+
   // Effect to populate form when event is loaded
   useEffect(() => {
     if (currentEvent && isEditMode) {
       const event = currentEvent;
-        console.log('📥 [CreateEventScreen] Événement chargé pour édition:', {
-          title: event.title,
-          max_attendees: event.max_attendees,
-          category: event.category,
-          event_category: event.event_category
-        });
-        
-        // Update cover data
-        if (event.cover_data) {
-          updateCoverData(event.cover_data);
-        }
-        
-        // Update all form fields
-        setEventDate(event.start_time ? new Date(event.start_time) : getDefaultEventDate());
-        setEventTime(event.start_time ? new Date(event.start_time) : getDefaultEventDate());
-        setEventEndDate(event.end_time ? new Date(event.end_time) : new Date(getDefaultEventDate().getTime() + 3 * 60 * 60 * 1000));
-        setEventEndTime(event.end_time ? new Date(event.end_time) : new Date(getDefaultEventDate().getTime() + 3 * 60 * 60 * 1000));
-        setLocation(event.venue_name || event.address || '');
-        setLocationDetails({
-          name: event.venue_name || '',
-          address: event.address || '',
-          city: event.city || '',
-          postalCode: event.postal_code,
-          country: event.country || '',
-          coordinates: event.coordinates
-        });
-        setDescription(event.description || '');
-        setIsPrivate(event.is_private ?? true);
-        // Charger les co-hosts depuis extra_data ou event_cohosts
-        if (event.has_cohosts_enabled) {
-          const loadedCoHosts = event.extra_data?.co_organizers || event.event_cohosts || [];
-          setCoHosts(loadedCoHosts.map((ch: any) => ({
+      console.log('📥 [CreateEventScreen] Événement chargé pour édition:', {
+        title: event.title,
+        max_attendees: event.max_attendees,
+        category: event.category,
+        event_category: event.event_category,
+      });
+
+      // Update cover data
+      if (event.cover_data) {
+        updateCoverData(event.cover_data);
+      }
+
+      // Update all form fields
+      setEventDate(event.start_time ? new Date(event.start_time) : getDefaultEventDate());
+      setEventTime(event.start_time ? new Date(event.start_time) : getDefaultEventDate());
+      setEventEndDate(
+        event.end_time
+          ? new Date(event.end_time)
+          : new Date(getDefaultEventDate().getTime() + 3 * 60 * 60 * 1000)
+      );
+      setEventEndTime(
+        event.end_time
+          ? new Date(event.end_time)
+          : new Date(getDefaultEventDate().getTime() + 3 * 60 * 60 * 1000)
+      );
+      setLocation(event.venue_name || event.address || '');
+      setLocationDetails({
+        name: event.venue_name || '',
+        address: event.address || '',
+        city: event.city || '',
+        postalCode: event.postal_code,
+        country: event.country || '',
+        coordinates: event.coordinates,
+      });
+      setDescription(event.description || '');
+      setIsPrivate(event.is_private ?? true);
+      // Charger les co-hosts depuis extra_data ou event_cohosts
+      if (event.has_cohosts_enabled) {
+        const loadedCoHosts = event.extra_data?.co_organizers || event.event_cohosts || [];
+        setCoHosts(
+          loadedCoHosts.map((ch: any) => ({
             id: ch.user_id || ch.id,
             name: ch.full_name || ch.name || 'Unknown',
-            avatar: ch.avatar_url || ch.avatar || ''
-          })));
-          console.log('👥 [CreateEventScreen] Co-hosts restaurés (activé):', loadedCoHosts.length);
-        } else {
-          setCoHosts([]);
-        }
-        
-        // Charger les coûts depuis event_costs
-        if (event.has_costs_enabled) {
-          setCosts(event.event_costs || []);
-          console.log('💰 [CreateEventScreen] Coûts restaurés (activé):', event.event_costs?.length || 0);
-        } else {
-          setCosts([]);
-        }
-        
-        // Charger les photos depuis event_photos
-        if (event.has_photos_enabled) {
-          // S'assurer de ne charger que les URLs uniques
-          const photosFromDb = event.event_photos?.map((p: any) => {
+            avatar: ch.avatar_url || ch.avatar || '',
+          }))
+        );
+        console.log('👥 [CreateEventScreen] Co-hosts restaurés (activé):', loadedCoHosts.length);
+      } else {
+        setCoHosts([]);
+      }
+
+      // Charger les coûts depuis event_costs
+      if (event.has_costs_enabled) {
+        setCosts(event.event_costs || []);
+        console.log(
+          '💰 [CreateEventScreen] Coûts restaurés (activé):',
+          event.event_costs?.length || 0
+        );
+      } else {
+        setCosts([]);
+      }
+
+      // Charger les photos depuis event_photos
+      if (event.has_photos_enabled) {
+        // S'assurer de ne charger que les URLs uniques
+        const photosFromDb =
+          event.event_photos?.map((p: any) => {
             if (typeof p === 'string') return p;
             return p.photo_url || p.url || p;
           }) || [];
-          
-          // Éliminer les doublons
-          const uniquePhotos = Array.from(new Set(photosFromDb)) as string[];
-          setEventPhotos(uniquePhotos);
-          console.log('📸 [CreateEventScreen] Photos restaurées (activé):', uniquePhotos.length);
-          console.log('📸 [CreateEventScreen] Photos data:', event.event_photos);
-        } else {
-          setEventPhotos([]);
-        }
-        
-        setRsvpDeadline(event.rsvp_deadline ? new Date(event.rsvp_deadline) : null);
-        setRsvpReminderEnabled(event.rsvp_reminder_enabled || false);
-        setRsvpReminderTiming(event.rsvp_reminder_timing || '24h');
-        
-        // Charger le questionnaire depuis event_questionnaire
-        if (event.has_questionnaire_enabled) {
-          const loadedQuestionnaire = event.event_questionnaire?.map((q: any) => ({
+
+        // Éliminer les doublons
+        const uniquePhotos = Array.from(new Set(photosFromDb)) as string[];
+        setEventPhotos(uniquePhotos);
+        console.log('📸 [CreateEventScreen] Photos restaurées (activé):', uniquePhotos.length);
+        console.log('📸 [CreateEventScreen] Photos data:', event.event_photos);
+      } else {
+        setEventPhotos([]);
+      }
+
+      setRsvpDeadline(event.rsvp_deadline ? new Date(event.rsvp_deadline) : null);
+      setRsvpReminderEnabled(event.rsvp_reminder_enabled || false);
+      setRsvpReminderTiming(event.rsvp_reminder_timing || '24h');
+
+      // Charger le questionnaire depuis event_questionnaire
+      if (event.has_questionnaire_enabled) {
+        const loadedQuestionnaire =
+          event.event_questionnaire?.map((q: any) => ({
             id: q.id,
             text: q.question || q.question_text,
             type: q.type || q.question_type || 'short',
-            options: q.options || q.question_options ? JSON.parse(q.options || q.question_options) : undefined,
+            options:
+              q.options || q.question_options
+                ? JSON.parse(q.options || q.question_options)
+                : undefined,
             hostAnswer: q.host_answer || undefined,
-            required: q.is_required || false
+            required: q.is_required || false,
           })) || [];
-          setQuestionnaire(loadedQuestionnaire);
-          
-          // Charger les settings du questionnaire
-          const settings = event.extra_data?.questionnaireSettings || {
-            allowSkipAll: true,
-            showResponsesLive: true
-          };
-          setQuestionnaireSettings(settings);
-          
-          console.log('❓ [CreateEventScreen] Questions restaurées (activé):', loadedQuestionnaire.length);
-        } else {
-          setQuestionnaire([]);
+        setQuestionnaire(loadedQuestionnaire);
+
+        // Charger les settings du questionnaire
+        const settings = event.extra_data?.questionnaireSettings || {
+          allowSkipAll: true,
+          showResponsesLive: true,
+        };
+        setQuestionnaireSettings(settings);
+
+        console.log(
+          '❓ [CreateEventScreen] Questions restaurées (activé):',
+          loadedQuestionnaire.length
+        );
+      } else {
+        setQuestionnaire([]);
+      }
+
+      // Charger les items depuis extra_data en priorité (avec types) ou event_items
+      if (event.has_items_enabled) {
+        let loadedItems = [];
+
+        // Priorité à extra_data car il contient les types
+        if (event.extra_data?.itemsToBring && event.extra_data.itemsToBring.length > 0) {
+          loadedItems = event.extra_data.itemsToBring;
+          console.log('🎁 [CreateEventScreen] Items from extra_data.itemsToBring:', loadedItems);
+        } else if (event.extra_data?.items_to_bring && event.extra_data.items_to_bring.length > 0) {
+          loadedItems = event.extra_data.items_to_bring;
+          console.log('🎁 [CreateEventScreen] Items from extra_data.items_to_bring:', loadedItems);
+        } else if (event.event_items && event.event_items.length > 0) {
+          // Fallback sur event_items sans types
+          loadedItems = event.event_items.map((item: any) => ({
+            id: item.id,
+            name: item.name || item.item_name,
+            quantity: item.quantity || item.quantity_needed || 1,
+            assignedTo: item.assigned_to || null,
+            type: 'suggested', // Défaut car pas de type dans la DB
+          }));
+          console.log('🎁 [CreateEventScreen] Items from event_items (no types):', loadedItems);
         }
-        
-        // Charger les items depuis extra_data en priorité (avec types) ou event_items
-        if (event.has_items_enabled) {
-          let loadedItems = [];
-          
-          // Priorité à extra_data car il contient les types
-          if (event.extra_data?.itemsToBring && event.extra_data.itemsToBring.length > 0) {
-            loadedItems = event.extra_data.itemsToBring;
-            console.log('🎁 [CreateEventScreen] Items from extra_data.itemsToBring:', loadedItems);
-          } else if (event.extra_data?.items_to_bring && event.extra_data.items_to_bring.length > 0) {
-            loadedItems = event.extra_data.items_to_bring;
-            console.log('🎁 [CreateEventScreen] Items from extra_data.items_to_bring:', loadedItems);
-          } else if (event.event_items && event.event_items.length > 0) {
-            // Fallback sur event_items sans types
-            loadedItems = event.event_items.map((item: any) => ({
-              id: item.id,
-              name: item.name || item.item_name,
-              quantity: item.quantity || item.quantity_needed || 1,
-              assignedTo: item.assigned_to || null,
-              type: 'suggested' // Défaut car pas de type dans la DB
-            }));
-            console.log('🎁 [CreateEventScreen] Items from event_items (no types):', loadedItems);
-          }
-          
-          setItemsToBring(loadedItems);
-          console.log('🎁 [CreateEventScreen] Items restaurés (activé):', loadedItems.length);
-          
-          // Charger aussi les settings
-          if (event.extra_data?.itemsSettings) {
-            setItemsSettings(event.extra_data.itemsSettings);
-            console.log('⚙️ [CreateEventScreen] ItemsSettings restaurés:', event.extra_data.itemsSettings);
-          }
-        } else {
-          setItemsToBring([]);
+
+        setItemsToBring(loadedItems);
+        console.log('🎁 [CreateEventScreen] Items restaurés (activé):', loadedItems.length);
+
+        // Charger aussi les settings
+        if (event.extra_data?.itemsSettings) {
+          setItemsSettings(event.extra_data.itemsSettings);
+          console.log(
+            '⚙️ [CreateEventScreen] ItemsSettings restaurés:',
+            event.extra_data.itemsSettings
+          );
         }
-        
-        // Charger la playlist depuis event_playlists
-        if (event.has_playlist_enabled) {
-          const loadedPlaylist = event.event_playlists?.map((song: any) => ({
+      } else {
+        setItemsToBring([]);
+      }
+
+      // Charger la playlist depuis event_playlists
+      if (event.has_playlist_enabled) {
+        const loadedPlaylist =
+          event.event_playlists?.map((song: any) => ({
             id: song.id,
             title: song.song_title,
             artist: song.artist,
-            spotifyUrl: song.spotify_url || song.spotify_link
+            spotifyUrl: song.spotify_url || song.spotify_link,
           })) || [];
-          setPlaylist(loadedPlaylist);
-          console.log('🎵 [CreateEventScreen] Playlist restaurée (activé):', loadedPlaylist.length);
-          setPlaylistSettings({
-            spotifyLink: event.spotify_link,
-            acceptSuggestions: true
-          });
-        } else {
-          setPlaylist([]);
-          setPlaylistSettings({
-            spotifyLink: undefined,
-            acceptSuggestions: true
-          });
-        }
-        // Charger depuis extra_data en priorité, puis depuis les colonnes
-        // IMPORTANT: Utiliser les flags has_*_enabled pour savoir si un extra a été activé
-        
-        // Dress Code
-        if (event.has_dress_code_enabled) {
-          setDressCode(event.extra_data?.dress_code || event.dress_code || '');
-          console.log('👗 [CreateEventScreen] Dress Code restauré (activé):', event.extra_data?.dress_code || event.dress_code);
-        } else {
-          setDressCode(null);
-        }
-        
-        // Age Restriction
-        if (event.has_age_restriction_enabled) {
-          setAgeRestriction(event.extra_data?.age_restriction || event.age_restriction || '');
-          console.log('🔞 [CreateEventScreen] Age Restriction restauré (activé):', event.extra_data?.age_restriction || event.age_restriction);
-        } else {
-          setAgeRestriction('');
-        }
-        
-        // Gérer le cas où capacity_limit est 0 (illimité) ou un nombre
-        // IMPORTANT: Utiliser has_capacity_enabled pour savoir si la capacité a été activée
-        if (event.has_capacity_enabled) {
-          // Chercher dans extra_data en priorité, puis dans max_attendees pour compatibilité
-          const capacityValue = event.extra_data?.capacity_limit ?? event.max_attendees;
-          setCapacityLimit(capacityValue !== null && capacityValue !== undefined ? capacityValue.toString() : '');
-          console.log('👥 [CreateEventScreen] Capacité restaurée (activée):', capacityValue);
-        } else {
-          setCapacityLimit('');
-          console.log('👥 [CreateEventScreen] Capacité non activée');
-        }
-        
-        // Parking Info
-        if (event.has_parking_info_enabled) {
-          const restoredParkingInfo = event.extra_data?.parkingInfo || event.extra_data?.parking_info || event.parking_info || '';
-          console.log('🚗 [CreateEventScreen] Parking Info sources:', {
-            extraDataParkingInfo: event.extra_data?.parkingInfo,
-            extraDataParking_info: event.extra_data?.parking_info,
-            eventParking_info: event.parking_info,
-            final: restoredParkingInfo
-          });
-          setParkingInfo(restoredParkingInfo);
-          console.log('🚗 [CreateEventScreen] Parking Info restauré (activé):', restoredParkingInfo);
-        } else {
-          setParkingInfo('');
-        }
-        
-        // Category - toujours charger
-        const loadedCategory = event.extra_data?.event_category || event.event_category || event.category || '';
-        console.log('🏷️ [CreateEventScreen] Chargement de la catégorie:', {
-          fromExtraData: event.extra_data?.event_category,
-          fromEventCategory: event.event_category,
-          fromCategory: event.category,
-          final: loadedCategory
+        setPlaylist(loadedPlaylist);
+        console.log('🎵 [CreateEventScreen] Playlist restaurée (activé):', loadedPlaylist.length);
+        setPlaylistSettings({
+          spotifyLink: event.spotify_link,
+          acceptSuggestions: true,
         });
-        setEventCategory(loadedCategory);
-        
-        // Accessibility Info
-        if (event.has_accessibility_enabled) {
-          setAccessibilityInfo(event.extra_data?.accessibility_info || event.accessibility_info || '');
-          console.log('♿ [CreateEventScreen] Accessibility Info restauré (activé):', event.extra_data?.accessibility_info || event.accessibility_info);
-        } else {
-          setAccessibilityInfo('');
-        }
-        
-        // Event Website
-        if (event.has_website_enabled) {
-          setEventWebsite(event.extra_data?.event_website || event.event_website || '');
-          console.log('🌐 [CreateEventScreen] Event Website restauré (activé):', event.extra_data?.event_website || event.event_website);
-        } else {
-          setEventWebsite('');
-        }
-        
-        // Contact Info
-        if (event.has_contact_enabled) {
-          setContactInfo(event.extra_data?.contact_info || event.contact_info || '');
-          console.log('📞 [CreateEventScreen] Contact Info restauré (activé):', event.extra_data?.contact_info || event.contact_info);
-        } else {
-          setContactInfo('');
-        }
-        
-        // Event Theme
-        if (event.has_theme_enabled) {
-          setEventTheme(event.extra_data?.event_theme || event.event_theme || '');
-          console.log('🎨 [CreateEventScreen] Event Theme restauré (activé):', event.extra_data?.event_theme || event.event_theme);
-        } else {
-          setEventTheme(null);
-        }
+      } else {
+        setPlaylist([]);
+        setPlaylistSettings({
+          spotifyLink: undefined,
+          acceptSuggestions: true,
+        });
+      }
+      // Charger depuis extra_data en priorité, puis depuis les colonnes
+      // IMPORTANT: Utiliser les flags has_*_enabled pour savoir si un extra a été activé
+
+      // Dress Code
+      if (event.has_dress_code_enabled) {
+        setDressCode(event.extra_data?.dress_code || event.dress_code || '');
+        console.log(
+          '👗 [CreateEventScreen] Dress Code restauré (activé):',
+          event.extra_data?.dress_code || event.dress_code
+        );
+      } else {
+        setDressCode(null);
+      }
+
+      // Age Restriction
+      if (event.has_age_restriction_enabled) {
+        setAgeRestriction(event.extra_data?.age_restriction || event.age_restriction || '');
+        console.log(
+          '🔞 [CreateEventScreen] Age Restriction restauré (activé):',
+          event.extra_data?.age_restriction || event.age_restriction
+        );
+      } else {
+        setAgeRestriction('');
+      }
+
+      // Gérer le cas où capacity_limit est 0 (illimité) ou un nombre
+      // IMPORTANT: Utiliser has_capacity_enabled pour savoir si la capacité a été activée
+      if (event.has_capacity_enabled) {
+        // Chercher dans extra_data en priorité, puis dans max_attendees pour compatibilité
+        const capacityValue = event.extra_data?.capacity_limit ?? event.max_attendees;
+        setCapacityLimit(
+          capacityValue !== null && capacityValue !== undefined ? capacityValue.toString() : ''
+        );
+        console.log('👥 [CreateEventScreen] Capacité restaurée (activée):', capacityValue);
+      } else {
+        setCapacityLimit('');
+        console.log('👥 [CreateEventScreen] Capacité non activée');
+      }
+
+      // Parking Info
+      if (event.has_parking_info_enabled) {
+        const restoredParkingInfo =
+          event.extra_data?.parkingInfo ||
+          event.extra_data?.parking_info ||
+          event.parking_info ||
+          '';
+        console.log('🚗 [CreateEventScreen] Parking Info sources:', {
+          extraDataParkingInfo: event.extra_data?.parkingInfo,
+          extraDataParking_info: event.extra_data?.parking_info,
+          eventParking_info: event.parking_info,
+          final: restoredParkingInfo,
+        });
+        setParkingInfo(restoredParkingInfo);
+        console.log('🚗 [CreateEventScreen] Parking Info restauré (activé):', restoredParkingInfo);
+      } else {
+        setParkingInfo('');
+      }
+
+      // Category - toujours charger
+      const loadedCategory =
+        event.extra_data?.event_category || event.event_category || event.category || '';
+      console.log('🏷️ [CreateEventScreen] Chargement de la catégorie:', {
+        fromExtraData: event.extra_data?.event_category,
+        fromEventCategory: event.event_category,
+        fromCategory: event.category,
+        final: loadedCategory,
+      });
+      setEventCategory(loadedCategory);
+
+      // Accessibility Info
+      if (event.has_accessibility_enabled) {
+        setAccessibilityInfo(
+          event.extra_data?.accessibility_info || event.accessibility_info || ''
+        );
+        console.log(
+          '♿ [CreateEventScreen] Accessibility Info restauré (activé):',
+          event.extra_data?.accessibility_info || event.accessibility_info
+        );
+      } else {
+        setAccessibilityInfo('');
+      }
+
+      // Event Website
+      if (event.has_website_enabled) {
+        setEventWebsite(event.extra_data?.event_website || event.event_website || '');
+        console.log(
+          '🌐 [CreateEventScreen] Event Website restauré (activé):',
+          event.extra_data?.event_website || event.event_website
+        );
+      } else {
+        setEventWebsite('');
+      }
+
+      // Contact Info
+      if (event.has_contact_enabled) {
+        setContactInfo(event.extra_data?.contact_info || event.contact_info || '');
+        console.log(
+          '📞 [CreateEventScreen] Contact Info restauré (activé):',
+          event.extra_data?.contact_info || event.contact_info
+        );
+      } else {
+        setContactInfo('');
+      }
+
+      // Event Theme
+      if (event.has_theme_enabled) {
+        setEventTheme(event.extra_data?.event_theme || event.event_theme || '');
+        console.log(
+          '🎨 [CreateEventScreen] Event Theme restauré (activé):',
+          event.extra_data?.event_theme || event.event_theme
+        );
+      } else {
+        setEventTheme(null);
+      }
     }
   }, [currentEvent, isEditMode]);
 
@@ -546,12 +603,12 @@ export default function CreateEventScreen() {
       location: !!location?.trim(),
       eventDate: !!eventDate,
       description: !!description?.trim(),
-      category: !!eventCategory
+      category: !!eventCategory,
     };
-    
+
     console.log('🔍 [CreateEventScreen] Validation du formulaire:', validations);
     console.log('🔍 [CreateEventScreen] Mode édition:', isEditMode);
-    
+
     return !!(
       coverData.eventTitle?.trim() && // Title is required
       coverData.eventSubtitle?.trim() && // Subtitle is required
@@ -645,19 +702,19 @@ export default function CreateEventScreen() {
         'Are you sure you want to cancel? All changes will be lost.',
         [
           { text: 'Keep Editing', style: 'cancel' },
-          { 
-            text: 'Cancel', 
+          {
+            text: 'Cancel',
             style: 'destructive',
             onPress: () => {
               resetCoverData();
               router.back();
-            }
-          }
+            },
+          },
         ]
       );
     }
   };
-  
+
   const handleSaveAsDraft = async () => {
     console.log('💾 [CreateEventScreen] Sauvegarde en brouillon...');
     Alert.alert('Save as Draft', 'Cette fonctionnalité sera bientôt disponible');
@@ -666,15 +723,15 @@ export default function CreateEventScreen() {
 
   const performUpdate = async () => {
     if (!eventId) {
-      console.error('❌ [CreateEventScreen] Pas d\'eventId pour la mise à jour!');
-      Alert.alert('Erreur', 'ID de l\'événement manquant');
+      console.error("❌ [CreateEventScreen] Pas d'eventId pour la mise à jour!");
+      Alert.alert('Erreur', "ID de l'événement manquant");
       return;
     }
-    
-    console.log('🔄 [CreateEventScreen] Début de la mise à jour de l\'événement');
+
+    console.log("🔄 [CreateEventScreen] Début de la mise à jour de l'événement");
     console.log('🏷️ [CreateEventScreen] Catégorie sélectionnée:', eventCategory);
     console.log('🆔 [CreateEventScreen] Event ID:', eventId);
-    
+
     setIsLoading(true);
     try {
       // Préparer les données de mise à jour
@@ -711,10 +768,10 @@ export default function CreateEventScreen() {
         eventWebsite: eventWebsite,
         contactInfo: contactInfo,
       };
-      
+
       console.log('🚗 [CreateEventScreen] Parking info being sent to update:', parkingInfo);
       console.log('🚗 [CreateEventScreen] Type of parking info:', typeof parkingInfo);
-      
+
       console.log('📝 [CreateEventScreen] Données à mettre à jour:', {
         title: updateData.title,
         category: updateData.eventCategory,
@@ -726,33 +783,36 @@ export default function CreateEventScreen() {
           coHosts: coHosts.length,
           costs: costs.length,
           photos: eventPhotos.length,
-        }
+        },
       });
-      
+
       // Utiliser le provider pour mettre à jour l'événement
       console.log('🚀 [CreateEventScreen] Appel de updateEventInProvider...');
       const result = await updateEventInProvider(eventId, updateData);
       console.log('📥 [CreateEventScreen] Résultat de updateEventInProvider:', result);
-      
+
       if (result.success) {
         console.log('✅ [CreateEventScreen] Mise à jour réussie via provider');
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        
+
         // Recharger l'événement pour s'assurer que toutes les données sont à jour
         await loadEvent(eventId);
-        
+
         Alert.alert('Succès! 🎉', 'Votre événement a été mis à jour avec succès!', [
           {
-            text: 'Voir l\'événement',
-            onPress: () => router.push(`/screens/event-details?id=${eventId}`)
-          }
+            text: "Voir l'événement",
+            onPress: () => router.push(`/screens/event-details?id=${eventId}`),
+          },
         ]);
       } else {
         throw new Error(result.error || 'Failed to update event');
       }
     } catch (error) {
       console.error('❌ [CreateEventScreen] ERREUR LORS DE LA MISE À JOUR:', error);
-      console.error('❌ [CreateEventScreen] Stack trace:', error instanceof Error ? error.stack : 'No stack trace');
+      console.error(
+        '❌ [CreateEventScreen] Stack trace:',
+        error instanceof Error ? error.stack : 'No stack trace'
+      );
       Alert.alert('Erreur', error instanceof Error ? error.message : 'Failed to update event');
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
@@ -760,7 +820,7 @@ export default function CreateEventScreen() {
       console.log('🏁 [CreateEventScreen] Fin de performUpdate');
     }
   };
-  
+
   const performPublish = async () => {
     console.log('🚀 [CreateEventScreen] ========================================');
     console.log("🚀 [CreateEventScreen] DÉBUT DE LA PUBLICATION DE L'ÉVÉNEMENT");
@@ -801,7 +861,7 @@ export default function CreateEventScreen() {
       console.log('🏷️ [CreateEventScreen] Catégorie actuelle avant création:', eventCategory);
       console.log('🏷️ [CreateEventScreen] Type:', typeof eventCategory);
       console.log('🏷️ [CreateEventScreen] Longueur:', eventCategory?.length);
-      
+
       const eventData: CreateEventData = {
         title: coverData.eventTitle || 'Nouvel événement',
         subtitle: coverData.eventSubtitle,
@@ -814,11 +874,13 @@ export default function CreateEventScreen() {
         isPrivate: isPrivate,
         coverData: coverData,
         eventCategory: eventCategory,
-        host: profile ? {
-          id: profile.id,
-          name: profile.full_name || profile.username || 'Host',
-          avatar: profile.avatar_url
-        } : undefined,
+        host: profile
+          ? {
+              id: profile.id,
+              name: profile.full_name || profile.username || 'Host',
+              avatar: profile.avatar_url,
+            }
+          : undefined,
         coHosts: coHosts,
         costs: costs,
         eventPhotos: eventPhotos,
@@ -874,7 +936,7 @@ export default function CreateEventScreen() {
 
         // S'abonner aux mises à jour en temps réel
         subscribeToEventUpdates(result.event.id);
-        
+
         Alert.alert('Succès! 🎉', 'Votre événement a été créé avec succès!', [
           {
             text: "Voir l'événement",
@@ -914,7 +976,7 @@ export default function CreateEventScreen() {
     console.log('🎯 [CreateEventScreen] handlePublish appelé');
     console.log('🎯 [CreateEventScreen] isEditMode:', isEditMode);
     console.log('🎯 [CreateEventScreen] eventId:', eventId);
-    
+
     // Set validation attempt flag
     setHasAttemptedSubmit(true);
 
@@ -930,7 +992,11 @@ export default function CreateEventScreen() {
       await performUpdate();
     } else {
       // Check if user has customized the cover
-      const hasCustomCover = !!(coverData.uploadedImage || coverData.coverImage || coverData.selectedTemplate);
+      const hasCustomCover = !!(
+        coverData.uploadedImage ||
+        coverData.coverImage ||
+        coverData.selectedTemplate
+      );
       if (!hasCustomCover) {
         // Show confirmation modal for default cover
         setShowCoverConfirmModal(true);
@@ -950,7 +1016,7 @@ export default function CreateEventScreen() {
       </View>
     );
   }
-  
+
   return (
     <View style={styles.container}>
       <ScrollView style={{ flex: 1, backgroundColor: '#fff' }} showsVerticalScrollIndicator={false}>
@@ -978,9 +1044,7 @@ export default function CreateEventScreen() {
             <View style={styles.placeholderCover}>
               <Ionicons name="image-outline" size={80} color="#FFF" style={{ opacity: 0.5 }} />
               <Text style={styles.placeholderCoverText}>Default Event Cover</Text>
-              <Text style={styles.placeholderCoverSubtext}>
-                Tap "Edit Cover" to customize
-              </Text>
+              <Text style={styles.placeholderCoverSubtext}>Tap "Edit Cover" to customize</Text>
             </View>
           )}
 
@@ -1022,7 +1086,9 @@ export default function CreateEventScreen() {
             <View style={styles.rightIcons}>
               {!isEditMode && (
                 <TouchableOpacity
-                  onPress={() => router.push('/screens/event-details?id=f0328675-03b0-4efb-bb4c-ce0f319dd4e6')}
+                  onPress={() =>
+                    router.push('/screens/event-details?id=f0328675-03b0-4efb-bb4c-ce0f319dd4e6')
+                  }
                   accessibilityRole="button"
                   accessibilityLabel="Test Event"
                   style={{ paddingHorizontal: 4 }}
@@ -1121,7 +1187,8 @@ export default function CreateEventScreen() {
             <View style={styles.coverInfoContent}>
               <Text style={styles.coverInfoTitle}>Make Your Event Stand Out!</Text>
               <Text style={styles.coverInfoText}>
-                A custom cover makes your event more attractive and memorable. Tap "Edit Cover" above to add photos, templates, or stickers!
+                A custom cover makes your event more attractive and memorable. Tap "Edit Cover"
+                above to add photos, templates, or stickers!
               </Text>
             </View>
           </View>
@@ -1491,9 +1558,16 @@ export default function CreateEventScreen() {
                     color={capacityLimit !== '' ? '#FFF' : '#007AFF'}
                   />
                   <Text
-                    style={[styles.extraPillText, capacityLimit !== '' && styles.extraPillTextConfigured]}
+                    style={[
+                      styles.extraPillText,
+                      capacityLimit !== '' && styles.extraPillTextConfigured,
+                    ]}
                   >
-                    {capacityLimit !== '' ? (capacityLimit === '0' ? 'Illimité' : `Max ${capacityLimit} guests`) : 'Capacity Limit'}
+                    {capacityLimit !== ''
+                      ? capacityLimit === '0'
+                        ? 'Illimité'
+                        : `Max ${capacityLimit} guests`
+                      : 'Capacity Limit'}
                   </Text>
                   {capacityLimit !== '' ? (
                     <TouchableOpacity
@@ -1603,22 +1677,24 @@ export default function CreateEventScreen() {
                   <Text
                     style={[styles.extraPillText, parkingInfo && styles.extraPillTextConfigured]}
                   >
-                    {parkingInfo ? (() => {
-                      try {
-                        const parsed = JSON.parse(parkingInfo);
-                        if (!parsed.available) return 'No Parking';
-                        const types: {[key: string]: string} = {
-                          'free': 'Free Parking',
-                          'paid': 'Paid Parking',
-                          'street': 'Street Parking',
-                          'valet': 'Valet Service',
-                          'limited': 'Limited Parking'
-                        };
-                        return types[parsed.type] || 'Parking Info Set';
-                      } catch {
-                        return 'Parking Info Set';
-                      }
-                    })() : 'Parking Info'}
+                    {parkingInfo
+                      ? (() => {
+                          try {
+                            const parsed = JSON.parse(parkingInfo);
+                            if (!parsed.available) return 'No Parking';
+                            const types: { [key: string]: string } = {
+                              free: 'Free Parking',
+                              paid: 'Paid Parking',
+                              street: 'Street Parking',
+                              valet: 'Valet Service',
+                              limited: 'Limited Parking',
+                            };
+                            return types[parsed.type] || 'Parking Info Set';
+                          } catch {
+                            return 'Parking Info Set';
+                          }
+                        })()
+                      : 'Parking Info'}
                   </Text>
                   {parkingInfo ? (
                     <TouchableOpacity
@@ -1823,10 +1899,10 @@ export default function CreateEventScreen() {
                       onPress={(e) => {
                         e.stopPropagation();
                         setPlaylist([]);
-                        setPlaylistSettings({ 
+                        setPlaylistSettings({
                           spotifyLink: undefined,
                           appleMusicLink: undefined,
-                          acceptSuggestions: true 
+                          acceptSuggestions: true,
                         });
                         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                       }}
@@ -1879,13 +1955,11 @@ export default function CreateEventScreen() {
 
           {/* Action Buttons */}
           <View style={styles.buttonsContainer}>
-            <TouchableOpacity 
-              style={styles.draftButton} 
+            <TouchableOpacity
+              style={styles.draftButton}
               onPress={isEditMode ? handleCancel : handleSaveAsDraft}
             >
-              <Text style={styles.draftButtonText}>
-                {isEditMode ? 'Cancel' : 'Save as Draft'}
-              </Text>
+              <Text style={styles.draftButtonText}>{isEditMode ? 'Cancel' : 'Save as Draft'}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -1896,9 +1970,7 @@ export default function CreateEventScreen() {
               {isLoading ? (
                 <ActivityIndicator color="#FFF" />
               ) : (
-                <Text style={styles.publishButtonText}>
-                  {isEditMode ? 'Update' : 'Publish'}
-                </Text>
+                <Text style={styles.publishButtonText}>{isEditMode ? 'Update' : 'Publish'}</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -1969,9 +2041,9 @@ export default function CreateEventScreen() {
           // Update in provider if in edit mode
           if (isEditMode && eventId) {
             console.log('📦 [CreateEventScreen] Mise à jour via updateEventExtras...');
-            await updateEventExtras(eventId, { 
+            await updateEventExtras(eventId, {
               itemsToBring: formattedItems,
-              itemsSettings: settings 
+              itemsSettings: settings,
             });
           }
           void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -1988,10 +2060,10 @@ export default function CreateEventScreen() {
           setShowRSVPModal(false);
           // Update in provider if in edit mode
           if (isEditMode && eventId) {
-            await updateEventExtras(eventId, { 
+            await updateEventExtras(eventId, {
               rsvpDeadline: deadline,
               rsvpReminderEnabled: reminderEnabled,
-              rsvpReminderTiming: reminderTiming
+              rsvpReminderTiming: reminderTiming,
             });
           }
           void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -2011,9 +2083,9 @@ export default function CreateEventScreen() {
           setShowQuestionnaireModal(false);
           // Update in provider if in edit mode
           if (isEditMode && eventId) {
-            await updateEventExtras(eventId, { 
+            await updateEventExtras(eventId, {
               questionnaire: questions,
-              questionnaireSettings: settings 
+              questionnaireSettings: settings,
             });
           }
           if (questions.length > 0) {
@@ -2040,13 +2112,13 @@ export default function CreateEventScreen() {
           setShowPlaylistModal(false);
           // Update in provider if in edit mode
           if (isEditMode && eventId) {
-            await updateEventExtras(eventId, { 
+            await updateEventExtras(eventId, {
               playlist: formattedPlaylist,
               playlistSettings: {
                 spotifyLink: spotifyLink || null,
                 appleMusicLink: null,
-                acceptSuggestions: true
-              }
+                acceptSuggestions: true,
+              },
             });
           }
           void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -2085,8 +2157,8 @@ export default function CreateEventScreen() {
           setShowEndDateModal(true); // Automatically show end date modal
           // Update in provider if in edit mode
           if (isEditMode && eventId) {
-            updateEventInProvider(eventId, { 
-              date: startDate
+            updateEventInProvider(eventId, {
+              date: startDate,
             });
           }
           void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -2103,9 +2175,9 @@ export default function CreateEventScreen() {
           setEventEndTime(endTime);
           // Update in provider if in edit mode
           if (isEditMode && eventId) {
-            updateEventInProvider(eventId, { 
+            updateEventInProvider(eventId, {
               endDate: endDate,
-              endTime: endTime
+              endTime: endTime,
             });
           }
           void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -2129,9 +2201,9 @@ export default function CreateEventScreen() {
           setShowLocationModal(false);
           // Update in provider if in edit mode
           if (isEditMode && eventId) {
-            updateEventInProvider(eventId, { 
+            updateEventInProvider(eventId, {
               location: displayParts.join(', '),
-              locationDetails: locationData 
+              locationDetails: locationData,
             });
           }
           void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -2193,12 +2265,17 @@ export default function CreateEventScreen() {
           // Update in provider if in edit mode
           if (isEditMode && eventId) {
             const ageRestrictionValue = restriction
-              ? (restriction.type === 'all_ages' ? 'All Ages'
-                : restriction.type === 'family_friendly' ? 'Family Friendly'
-                : restriction.type === 'kids_only' ? 'Kids Only'
-                : restriction.type === 'custom' && restriction.minAge ? `${restriction.minAge}+`
-                : restriction.type.includes('+') ? restriction.type
-                : 'All Ages')
+              ? restriction.type === 'all_ages'
+                ? 'All Ages'
+                : restriction.type === 'family_friendly'
+                  ? 'Family Friendly'
+                  : restriction.type === 'kids_only'
+                    ? 'Kids Only'
+                    : restriction.type === 'custom' && restriction.minAge
+                      ? `${restriction.minAge}+`
+                      : restriction.type.includes('+')
+                        ? restriction.type
+                        : 'All Ages'
               : '';
             await updateEventExtras(eventId, { ageRestriction: ageRestrictionValue });
           }
@@ -2231,7 +2308,10 @@ export default function CreateEventScreen() {
           console.log('💾 [CreateEventScreen] Capacité reçue du modal:', capacity);
           if (capacity.maxAttendees !== undefined) {
             setCapacityLimit(capacity.maxAttendees.toString());
-            console.log('💾 [CreateEventScreen] Capacité définie à:', capacity.maxAttendees.toString());
+            console.log(
+              '💾 [CreateEventScreen] Capacité définie à:',
+              capacity.maxAttendees.toString()
+            );
           } else {
             setCapacityLimit('');
             console.log('💾 [CreateEventScreen] Capacité effacée');
@@ -2242,7 +2322,9 @@ export default function CreateEventScreen() {
           }
           void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         }}
-        initialCapacity={capacityLimit !== '' ? { maxAttendees: parseInt(capacityLimit) } : undefined}
+        initialCapacity={
+          capacityLimit !== '' ? { maxAttendees: parseInt(capacityLimit) } : undefined
+        }
       />
 
       <ParkingInfoModal
@@ -2255,7 +2337,7 @@ export default function CreateEventScreen() {
           console.log('🚗 [CreateEventScreen] JSON stringified:', parkingData);
           console.log('🚗 [CreateEventScreen] Previous parking info:', parkingInfo);
           setParkingInfo(parkingData);
-          
+
           // Update in provider if in edit mode
           if (isEditMode && eventId) {
             console.log('🚗 [CreateEventScreen] Updating parking info via updateEventExtras');
@@ -2269,14 +2351,26 @@ export default function CreateEventScreen() {
             ? (() => {
                 try {
                   // Try to parse as JSON first (new format)
-                  console.log('🚗 [CreateEventScreen] Attempting to parse parking info:', parkingInfo);
+                  console.log(
+                    '🚗 [CreateEventScreen] Attempting to parse parking info:',
+                    parkingInfo
+                  );
                   const parsed = JSON.parse(parkingInfo);
-                  console.log('🚗 [CreateEventScreen] Successfully parsed parking info for modal:', parsed);
+                  console.log(
+                    '🚗 [CreateEventScreen] Successfully parsed parking info for modal:',
+                    parsed
+                  );
                   return parsed;
                 } catch (error) {
                   // Fallback for old string format
-                  console.log('🚗 [CreateEventScreen] Failed to parse as JSON, using fallback:', error);
-                  console.log('🚗 [CreateEventScreen] Fallback parsing for old format:', parkingInfo);
+                  console.log(
+                    '🚗 [CreateEventScreen] Failed to parse as JSON, using fallback:',
+                    error
+                  );
+                  console.log(
+                    '🚗 [CreateEventScreen] Fallback parsing for old format:',
+                    parkingInfo
+                  );
                   return {
                     available: parkingInfo !== '' && !parkingInfo.includes('No parking'),
                     type: '', // No type in old format
@@ -2429,19 +2523,20 @@ export default function CreateEventScreen() {
             <View style={styles.confirmModalIcon}>
               <Ionicons name="image-outline" size={48} color="#007AFF" />
             </View>
-            
+
             <Text style={styles.confirmModalTitle}>No Custom Cover?</Text>
-            
+
             <Text style={styles.confirmModalMessage}>
-              You haven't customized your event cover yet. A personalized cover makes your event more attractive and helps guests recognize it easily.
+              You haven't customized your event cover yet. A personalized cover makes your event
+              more attractive and helps guests recognize it easily.
             </Text>
-            
+
             <Text style={styles.confirmModalSubMessage}>
               Would you like to customize your cover now?
             </Text>
-            
+
             <View style={styles.confirmModalButtons}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.confirmModalButton}
                 onPress={() => {
                   setShowCoverConfirmModal(false);
@@ -2450,15 +2545,17 @@ export default function CreateEventScreen() {
               >
                 <Text style={styles.confirmModalButtonText}>Customize Cover</Text>
               </TouchableOpacity>
-              
-              <TouchableOpacity 
+
+              <TouchableOpacity
                 style={[styles.confirmModalButton, styles.confirmModalSecondaryButton]}
                 onPress={async () => {
                   setShowCoverConfirmModal(false);
                   await performPublish();
                 }}
               >
-                <Text style={[styles.confirmModalButtonText, styles.confirmModalSecondaryButtonText]}>
+                <Text
+                  style={[styles.confirmModalButtonText, styles.confirmModalSecondaryButtonText]}
+                >
                   Publish Anyway
                 </Text>
               </TouchableOpacity>

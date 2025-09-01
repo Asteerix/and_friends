@@ -32,34 +32,34 @@ interface ResponsiveDimensions {
 export const useResponsive = (): ResponsiveDimensions => {
   const { width, height } = useWindowDimensions();
   const pixelRatio = PixelRatio.get();
-  
+
   // Scale functions
   const scaleWidth = (size: number) => (width / baseWidth) * size;
   const scaleHeight = (size: number) => (height / baseHeight) * size;
   const scaleFontSize = (size: number) => Math.round(scaleWidth(size));
-  
+
   // Device type detection
   const isSmallDevice = width < 375;
   const isMediumDevice = width >= 375 && width < 768;
   const isLargeDevice = width >= 768;
   const isTablet = width >= 768;
   const isLandscape = width > height;
-  
+
   // Breakpoints
   const breakpoints = {
     small: 375,
     medium: 768,
     large: 1024,
   };
-  
+
   // Responsive values
-  const getResponsiveValue = <T,>(values: { small?: T; medium?: T; large?: T; default: T }): T => {
+  const getResponsiveValue = <T>(values: { small?: T; medium?: T; large?: T; default: T }): T => {
     if (isSmallDevice && values.small !== undefined) return values.small;
     if (isMediumDevice && values.medium !== undefined) return values.medium;
     if (isLargeDevice && values.large !== undefined) return values.large;
     return values.default;
   };
-  
+
   // Common responsive dimensions
   const headerHeight = getResponsiveValue({
     small: height * 0.75,
@@ -67,21 +67,21 @@ export const useResponsive = (): ResponsiveDimensions => {
     large: height * 0.85,
     default: height * 0.8,
   });
-  
+
   const tabBarHeight = getResponsiveValue({
     small: 70,
     medium: 80,
     large: 90,
     default: 80,
   });
-  
+
   const avatarSize = getResponsiveValue({
     small: 80,
     medium: 100,
     large: 120,
     default: 100,
   });
-  
+
   return {
     width,
     height,
@@ -103,11 +103,9 @@ export const useResponsive = (): ResponsiveDimensions => {
 };
 
 // Export individual utility functions for use outside of the hook
-export const scaleSize = (size: number, baseSize: number, currentSize: number) => 
+export const scaleSize = (size: number, baseSize: number, currentSize: number) =>
   (currentSize / baseSize) * size;
 
-export const getAspectRatioHeight = (width: number, aspectRatio: number) => 
-  width / aspectRatio;
+export const getAspectRatioHeight = (width: number, aspectRatio: number) => width / aspectRatio;
 
-export const getAspectRatioWidth = (height: number, aspectRatio: number) => 
-  height * aspectRatio;
+export const getAspectRatioWidth = (height: number, aspectRatio: number) => height * aspectRatio;

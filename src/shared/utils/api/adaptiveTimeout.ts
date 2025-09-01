@@ -22,7 +22,7 @@ export function getAdaptiveTimeout(config: Partial<TimeoutConfig> = {}): number 
   const { base, slowMultiplier, maxTimeout } = { ...DEFAULT_CONFIG, ...config };
   const { connectionQuality } = useNetworkStore.getState();
   const isSlowConnection = connectionQuality === 'poor';
-  
+
   const timeout = isSlowConnection ? base * slowMultiplier : base;
   return Math.min(timeout, maxTimeout);
 }
@@ -43,10 +43,16 @@ export function useAdaptiveTimeout(baseTimeout: number = 10000): number {
  * @param isSlowConnection Optional: passer manuellement l'état de connexion
  * @returns Headers avec timeout
  */
-export function createTimeoutHeaders(baseTimeout: number = 15000, isSlowConnection?: boolean): Record<string, string> {
-  const timeout = isSlowConnection !== undefined 
-    ? (isSlowConnection ? baseTimeout * 3 : baseTimeout)
-    : getAdaptiveTimeout({ base: baseTimeout });
+export function createTimeoutHeaders(
+  baseTimeout: number = 15000,
+  isSlowConnection?: boolean
+): Record<string, string> {
+  const timeout =
+    isSlowConnection !== undefined
+      ? isSlowConnection
+        ? baseTimeout * 3
+        : baseTimeout
+      : getAdaptiveTimeout({ base: baseTimeout });
   return {
     'x-timeout': timeout.toString(),
     'x-connection-quality': timeout > baseTimeout ? 'slow' : 'normal',

@@ -14,7 +14,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-
 import CustomText, { AfterHoursText } from '@/shared/ui/CustomText';
 import GradientBackground from '@/shared/ui/GradientBackground';
 

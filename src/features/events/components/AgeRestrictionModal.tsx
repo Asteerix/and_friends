@@ -1,13 +1,5 @@
 import React, { useState } from 'react';
-import {
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -15,12 +7,14 @@ import * as Haptics from 'expo-haptics';
 interface AgeRestrictionModalProps {
   visible: boolean;
   onClose: () => void;
-  onSave: (ageRestriction: {
-    type: string;
-    minAge?: number;
-    requiresGuardian?: boolean;
-    customMessage?: string;
-  } | null) => void;
+  onSave: (
+    ageRestriction: {
+      type: string;
+      minAge?: number;
+      requiresGuardian?: boolean;
+      customMessage?: string;
+    } | null
+  ) => void;
   initialRestriction?: {
     type: string;
     minAge?: number;
@@ -30,58 +24,58 @@ interface AgeRestrictionModalProps {
 }
 
 const AGE_RESTRICTION_OPTIONS = [
-  { 
-    id: 'all_ages', 
-    label: 'All Ages Welcome', 
+  {
+    id: 'all_ages',
+    label: 'All Ages Welcome',
     icon: '👨‍👩‍👧‍👦',
-    description: 'This event is open to everyone'
+    description: 'This event is open to everyone',
   },
-  { 
-    id: 'family_friendly', 
-    label: 'Family Friendly', 
+  {
+    id: 'family_friendly',
+    label: 'Family Friendly',
     icon: '👶',
-    description: 'Suitable for children and families'
+    description: 'Suitable for children and families',
   },
-  { 
-    id: '13+', 
-    label: '13 and Over', 
+  {
+    id: '13+',
+    label: '13 and Over',
     icon: '🧒',
     description: 'Teens and adults only',
-    minAge: 13
+    minAge: 13,
   },
-  { 
-    id: '16+', 
-    label: '16 and Over', 
+  {
+    id: '16+',
+    label: '16 and Over',
     icon: '👦',
     description: 'Young adults and older',
-    minAge: 16
+    minAge: 16,
   },
-  { 
-    id: '18+', 
-    label: '18 and Over', 
+  {
+    id: '18+',
+    label: '18 and Over',
     icon: '🔞',
     description: 'Adults only event',
-    minAge: 18
+    minAge: 18,
   },
-  { 
-    id: '21+', 
-    label: '21 and Over', 
+  {
+    id: '21+',
+    label: '21 and Over',
     icon: '🍷',
     description: 'Legal drinking age required',
-    minAge: 21
+    minAge: 21,
   },
-  { 
-    id: 'kids_only', 
-    label: 'Kids Only', 
+  {
+    id: 'kids_only',
+    label: 'Kids Only',
     icon: '🧸',
     description: 'Designed specifically for children',
-    customMessage: 'This event is designed for children aged 5-12'
+    customMessage: 'This event is designed for children aged 5-12',
   },
-  { 
-    id: 'custom', 
-    label: 'Custom Age Range', 
+  {
+    id: 'custom',
+    label: 'Custom Age Range',
     icon: '✏️',
-    description: 'Set your own age requirements'
+    description: 'Set your own age requirements',
   },
 ];
 
@@ -93,19 +87,15 @@ export default function AgeRestrictionModal({
 }: AgeRestrictionModalProps) {
   const insets = useSafeAreaInsets();
   const [selectedType, setSelectedType] = useState(initialRestriction?.type || '');
-  const [customMinAge, setCustomMinAge] = useState(
-    initialRestriction?.minAge?.toString() || ''
-  );
-  const [customMessage, setCustomMessage] = useState(
-    initialRestriction?.customMessage || ''
-  );
+  const [customMinAge, setCustomMinAge] = useState(initialRestriction?.minAge?.toString() || '');
+  const [customMessage, setCustomMessage] = useState(initialRestriction?.customMessage || '');
   const [requiresGuardian, setRequiresGuardian] = useState(
     initialRestriction?.requiresGuardian || false
   );
 
   const handleSelectType = (typeId: string) => {
     setSelectedType(typeId);
-    const option = AGE_RESTRICTION_OPTIONS.find(opt => opt.id === typeId);
+    const option = AGE_RESTRICTION_OPTIONS.find((opt) => opt.id === typeId);
     if (option && option.minAge) {
       setCustomMinAge(option.minAge.toString());
     }
@@ -119,11 +109,12 @@ export default function AgeRestrictionModal({
       return;
     }
 
-    const selectedOption = AGE_RESTRICTION_OPTIONS.find(opt => opt.id === selectedType);
-    
+    const selectedOption = AGE_RESTRICTION_OPTIONS.find((opt) => opt.id === selectedType);
+
     const ageRestriction = {
       type: selectedType,
-      minAge: selectedType === 'custom' && customMinAge ? parseInt(customMinAge) : selectedOption?.minAge,
+      minAge:
+        selectedType === 'custom' && customMinAge ? parseInt(customMinAge) : selectedOption?.minAge,
       requiresGuardian: selectedType === 'custom' ? requiresGuardian : false,
       customMessage: selectedType === 'custom' ? customMessage : selectedOption?.customMessage,
     };
@@ -159,12 +150,10 @@ export default function AgeRestrictionModal({
         <Pressable style={styles.backdrop} onPress={onClose} />
         <View style={[styles.modalContent, { paddingBottom: insets.bottom || 20 }]}>
           <View style={styles.handle} />
-          
+
           <View style={styles.header}>
             <Text style={styles.title}>Age Restrictions</Text>
-            <Text style={styles.subtitle}>
-              Specify who can attend your event
-            </Text>
+            <Text style={styles.subtitle}>Specify who can attend your event</Text>
           </View>
 
           <ScrollView showsVerticalScrollIndicator={false}>
@@ -180,10 +169,12 @@ export default function AgeRestrictionModal({
                 >
                   <Text style={styles.optionIcon}>{option.icon}</Text>
                   <View style={styles.optionContent}>
-                    <Text style={[
-                      styles.optionLabel,
-                      selectedType === option.id && styles.optionLabelSelected,
-                    ]}>
+                    <Text
+                      style={[
+                        styles.optionLabel,
+                        selectedType === option.id && styles.optionLabelSelected,
+                      ]}
+                    >
                       {option.label}
                     </Text>
                     <Text style={styles.optionDescription}>{option.description}</Text>
@@ -223,9 +214,7 @@ export default function AgeRestrictionModal({
                       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     }}
                   >
-                    {requiresGuardian && (
-                      <Ionicons name="checkmark" size={18} color="#FFF" />
-                    )}
+                    {requiresGuardian && <Ionicons name="checkmark" size={18} color="#FFF" />}
                   </Pressable>
                 </View>
 
@@ -251,7 +240,7 @@ export default function AgeRestrictionModal({
                   <Ionicons name="information-circle" size={20} color="#007AFF" />
                   <View style={styles.previewContent}>
                     {(() => {
-                      const option = AGE_RESTRICTION_OPTIONS.find(opt => opt.id === selectedType);
+                      const option = AGE_RESTRICTION_OPTIONS.find((opt) => opt.id === selectedType);
                       if (selectedType === 'custom' && customMinAge) {
                         return (
                           <>

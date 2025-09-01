@@ -1,5 +1,14 @@
 import React from 'react';
-import { View, Text, Image, StyleSheet, Platform, TouchableOpacity, Alert, ActionSheetIOS } from 'react-native';
+import {
+  View,
+  Text,
+  Image,
+  StyleSheet,
+  Platform,
+  TouchableOpacity,
+  Alert,
+  ActionSheetIOS,
+} from 'react-native';
 import * as Haptics from 'expo-haptics';
 
 interface BubbleLeftProps {
@@ -21,9 +30,9 @@ export default function BubbleLeft({
 }: BubbleLeftProps) {
   const handleLongPress = () => {
     if (!messageId || !onReport) return;
-    
+
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    
+
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
         {
@@ -46,8 +55,15 @@ export default function BubbleLeft({
         'Options',
         undefined,
         [
-          { text: 'Copier', onPress: () => Alert.alert('Copié', 'Message copié dans le presse-papiers') },
-          { text: 'Signaler', onPress: () => onReport(messageId, senderName), style: 'destructive' },
+          {
+            text: 'Copier',
+            onPress: () => Alert.alert('Copié', 'Message copié dans le presse-papiers'),
+          },
+          {
+            text: 'Signaler',
+            onPress: () => onReport(messageId, senderName),
+            style: 'destructive',
+          },
           { text: 'Annuler', style: 'cancel' },
         ],
         { cancelable: true }
@@ -58,11 +74,7 @@ export default function BubbleLeft({
   return (
     <View style={styles.row}>
       <Image source={{ uri: avatarUrl }} style={styles.avatar} />
-      <TouchableOpacity 
-        style={styles.bubble}
-        onLongPress={handleLongPress}
-        activeOpacity={0.8}
-      >
+      <TouchableOpacity style={styles.bubble} onLongPress={handleLongPress} activeOpacity={0.8}>
         <Text style={styles.text}>{text}</Text>
         <Text style={styles.time}>{time}</Text>
       </TouchableOpacity>

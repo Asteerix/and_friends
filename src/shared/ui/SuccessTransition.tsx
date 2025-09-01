@@ -102,14 +102,7 @@ const SuccessTransition: React.FC<SuccessTransitionProps> = ({
       >
         <View style={[StyleSheet.absoluteFill, styles.haloBase]}>
           <LinearGradient
-            colors={[
-              '#A855F7',
-              '#EC4899',
-              '#F97316',
-              '#14B8A6',
-              '#A78BFA',
-              '#A855F7',
-            ]} // Boucler sur la première couleur pour une transition douce
+            colors={['#A855F7', '#EC4899', '#F97316', '#14B8A6', '#A78BFA', '#A855F7']} // Boucler sur la première couleur pour une transition douce
             locations={[0, 0.2, 0.4, 0.6, 0.8, 1]} // Ajuster les locations
             start={gradientPoints.start}
             end={gradientPoints.end}

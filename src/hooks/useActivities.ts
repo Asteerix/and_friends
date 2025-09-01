@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-
 import { useRealtimeSubscription } from '../shared/hooks/useRealtimeSubscription';
 import { supabase } from '../shared/lib/supabase/client';
 

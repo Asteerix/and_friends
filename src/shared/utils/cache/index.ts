@@ -1,11 +1,5 @@
 // Cache Managers
-export { 
-  CacheManager,
-  generalCache,
-  userCache,
-  eventCache,
-  imageCache,
-} from './cacheManager';
+export { CacheManager, generalCache, userCache, eventCache, imageCache } from './cacheManager';
 
 // Cache Keys
 export { CacheKeys } from './cacheKeys';

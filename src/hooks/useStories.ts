@@ -1,6 +1,5 @@
 import type { PostgrestError } from '@supabase/supabase-js';
 import { useEffect, useState } from 'react';
-
 import { supabase } from '@/shared/lib/supabase/client';
 import { useSession } from '@/shared/providers/SessionContext';
 
@@ -53,7 +52,11 @@ export function useStories() {
         return;
       }
 
-      console.log('✅ [useStories] Stories fetched successfully:', storiesData?.length || 0, 'stories');
+      console.log(
+        '✅ [useStories] Stories fetched successfully:',
+        storiesData?.length || 0,
+        'stories'
+      );
       console.log('📋 [useStories] Raw stories data:', storiesData);
 
       const formattedStories = (storiesData || []).map((story: any) => ({
@@ -117,9 +120,10 @@ export function useStories() {
     if (count && count >= 50) {
       console.error('❌ [useStories] Story limit reached (50 stories in 24 hours)');
       return {
-        error: { 
-          message: 'Vous avez atteint la limite de 50 stories par 24 heures. Veuillez réessayer plus tard.',
-          code: 'STORY_LIMIT_REACHED'
+        error: {
+          message:
+            'Vous avez atteint la limite de 50 stories par 24 heures. Veuillez réessayer plus tard.',
+          code: 'STORY_LIMIT_REACHED',
         },
       };
     }
@@ -146,11 +150,7 @@ export function useStories() {
 
     console.log('📤 [useStories] Sending story payload to Supabase:', storyPayload);
 
-    const { data, error } = await supabase
-      .from('stories')
-      .insert([storyPayload])
-      .select()
-      .single();
+    const { data, error } = await supabase.from('stories').insert([storyPayload]).select().single();
 
     if (error) {
       console.error('❌ [useStories] Error creating story:', error);
@@ -160,7 +160,7 @@ export function useStories() {
     console.log('✅ [useStories] Story created successfully:', data);
     console.log('🔄 [useStories] Refreshing stories list...');
     await fetchStories(); // Refresh stories list
-    
+
     return { data, error };
   }
 
@@ -176,7 +176,7 @@ export function useStories() {
       // Use the RPC function which has SECURITY DEFINER to bypass RLS
       const { error } = await supabase.rpc('add_story_view', {
         p_story_id: storyId,
-        p_viewer_id: session.user.id
+        p_viewer_id: session.user.id,
       });
 
       if (error) {
@@ -185,18 +185,20 @@ export function useStories() {
       }
 
       console.log('✅ [useStories] Story marked as viewed successfully');
-      
+
       // Update local state to reflect the view
-      setStories((prev) => prev.map((story) => {
-        if (story.id === storyId) {
-          return {
-            ...story,
-            viewed_by: [...(story.viewed_by || []), session.user.id],
-            views: [...(story.views || []), session.user.id]
-          };
-        }
-        return story;
-      }));
+      setStories((prev) =>
+        prev.map((story) => {
+          if (story.id === storyId) {
+            return {
+              ...story,
+              viewed_by: [...(story.viewed_by || []), session.user.id],
+              views: [...(story.views || []), session.user.id],
+            };
+          }
+          return story;
+        })
+      );
     } catch (error) {
       console.error('❌ [useStories] Error in viewStory:', error);
     }
@@ -222,16 +224,14 @@ export function useStories() {
         const url = new URL(story.media_url);
         const pathParts = url.pathname.split('/');
         const bucketIndex = pathParts.indexOf('stories');
-        
+
         if (bucketIndex !== -1 && bucketIndex < pathParts.length - 1) {
           const filePath = pathParts.slice(bucketIndex + 1).join('/');
           console.log('🗑️ [useStories] Deleting file from storage:', filePath);
-          
+
           // Delete from storage bucket
-          const { error: storageError } = await supabase.storage
-            .from('stories')
-            .remove([filePath]);
-          
+          const { error: storageError } = await supabase.storage.from('stories').remove([filePath]);
+
           if (storageError) {
             console.error('⚠️ [useStories] Error deleting file from storage:', storageError);
             // Continue with story deletion even if storage deletion fails
@@ -254,7 +254,7 @@ export function useStories() {
       } else {
         console.error('❌ [useStories] Error deleting story:', error);
       }
-      
+
       return { error };
     } catch (error) {
       console.error('❌ [useStories] Unexpected error deleting story:', error);
@@ -287,7 +287,7 @@ export function useStories() {
         }
       )
       .subscribe();
-    
+
     console.log('✅ [useStories] Realtime subscription active');
 
     // Set up interval to remove expired stories
@@ -303,7 +303,7 @@ export function useStories() {
 
   async function getStoriesByUser(userId: string) {
     console.log('🔍 [useStories] Getting stories for specific user:', userId);
-    
+
     try {
       const { data, error } = await supabase
         .from('stories')
@@ -327,7 +327,12 @@ export function useStories() {
         return [];
       }
 
-      console.log('✅ [useStories] User stories fetched:', data?.length || 0, 'stories for user:', userId);
+      console.log(
+        '✅ [useStories] User stories fetched:',
+        data?.length || 0,
+        'stories for user:',
+        userId
+      );
       console.log('📋 [useStories] User stories data:', data);
 
       const formattedStories = (data || []).map((story: any) => ({

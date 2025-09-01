@@ -1,13 +1,5 @@
 import React, { useState } from 'react';
-import {
-  Modal,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-  ScrollView,
-  TextInput,
-} from 'react-native';
+import { Modal, Pressable, StyleSheet, Text, View, ScrollView, TextInput } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,7 +13,12 @@ interface ThemeSelectionModalProps {
 
 const PRESET_THEMES = [
   { id: '1', title: '80s Retro', description: 'Neon colors, big hair, vintage vibes', icon: '🕺' },
-  { id: '2', title: 'Tropical Paradise', description: 'Hawaiian shirts, leis, beach vibes', icon: '🌺' },
+  {
+    id: '2',
+    title: 'Tropical Paradise',
+    description: 'Hawaiian shirts, leis, beach vibes',
+    icon: '🌺',
+  },
   { id: '3', title: 'Masquerade', description: 'Masks, mystery, elegance', icon: '🎭' },
   { id: '4', title: 'Hollywood Glam', description: 'Red carpet, glamour, movie stars', icon: '⭐' },
   { id: '5', title: 'Casino Night', description: 'Vegas style, cards, dice', icon: '🎰' },
@@ -33,9 +30,24 @@ const PRESET_THEMES = [
   { id: '11', title: 'Disco Fever', description: 'Platform shoes, disco balls, funk', icon: '🕺' },
   { id: '12', title: 'Pajama Party', description: 'Comfy PJs, slumber party vibes', icon: '😴' },
   { id: '13', title: 'Sports/Jersey', description: 'Team jerseys, athletic wear', icon: '🏈' },
-  { id: '14', title: 'Around the World', description: 'International themes, cultures', icon: '🌍' },
-  { id: '15', title: 'Movie Characters', description: 'Dress as favorite movie characters', icon: '🎬' },
-  { id: '16', title: 'Decades Party', description: 'Pick a decade (50s, 60s, 70s, etc)', icon: '⏰' },
+  {
+    id: '14',
+    title: 'Around the World',
+    description: 'International themes, cultures',
+    icon: '🌍',
+  },
+  {
+    id: '15',
+    title: 'Movie Characters',
+    description: 'Dress as favorite movie characters',
+    icon: '🎬',
+  },
+  {
+    id: '16',
+    title: 'Decades Party',
+    description: 'Pick a decade (50s, 60s, 70s, etc)',
+    icon: '⏰',
+  },
   { id: '17', title: 'Color Party', description: 'Everyone wears one specific color', icon: '🎨' },
   { id: '18', title: 'Western/Cowboy', description: 'Boots, hats, wild west', icon: '🤠' },
 ];
@@ -54,7 +66,7 @@ export default function ThemeSelectionModal({
   // Initialize with existing theme
   React.useEffect(() => {
     if (visible && initialTheme) {
-      const preset = PRESET_THEMES.find(theme => theme.title === initialTheme);
+      const preset = PRESET_THEMES.find((theme) => theme.title === initialTheme);
       if (preset) {
         setSelectedPreset(preset.id);
         setUseCustom(false);
@@ -73,14 +85,14 @@ export default function ThemeSelectionModal({
 
   const handleSave = () => {
     let theme: string | null = null;
-    
+
     if (useCustom && customTheme.trim()) {
       theme = customTheme.trim();
     } else if (selectedPreset) {
-      const preset = PRESET_THEMES.find(t => t.id === selectedPreset);
+      const preset = PRESET_THEMES.find((t) => t.id === selectedPreset);
       theme = preset?.title || null;
     }
-    
+
     onSave(theme);
     onClose();
   };
@@ -110,7 +122,7 @@ export default function ThemeSelectionModal({
         <Pressable style={styles.backdrop} onPress={onClose} />
         <View style={[styles.modalContent, { paddingBottom: insets.bottom || 20 }]}>
           <View style={styles.handle} />
-          
+
           <View style={styles.header}>
             <Text style={styles.title}>Event Theme</Text>
             <Text style={styles.subtitle}>Choose a fun theme for your event</Text>
@@ -125,16 +137,18 @@ export default function ThemeSelectionModal({
                   key={theme.id}
                   style={[
                     styles.presetItem,
-                    selectedPreset === theme.id && !useCustom && styles.presetItemSelected
+                    selectedPreset === theme.id && !useCustom && styles.presetItemSelected,
                   ]}
                   onPress={() => handleSelectPreset(theme.id)}
                 >
                   <Text style={styles.presetIcon}>{theme.icon}</Text>
                   <View style={styles.presetContent}>
-                    <Text style={[
-                      styles.presetTitle,
-                      selectedPreset === theme.id && !useCustom && styles.presetTitleSelected
-                    ]}>
+                    <Text
+                      style={[
+                        styles.presetTitle,
+                        selectedPreset === theme.id && !useCustom && styles.presetTitleSelected,
+                      ]}
+                    >
                       {theme.title}
                     </Text>
                     <Text style={styles.presetDescription}>{theme.description}</Text>
@@ -186,7 +200,7 @@ export default function ThemeSelectionModal({
             <Pressable
               style={[
                 styles.saveButton,
-                (!selectedPreset && (!useCustom || !customTheme.trim())) && styles.saveButtonDisabled
+                !selectedPreset && (!useCustom || !customTheme.trim()) && styles.saveButtonDisabled,
               ]}
               onPress={handleSave}
               disabled={!selectedPreset && (!useCustom || !customTheme.trim())}

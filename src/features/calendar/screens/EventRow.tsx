@@ -8,7 +8,7 @@ const THUMB = 96;
 const AVATAR = 32;
 const AVATAR_OVERLAP = -12;
 const MAX_AVATARS = 4;
-const PLACEHOLDER = require('../../../assets/default_avatar.png');
+const PLACEHOLDER = require('@/assets/default_avatar.png');
 
 export type EventRowProps = {
   event: {
@@ -31,24 +31,16 @@ export default function EventRow({ event, onPress }: EventRowProps) {
     event.going_count && event.going_count > MAX_AVATARS
       ? `+${event.going_count - MAX_AVATARS} going`
       : null;
-  
+
   const eventImage = getEventImage(event);
 
   return (
     <TouchableOpacity style={styles.container} activeOpacity={0.85} onPress={onPress}>
       {eventImage.hasImage ? (
         eventImage.source ? (
-          <Image
-            source={eventImage.source}
-            style={styles.thumb}
-            resizeMode="cover"
-          />
+          <Image source={eventImage.source} style={styles.thumb} resizeMode="cover" />
         ) : (
-          <Image
-            source={{ uri: eventImage.uri }}
-            style={styles.thumb}
-            resizeMode="cover"
-          />
+          <Image source={{ uri: eventImage.uri }} style={styles.thumb} resizeMode="cover" />
         )
       ) : (
         <Image

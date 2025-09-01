@@ -1,9 +1,6 @@
 import React, { useRef, useEffect } from 'react';
-
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-
 import { Animated, TouchableOpacity, View, Text, StyleSheet } from 'react-native';
-
 import type { EventAdvanced } from '@/hooks/useEventsAdvanced';
 
 interface AREventMarkerProps {

@@ -21,14 +21,12 @@ export default function MessageStatus({
   if (totalParticipants > 2 && readByCount > 0) {
     return (
       <View style={styles.container}>
-        <Ionicons 
-          name="checkmark-done" 
-          size={14} 
-          color={readByCount === totalParticipants - 1 ? '#007AFF' : '#999'} 
+        <Ionicons
+          name="checkmark-done"
+          size={14}
+          color={readByCount === totalParticipants - 1 ? '#007AFF' : '#999'}
         />
-        {readByCount < totalParticipants - 1 && (
-          <Text style={styles.readCount}>{readByCount}</Text>
-        )}
+        {readByCount < totalParticipants - 1 && <Text style={styles.readCount}>{readByCount}</Text>}
       </View>
     );
   }

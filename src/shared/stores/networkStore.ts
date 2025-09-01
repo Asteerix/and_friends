@@ -8,7 +8,7 @@ interface NetworkStore {
   networkType: string | null;
   isInternetReachable: boolean | null;
   lastChecked: number;
-  
+
   // Actions
   setConnected: (connected: boolean) => void;
   setConnectionQuality: (quality: NetworkStore['connectionQuality']) => void;
@@ -16,7 +16,7 @@ interface NetworkStore {
   setInternetReachable: (reachable: boolean | null) => void;
   updateLastChecked: () => void;
   updateNetworkState: (state: any) => void;
-  
+
   // Helpers
   isSlowConnection: () => boolean;
   shouldRetry: () => boolean;
@@ -29,28 +29,28 @@ export const useNetworkStore = create<NetworkStore>()(
     networkType: null,
     isInternetReachable: true,
     lastChecked: Date.now(),
-    
+
     setConnected: (connected) => set({ isConnected: connected }),
     setConnectionQuality: (quality) => set({ connectionQuality: quality }),
     setNetworkType: (type) => set({ networkType: type }),
     setInternetReachable: (reachable) => set({ isInternetReachable: reachable }),
     updateLastChecked: () => set({ lastChecked: Date.now() }),
-    
+
     updateNetworkState: (state) => {
       const store = get();
       store.setConnected(state.isConnected ?? false);
       store.setNetworkType(state.type);
       store.setInternetReachable(state.isInternetReachable);
       store.updateLastChecked();
-      
+
       // Determine connection quality
       let quality: NetworkStore['connectionQuality'] = 'good';
-      
+
       if (!state.isConnected) {
         quality = 'offline';
       } else if (state.type === 'cellular') {
         const cellularGeneration = state.details?.cellularGeneration;
-        
+
         switch (cellularGeneration?.toLowerCase()) {
           case '2g':
           case 'slow-2g':
@@ -73,19 +73,19 @@ export const useNetworkStore = create<NetworkStore>()(
       } else if (state.type === 'ethernet') {
         quality = 'excellent';
       }
-      
+
       store.setConnectionQuality(quality);
     },
-    
+
     isSlowConnection: () => {
       const state = get();
       return state.connectionQuality === 'poor' || state.connectionQuality === 'fair';
     },
-    
+
     shouldRetry: () => {
       const state = get();
       return state.isConnected && state.isInternetReachable !== false;
-    }
+    },
   }))
 );
 
@@ -94,23 +94,23 @@ let unsubscribe: (() => void) | null = null;
 
 export function initializeNetworkMonitoring() {
   if (unsubscribe) return;
-  
-  unsubscribe = NetInfo.addEventListener(state => {
+
+  unsubscribe = NetInfo.addEventListener((state) => {
     const store = useNetworkStore.getState();
-    
+
     store.setConnected(state.isConnected ?? false);
     store.setNetworkType(state.type);
     store.setInternetReachable(state.isInternetReachable);
     store.updateLastChecked();
-    
+
     // Determine connection quality based on network type and details
     let quality: NetworkStore['connectionQuality'] = 'good';
-    
+
     if (!state.isConnected) {
       quality = 'offline';
     } else if (state.type === 'cellular') {
       const cellularGeneration = (state.details as any)?.cellularGeneration;
-      
+
       switch (cellularGeneration?.toLowerCase()) {
         case '2g':
         case 'slow-2g':
@@ -133,7 +133,7 @@ export function initializeNetworkMonitoring() {
     } else if (state.type === 'ethernet') {
       quality = 'excellent';
     }
-    
+
     store.setConnectionQuality(quality);
   });
 }

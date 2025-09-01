@@ -5,7 +5,6 @@ import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View, ViewStyle } from 'react-native';
 import { useRatings } from '@/hooks/useRatings';
 import { CachedImage } from '@/shared/components/CachedImage';
-
 import type { EventAdvanced } from '@/hooks/useEventsAdvanced';
 
 type Props = {
@@ -32,7 +31,7 @@ export default function EventCardNew({ event, style, onPress }: Props) {
         if (stats) {
           setOrganizerRating({
             average_rating: stats.average_rating,
-            total_ratings: stats.total_ratings
+            total_ratings: stats.total_ratings,
           });
         }
       }
@@ -42,22 +41,15 @@ export default function EventCardNew({ event, style, onPress }: Props) {
   }, [event?.creator?.id, event?.created_by, getUserRatingStats]);
 
   return (
-    <TouchableOpacity 
-      style={[styles.container, style]} 
-      onPress={onPress}
-      activeOpacity={0.9}
-    >
+    <TouchableOpacity style={[styles.container, style]} onPress={onPress} activeOpacity={0.9}>
       {event.coverData?.media?.url || event.cover_image || event.image_url ? (
-        <CachedImage 
+        <CachedImage
           uri={event.coverData?.media?.url || event.cover_image || event.image_url}
           style={styles.image}
           priority="high"
         />
       ) : (
-        <LinearGradient
-          colors={['#FF6B6B', '#FF8787']}
-          style={styles.imagePlaceholder}
-        >
+        <LinearGradient colors={['#FF6B6B', '#FF8787']} style={styles.imagePlaceholder}>
           <Ionicons name="calendar" size={40} color="white" />
         </LinearGradient>
       )}
@@ -68,7 +60,9 @@ export default function EventCardNew({ event, style, onPress }: Props) {
             {event.title}
           </Text>
           {event.category && (
-            <View style={[styles.categoryBadge, { backgroundColor: getCategoryColor(event.category) }]}>
+            <View
+              style={[styles.categoryBadge, { backgroundColor: getCategoryColor(event.category) }]}
+            >
               <Text style={styles.categoryText}>{event.category}</Text>
             </View>
           )}
@@ -124,7 +118,7 @@ export default function EventCardNew({ event, style, onPress }: Props) {
         {event.creator && (
           <View style={styles.organizerSection}>
             <View style={styles.organizerInfo}>
-              <CachedImage 
+              <CachedImage
                 uri={event.creator.avatar_url || 'https://via.placeholder.com/32'}
                 style={styles.organizerAvatar}
                 priority="low"

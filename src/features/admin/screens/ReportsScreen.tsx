@@ -12,7 +12,6 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-
 import CustomText from '@/shared/ui/CustomText';
 import { Colors } from '@/shared/config/Colors';
 import { supabase } from '@/shared/lib/supabase/client';
@@ -45,10 +44,12 @@ export default function ReportsScreen() {
       setLoading(true);
       let query = supabase
         .from('reports')
-        .select(`
+        .select(
+          `
           *,
           reporter:reporter_id(id, username, full_name, avatar_url)
-        `)
+        `
+        )
         .order('created_at', { ascending: false });
 
       if (filter !== 'all') {
@@ -135,7 +136,7 @@ export default function ReportsScreen() {
       hate_speech: 'Discours haineux',
       adult_content: 'Contenu adulte',
       misinformation: 'Désinformation',
-      copyright: 'Violation de droits d\'auteur',
+      copyright: "Violation de droits d'auteur",
       other: 'Autre',
     };
     return labels[reason] || reason;
@@ -200,10 +201,7 @@ export default function ReportsScreen() {
         <View style={styles.reportFooter}>
           <View style={styles.reporterInfo}>
             {report.reporter?.avatar_url && (
-              <Image
-                source={{ uri: report.reporter.avatar_url }}
-                style={styles.reporterAvatar}
-              />
+              <Image source={{ uri: report.reporter.avatar_url }} style={styles.reporterAvatar} />
             )}
             <CustomText size="sm" color="#666">
               Par {report.reporter?.username || 'Utilisateur'}
@@ -293,10 +291,7 @@ export default function ReportsScreen() {
         {['all', 'pending', 'reviewing', 'resolved'].map((f) => (
           <TouchableOpacity
             key={f}
-            style={[
-              styles.filterBtn,
-              filter === f && styles.filterBtnActive,
-            ]}
+            style={[styles.filterBtn, filter === f && styles.filterBtnActive]}
             onPress={() => setFilter(f as any)}
           >
             <CustomText
@@ -304,9 +299,13 @@ export default function ReportsScreen() {
               weight={filter === f ? 'bold' : 'normal'}
               color={filter === f ? '#FFF' : Colors.light.text}
             >
-              {f === 'all' ? 'Tous' : 
-               f === 'pending' ? 'En attente' :
-               f === 'reviewing' ? 'En cours' : 'Résolus'}
+              {f === 'all'
+                ? 'Tous'
+                : f === 'pending'
+                  ? 'En attente'
+                  : f === 'reviewing'
+                    ? 'En cours'
+                    : 'Résolus'}
             </CustomText>
           </TouchableOpacity>
         ))}
@@ -316,9 +315,7 @@ export default function ReportsScreen() {
       <ScrollView
         style={styles.reportsList}
         contentContainerStyle={styles.reportsContent}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       >
         {loading ? (
           <ActivityIndicator size="large" color={Colors.light.tint} style={styles.loader} />

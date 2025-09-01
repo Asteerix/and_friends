@@ -12,7 +12,7 @@ export function UploadProgressBar() {
   // Animer l'apparition/disparition de la barre de progression
   useEffect(() => {
     const hasActiveUploads = uploadHook.getActiveUploads().length > 0;
-    
+
     Animated.timing(fadeAnim, {
       toValue: hasActiveUploads ? 1 : 0,
       duration: 300,
@@ -26,67 +26,67 @@ export function UploadProgressBar() {
   if (!currentUpload) return null;
 
   return (
-    <Animated.View 
+    <Animated.View
       style={[
         styles.uploadBar,
-        { 
+        {
           top: insets.top,
           opacity: fadeAnim,
-          transform: [{
-            translateY: fadeAnim.interpolate({
-              inputRange: [0, 1],
-              outputRange: [-50, 0],
-            }),
-          }],
+          transform: [
+            {
+              translateY: fadeAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [-50, 0],
+              }),
+            },
+          ],
         },
       ]}
     >
       <View style={styles.uploadContent}>
         <View style={styles.uploadInfo}>
           <Text style={styles.uploadTitle}>
-            {currentUpload.status === 'uploading' 
-              ? 'Publication en cours...' 
+            {currentUpload.status === 'uploading'
+              ? 'Publication en cours...'
               : currentUpload.status === 'failed'
-              ? 'Échec de la publication'
-              : 'En attente...'}
+                ? 'Échec de la publication'
+                : 'En attente...'}
           </Text>
-          
+
           {currentUpload.status === 'uploading' && (
-            <Text style={styles.uploadProgress}>
-              {currentUpload.progress}%
-            </Text>
+            <Text style={styles.uploadProgress}>{currentUpload.progress}%</Text>
           )}
         </View>
 
         <View style={styles.uploadActions}>
           {currentUpload.status === 'uploading' && (
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={() => uploadHook.pauseUpload(currentUpload.id)}
               style={styles.actionButton}
             >
               <Ionicons name="pause" size={20} color="#000" />
             </TouchableOpacity>
           )}
-          
+
           {currentUpload.status === 'paused' && (
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={() => uploadHook.unpauseUpload(currentUpload.id)}
               style={styles.actionButton}
             >
               <Ionicons name="play" size={20} color="#000" />
             </TouchableOpacity>
           )}
-          
+
           {currentUpload.status === 'failed' && (
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={() => uploadHook.retryUpload(currentUpload.id)}
               style={styles.actionButton}
             >
               <Ionicons name="refresh" size={20} color="#000" />
             </TouchableOpacity>
           )}
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             onPress={() => uploadHook.cancelUpload(currentUpload.id)}
             style={styles.actionButton}
           >
@@ -97,20 +97,13 @@ export function UploadProgressBar() {
 
       {/* Barre de progression */}
       <View style={styles.progressBarContainer}>
-        <View 
-          style={[
-            styles.progressBar,
-            { width: `${currentUpload.progress}%` },
-          ]} 
-        />
+        <View style={[styles.progressBar, { width: `${currentUpload.progress}%` }]} />
       </View>
 
       {/* Indicateur de file d'attente */}
       {activeUploads.length > 1 && (
         <View style={styles.queueIndicator}>
-          <Text style={styles.queueText}>
-            +{activeUploads.length - 1} en attente
-          </Text>
+          <Text style={styles.queueText}>+{activeUploads.length - 1} en attente</Text>
         </View>
       )}
     </Animated.View>

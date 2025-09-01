@@ -1,12 +1,5 @@
 import React from 'react';
-import {
-  View,
-  ScrollView,
-  Pressable,
-  Text,
-  StyleSheet,
-  Platform,
-} from 'react-native';
+import { View, ScrollView, Pressable, Text, StyleSheet, Platform } from 'react-native';
 import UnderlineDecoration from './UnderlineDecoration.svg';
 
 type Props = {
@@ -15,11 +8,7 @@ type Props = {
   onPress: (index: number) => void;
 };
 
-export default function CategoryTabs({
-  categories = [],
-  activeIndex,
-  onPress,
-}: Props) {
+export default function CategoryTabs({ categories = [], activeIndex, onPress }: Props) {
   return (
     <View style={styles.wrapper}>
       <ScrollView
@@ -28,22 +17,10 @@ export default function CategoryTabs({
         contentContainerStyle={styles.scroll}
       >
         {categories.map((cat, idx) => (
-          <Pressable
-            key={cat + idx}
-            onPress={() => onPress(idx)}
-            style={styles.tab}
-          >
-            <Text
-              style={[styles.label, idx === activeIndex && styles.labelActive]}
-            >
-              {cat}
-            </Text>
+          <Pressable key={cat + idx} onPress={() => onPress(idx)} style={styles.tab}>
+            <Text style={[styles.label, idx === activeIndex && styles.labelActive]}>{cat}</Text>
             {idx === activeIndex && (
-              <UnderlineDecoration 
-                width={56} 
-                height={4} 
-                style={styles.underline}
-              />
+              <UnderlineDecoration width={56} height={4} style={styles.underline} />
             )}
           </Pressable>
         ))}

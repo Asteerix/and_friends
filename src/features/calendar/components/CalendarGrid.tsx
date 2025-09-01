@@ -1,11 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Dimensions,
-} from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 interface CalendarEvent {
@@ -42,7 +36,7 @@ export default function CalendarGrid({
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
     const firstDay = new Date(year, month, 1);
-    
+
     // Get the first day of the week (Sunday = 0)
     const startDate = new Date(firstDay);
     const dayOfWeek = firstDay.getDay();
@@ -130,16 +124,13 @@ export default function CalendarGrid({
         >
           {date.getDate()}
         </Text>
-        
+
         {dayEvents.length > 0 && (
           <View style={styles.eventIndicators}>
             {dayEvents.slice(0, 3).map((event, idx) => (
               <View
                 key={idx}
-                style={[
-                  styles.eventDot,
-                  { backgroundColor: event.cover_bg_color || '#007AFF' }
-                ]}
+                style={[styles.eventDot, { backgroundColor: event.cover_bg_color || '#007AFF' }]}
               />
             ))}
           </View>
@@ -166,9 +157,9 @@ export default function CalendarGrid({
         >
           <Ionicons name="chevron-back" size={24} color="#000" />
         </TouchableOpacity>
-        
+
         <Text style={styles.monthText}>{monthYearText}</Text>
-        
+
         <TouchableOpacity
           style={styles.navButton}
           onPress={() => changeMonth('next')}

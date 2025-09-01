@@ -65,24 +65,23 @@ interface PickerColumnProps {
   placeholder: string;
 }
 
-const PickerColumn: React.FC<PickerColumnProps> = ({ data, selectedValue, onSelect, placeholder }) => {
+const PickerColumn: React.FC<PickerColumnProps> = ({
+  data,
+  selectedValue,
+  onSelect,
+  placeholder,
+}) => {
   const [showList, setShowList] = useState(false);
 
   return (
     <View style={styles.pickerColumn}>
-      <Pressable
-        style={styles.pickerBox}
-        onPress={() => setShowList(!showList)}
-      >
-        <Text style={[
-          styles.pickerText,
-          !selectedValue && styles.pickerPlaceholder
-        ]}>
+      <Pressable style={styles.pickerBox} onPress={() => setShowList(!showList)}>
+        <Text style={[styles.pickerText, !selectedValue && styles.pickerPlaceholder]}>
           {selectedValue || placeholder}
         </Text>
         <Text style={styles.chevron}>⌄</Text>
       </Pressable>
-      
+
       {showList && (
         <Modal
           transparent
@@ -108,15 +107,14 @@ const PickerColumn: React.FC<PickerColumnProps> = ({ data, selectedValue, onSele
                     setShowList(false);
                     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   }}
-                  style={[
-                    styles.pickerItem,
-                    selectedValue === item && styles.pickerItemSelected
-                  ]}
+                  style={[styles.pickerItem, selectedValue === item && styles.pickerItemSelected]}
                 >
-                  <Text style={[
-                    styles.pickerItemText,
-                    selectedValue === item && styles.pickerItemTextSelected
-                  ]}>
+                  <Text
+                    style={[
+                      styles.pickerItemText,
+                      selectedValue === item && styles.pickerItemTextSelected,
+                    ]}
+                  >
                     {item}
                   </Text>
                 </Pressable>
@@ -136,9 +134,9 @@ export default function EventDateTimePickerModal({
   onSelect,
   currentDate,
   currentTime,
-  title = "Select date & time",
-  subtitle = "Choose when your event will take place",
-  minDate
+  title = 'Select date & time',
+  subtitle = 'Choose when your event will take place',
+  minDate,
 }: EventDateTimePickerModalProps) {
   const insets = useSafeAreaInsets();
   const [month, setMonth] = useState<string | null>(null);
@@ -151,17 +149,17 @@ export default function EventDateTimePickerModal({
   useEffect(() => {
     if (visible) {
       const now = new Date();
-      const minimumDate = minDate || new Date(now.getTime() + (24 * 60 * 60 * 1000));
-      
+      const minimumDate = minDate || new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
       let dateToUse = currentDate || minimumDate;
       let timeToUse = currentTime || minimumDate;
-      
+
       // Ensure the date is not in the past
       if (dateToUse < minimumDate) {
         dateToUse = minimumDate;
         timeToUse = minimumDate;
       }
-      
+
       setYear(String(dateToUse.getFullYear()));
       setMonth(MONTHS[dateToUse.getMonth()] || null);
       setDay(String(dateToUse.getDate()));
@@ -187,12 +185,12 @@ export default function EventDateTimePickerModal({
 
     const now = new Date();
     // const minimumDate = minDate || new Date(now.getTime() + (24 * 60 * 60 * 1000));
-    
+
     if (selectedDate < now) {
       setDateError('Date cannot be in the past');
       return false;
     }
-    
+
     if (minDate && selectedDate < minDate) {
       setDateError('Date must be after the minimum allowed date');
       return false;
@@ -215,11 +213,7 @@ export default function EventDateTimePickerModal({
 
     if (year && month && day && hour && minute) {
       const monthIndex = MONTHS.indexOf(month);
-      const eventDate = new Date(
-        parseInt(year),
-        monthIndex,
-        parseInt(day)
-      );
+      const eventDate = new Date(parseInt(year), monthIndex, parseInt(day));
       const eventTime = new Date(
         parseInt(year),
         monthIndex,
@@ -227,7 +221,7 @@ export default function EventDateTimePickerModal({
         parseInt(hour),
         parseInt(minute)
       );
-      
+
       onSelect(eventDate, eventTime);
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       onClose();
@@ -263,7 +257,7 @@ export default function EventDateTimePickerModal({
         <Pressable style={styles.backdrop} onPress={onClose} />
         <View style={[styles.modalContent, { paddingBottom: insets.bottom || 20 }]}>
           <View style={styles.handle} />
-          
+
           <View style={styles.header}>
             <Text style={styles.title}>{title}</Text>
             <Text style={styles.subtitle}>{subtitle}</Text>
@@ -284,12 +278,7 @@ export default function EventDateTimePickerModal({
                   onSelect={setMonth}
                   placeholder="Month"
                 />
-                <PickerColumn
-                  data={DAYS}
-                  selectedValue={day}
-                  onSelect={setDay}
-                  placeholder="Day"
-                />
+                <PickerColumn data={DAYS} selectedValue={day} onSelect={setDay} placeholder="Day" />
                 <PickerColumn
                   data={YEARS}
                   selectedValue={year}
@@ -298,7 +287,7 @@ export default function EventDateTimePickerModal({
                 />
               </View>
             </View>
-            
+
             <View style={styles.sectionContainer}>
               <Text style={styles.sectionTitle}>Time</Text>
               <View style={styles.timePickerGroup}>
@@ -317,10 +306,8 @@ export default function EventDateTimePickerModal({
                 />
               </View>
             </View>
-            
-            {dateError && (
-              <Text style={styles.errorText}>{dateError}</Text>
-            )}
+
+            {dateError && <Text style={styles.errorText}>{dateError}</Text>}
           </ScrollView>
 
           <View style={styles.footer}>

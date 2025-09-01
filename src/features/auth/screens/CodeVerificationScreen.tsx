@@ -18,11 +18,12 @@ import {
 } from 'react-native';
 import { create } from 'react-native-pixel-perfect';
 import * as Haptics from 'expo-haptics';
+import { useTranslation } from 'react-i18next';
+import BannedScreen from './BannedScreen';
 import { supabase } from '@/shared/lib/supabase/client';
 import { useAuthNavigation } from '@/shared/hooks/useAuthNavigation';
 import { checkOTPRateLimit, recordOTPRequest } from '@/shared/utils/phoneValidation';
 import { recordFailedOTPAttempt, checkBanStatus } from '@/shared/utils/bruteforceProtection';
-import BannedScreen from './BannedScreen';
 import { OTPCache } from '@/shared/utils/otpCache';
 import { NetworkRetry } from '@/shared/utils/networkRetry';
 import { useNetworkQuality } from '@/shared/hooks/useNetworkQuality';
@@ -30,7 +31,6 @@ import { NetworkStatusBanner } from '@/shared/components/NetworkStatusBanner';
 import { AdaptiveButton } from '@/shared/components/AdaptiveButton';
 import { resilientFetch } from '@/shared/utils/api/retryStrategy';
 import { useAdaptiveTimeout } from '@/shared/utils/api/adaptiveTimeout';
-import { useTranslation } from 'react-i18next';
 
 const { height: H } = Dimensions.get('window');
 const designResolution = { width: 375, height: 812 };
@@ -55,7 +55,7 @@ const CodeVerificationScreen: React.FC<CodeVerificationScreenProps> = React.memo
   const [timerExpiry, setTimerExpiry] = useState<number>(Date.now() + 300000); // Store actual expiry timestamp
   const [resendCooldown, setResendCooldown] = useState(60); // 1 minute cooldown for resend
   const [resendTimerExpiry, setResendTimerExpiry] = useState<number>(Date.now() + 60000); // Resend timer expiry
-  
+
   // If no phone number, redirect back
   useEffect(() => {
     if (!phoneNumber) {
@@ -63,8 +63,8 @@ const CodeVerificationScreen: React.FC<CodeVerificationScreenProps> = React.memo
       Alert.alert('Erreur', 'Numéro de téléphone manquant', [
         {
           text: 'Retour',
-          onPress: () => navigateBack()
-        }
+          onPress: () => navigateBack(),
+        },
       ]);
     }
   }, [phoneNumber, navigateBack]);
@@ -87,32 +87,35 @@ const CodeVerificationScreen: React.FC<CodeVerificationScreenProps> = React.memo
         const now = Date.now();
         const codeRemaining = Math.max(0, Math.floor((timerExpiry - now) / 1000));
         const resendRemaining = Math.max(0, Math.floor((resendTimerExpiry - now) / 1000));
-        
+
         setTimeRemaining(codeRemaining);
         setResendCooldown(resendRemaining);
-        
+
         if (resendRemaining === 0) {
           setCanResend(true);
         }
-        
+
         // Restart timer if code hasn't expired
         if (codeRemaining > 0) {
           if (timerRef.current) {
             clearInterval(timerRef.current);
           }
-          
+
           timerRef.current = setInterval(() => {
             const currentTime = Date.now();
             const codeTimeLeft = Math.max(0, Math.floor((timerExpiry - currentTime) / 1000));
-            const resendTimeLeft = Math.max(0, Math.floor((resendTimerExpiry - currentTime) / 1000));
-            
+            const resendTimeLeft = Math.max(
+              0,
+              Math.floor((resendTimerExpiry - currentTime) / 1000)
+            );
+
             setTimeRemaining(codeTimeLeft);
             setResendCooldown(resendTimeLeft);
-            
+
             if (resendTimeLeft === 0 && !canResend) {
               setCanResend(true);
             }
-            
+
             if (codeTimeLeft === 0) {
               if (timerRef.current) {
                 clearInterval(timerRef.current);
@@ -134,27 +137,27 @@ const CodeVerificationScreen: React.FC<CodeVerificationScreenProps> = React.memo
   useEffect(() => {
     console.log('🔐 [CodeVerificationScreen] Écran chargé');
     console.log('  - Numéro de téléphone:', phoneNumber);
-    
+
     if (!phoneNumber) {
       console.error('❌ [CodeVerificationScreen] Aucun numéro de téléphone fourni');
       Alert.alert('Erreur', 'Numéro de téléphone manquant', [
-        { text: 'Retour', onPress: () => navigateBack() }
+        { text: 'Retour', onPress: () => navigateBack() },
       ]);
       return;
     }
-    
+
     // Test de connexion Supabase
     testSupabaseConnection();
-    
+
     // Check ban status first
     checkBanStatusOnMount();
-    
+
     // Check rate limit status on mount
     checkRateLimitStatus();
-    
+
     // Start countdown timer
     startTimer();
-    
+
     // Cleanup timer on unmount
     return () => {
       if (timerRef.current) {
@@ -166,7 +169,10 @@ const CodeVerificationScreen: React.FC<CodeVerificationScreenProps> = React.memo
   const testSupabaseConnection = async () => {
     console.log('🧪 [CodeVerificationScreen] Test de connexion Supabase...');
     try {
-      const { data: { session }, error } = await supabase.auth.getSession();
+      const {
+        data: { session },
+        error,
+      } = await supabase.auth.getSession();
       if (error) {
         console.error('❌ [CodeVerificationScreen] Erreur Supabase:', error);
       } else {
@@ -184,30 +190,30 @@ const CodeVerificationScreen: React.FC<CodeVerificationScreenProps> = React.memo
   const startTimer = () => {
     const codeExpiryTime = Date.now() + 300000; // 5 minutes for code expiry
     const resendExpiryTime = Date.now() + 60000; // 1 minute for resend cooldown
-    
+
     setTimerExpiry(codeExpiryTime);
     setTimeRemaining(300); // 5 minutes
     setResendTimerExpiry(resendExpiryTime);
     setResendCooldown(60); // 1 minute
     setCanResend(false);
-    
+
     if (timerRef.current) {
       clearInterval(timerRef.current);
     }
-    
+
     timerRef.current = setInterval(() => {
       const now = Date.now();
       const codeRemaining = Math.max(0, Math.floor((codeExpiryTime - now) / 1000));
       const resendRemaining = Math.max(0, Math.floor((resendExpiryTime - now) / 1000));
-      
+
       setTimeRemaining(codeRemaining);
       setResendCooldown(resendRemaining);
-      
+
       // Enable resend button after 1 minute
       if (resendRemaining === 0 && !canResend) {
         setCanResend(true);
       }
-      
+
       // Stop timer when code expires
       if (codeRemaining === 0) {
         if (timerRef.current) {
@@ -216,31 +222,31 @@ const CodeVerificationScreen: React.FC<CodeVerificationScreenProps> = React.memo
       }
     }, 1000);
   };
-  
+
   const checkRateLimitStatus = async () => {
     if (!phoneNumber) return;
-    
+
     try {
       const rateLimit = await checkOTPRateLimit(phoneNumber);
-      
+
       if (!rateLimit.canRequest && rateLimit.timeRemainingSeconds) {
         // Set resend timer to remaining time from rate limit
         const remainingTime = Math.min(rateLimit.timeRemainingSeconds, 60); // Max 1 minute for resend cooldown
         setResendCooldown(remainingTime);
         setCanResend(false);
-        
+
         // Update resend timer expiry
-        const newResendExpiryTime = Date.now() + (remainingTime * 1000);
+        const newResendExpiryTime = Date.now() + remainingTime * 1000;
         setResendTimerExpiry(newResendExpiryTime);
       }
     } catch (error) {
       console.error('❌ [CodeVerificationScreen] Erreur vérification rate limit:', error);
     }
   };
-  
+
   const checkBanStatusOnMount = async () => {
     if (!phoneNumber) return;
-    
+
     try {
       const ban = await checkBanStatus(phoneNumber);
       if (ban.isBanned) {
@@ -283,24 +289,24 @@ const CodeVerificationScreen: React.FC<CodeVerificationScreenProps> = React.memo
         return;
       }
       console.log('🔍 [CodeVerificationScreen] Vérification OTP avec Supabase...');
-      
+
       // Mode test pour le développement (numéro spécifique + code 123456)
       if (phoneNumber === '+33612345678' && codeToVerify === '123456') {
         console.log('🧪 [CodeVerificationScreen] Mode test activé - Création session de test');
-        
+
         // Créer une session de test avec un email unique
         const testEmail = `test_${Date.now()}@testapp.local`;
         const testPassword = 'TestPassword123!';
-        
+
         const { error: signUpError } = await supabase.auth.signUp({
           email: testEmail,
           password: testPassword,
           options: {
             data: {
               phone: phoneNumber,
-              is_test_account: true
-            }
-          }
+              is_test_account: true,
+            },
+          },
         });
 
         if (signUpError && signUpError.message !== 'User already registered') {
@@ -308,9 +314,11 @@ const CodeVerificationScreen: React.FC<CodeVerificationScreenProps> = React.memo
         }
 
         console.log('✅ [CodeVerificationScreen] Session de test créée');
-        
+
         // Save next step before navigating
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
         if (user) {
           // First check if profile exists, create if not
           const { data: profile } = await supabase
@@ -321,47 +329,48 @@ const CodeVerificationScreen: React.FC<CodeVerificationScreenProps> = React.memo
 
           if (!profile) {
             // Create profile first
-            await supabase
-              .from('profiles')
-              .insert([{ 
+            await supabase.from('profiles').insert([
+              {
                 id: user.id,
                 current_registration_step: 'name_input',
                 created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-              }]);
+                updated_at: new Date().toISOString(),
+              },
+            ]);
           } else {
             // Update existing profile
             await supabase
               .from('profiles')
-              .update({ 
+              .update({
                 current_registration_step: 'name_input',
-                updated_at: new Date().toISOString()
+                updated_at: new Date().toISOString(),
               })
               .eq('id', user.id);
           }
         }
-        
+
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         navigateNext('name-input');
         setIsLoading(false);
         return;
       }
-      
+
       // Vérifier l'OTP avec Supabase (production)
       console.log('📞 [CodeVerificationScreen] Tentative de vérification OTP:');
       console.log('  - Phone:', phoneNumber);
       console.log('  - Code:', codeToVerify);
       console.log('  - Type: sms');
-      
+
       const { data, error } = await resilientFetch(
-        () => supabase.auth.verifyOtp({
-          phone: phoneNumber,
-          token: codeToVerify,
-          type: 'sms',
-        }),
+        () =>
+          supabase.auth.verifyOtp({
+            phone: phoneNumber,
+            token: codeToVerify,
+            type: 'sms',
+          }),
         {
           maxRetries: isSlowConnection ? 5 : 3,
-          showAlert: false
+          showAlert: false,
         }
       );
 
@@ -371,25 +380,27 @@ const CodeVerificationScreen: React.FC<CodeVerificationScreenProps> = React.memo
         console.error('  - Error message:', error.message);
         console.error('  - Error status:', (error as any).status);
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        
+
         // Record failed attempt
         const banResult = await recordFailedOTPAttempt(phoneNumber);
-        
+
         if (banResult.isBanned) {
           setBanStatus(banResult);
           setIsLoading(false);
           return;
         }
-        
+
         let errorMessage = 'Le code entré est incorrect. Veuillez réessayer.';
-        let actions = [{
-          text: 'OK',
-          onPress: () => {
-            setCode('');
-            inputRef.current?.focus();
+        let actions = [
+          {
+            text: 'OK',
+            onPress: () => {
+              setCode('');
+              inputRef.current?.focus();
+            },
           },
-        }];
-        
+        ];
+
         // Handle token expiration specifically
         if (error.message?.includes('expired') || error.message?.includes('invalid')) {
           // Check if it's a token format issue or actual expiration
@@ -398,7 +409,7 @@ const CodeVerificationScreen: React.FC<CodeVerificationScreenProps> = React.memo
           } else {
             errorMessage = 'Le code a expiré ou est invalide. Veuillez demander un nouveau code.';
           }
-          
+
           if (canResend) {
             actions = [
               {
@@ -415,7 +426,7 @@ const CodeVerificationScreen: React.FC<CodeVerificationScreenProps> = React.memo
             ];
           }
         }
-        
+
         Alert.alert('Code invalide', errorMessage, actions);
         setIsLoading(false);
         return;
@@ -426,17 +437,21 @@ const CodeVerificationScreen: React.FC<CodeVerificationScreenProps> = React.memo
       console.log('  - Session:', !!data.session);
 
       // Attendre un peu pour que le SessionContext se mette à jour
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
       // Vérifier que la session est bien là
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       console.log('📍 [CodeVerificationScreen] Session après vérification:', !!session);
       if (session) {
         console.log('  - User ID confirmé:', session.user.id);
       }
-      
+
       // Save next step before navigating
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (user) {
         // First check if profile exists, create if not
         const { data: profile } = await supabase
@@ -447,37 +462,37 @@ const CodeVerificationScreen: React.FC<CodeVerificationScreenProps> = React.memo
 
         if (!profile) {
           // Create profile first
-          await supabase
-            .from('profiles')
-            .insert([{ 
+          await supabase.from('profiles').insert([
+            {
               id: user.id,
               current_registration_step: 'name_input',
               created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            }]);
+              updated_at: new Date().toISOString(),
+            },
+          ]);
         } else {
           // Update existing profile
           await supabase
             .from('profiles')
-            .update({ 
+            .update({
               current_registration_step: 'name_input',
-              updated_at: new Date().toISOString()
+              updated_at: new Date().toISOString(),
             })
             .eq('id', user.id);
         }
       }
-      
+
       // Clear OTP cache on successful verification
       if (phoneNumber) {
         await OTPCache.clearCache(phoneNumber);
       }
-      
+
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       navigateNext('name-input');
     } catch (error) {
       console.error('❌ [CodeVerificationScreen] Erreur inattendue:', error);
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert('Erreur', 'Une erreur inattendue s\'est produite. Veuillez réessayer.', [
+      Alert.alert('Erreur', "Une erreur inattendue s'est produite. Veuillez réessayer.", [
         {
           text: 'OK',
           onPress: () => {
@@ -487,7 +502,7 @@ const CodeVerificationScreen: React.FC<CodeVerificationScreenProps> = React.memo
         },
       ]);
     }
-    
+
     setIsLoading(false);
   };
 
@@ -497,25 +512,23 @@ const CodeVerificationScreen: React.FC<CodeVerificationScreenProps> = React.memo
 
   const handleResendCode = async () => {
     if (!canResend) return;
-    
+
     setIsLoading(true);
     setCode('');
-    
+
     try {
       // Check network first
       const network = await NetworkRetry.checkNetwork();
       if (!network.isConnected) {
-        Alert.alert(
-          'Pas de connexion',
-          'Vérifiez votre connexion internet et réessayez.',
-          [{ text: 'OK' }]
-        );
+        Alert.alert('Pas de connexion', 'Vérifiez votre connexion internet et réessayez.', [
+          { text: 'OK' },
+        ]);
         setIsLoading(false);
         return;
       }
-      
+
       console.log('📱 [CodeVerificationScreen] Vérification rate limit pour:', phoneNumber);
-      
+
       // Check OTP cache
       const cacheStatus = await OTPCache.hasRecentOTP(phoneNumber);
       if (cacheStatus.hasRecent && !cacheStatus.canResend) {
@@ -527,16 +540,17 @@ const CodeVerificationScreen: React.FC<CodeVerificationScreenProps> = React.memo
         setIsLoading(false);
         return;
       }
-      
+
       // Check rate limit before resending
       const rateLimit = await checkOTPRateLimit(phoneNumber);
-      
+
       if (!rateLimit.canRequest) {
         const secondsRemaining = rateLimit.timeRemainingSeconds || 60;
-        const displayTime = secondsRemaining > 60 
-          ? `${Math.ceil(secondsRemaining / 60)} minute${Math.ceil(secondsRemaining / 60) > 1 ? 's' : ''}`
-          : `${secondsRemaining} secondes`;
-        
+        const displayTime =
+          secondsRemaining > 60
+            ? `${Math.ceil(secondsRemaining / 60)} minute${Math.ceil(secondsRemaining / 60) > 1 ? 's' : ''}`
+            : `${secondsRemaining} secondes`;
+
         Alert.alert(
           'Trop de demandes',
           `Veuillez attendre ${displayTime} avant de demander un nouveau code.`,
@@ -545,18 +559,18 @@ const CodeVerificationScreen: React.FC<CodeVerificationScreenProps> = React.memo
         setIsLoading(false);
         return;
       }
-      
+
       // Record the new OTP request
       const recordResult = await recordOTPRequest(phoneNumber);
-      
+
       if (!recordResult.success) {
         Alert.alert('Erreur', recordResult.message);
         setIsLoading(false);
         return;
       }
-      
+
       console.log('📱 [CodeVerificationScreen] Renvoi OTP à:', phoneNumber);
-      
+
       // Use NetworkRetry for resilient sending
       try {
         await NetworkRetry.withRetry(
@@ -564,49 +578,46 @@ const CodeVerificationScreen: React.FC<CodeVerificationScreenProps> = React.memo
             const { error } = await supabase.auth.signInWithOtp({
               phone: phoneNumber,
             });
-            
+
             if (error) {
               throw error;
             }
           },
           {
             maxRetries: 2,
-            initialDelay: 1000
+            initialDelay: 1000,
           }
         );
-        
+
         // Record in cache
         await OTPCache.recordOTPSent(phoneNumber);
-        
+
         console.log('✅ [CodeVerificationScreen] OTP renvoyé avec succès');
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        
+
         // Reset resend timer only (not the code expiry timer)
         const newResendExpiryTime = Date.now() + 60000; // 1 minute cooldown
         setResendTimerExpiry(newResendExpiryTime);
         setResendCooldown(60);
         setCanResend(false);
-        
+
         Alert.alert('Code renvoyé', 'Un nouveau code de vérification a été envoyé.', [
           { text: 'OK' },
         ]);
-        
       } catch (error: any) {
         console.error('❌ [CodeVerificationScreen] Erreur renvoi OTP:', error);
-        
+
         if (error.message?.includes('Network') || error.message?.includes('timeout')) {
-          Alert.alert(
-            'Problème de connexion',
-            'Vérifiez votre connexion internet et réessayez.',
-            [{ text: 'OK' }]
-          );
+          Alert.alert('Problème de connexion', 'Vérifiez votre connexion internet et réessayez.', [
+            { text: 'OK' },
+          ]);
         } else {
           Alert.alert('Erreur', error.message || 'Impossible de renvoyer le code.');
         }
       }
     } catch (error) {
       console.error('❌ [CodeVerificationScreen] Erreur inattendue:', error);
-      Alert.alert('Erreur', 'Une erreur inattendue s\'est produite.');
+      Alert.alert('Erreur', "Une erreur inattendue s'est produite.");
     } finally {
       setIsLoading(false);
     }
@@ -616,7 +627,7 @@ const CodeVerificationScreen: React.FC<CodeVerificationScreenProps> = React.memo
   if (banStatus && banStatus.isBanned) {
     return <BannedScreen banStatus={banStatus} />;
   }
-  
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <NetworkStatusBanner />
@@ -646,10 +657,13 @@ const CodeVerificationScreen: React.FC<CodeVerificationScreenProps> = React.memo
               <Text style={styles.title}>
                 And we are <Text style={styles.titleItalic}>almost there</Text>
               </Text>
-              <Text style={styles.subtitle}>Enter the 6-digit code below sent to {phoneNumber}.</Text>
+              <Text style={styles.subtitle}>
+                Enter the 6-digit code below sent to {phoneNumber}.
+              </Text>
               {timeRemaining > 0 && (
                 <Text style={styles.timerText}>
-                  Code expire dans {Math.floor(timeRemaining / 60)}:{(timeRemaining % 60).toString().padStart(2, '0')}
+                  Code expire dans {Math.floor(timeRemaining / 60)}:
+                  {(timeRemaining % 60).toString().padStart(2, '0')}
                 </Text>
               )}
               {timeRemaining === 0 && (
@@ -709,7 +723,9 @@ const CodeVerificationScreen: React.FC<CodeVerificationScreenProps> = React.memo
                 accessibilityLabel="Resend code"
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <Text style={[styles.resendButtonText, !canResend && styles.resendButtonTextDisabled]}>
+                <Text
+                  style={[styles.resendButtonText, !canResend && styles.resendButtonTextDisabled]}
+                >
                   {canResend ? 'Renvoyer le code' : `Renvoyer dans ${resendCooldown}s`}
                 </Text>
               </TouchableOpacity>

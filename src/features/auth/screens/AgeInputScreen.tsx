@@ -13,8 +13,9 @@ import {
   ActivityIndicator,
   Alert,
   Dimensions,
+  ScrollView,
+  KeyboardAvoidingView,
 } from 'react-native';
-import { create } from 'react-native-pixel-perfect';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/shared/lib/supabase/client';
 import { getDeviceLanguage, t } from '@/shared/locales';
@@ -23,9 +24,7 @@ import { useRegistrationStep } from '@/shared/hooks/useRegistrationStep';
 import { Colors } from '@/shared/config/Colors';
 import { getValidSession, signOutAndCleanup } from '@/shared/utils/sessionHelpers';
 
-const designResolution = { width: 375, height: 812 };
-const perfectSize = create(designResolution);
-const { height: H } = Dimensions.get('window');
+const { height: H, width: W } = Dimensions.get('window');
 
 const MONTHS = [
   'January',
@@ -105,11 +104,11 @@ const AgeInputScreen: React.FC = React.memo(() => {
   useEffect(() => {
     const fetchProfile = async () => {
       setIsFetchingInitialData(true);
-      
+
       // Utiliser le helper pour obtenir une session valide
       const session = await getValidSession();
       const user = session?.user;
-      
+
       if (user) {
         try {
           const { data } = await supabase
@@ -198,14 +197,14 @@ const AgeInputScreen: React.FC = React.memo(() => {
 
   const continueAction = async () => {
     if (!validateAge()) return;
-    
+
     // Utiliser le helper pour obtenir une session valide
     const session = await getValidSession();
-    
+
     if (!session) {
       console.error('❌ [AgeInputScreen] Session invalide ou expirée');
       Alert.alert(
-        'Session expirée', 
+        'Session expirée',
         'Votre session a expiré. Vous allez être redirigé vers la connexion.',
         [
           {
@@ -214,13 +213,13 @@ const AgeInputScreen: React.FC = React.memo(() => {
               // Sign out and redirect to login
               await signOutAndCleanup();
               // Navigation will be handled by RootNavigator listening to auth state
-            }
-          }
+            },
+          },
         ]
       );
       return;
     }
-    
+
     const user = session.user;
     if (!user || !user.id) {
       console.error('❌ [AgeInputScreen] No user in session');
@@ -265,9 +264,18 @@ const AgeInputScreen: React.FC = React.memo(() => {
   }
 
   return (
-    <View style={[styles.safeArea, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-      {/* Header & ProgressBar */}
-      <View style={styles.headerRow}>
+    <KeyboardAvoidingView 
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <ScrollView 
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom }]}
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+      >
+        <View style={[styles.safeArea, { paddingTop: insets.top }]}>
+          {/* Header & ProgressBar */}
+          <View style={styles.headerRow}>
         <Pressable
           onPress={navigateBack}
           style={({ pressed }) => [styles.backButton, { opacity: pressed ? 0.5 : 1 }]}
@@ -360,8 +368,8 @@ const AgeInputScreen: React.FC = React.memo(() => {
       <Pressable
         style={({ pressed }) => [
           styles.continueButton,
-          pressed ? { opacity: 0.75 } : {},
-          !canContinue ? { opacity: 0.3 } : {},
+          pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] },
+          !canContinue && { opacity: 0.5 },
         ]}
         onPress={continueAction}
         disabled={!canContinue}
@@ -371,51 +379,59 @@ const AgeInputScreen: React.FC = React.memo(() => {
         <Text style={styles.continueButtonText}>Continue</Text>
       </Pressable>
       {/* Picker Modals */}
-      <PickerModal
-        visible={picker.type === 'month'}
-        data={MONTHS}
-        onSelect={setMonth}
-        onClose={() => setPicker({ type: null })}
-      />
-      <PickerModal
-        visible={picker.type === 'day'}
-        data={DAYS}
-        onSelect={setDay}
-        onClose={() => setPicker({ type: null })}
-      />
-      <PickerModal
-        visible={picker.type === 'year'}
-        data={YEARS}
-        onSelect={setYear}
-        onClose={() => setPicker({ type: null })}
-      />
-    </View>
+          <PickerModal
+            visible={picker.type === 'month'}
+            data={MONTHS}
+            onSelect={setMonth}
+            onClose={() => setPicker({ type: null })}
+          />
+          <PickerModal
+            visible={picker.type === 'day'}
+            data={DAYS}
+            onSelect={setDay}
+            onClose={() => setPicker({ type: null })}
+          />
+          <PickerModal
+            visible={picker.type === 'year'}
+            data={YEARS}
+            onSelect={setYear}
+            onClose={() => setPicker({ type: null })}
+          />
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 });
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Colors.light.background,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
   safeArea: {
     flex: 1,
     backgroundColor: Colors.light.background,
-    paddingHorizontal: perfectSize(24),
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: perfectSize(8),
-    marginBottom: perfectSize(16),
+    marginTop: 12,
+    marginBottom: 20,
+    paddingHorizontal: 20,
   },
   backButton: {
-    width: perfectSize(44),
-    height: perfectSize(44),
+    width: 44,
+    height: 44,
     justifyContent: 'center',
     alignItems: 'flex-start',
   },
   backArrow: {
-    fontSize: perfectSize(28),
+    fontSize: 28,
     color: Colors.light.tint,
-    marginLeft: perfectSize(0),
   },
   progressContainer: {
     flex: 1,
@@ -424,123 +440,126 @@ const styles = StyleSheet.create({
   },
   progressTrack: {
     width: '70%',
-    height: perfectSize(2),
+    height: 2,
     backgroundColor: Colors.light.border,
-    borderRadius: perfectSize(1),
+    borderRadius: 1,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
     backgroundColor: Colors.light.tint,
-    borderRadius: perfectSize(1),
+    borderRadius: 1,
   },
   title: {
-    marginTop: perfectSize(16),
-    fontSize: perfectSize(34),
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+    marginTop: 10,
+    fontSize: W < 375 ? 28 : 32,
+    fontWeight: 'bold',
     color: Colors.light.text,
     textAlign: 'center',
-    lineHeight: perfectSize(41),
-    letterSpacing: 0.34,
-    fontWeight: '400',
+    lineHeight: W < 375 ? 36 : 40,
+    paddingHorizontal: 20,
   },
   titleItalic: {
     fontStyle: 'italic',
     fontFamily: Platform.OS === 'ios' ? 'Georgia-Italic' : 'serif',
   },
   subtitle: {
-    marginTop: perfectSize(16),
-    fontSize: perfectSize(16),
+    marginTop: 8,
+    fontSize: W < 375 ? 14 : 16,
     color: Colors.light.textSecondary,
     textAlign: 'center',
-    lineHeight: perfectSize(22),
-    marginBottom: perfectSize(24),
-    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
-    fontWeight: '400',
+    lineHeight: W < 375 ? 20 : 22,
+    marginBottom: W < 375 ? 20 : 24,
+    paddingHorizontal: W < 375 ? 20 : 30,
   },
   pickerGroupWrapper: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     backgroundColor: Colors.light.backgroundSecondary,
-    padding: perfectSize(16),
-    borderRadius: perfectSize(16),
-    alignSelf: 'stretch',
-    marginBottom: perfectSize(16),
+    padding: W < 375 ? 8 : 12,
+    borderRadius: 16,
+    marginHorizontal: 20,
+    marginBottom: W < 375 ? 12 : 16,
   },
   pickerBox: {
     flex: 1,
-    height: perfectSize(56),
+    height: W < 375 ? 46 : 50,
     borderWidth: 1,
     borderColor: Colors.light.border,
-    borderRadius: perfectSize(12),
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
     backgroundColor: Colors.light.background,
-    marginHorizontal: perfectSize(4),
+    marginHorizontal: W < 375 ? 2 : 4,
   },
   pickerText: {
-    fontSize: perfectSize(17),
+    fontSize: W < 375 ? 15 : 17,
     fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
     color: Colors.light.text,
   },
   chevron: {
-    fontSize: perfectSize(13),
+    fontSize: 13,
     color: Colors.light.icon,
-    marginLeft: perfectSize(6),
+    marginLeft: 6,
   },
   errorText: {
     color: Colors.light.error,
-    fontSize: perfectSize(12),
-    marginTop: perfectSize(8),
+    fontSize: 12,
+    marginTop: 8,
     textAlign: 'center',
     width: '100%',
+    paddingHorizontal: 20,
   },
   illustrationContainer: {
-    width: '100%',
+    flex: 1,
     alignItems: 'center',
-    marginTop: perfectSize(8),
-    marginBottom: perfectSize(8),
+    justifyContent: 'center',
+    marginVertical: 10,
+    minHeight: 200,
   },
   illustration: {
-    width: perfectSize(220),
-    height: perfectSize(160),
+    width: W * 0.7,
+    height: W * 0.5,
+    maxWidth: 300,
+    maxHeight: 220,
+    resizeMode: 'contain',
   },
   toggleCard: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
     borderColor: Colors.light.border,
-    borderRadius: perfectSize(12),
-    padding: perfectSize(16),
-    alignSelf: 'stretch',
+    borderRadius: 12,
+    padding: 16,
     backgroundColor: Colors.light.background,
-    marginBottom: perfectSize(16),
+    marginBottom: 20,
+    marginHorizontal: 20,
   },
   toggleTitle: {
-    fontSize: perfectSize(17),
+    fontSize: 17,
     fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium',
     color: Colors.light.text,
   },
   toggleSubtitle: {
-    fontSize: perfectSize(14),
+    fontSize: 14,
     color: Colors.light.textSecondary,
-    marginTop: perfectSize(4),
+    marginTop: 4,
   },
   continueButton: {
-    height: perfectSize(60),
-    backgroundColor: Colors.light.tint,
-    borderRadius: perfectSize(14),
+    height: 56,
+    backgroundColor: '#007AFF',
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: perfectSize(16),
-    marginBottom: perfectSize(8),
+    marginTop: 'auto',
+    marginBottom: 20,
+    marginHorizontal: 20,
   },
   continueButtonText: {
-    color: Colors.light.background,
-    fontSize: perfectSize(20),
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
-    fontWeight: '400',
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '600',
   },
   modalBackdrop: {
     flex: 1,
@@ -549,19 +568,19 @@ const styles = StyleSheet.create({
   modalSheet: {
     maxHeight: H * 0.45,
     backgroundColor: Colors.light.background,
-    borderTopLeftRadius: perfectSize(20),
-    borderTopRightRadius: perfectSize(20),
-    paddingTop: perfectSize(8),
-    paddingBottom: Platform.OS === 'ios' ? perfectSize(20) : perfectSize(8),
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: 8,
+    paddingBottom: Platform.OS === 'ios' ? 20 : 8,
   },
   modalItem: {
-    paddingVertical: perfectSize(14),
+    paddingVertical: 14,
     alignItems: 'center',
     borderBottomWidth: 1,
     borderBottomColor: Colors.light.border,
   },
   modalItemText: {
-    fontSize: perfectSize(18),
+    fontSize: 18,
     color: Colors.light.text,
   },
   loadingScreenContainer: {

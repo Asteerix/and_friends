@@ -2,37 +2,41 @@ import 'react-native-url-polyfill/auto';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import Constants from 'expo-constants';
-import { errorLogger } from '@/shared/utils/errorLogger';
-import { startupLogger } from '@/shared/utils/startupLogger';
+import { errorLogger } from '../../utils/errorLogger';
+import { startupLogger } from '../../utils/startupLogger';
 
 // Get Supabase configuration with multiple fallbacks
 const getSupabaseConfig = () => {
   const sources = [
-    { url: Constants.expoConfig?.extra?.supabaseUrl, key: Constants.expoConfig?.extra?.supabaseAnonKey, source: 'expo.extra' },
-    { url: process.env.EXPO_PUBLIC_SUPABASE_URL, key: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY, source: 'env' },
-    // Hardcoded fallback for production
-    { 
-      url: 'https://rmwgfiwngqciixbgluuq.supabase.co',
-      key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJtd2dmaXduZ3FjaWl4YmdsdXVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDcxNzU2NjMsImV4cCI6MjA2Mjc1MTY2M30.hQfym-9WtseC1stlaLkn4qGa_crkhYF3yjlHY-ei4qo',
-      source: 'hardcoded'
-    }
+    {
+      url: Constants.expoConfig?.extra?.supabaseUrl,
+      key: Constants.expoConfig?.extra?.supabaseAnonKey,
+      source: 'expo.extra',
+    },
+    {
+      url: process.env.EXPO_PUBLIC_SUPABASE_URL,
+      key: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
+      source: 'env',
+    },
   ];
-  
+
   for (const config of sources) {
     if (config.url && config.key) {
       startupLogger.log(`Using Supabase config from ${config.source}`, 'info');
       return { url: String(config.url), key: String(config.key) };
     }
   }
-  
+
   return { url: '', key: '' };
 };
 
 const { url: supabaseUrl, key: supabaseAnonKey } = getSupabaseConfig();
 
 // Validate configuration
-const isConfigValid = supabaseUrl && supabaseAnonKey && 
-  supabaseUrl.startsWith('https://') && 
+const isConfigValid =
+  supabaseUrl &&
+  supabaseAnonKey &&
+  supabaseUrl.startsWith('https://') &&
   supabaseAnonKey.length > 50;
 
 if (!isConfigValid) {
@@ -42,12 +46,12 @@ if (!isConfigValid) {
     hasUrl: !!supabaseUrl,
     hasKey: !!supabaseAnonKey,
     urlValid: supabaseUrl?.startsWith('https://'),
-    keyLength: supabaseAnonKey?.length
+    keyLength: supabaseAnonKey?.length,
   });
 } else {
   startupLogger.log('Supabase configuration validated', 'info', {
     url: supabaseUrl.slice(0, 30) + '...',
-    keyPreview: supabaseAnonKey.slice(0, 20) + '...'
+    keyPreview: supabaseAnonKey.slice(0, 20) + '...',
   });
 }
 
@@ -58,7 +62,7 @@ try {
   if (!isConfigValid) {
     throw new Error('Invalid Supabase configuration - using dummy client');
   }
-  
+
   supabase = createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
       storage: AsyncStorage,
@@ -68,47 +72,50 @@ try {
     },
     global: {
       headers: {
-        'x-client-info': 'andfriends-app/1.0.0'
-      }
+        'x-client-info': 'andfriends-app/1.0.0',
+      },
     },
     db: {
-      schema: 'public'
+      schema: 'public',
     },
     realtime: {
       params: {
-        eventsPerSecond: 10
-      }
-    }
+        eventsPerSecond: 10,
+      },
+    },
   });
-  
+
   startupLogger.log('Supabase client created successfully', 'info');
 } catch (error) {
   const err = error as Error;
   errorLogger.log(err, { context: 'supabase client creation' });
   startupLogger.log('Failed to create Supabase client', 'error', err);
-  
+
   // Create a dummy client that will fail gracefully
   supabase = {
     auth: {
-      getSession: async () => ({ data: { session: null }, error: new Error('Supabase not initialized') }),
+      getSession: async () => ({
+        data: { session: null },
+        error: new Error('Supabase not initialized'),
+      }),
       signInWithOtp: async () => ({ data: null, error: new Error('Supabase not initialized') }),
       verifyOtp: async () => ({ data: null, error: new Error('Supabase not initialized') }),
       signOut: async () => ({ error: new Error('Supabase not initialized') }),
-      onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } })
+      onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
     },
     from: () => ({
       select: async () => ({ data: null, error: new Error('Supabase not initialized') }),
       insert: async () => ({ data: null, error: new Error('Supabase not initialized') }),
       update: async () => ({ data: null, error: new Error('Supabase not initialized') }),
-      delete: async () => ({ data: null, error: new Error('Supabase not initialized') })
+      delete: async () => ({ data: null, error: new Error('Supabase not initialized') }),
     }),
     storage: {
       from: () => ({
         upload: async () => ({ data: null, error: new Error('Supabase not initialized') }),
         download: async () => ({ data: null, error: new Error('Supabase not initialized') }),
-        getPublicUrl: () => ({ data: { publicUrl: '' } })
-      })
-    }
+        getPublicUrl: () => ({ data: { publicUrl: '' } }),
+      }),
+    },
   } as any;
 }
 
@@ -126,7 +133,7 @@ if (isConfigValid) {
       } else {
         startupLogger.log('Supabase connection test successful', 'info', {
           hasSession: !!data.session,
-          userId: data.session?.user?.id
+          userId: data.session?.user?.id,
         });
       }
     } catch (err) {

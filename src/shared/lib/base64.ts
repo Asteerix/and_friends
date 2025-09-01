@@ -1,4 +1,3 @@
-
 /**
  * Base64 encoding/decoding utilities
  */

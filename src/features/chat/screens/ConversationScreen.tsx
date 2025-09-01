@@ -11,7 +11,6 @@ import {
   Text,
   View,
 } from 'react-native';
-
 import BubbleLeft from '@/features/chat/components/BubbleLeft';
 import BubbleRight from '@/features/chat/components/BubbleRight';
 import HeaderChat from '@/features/chat/components/HeaderChat';
@@ -42,7 +41,9 @@ export default function ConversationScreen() {
   const [chatInfo, setChatInfo] = useState<ChatInfo | null>(null);
   const flatListRef = useRef<FlatList>(null);
   const [showReportModal, setShowReportModal] = useState(false);
-  const [selectedMessage, setSelectedMessage] = useState<{ id: string; senderName: string } | null>(null);
+  const [selectedMessage, setSelectedMessage] = useState<{ id: string; senderName: string } | null>(
+    null
+  );
 
   useEffect(() => {
     if (chatId && chatId !== 'event') {
@@ -211,7 +212,7 @@ export default function ConversationScreen() {
         />
         <InputBar onSend={handleSendMessage} />
       </KeyboardAvoidingView>
-      
+
       {showReportModal && selectedMessage && (
         <ReportModal
           visible={showReportModal}

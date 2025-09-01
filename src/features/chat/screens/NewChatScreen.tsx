@@ -14,9 +14,9 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { ChatService } from '@/features/chats/services/chatService';
 import { useSession } from '@/shared/providers/SessionContext';
-import * as Haptics from 'expo-haptics';
 import { supabase } from '@/shared/lib/supabase/client';
 
 interface UserItem {
@@ -40,16 +40,12 @@ const UserListItem: React.FC<{
           <Image source={{ uri: user.avatar_url }} style={styles.avatar} />
         ) : (
           <View style={[styles.avatar, styles.defaultAvatar]}>
-            <Text style={styles.avatarText}>
-              {user.full_name.charAt(0).toUpperCase()}
-            </Text>
+            <Text style={styles.avatarText}>{user.full_name.charAt(0).toUpperCase()}</Text>
           </View>
         )}
         <View style={styles.userDetails}>
           <Text style={styles.userName}>{user.full_name}</Text>
-          {user.username && (
-            <Text style={styles.userUsername}>@{user.username}</Text>
-          )}
+          {user.username && <Text style={styles.userUsername}>@{user.username}</Text>}
         </View>
       </View>
       <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
@@ -99,16 +95,16 @@ export default function NewChatScreen() {
   const searchUsers = async () => {
     setLoading(true);
     const { data } = await ChatService.searchUsers(searchQuery);
-    setUsers(data.filter(u => u.id !== session?.user?.id));
+    setUsers(data.filter((u) => u.id !== session?.user?.id));
     setLoading(false);
   };
 
   const toggleUserSelection = (userId: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    
-    setSelectedUsers(prev => {
+
+    setSelectedUsers((prev) => {
       if (prev.includes(userId)) {
-        return prev.filter(id => id !== userId);
+        return prev.filter((id) => id !== userId);
       }
       return [...prev, userId];
     });
@@ -130,7 +126,7 @@ export default function NewChatScreen() {
 
     try {
       let chatData;
-      
+
       if (selectedUsers.length === 1 && !isGroup) {
         // Direct chat
         const result = await ChatService.getOrCreateDirectChat(selectedUsers[0]);
@@ -154,7 +150,7 @@ export default function NewChatScreen() {
       console.error('Error creating chat:', error);
       Alert.alert('Erreur', 'Impossible de créer la conversation');
     }
-    
+
     setCreating(false);
   };
 
@@ -177,10 +173,12 @@ export default function NewChatScreen() {
           onPress={handleCreateChat}
           disabled={creating || selectedUsers.length === 0}
         >
-          <Text style={[
-            styles.createButton,
-            (creating || selectedUsers.length === 0) && styles.createButtonDisabled
-          ]}>
+          <Text
+            style={[
+              styles.createButton,
+              (creating || selectedUsers.length === 0) && styles.createButtonDisabled,
+            ]}
+          >
             {creating ? 'Création...' : 'Créer'}
           </Text>
         </TouchableOpacity>
@@ -222,7 +220,8 @@ export default function NewChatScreen() {
       {selectedUsers.length > 0 && (
         <View style={styles.selectedContainer}>
           <Text style={styles.selectedTitle}>
-            {selectedUsers.length} utilisateur{selectedUsers.length > 1 ? 's' : ''} sélectionné{selectedUsers.length > 1 ? 's' : ''}
+            {selectedUsers.length} utilisateur{selectedUsers.length > 1 ? 's' : ''} sélectionné
+            {selectedUsers.length > 1 ? 's' : ''}
           </Text>
         </View>
       )}

@@ -1,5 +1,4 @@
 import * as Localization from 'expo-localization';
-
 import en from './en-extended.json';
 import fr from './fr-extended.json';
 
@@ -13,15 +12,14 @@ export function getDeviceLanguage(): 'fr' | 'en' {
   const locale = locales?.[0]?.languageCode || 'en';
   if (locale.startsWith('fr')) return 'fr';
   return 'en';
-};
+}
 export function t(
   key: string,
   lang?: 'fr' | 'en',
   variables?: Record<string, string | number>
 ): string {
   const language = lang || getDeviceLanguage();
-  let translation =
-    translations[language]?.[key] || translations['en']?.[key] || key;
+  let translation = translations[language]?.[key] || translations['en']?.[key] || key;
 
   if (variables) {
     Object.keys(variables).forEach((variableName) => {

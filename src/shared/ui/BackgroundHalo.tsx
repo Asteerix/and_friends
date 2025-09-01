@@ -2,7 +2,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import { StyleSheet } from 'react-native';
 
-
 const BackgroundHalo: React.FC = () => (
   <LinearGradient
     colors={['#A855F7', '#EC4899', '#F97316', '#14B8A6', '#A78BFA', '#A855F7']}

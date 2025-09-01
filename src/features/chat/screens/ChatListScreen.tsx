@@ -15,10 +15,10 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import * as Haptics from 'expo-haptics';
 import { useMessagesAdvanced } from '@/hooks/useMessagesAdvanced';
 import { useSession } from '@/shared/providers/SessionContext';
 import { supabase } from '@/shared/lib/supabase/client';
-import * as Haptics from 'expo-haptics';
 
 interface ChatItemProps {
   chat: any;
@@ -35,12 +35,12 @@ const ChatItem: React.FC<ChatItemProps> = ({ chat, currentUserId, onPress }) => 
   };
 
   const otherParticipant = getOtherParticipant();
-  const displayName = chat.is_group 
+  const displayName = chat.is_group
     ? chat.name || 'Groupe sans nom'
     : otherParticipant?.profiles?.full_name || 'Utilisateur';
 
   const avatarUrl = !chat.is_group && otherParticipant?.profiles?.avatar_url;
-  const lastMessageTime = chat.lastMessage?.created_at 
+  const lastMessageTime = chat.lastMessage?.created_at
     ? format(new Date(chat.lastMessage.created_at), 'HH:mm', { locale: fr })
     : '';
 
@@ -57,9 +57,7 @@ const ChatItem: React.FC<ChatItemProps> = ({ chat, currentUserId, onPress }) => 
           <Image source={{ uri: avatarUrl }} style={styles.avatar} />
         ) : (
           <View style={[styles.avatar, styles.defaultAvatar]}>
-            <Text style={styles.avatarText}>
-              {displayName.charAt(0).toUpperCase()}
-            </Text>
+            <Text style={styles.avatarText}>{displayName.charAt(0).toUpperCase()}</Text>
           </View>
         )}
         {unreadCount > 0 && (
@@ -78,14 +76,14 @@ const ChatItem: React.FC<ChatItemProps> = ({ chat, currentUserId, onPress }) => 
         </View>
         <View style={styles.chatFooter}>
           <Text style={styles.lastMessage} numberOfLines={1}>
-            {chat.lastMessage?.message_type === 'image' ? '📷 Photo' :
-             chat.lastMessage?.message_type === 'audio' ? '🎵 Message vocal' :
-             chat.lastMessage?.content || 'Aucun message'}
+            {chat.lastMessage?.message_type === 'image'
+              ? '📷 Photo'
+              : chat.lastMessage?.message_type === 'audio'
+                ? '🎵 Message vocal'
+                : chat.lastMessage?.content || 'Aucun message'}
           </Text>
           {chat.is_group && chat.participants_count && (
-            <Text style={styles.participantCount}>
-              {chat.participants_count} membres
-            </Text>
+            <Text style={styles.participantCount}>{chat.participants_count} membres</Text>
           )}
         </View>
       </View>
@@ -100,21 +98,19 @@ export default function ChatListScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
 
-  const filteredChats = chats.filter(chat => {
+  const filteredChats = chats.filter((chat) => {
     if (!searchQuery) return true;
-    
+
     const query = searchQuery.toLowerCase();
     const chatName = chat.name?.toLowerCase() || '';
-    
+
     // For direct chats, also search in participant names
     if (!chat.is_group && chat.participants) {
-      const otherParticipant = chat.participants.find(
-        (p: any) => p.user_id !== session?.user?.id
-      );
+      const otherParticipant = chat.participants.find((p: any) => p.user_id !== session?.user?.id);
       const participantName = otherParticipant?.profiles?.full_name?.toLowerCase() || '';
       return chatName.includes(query) || participantName.includes(query);
     }
-    
+
     return chatName.includes(query);
   });
 
@@ -194,9 +190,7 @@ export default function ChatListScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={filteredChats.length === 0 ? styles.emptyContainer : undefined}
           ListEmptyComponent={<EmptyState />}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-          }
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
         />
       )}

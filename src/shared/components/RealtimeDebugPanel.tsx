@@ -27,10 +27,7 @@ export function RealtimeDebugPanel({ enabled = __DEV__ }: RealtimeDebugPanelProp
   return (
     <>
       {/* Floating Debug Button */}
-      <TouchableOpacity
-        style={styles.floatingButton}
-        onPress={() => setIsVisible(true)}
-      >
+      <TouchableOpacity style={styles.floatingButton} onPress={() => setIsVisible(true)}>
         <View style={styles.badge}>
           <Text style={styles.badgeText}>RT</Text>
           <View
@@ -57,10 +54,7 @@ export function RealtimeDebugPanel({ enabled = __DEV__ }: RealtimeDebugPanelProp
             {/* Header */}
             <View style={styles.header}>
               <Text style={styles.title}>Realtime Debug Panel</Text>
-              <TouchableOpacity
-                onPress={() => setIsVisible(false)}
-                style={styles.closeButton}
-              >
+              <TouchableOpacity onPress={() => setIsVisible(false)} style={styles.closeButton}>
                 <Text style={styles.closeButtonText}>✕</Text>
               </TouchableOpacity>
             </View>
@@ -77,11 +71,7 @@ export function RealtimeDebugPanel({ enabled = __DEV__ }: RealtimeDebugPanelProp
                 value={metrics.messagesReceived.toString()}
                 color="#2196F3"
               />
-              <StatCard
-                label="Errors"
-                value={metrics.errors.toString()}
-                color="#FF5252"
-              />
+              <StatCard label="Errors" value={metrics.errors.toString()} color="#FF5252" />
               <StatCard
                 label="Reconnects"
                 value={metrics.reconnections.toString()}
@@ -152,9 +142,7 @@ function ChannelCard({ channel }: { channel: any }) {
         </Text>
       </View>
       <View style={styles.channelStats}>
-        <Text style={styles.channelStat}>
-          Messages: {channel.messagesReceived}
-        </Text>
+        <Text style={styles.channelStat}>Messages: {channel.messagesReceived}</Text>
         <Text style={styles.channelStat}>Errors: {channel.errors}</Text>
       </View>
     </View>

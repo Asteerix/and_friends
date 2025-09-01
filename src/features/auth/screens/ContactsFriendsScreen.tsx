@@ -38,7 +38,6 @@ interface ContactMatch {
   contact_name: string; // Name from phone contacts
 }
 
-
 const ContactsFriendsScreen: React.FC = React.memo(() => {
   const insets = useSafeAreaInsets();
   const { navigateBack, navigateNext, getProgress } = useAuthNavigation('contacts-friends');
@@ -58,7 +57,7 @@ const ContactsFriendsScreen: React.FC = React.memo(() => {
   const loadContactsAndMatch = async () => {
     try {
       setLoading(true);
-      
+
       // Get phone contacts
       const { data: contactsData } = await Contacts.getContactsAsync({
         fields: [Contacts.Fields.PhoneNumbers, Contacts.Fields.Name],
@@ -71,9 +70,9 @@ const ContactsFriendsScreen: React.FC = React.memo(() => {
 
       // Extract all phone numbers
       const phoneNumbers: { number: string; name: string }[] = [];
-      contactsData.forEach(contact => {
+      contactsData.forEach((contact) => {
         if (contact.phoneNumbers) {
-          contact.phoneNumbers.forEach(phone => {
+          contact.phoneNumbers.forEach((phone) => {
             if (phone.number) {
               phoneNumbers.push({
                 number: normalizePhoneNumber(phone.number),
@@ -85,12 +84,12 @@ const ContactsFriendsScreen: React.FC = React.memo(() => {
       });
 
       // Query Supabase for users with these phone numbers
-      const phoneNumbersList = phoneNumbers.map(p => p.number);
-      
+      const phoneNumbersList = phoneNumbers.map((p) => p.number);
+
       // Since phone numbers are in auth.users, we need to get user IDs first
       // We'll use the admin API to search by phone numbers
       // For now, we'll use a workaround by getting all profiles and filtering
-      
+
       // Get all profiles (this is not ideal but works for now)
       const { data: allProfiles, error: profilesError } = await supabase
         .from('profiles')
@@ -110,38 +109,51 @@ const ContactsFriendsScreen: React.FC = React.memo(() => {
       // For each profile, we need to check if their auth.users phone matches
       // This is a limitation - we can't directly query auth.users from client
       // In a production app, you would create a server-side function for this
-      
+
       // For now, we'll just show all users as a demo
       // In production, you'd need a server function to match phone numbers
       const matchedUsers = allProfiles.slice(0, 10); // Just show first 10 users as demo
 
       // Get friendship status for matched users
-      const userIds = matchedUsers.map(u => u.id);
-      
+      const userIds = matchedUsers.map((u) => u.id);
+
       // Check existing friendships
       const { data: friendships } = await supabase
         .from('friendships')
-        .select('user_id1, user_id2, status')
-        .or(`user_id1.eq.${profile?.id},user_id2.eq.${profile?.id}`)
-        .in('user_id1', userIds)
-        .in('user_id2', userIds);
+        .select('user_id, friend_id, status')
+        .or(`user_id.eq.${profile?.id},friend_id.eq.${profile?.id}`)
+        .in('user_id', userIds)
+        .in('friend_id', userIds);
 
       // Map matched users with contact names and friendship status
       const mappedContacts: ContactMatch[] = matchedUsers.map((user) => {
         // Since we can't match phone numbers, assign a random contact name
         const randomContact = phoneNumbers[Math.floor(Math.random() * phoneNumbers.length)];
-        
+
         // Check if already friends or has pending request
-        const friendship = friendships?.find(f => 
-          (f.user_id1 === profile?.id && f.user_id2 === user.id) ||
-          (f.user_id2 === profile?.id && f.user_id1 === user.id)
+        const friendship = friendships?.find(
+          (f) =>
+            (f.user_id === profile?.id && f.friend_id === user.id) ||
+            (f.friend_id === profile?.id && f.user_id === user.id)
         );
-        
+
+        // Get public URL for avatar if it exists
+        let publicAvatarUrl = user.avatar_url;
+        if (user.avatar_url && user.avatar_url.includes('supabase')) {
+          // If it's a Supabase Storage URL, ensure it's public
+          const { data: urlData } = supabase.storage
+            .from('avatars')
+            .getPublicUrl(user.avatar_url.split('/').pop() || '');
+          if (urlData) {
+            publicAvatarUrl = urlData.publicUrl;
+          }
+        }
+
         return {
           id: user.id,
           username: user.username || '',
           full_name: user.full_name || '',
-          avatar_url: user.avatar_url,
+          avatar_url: publicAvatarUrl,
           phone_number: '', // We don't have access to phone numbers
           bio: user.bio,
           contact_name: randomContact?.name || 'Contact',
@@ -151,7 +163,7 @@ const ContactsFriendsScreen: React.FC = React.memo(() => {
         };
       });
 
-      // Sort by mutual friends count (descending) 
+      // Sort by mutual friends count (descending)
       mappedContacts.sort((a, b) => b.mutual_friends_count - a.mutual_friends_count);
 
       setContacts(mappedContacts);
@@ -186,16 +198,15 @@ const ContactsFriendsScreen: React.FC = React.memo(() => {
 
     try {
       // Create friend requests in Supabase
-      const friendRequests = Array.from(selectedUsers).map(userId => ({
-        user_id1: profile?.id,
-        user_id2: userId,
+      const friendRequests = Array.from(selectedUsers).map((userId) => ({
+        user_id: profile?.id,
+        friend_id: userId,
         status: 'pending',
+        requested_at: new Date().toISOString(),
         created_at: new Date().toISOString(),
       }));
 
-      const { error } = await supabase
-        .from('friendships')
-        .insert(friendRequests);
+      const { error } = await supabase.from('friendships').insert(friendRequests);
 
       if (error) {
         console.error('Error sending friend requests:', error);
@@ -223,10 +234,11 @@ const ContactsFriendsScreen: React.FC = React.memo(() => {
     navigateNext('location-permission');
   };
 
-  const filteredContacts = contacts.filter(contact =>
-    contact.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    contact.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    contact.contact_name.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredContacts = contacts.filter(
+    (contact) =>
+      contact.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      contact.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      contact.contact_name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const renderContact = ({ item }: { item: ContactMatch }) => {
@@ -256,13 +268,14 @@ const ContactsFriendsScreen: React.FC = React.memo(() => {
               <View style={styles.mutualFriendsContainer}>
                 <Ionicons name="people" size={14} color="#666" />
                 <Text style={styles.mutualFriendsText}>
-                  {item.mutual_friends_count} mutual friend{item.mutual_friends_count > 1 ? 's' : ''}
+                  {item.mutual_friends_count} mutual friend
+                  {item.mutual_friends_count > 1 ? 's' : ''}
                 </Text>
               </View>
             )}
           </View>
         </View>
-        
+
         <View style={styles.contactRight}>
           {item.is_friend ? (
             <View style={styles.friendBadge}>

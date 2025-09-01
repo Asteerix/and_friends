@@ -1,17 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { 
-  View, 
-  Text, 
-  ActivityIndicator, 
-  StyleSheet, 
-  Image,
-  TouchableOpacity 
-} from 'react-native';
+import { View, Text, ActivityIndicator, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { supabase } from '@/shared/lib/supabase/client';
-import { useSession } from '@/shared/providers/SessionContext';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { supabase } from '@/shared/lib/supabase/client';
+import { useSession } from '@/shared/providers/SessionContext';
 
 export default function StoryDeepLinkScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -32,7 +25,8 @@ export default function StoryDeepLinkScreen() {
       setLoading(true);
       const { data, error } = await supabase
         .from('stories')
-        .select(`
+        .select(
+          `
           *,
           user:profiles!stories_user_id_fkey(
             id,
@@ -40,7 +34,8 @@ export default function StoryDeepLinkScreen() {
             full_name,
             avatar_url
           )
-        `)
+        `
+        )
         .eq('id', id)
         .single();
 
@@ -48,7 +43,7 @@ export default function StoryDeepLinkScreen() {
 
       if (data) {
         setStory(data);
-        
+
         // If user is logged in, redirect to the story viewer
         if (session?.user) {
           router.replace(`/screens/stories/viewer?userId=${data.user_id}&storyId=${id}`);
@@ -96,20 +91,13 @@ export default function StoryDeepLinkScreen() {
   if (!session?.user) {
     return (
       <View style={styles.container}>
-        <Image 
-          source={{ uri: story.media_url }} 
-          style={styles.previewImage}
-          resizeMode="cover"
-        />
-        
-        <LinearGradient
-          colors={['transparent', 'rgba(0,0,0,0.8)']}
-          style={styles.gradient}
-        />
-        
+        <Image source={{ uri: story.media_url }} style={styles.previewImage} resizeMode="cover" />
+
+        <LinearGradient colors={['transparent', 'rgba(0,0,0,0.8)']} style={styles.gradient} />
+
         <View style={styles.content}>
           <View style={styles.userInfo}>
-            <Image 
+            <Image
               source={{ uri: story.user?.avatar_url || 'https://via.placeholder.com/48' }}
               style={styles.avatar}
             />
@@ -118,11 +106,9 @@ export default function StoryDeepLinkScreen() {
               <Text style={styles.fullName}>{story.user?.full_name || ''}</Text>
             </View>
           </View>
-          
-          {story.caption && (
-            <Text style={styles.caption}>{story.caption}</Text>
-          )}
-          
+
+          {story.caption && <Text style={styles.caption}>{story.caption}</Text>}
+
           <View style={styles.stats}>
             <View style={styles.statItem}>
               <Ionicons name="eye-outline" size={20} color="#FFF" />
@@ -137,13 +123,13 @@ export default function StoryDeepLinkScreen() {
               <Text style={styles.statText}>{story.replies_count || 0}</Text>
             </View>
           </View>
-          
+
           <Text style={styles.ctaText}>Join AndFriends to view this story and more!</Text>
-          
+
           <TouchableOpacity style={styles.primaryButton} onPress={handleSignup}>
             <Text style={styles.primaryButtonText}>Sign Up Free</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity style={styles.secondaryButton} onPress={handleLogin}>
             <Text style={styles.secondaryButtonText}>Already have an account? Log in</Text>
           </TouchableOpacity>

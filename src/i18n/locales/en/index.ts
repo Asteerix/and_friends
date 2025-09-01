@@ -154,7 +154,8 @@ export default {
         notReceivingSMS: 'Not receiving SMS?',
         smsHelpLabel: 'Help for receiving SMS',
         serviceUnavailable: 'Service temporarily unavailable',
-        serviceUnavailableMessage: 'SMS service is temporarily unavailable. What would you like to do?',
+        serviceUnavailableMessage:
+          'SMS service is temporarily unavailable. What would you like to do?',
         testMode: 'Test Mode',
         testModeInstructions: 'Use:\nNumber: +33612345678\nCode: 123456',
         useTestMode: 'Use',
@@ -263,7 +264,8 @@ export default {
         hostedBy: 'Hosted by',
         coHostedWith: 'Co-hosted with',
         hostApprovalRequired: 'Host approval required',
-        defaultDescription: 'Join us for an amazing experience! The host will share more details soon.',
+        defaultDescription:
+          'Join us for an amazing experience! The host will share more details soon.',
         thingsToKnow: 'Things to know',
         rsvpDeadline: 'RSVP deadline',
         dressCode: 'Dress code',
@@ -577,7 +579,8 @@ export default {
         downloadDataMessage: 'Your data will be sent to your email address',
         request: 'Request',
         dataRequestSubmitted: 'Data request submitted. You will receive an email within 24 hours.',
-        deleteAccountWarning: 'This action cannot be undone. All your data will be permanently deleted.',
+        deleteAccountWarning:
+          'This action cannot be undone. All your data will be permanently deleted.',
         confirmDeletion: 'Confirm Deletion',
         typeDeleteToConfirm: 'Please type "DELETE" to confirm',
         accountDeleted: 'Account Deleted',

@@ -1,4 +1,3 @@
-
 import { Ionicons } from '@expo/vector-icons';
 import { useAudioRecorder, RecordingPresets, AudioModule } from 'expo-audio';
 import * as Haptics from 'expo-haptics';
@@ -14,7 +13,7 @@ export default function VoiceRecorder({ onRecordingComplete, onCancel }: VoiceRe
   const [duration, setDuration] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
   // const [amplitude, setAmplitude] = useState(0);
-  
+
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const pulseAnim = useRef(new Animated.Value(0)).current;
   const amplitudeAnim = useRef(new Animated.Value(0)).current;
@@ -26,7 +25,10 @@ export default function VoiceRecorder({ onRecordingComplete, onCancel }: VoiceRe
       try {
         const { status } = await AudioModule.requestRecordingPermissionsAsync();
         if (status !== 'granted') {
-          Alert.alert('Permission required', 'Please grant audio recording permission to use this feature.');
+          Alert.alert(
+            'Permission required',
+            'Please grant audio recording permission to use this feature.'
+          );
         }
       } catch (error) {
         console.error('Failed to get audio permissions:', error);
@@ -77,7 +79,7 @@ export default function VoiceRecorder({ onRecordingComplete, onCancel }: VoiceRe
 
       // Start duration counter
       durationInterval.current = setInterval(() => {
-        setDuration(prev => prev + 1);
+        setDuration((prev) => prev + 1);
       }, 1000);
 
       // Animate button
@@ -221,11 +223,7 @@ export default function VoiceRecorder({ onRecordingComplete, onCancel }: VoiceRe
           onPress={cancelRecording}
           disabled={!isRecording}
         >
-          <Ionicons 
-            name="close" 
-            size={24} 
-            color={isRecording ? '#FF3B30' : '#999'} 
-          />
+          <Ionicons name="close" size={24} color={isRecording ? '#FF3B30' : '#999'} />
         </TouchableOpacity>
 
         {/* Record/Stop button */}
@@ -258,12 +256,8 @@ export default function VoiceRecorder({ onRecordingComplete, onCancel }: VoiceRe
                 },
               ]}
             />
-            
-            <Ionicons
-              name={isRecording ? 'stop' : 'mic'}
-              size={32}
-              color="white"
-            />
+
+            <Ionicons name={isRecording ? 'stop' : 'mic'} size={32} color="white" />
           </Animated.View>
         </TouchableOpacity>
 

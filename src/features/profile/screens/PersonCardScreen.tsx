@@ -12,7 +12,6 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-
 import { supabase } from '@/shared/lib/supabase/client';
 import CustomText, { AfterHoursText, PlayfairText } from '@/shared/ui/CustomText';
 import { useSession } from '@/shared/providers/SessionContext';
@@ -65,7 +64,6 @@ export default function PersonCardScreen() {
       }),
     ]).start();
   };
-
 
   const handleConnect = () => {
     setIsFollowing(!isFollowing);

@@ -1,10 +1,8 @@
-
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { router } from 'expo-router';
 import { useState, useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
-
 import { supabase } from '../shared/lib/supabase/client';
 import { useSession } from '../shared/providers/SessionContext';
 
@@ -29,7 +27,7 @@ export function usePushNotifications() {
   useEffect(() => {
     if (!session?.user) return;
 
-    void registerForPushNotificationsAsync().then(token => {
+    void registerForPushNotificationsAsync().then((token) => {
       if (token) {
         setExpoPushToken(token);
         savePushToken(token);
@@ -37,12 +35,12 @@ export function usePushNotifications() {
     });
 
     // Listen for incoming notifications
-    notificationListener.current = Notifications.addNotificationReceivedListener(notif => {
+    notificationListener.current = Notifications.addNotificationReceivedListener((notif) => {
       setNotification(notif);
     });
 
     // Listen for notification interactions
-    responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
+    responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
       handleNotificationResponse(response);
     });
 
@@ -71,20 +69,22 @@ export function usePushNotifications() {
     if (Device.isDevice) {
       const { status: existingStatus } = await Notifications.getPermissionsAsync();
       let finalStatus = existingStatus;
-      
+
       if (existingStatus !== 'granted') {
         const { status } = await Notifications.requestPermissionsAsync();
         finalStatus = status;
       }
-      
+
       if (finalStatus !== 'granted') {
         console.log('Failed to get push token for push notification!');
         return;
       }
-      
-      token = (await Notifications.getExpoPushTokenAsync({
-        projectId: process.env.EXPO_PUBLIC_PROJECT_ID,
-      })).data;
+
+      token = (
+        await Notifications.getExpoPushTokenAsync({
+          projectId: process.env.EXPO_PUBLIC_PROJECT_ID,
+        })
+      ).data;
     } else {
       console.log('Must use physical device for Push Notifications');
     }
@@ -108,26 +108,24 @@ export function usePushNotifications() {
         // Update existing token
         await supabase
           .from('push_tokens')
-          .update({ 
+          .update({
             updated_at: new Date().toISOString(),
-            active: true 
+            active: true,
           })
           .eq('id', existing.id);
       } else {
         // Insert new token
-        await supabase
-          .from('push_tokens')
-          .insert({
-            user_id: session.user.id,
-            token,
-            platform: Platform.OS,
-            device_info: {
-              brand: Device.brand,
-              model: Device.modelName,
-              os: Device.osName,
-              osVersion: Device.osVersion,
-            },
-          });
+        await supabase.from('push_tokens').insert({
+          user_id: session.user.id,
+          token,
+          platform: Platform.OS,
+          device_info: {
+            brand: Device.brand,
+            model: Device.modelName,
+            os: Device.osName,
+            osVersion: Device.osVersion,
+          },
+        });
       }
     } catch (error) {
       console.error('Error saving push token:', error);
@@ -141,42 +139,42 @@ export function usePushNotifications() {
 
     // Navigate based on notification type
     switch (data.type) {
-    case 'friend_request':
-    case 'friend_accepted':
-      void router.push('/screens/friends');
-      break;
-    case 'event_invite':
-    case 'event_update':
-    case 'event_reminder':
-      if (data.event_id) {
-        void router.push(`/screens/event-details?id=${data.event_id}`);
-      }
-      break;
-    case 'new_message':
-      if (data.chat_id) {
-        void router.push(`/screens/conversation?id=${data.chat_id}`);
-      }
-      break;
-    case 'new_story':
-    case 'story_mention':
-      if (data.story_id) {
-        void router.push(`/screens/stories?id=${data.story_id}`);
-      }
-      break;
-    case 'memory_like':
-    case 'memory_comment':
-      if (data.memory_id && data.event_id) {
-        void router.push(`/screens/event-details?id=${data.event_id}&memory=${data.memory_id}`);
-      }
-      break;
-    case 'event_comment':
-    case 'event_like':
-      if (data.event_id) {
-        void router.push(`/screens/event-details?id=${data.event_id}&tab=comments`);
-      }
-      break;
-    default:
-      void router.push('/screens/notifications');
+      case 'friend_request':
+      case 'friend_accepted':
+        void router.push('/screens/friends');
+        break;
+      case 'event_invite':
+      case 'event_update':
+      case 'event_reminder':
+        if (data.event_id) {
+          void router.push(`/screens/event-details?id=${data.event_id}`);
+        }
+        break;
+      case 'new_message':
+        if (data.chat_id) {
+          void router.push(`/screens/conversation?id=${data.chat_id}`);
+        }
+        break;
+      case 'new_story':
+      case 'story_mention':
+        if (data.story_id) {
+          void router.push(`/screens/stories?id=${data.story_id}`);
+        }
+        break;
+      case 'memory_like':
+      case 'memory_comment':
+        if (data.memory_id && data.event_id) {
+          void router.push(`/screens/event-details?id=${data.event_id}&memory=${data.memory_id}`);
+        }
+        break;
+      case 'event_comment':
+      case 'event_like':
+        if (data.event_id) {
+          void router.push(`/screens/event-details?id=${data.event_id}&tab=comments`);
+        }
+        break;
+      default:
+        void router.push('/screens/notifications');
     }
   };
 

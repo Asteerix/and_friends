@@ -1,6 +1,6 @@
 import { supabase } from '@/shared/lib/supabase/client';
 
-export type NotificationType = 
+export type NotificationType =
   | 'friend_request'
   | 'friend_accepted'
   | 'new_rating'

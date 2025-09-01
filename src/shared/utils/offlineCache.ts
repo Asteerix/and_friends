@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNetworkStore } from '../stores/networkStore';
 
@@ -31,7 +31,7 @@ export async function cachedRequest<T>(
 ): Promise<T> {
   const { ttl = 60 * 60 * 1000, fallbackToCache = true, compress = false } = options;
   const { isConnected } = useNetworkStore.getState();
-  
+
   // Mode offline : retourne le cache
   if (!isConnected && fallbackToCache) {
     const cached = await getCachedData<T>(key);
@@ -41,18 +41,18 @@ export async function cachedRequest<T>(
     }
     throw new Error('Pas de données en cache pour le mode hors ligne');
   }
-  
+
   try {
     // Requête normale
     const data = await requestFn();
-    
+
     // Sauvegarde en cache
     await setCachedData(key, data, ttl, compress);
-    
+
     return data;
   } catch (error) {
     console.error(`❌ [Cache] Request failed for ${key}:`, error);
-    
+
     // Fallback sur le cache en cas d'erreur
     if (fallbackToCache) {
       const cached = await getCachedData<T>(key);
@@ -72,16 +72,16 @@ async function getCachedData<T>(key: string): Promise<T | null> {
   try {
     const stored = await AsyncStorage.getItem(key);
     if (!stored) return null;
-    
+
     const cached: CachedData<T> = JSON.parse(stored);
-    
+
     // Vérifie si le cache est expiré
     if (Date.now() - cached.timestamp > cached.ttl) {
       console.log(`🗑️ [Cache] Expired data for ${key}`);
       await AsyncStorage.removeItem(key);
       return null;
     }
-    
+
     // Décompression si nécessaire
     let data = cached.data;
     if (cached.compressed) {
@@ -89,7 +89,7 @@ async function getCachedData<T>(key: string): Promise<T | null> {
       // Pour l'instant, on retourne les données telles quelles
       data = cached.data;
     }
-    
+
     console.log(`✅ [Cache] Valid data found for ${key}`);
     return data;
   } catch (error) {
@@ -102,28 +102,28 @@ async function getCachedData<T>(key: string): Promise<T | null> {
  * Sauvegarde les données en cache
  */
 async function setCachedData<T>(
-  key: string, 
-  data: T, 
+  key: string,
+  data: T,
   ttl: number,
   compress: boolean
 ): Promise<void> {
   try {
     let dataToStore = data;
-    
+
     // Compression si demandée (à implémenter selon les besoins)
     if (compress) {
       // Dans un cas réel, implémenter la compression
       // Pour l'instant, on stocke les données telles quelles
       dataToStore = data;
     }
-    
+
     const cacheData: CachedData<T> = {
       data: dataToStore,
       timestamp: Date.now(),
       ttl,
-      compressed: compress
+      compressed: compress,
     };
-    
+
     await AsyncStorage.setItem(key, JSON.stringify(cacheData));
     console.log(`💾 [Cache] Data saved for ${key}`);
   } catch (error) {
@@ -163,14 +163,14 @@ export async function getCacheSize(): Promise<number> {
   try {
     const keys = await AsyncStorage.getAllKeys();
     let totalSize = 0;
-    
+
     for (const key of keys) {
       const value = await AsyncStorage.getItem(key);
       if (value) {
         totalSize += value.length;
       }
     }
-    
+
     return totalSize;
   } catch (error) {
     console.error('❌ [Cache] Error calculating size:', error);
@@ -185,7 +185,7 @@ export async function cleanExpiredCache(): Promise<number> {
   try {
     const keys = await AsyncStorage.getAllKeys();
     let removedCount = 0;
-    
+
     for (const key of keys) {
       try {
         const stored = await AsyncStorage.getItem(key);
@@ -202,7 +202,7 @@ export async function cleanExpiredCache(): Promise<number> {
         // Ignorer les erreurs de parsing
       }
     }
-    
+
     console.log(`🗑️ [Cache] Cleaned ${removedCount} expired entries`);
     return removedCount;
   } catch (error) {
@@ -219,11 +219,7 @@ export async function cleanExpiredCache(): Promise<number> {
  *   () => supabase.from('users').select()
  * );
  */
-export function useCachedData<T>(
-  key: string,
-  requestFn: () => Promise<T>,
-  options?: CacheOptions
-) {
+export function useCachedData<T>(key: string, requestFn: () => Promise<T>, options?: CacheOptions) {
   const [data, setData] = React.useState<T | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<Error | null>(null);
@@ -231,7 +227,7 @@ export function useCachedData<T>(
   const fetch = React.useCallback(async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const result = await cachedRequest(key, requestFn, options);
       setData(result);

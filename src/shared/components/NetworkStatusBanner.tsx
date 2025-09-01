@@ -18,11 +18,12 @@ export const NetworkStatusBanner: React.FC<NetworkStatusBannerProps> = ({
   const translateY = useState(new Animated.Value(-100))[0];
 
   useEffect(() => {
-    const shouldShow = (showOnOffline && isOffline) || (showOnSlowConnection && isSlowConnection && !isOffline);
-    
+    const shouldShow =
+      (showOnOffline && isOffline) || (showOnSlowConnection && isSlowConnection && !isOffline);
+
     if (shouldShow !== isVisible) {
       setIsVisible(shouldShow);
-      
+
       Animated.timing(translateY, {
         toValue: shouldShow ? 0 : -100,
         duration: 300,
@@ -35,19 +36,12 @@ export const NetworkStatusBanner: React.FC<NetworkStatusBannerProps> = ({
     return null;
   }
 
-  const message = isOffline 
-    ? t('network.offline') 
-    : t('network.slowConnection');
-    
+  const message = isOffline ? t('network.offline') : t('network.slowConnection');
+
   const backgroundColor = isOffline ? '#E53E3E' : '#F6AD55';
 
   return (
-    <Animated.View 
-      style={[
-        styles.container, 
-        { backgroundColor, transform: [{ translateY }] }
-      ]}
-    >
+    <Animated.View style={[styles.container, { backgroundColor, transform: [{ translateY }] }]}>
       <Text style={styles.text}>{message}</Text>
       {isSlowConnection && !isOffline && (
         <Text style={styles.subText}>{t('network.slowConnectionMessage')}</Text>

@@ -17,21 +17,21 @@ import {
 import * as Location from 'expo-location';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useRouter } from 'expo-router';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
+import { create } from 'react-native-pixel-perfect';
+import ClusterModal from '../components/ClusterModal';
 import { useEventsAdvanced } from '@/hooks/useEventsAdvanced';
 import { useMapStore } from '@/store/mapStore';
 import { TEMPLATES } from '@/features/events/data/eventTemplates';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
 import ChatButtonIcon from '@/assets/svg/chat-button.svg';
 import NotificationButtonIcon from '@/assets/svg/notification-button.svg';
 import SearchIcon from '@/assets/svg/search.svg';
 import BackButtonIcon from '@/assets/svg/back-button.svg';
 import { useNotifications } from '@/shared/providers/NotificationProvider';
-import ClusterModal from '../components/ClusterModal';
 import { useSession } from '@/shared/providers/SessionContext';
 import EventThumbnail from '@/shared/components/EventThumbnail';
 import { EVENT_CATEGORIES } from '@/features/events/utils/categoryHelpers';
-import { create } from 'react-native-pixel-perfect';
 import NotificationBadge from '@/features/notifications/components/NotificationBadge';
 import { getCountryFlag, getCityInfo } from '@/features/map/data/placesData';
 import { getCityColor } from '@/features/map/data/cityColors';
@@ -73,7 +73,7 @@ export const formatEventDate = (date: string, startTime?: string): string => {
 // Use categories from categoryHelpers with "All" as first option
 const CATEGORIES = [
   { id: 'all', label: 'All', icon: '🌍' },
-  ...EVENT_CATEGORIES.slice(0, 5) // Take first 5 categories for the tab bar
+  ...EVENT_CATEGORIES.slice(0, 5), // Take first 5 categories for the tab bar
 ];
 
 // Get template image by ID
@@ -113,9 +113,9 @@ const getCategoryColor = (category?: string | null): string => {
     social: '#7209B7',
     default: '#007AFF',
   };
-  
+
   if (!category) return colors['default']!;
-  
+
   const key = category.toLowerCase();
   return colors[key] || colors['default']!;
 };
@@ -141,7 +141,9 @@ const MapScreenFixed = () => {
     cities: { name: string; eventCount: number }[];
     countries: { name: string; eventCount: number }[];
   }>({ events: [], cities: [], countries: [] });
-  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(
+    null
+  );
 
   console.log('📊 [MapScreenFixed] State:', {
     eventsCount: events.length,
@@ -168,15 +170,18 @@ const MapScreenFixed = () => {
             latitude: location.coords.latitude,
             longitude: location.coords.longitude,
           });
-          
+
           // Update map region to user location
           if (mapRef.current) {
-            mapRef.current.animateToRegion({
-              latitude: location.coords.latitude,
-              longitude: location.coords.longitude,
-              latitudeDelta: 0.05,
-              longitudeDelta: 0.05,
-            }, 1000);
+            mapRef.current.animateToRegion(
+              {
+                latitude: location.coords.latitude,
+                longitude: location.coords.longitude,
+                latitudeDelta: 0.05,
+                longitudeDelta: 0.05,
+              },
+              1000
+            );
           }
         }
       } catch (error) {
@@ -187,43 +192,47 @@ const MapScreenFixed = () => {
 
   // Get user's current location (prefer real location over map center)
   const getUserLocation = () => {
-    return userLocation || {
-      latitude: region.latitude,
-      longitude: region.longitude,
-    };
+    return (
+      userLocation || {
+        latitude: region.latitude,
+        longitude: region.longitude,
+      }
+    );
   };
 
   // Calculate distance between two coordinates
   const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
     const R = 6371; // Earth's radius in km
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = 
-      Math.sin(dLat/2) * Math.sin(dLat/2) +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-      Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   };
 
   // Get popular events near user
   const getPopularNearbyEvents = () => {
     const userLocation = getUserLocation();
-    
+
     // Calculate events with distance and sort by participants
-    const eventsWithDistance = eventsWithCoordinates.map(event => ({
+    const eventsWithDistance = eventsWithCoordinates.map((event) => ({
       ...event,
       distance: calculateDistance(
         userLocation.latitude,
         userLocation.longitude,
         event.coordinates.latitude,
         event.coordinates.longitude
-      )
+      ),
     }));
-    
+
     // Filter nearby events (within 50km) and sort by popularity
     return eventsWithDistance
-      .filter(event => event.distance <= 50)
+      .filter((event) => event.distance <= 50)
       .sort((a, b) => {
         // First sort by participant count (popularity)
         const countDiff = (b.participants_count || 0) - (a.participants_count || 0);
@@ -238,8 +247,8 @@ const MapScreenFixed = () => {
   const getCitiesAndCountriesWithEvents = () => {
     const citiesMap = new Map<string, number>();
     const countriesMap = new Map<string, number>();
-    
-    eventsWithCoordinates.forEach(event => {
+
+    eventsWithCoordinates.forEach((event) => {
       if (event.location_details) {
         const { city, country } = event.location_details;
         if (city) {
@@ -250,121 +259,127 @@ const MapScreenFixed = () => {
         }
       }
     });
-    
+
     // Sort by event count and return with counts
     const sortedCities = Array.from(citiesMap.entries())
       .sort((a, b) => b[1] - a[1])
       .map(([city, count]) => ({ name: city, eventCount: count }));
-    
+
     const sortedCountries = Array.from(countriesMap.entries())
       .sort((a, b) => b[1] - a[1])
       .map(([country, count]) => ({ name: country, eventCount: count }));
-    
+
     return { cities: sortedCities, countries: sortedCountries };
   };
 
   // Enhanced search functionality for cities, countries, and events
   const handleSearch = (text: string) => {
     setSearch(text);
-    
+
     if (text.trim().length > 0) {
       // Generate autocomplete results for search query
       const query = text.toLowerCase().trim();
-      
+
       // Search ALL events for autocomplete
-      const matchingEvents = events.filter(event => {
-        if (!event.title) return false;
-        
-        // Search in title
-        if (event.title.toLowerCase().includes(query)) return true;
-        
-        // Search in description
-        if (event.description && event.description.toLowerCase().includes(query)) return true;
-        
-        // Search in location
-        if (event.location && event.location.toLowerCase().includes(query)) return true;
-        
-        // Search in location details
-        if (event.location_details) {
-          const { name, address, city } = event.location_details;
-          if (name && name.toLowerCase().includes(query)) return true;
-          if (address && address.toLowerCase().includes(query)) return true;
-          if (city && city.toLowerCase().includes(query)) return true;
-        }
-        
-        return false;
-      }).map(event => {
-        // Add coordinates if available for distance calculation
-        const eventWithCoords = eventsWithCoordinates.find(e => e.id === event.id);
-        if (eventWithCoords) {
-          const userLoc = getUserLocation();
+      const matchingEvents = events
+        .filter((event) => {
+          if (!event.title) return false;
+
+          // Search in title
+          if (event.title.toLowerCase().includes(query)) return true;
+
+          // Search in description
+          if (event.description && event.description.toLowerCase().includes(query)) return true;
+
+          // Search in location
+          if (event.location && event.location.toLowerCase().includes(query)) return true;
+
+          // Search in location details
+          if (event.location_details) {
+            const { name, address, city } = event.location_details;
+            if (name && name.toLowerCase().includes(query)) return true;
+            if (address && address.toLowerCase().includes(query)) return true;
+            if (city && city.toLowerCase().includes(query)) return true;
+          }
+
+          return false;
+        })
+        .map((event) => {
+          // Add coordinates if available for distance calculation
+          const eventWithCoords = eventsWithCoordinates.find((e) => e.id === event.id);
+          if (eventWithCoords) {
+            const userLoc = getUserLocation();
+            return {
+              ...event,
+              coordinates: eventWithCoords.coordinates,
+              distance: calculateDistance(
+                userLoc.latitude,
+                userLoc.longitude,
+                eventWithCoords.coordinates.latitude,
+                eventWithCoords.coordinates.longitude
+              ),
+            };
+          }
+          // Return event even without coordinates for search results
           return {
             ...event,
-            coordinates: eventWithCoords.coordinates,
-            distance: calculateDistance(
-              userLoc.latitude,
-              userLoc.longitude,
-              eventWithCoords.coordinates.latitude,
-              eventWithCoords.coordinates.longitude
-            )
+            distance: undefined,
           };
-        }
-        // Return event even without coordinates for search results
-        return {
-          ...event,
-          distance: undefined
-        };
-      }).slice(0, 5);
-      
+        })
+        .slice(0, 5);
+
       // Get cities and countries with events
       const { cities: allCities, countries: allCountries } = getCitiesAndCountriesWithEvents();
-      
+
       // Filter cities and countries by query
-      const matchingCities = allCities.filter(city => 
-        city.name.toLowerCase().includes(query)
-      ).slice(0, 3);
-      
-      const matchingCountries = allCountries.filter(country => 
-        country.name.toLowerCase().includes(query)
-      ).slice(0, 3);
-      
+      const matchingCities = allCities
+        .filter((city) => city.name.toLowerCase().includes(query))
+        .slice(0, 3);
+
+      const matchingCountries = allCountries
+        .filter((country) => country.name.toLowerCase().includes(query))
+        .slice(0, 3);
+
       setAutoCompleteResults({
         events: matchingEvents,
         cities: matchingCities,
         countries: matchingCountries,
       });
-      
+
       setShowAutoComplete(true);
     } else {
       // Show popular nearby events when search is empty
       const popularEvents = getPopularNearbyEvents();
       const { cities, countries } = getCitiesAndCountriesWithEvents();
-      
+
       // If no nearby events, show any events
-      const eventsToShow = popularEvents.length > 0 ? popularEvents : events.slice(0, 5).map(event => {
-        const eventWithCoords = eventsWithCoordinates.find(e => e.id === event.id);
-        if (eventWithCoords) {
-          const userLoc = getUserLocation();
-          return {
-            ...event,
-            coordinates: eventWithCoords.coordinates,
-            distance: calculateDistance(
-              userLoc.latitude,
-              userLoc.longitude,
-              eventWithCoords.coordinates.latitude,
-              eventWithCoords.coordinates.longitude
-            )
-          };
-        }
-        return { ...event, distance: undefined };
-      });
-      
+      const eventsToShow =
+        popularEvents.length > 0
+          ? popularEvents
+          : events.slice(0, 5).map((event) => {
+              const eventWithCoords = eventsWithCoordinates.find((e) => e.id === event.id);
+              if (eventWithCoords) {
+                const userLoc = getUserLocation();
+                return {
+                  ...event,
+                  coordinates: eventWithCoords.coordinates,
+                  distance: calculateDistance(
+                    userLoc.latitude,
+                    userLoc.longitude,
+                    eventWithCoords.coordinates.latitude,
+                    eventWithCoords.coordinates.longitude
+                  ),
+                };
+              }
+              return { ...event, distance: undefined };
+            });
+
       setAutoCompleteResults({
         events: eventsToShow,
         cities: cities.slice(0, 3),
         countries: countries.slice(0, 2),
       });
-      
+
       setShowAutoComplete(true);
     }
   };
@@ -372,18 +387,21 @@ const MapScreenFixed = () => {
   // Handle autocomplete selection
   const handleAutoCompleteSelect = (type: 'event' | 'city' | 'country', value: any) => {
     Keyboard.dismiss();
-    
+
     if (type === 'event') {
       setSearch(value.title);
       setSelectedEventId(value.id);
       // Zoom to event
       if (mapRef.current && value.coordinates) {
-        mapRef.current.animateToRegion({
-          latitude: value.coordinates.latitude,
-          longitude: value.coordinates.longitude,
-          latitudeDelta: 0.005,
-          longitudeDelta: 0.005,
-        }, 500);
+        mapRef.current.animateToRegion(
+          {
+            latitude: value.coordinates.latitude,
+            longitude: value.coordinates.longitude,
+            latitudeDelta: 0.005,
+            longitudeDelta: 0.005,
+          },
+          500
+        );
       }
     } else {
       setSearch(value);
@@ -394,7 +412,7 @@ const MapScreenFixed = () => {
   // Filter events with coordinates
   const eventsWithCoordinates = useMemo(() => {
     if (!events || !Array.isArray(events)) return [];
-    
+
     return events
       .filter((event) => {
         // Check location_details first
@@ -445,13 +463,13 @@ const MapScreenFixed = () => {
   // Filter events by search query (events, cities, countries)
   const searchFilteredEvents = useMemo(() => {
     if (!search.trim()) return eventsWithCoordinates;
-    
+
     const query = search.toLowerCase().trim();
-    
-    return eventsWithCoordinates.filter(event => {
+
+    return eventsWithCoordinates.filter((event) => {
       // Search in event title
       if (event.title && event.title.toLowerCase().includes(query)) return true;
-      
+
       // Search in location details
       if (event.location_details) {
         const { address, name, city, country } = event.location_details;
@@ -460,13 +478,13 @@ const MapScreenFixed = () => {
         if (city && city.toLowerCase().includes(query)) return true;
         if (country && country.toLowerCase().includes(query)) return true;
       }
-      
+
       // Search in location string
       if (event.location && event.location.toLowerCase().includes(query)) return true;
-      
+
       // Search in description
       if (event.description && event.description.toLowerCase().includes(query)) return true;
-      
+
       return false;
     });
   }, [search, eventsWithCoordinates]);
@@ -475,14 +493,14 @@ const MapScreenFixed = () => {
   const filteredEvents = useMemo(() => {
     // First apply search filter
     const searchFiltered = searchFilteredEvents;
-    
+
     // Then apply category filter
     if (activeCategory === 0) return searchFiltered; // Show all
-    
+
     const selectedCategory = CATEGORIES[activeCategory];
     if (!selectedCategory) return searchFiltered;
-    
-    return searchFiltered.filter(event => {
+
+    return searchFiltered.filter((event) => {
       // Match by category ID directly (same as HomeScreen)
       return event.event_category === selectedCategory.id;
     });
@@ -492,17 +510,20 @@ const MapScreenFixed = () => {
   useEffect(() => {
     if (searchFilteredEvents.length > 0 && mapRef.current && search.trim()) {
       // Calculate bounds for all filtered events
-      const coordinates = searchFilteredEvents.map(e => e.coordinates);
-      
+      const coordinates = searchFilteredEvents.map((e) => e.coordinates);
+
       if (coordinates.length === 1) {
         // Single result - zoom in on it
         const coord = coordinates[0];
-        mapRef.current.animateToRegion({
-          latitude: coord.latitude,
-          longitude: coord.longitude,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        }, 500);
+        mapRef.current.animateToRegion(
+          {
+            latitude: coord.latitude,
+            longitude: coord.longitude,
+            latitudeDelta: 0.01,
+            longitudeDelta: 0.01,
+          },
+          500
+        );
       } else if (coordinates.length > 1) {
         // Multiple results - fit all markers
         mapRef.current.fitToCoordinates(coordinates, {
@@ -915,11 +936,11 @@ const MapScreenFixed = () => {
             </TouchableOpacity>
           )}
         </View>
-        
+
         {/* Autocomplete dropdown */}
         {showAutoComplete && (
           <View style={styles.autocompleteContainer}>
-            <ScrollView 
+            <ScrollView
               style={styles.autocompleteScroll}
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
@@ -941,7 +962,7 @@ const MapScreenFixed = () => {
                       {event.distance !== undefined && (
                         <View style={styles.autocompleteDistanceBadge}>
                           <Text style={styles.autocompleteDistanceText}>
-                            {event.distance < 1 
+                            {event.distance < 1
                               ? `${Math.round(event.distance * 1000)}m`
                               : `${event.distance.toFixed(1)}km`}
                           </Text>
@@ -951,7 +972,7 @@ const MapScreenFixed = () => {
                   ))}
                 </>
               )}
-              
+
               {/* Cities */}
               {autoCompleteResults.cities.length > 0 && (
                 <>
@@ -967,7 +988,12 @@ const MapScreenFixed = () => {
                         onPress={() => handleAutoCompleteSelect('city', city.name)}
                       >
                         <View style={styles.autocompleteItem}>
-                          <View style={[styles.autocompleteCityImageContainer, { backgroundColor: getCityColor(city.name) }]}>
+                          <View
+                            style={[
+                              styles.autocompleteCityImageContainer,
+                              { backgroundColor: getCityColor(city.name) },
+                            ]}
+                          >
                             <Text style={styles.autocompleteCityInitial}>
                               {city.name.charAt(0).toUpperCase()}
                             </Text>
@@ -998,7 +1024,7 @@ const MapScreenFixed = () => {
                   })}
                 </>
               )}
-              
+
               {/* Countries */}
               {autoCompleteResults.countries.length > 0 && (
                 <>
@@ -1011,7 +1037,9 @@ const MapScreenFixed = () => {
                     >
                       <View style={styles.autocompleteItem}>
                         <View style={styles.autocompleteCountryFlagContainer}>
-                          <Text style={styles.autocompleteCountryFlag}>{getCountryFlag(country.name)}</Text>
+                          <Text style={styles.autocompleteCountryFlag}>
+                            {getCountryFlag(country.name)}
+                          </Text>
                         </View>
                         <View style={styles.autocompleteCountryContent}>
                           <Text style={styles.autocompleteCountryName}>{country.name}</Text>
@@ -1026,16 +1054,20 @@ const MapScreenFixed = () => {
                   ))}
                 </>
               )}
-              
-              {autoCompleteResults.events.length === 0 && 
-               autoCompleteResults.cities.length === 0 && 
-               autoCompleteResults.countries.length === 0 && (
-                <View style={styles.noResultsContainer}>
-                  <Text style={styles.noResultsIcon}>🔍</Text>
-                  <Text style={styles.noResults}>No results found{search.trim() ? ` for "${search}"` : ''}</Text>
-                  <Text style={styles.noResultsSubtext}>Try searching for a different event, city, or country</Text>
-                </View>
-              )}
+
+              {autoCompleteResults.events.length === 0 &&
+                autoCompleteResults.cities.length === 0 &&
+                autoCompleteResults.countries.length === 0 && (
+                  <View style={styles.noResultsContainer}>
+                    <Text style={styles.noResultsIcon}>🔍</Text>
+                    <Text style={styles.noResults}>
+                      No results found{search.trim() ? ` for "${search}"` : ''}
+                    </Text>
+                    <Text style={styles.noResultsSubtext}>
+                      Try searching for a different event, city, or country
+                    </Text>
+                  </View>
+                )}
             </ScrollView>
           </View>
         )}

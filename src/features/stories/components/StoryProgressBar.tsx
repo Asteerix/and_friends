@@ -16,9 +16,7 @@ export const StoryProgressBar: React.FC<StoryProgressBarProps> = ({
   isPaused,
   onComplete,
 }) => {
-  const progressAnims = useRef(
-    stories.map(() => new Animated.Value(0))
-  ).current;
+  const progressAnims = useRef(stories.map(() => new Animated.Value(0))).current;
 
   useEffect(() => {
     // Reset all animations
@@ -34,9 +32,9 @@ export const StoryProgressBar: React.FC<StoryProgressBarProps> = ({
     if (currentIndex < stories.length && currentIndex >= 0 && !isPaused) {
       const currentAnim = progressAnims[currentIndex];
       if (!currentAnim) return;
-      
+
       currentAnim.setValue(0);
-      
+
       const animation = Animated.timing(currentAnim, {
         toValue: 1,
         duration: duration,
@@ -53,7 +51,7 @@ export const StoryProgressBar: React.FC<StoryProgressBarProps> = ({
         animation.stop();
       };
     }
-    
+
     // Return undefined for other cases
     return undefined;
   }, [currentIndex, isPaused, stories.length]);
@@ -67,10 +65,11 @@ export const StoryProgressBar: React.FC<StoryProgressBarProps> = ({
             style={[
               styles.progressBar,
               {
-                width: progressAnims[index]?.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: ['0%', '100%'],
-                }) || '0%',
+                width:
+                  progressAnims[index]?.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ['0%', '100%'],
+                  }) || '0%',
               },
             ]}
           />

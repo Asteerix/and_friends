@@ -18,8 +18,6 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-
-import BackButton from '@/assets/svg/back-button.svg';
 import { useEventCover } from '../context/EventCoverContext';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -29,7 +27,6 @@ const MAX_STICKERS = 10;
 const MIN_SCALE = 0.5;
 const MAX_SCALE = 3.0;
 
-
 // Import event templates from data file
 import {
   EVENT_TEMPLATE_CATEGORIES,
@@ -37,6 +34,7 @@ import {
   BACKGROUNDS as IMPORTED_BACKGROUNDS,
   STICKER_CATEGORIES as IMPORTED_STICKER_CATEGORIES,
 } from '../data/eventTemplates';
+import BackButton from '@/assets/svg/back-button.svg';
 
 // Map fonts with their styles
 const FONTS = IMPORTED_FONTS.map((font) => ({
@@ -816,7 +814,9 @@ export default function EditEventCoverScreen() {
               <Image source={selectedTemplate.image} style={styles.coverImage} />
             ) : (
               <Image
-                source={{ uri: coverImage || uploadedImage || 'https://via.placeholder.com/400x700' }}
+                source={{
+                  uri: coverImage || uploadedImage || 'https://via.placeholder.com/400x700',
+                }}
                 style={styles.coverImage}
               />
             )}

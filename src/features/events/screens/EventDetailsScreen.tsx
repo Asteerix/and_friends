@@ -18,18 +18,10 @@ import {
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import MapView, { Marker } from 'react-native-maps';
 import { useTranslation } from 'react-i18next';
-
-import { useProfile } from '@/hooks/useProfile';
-import { useEventAttendees } from '@/hooks/useEventAttendees';
-import { useRatings } from '@/hooks/useRatings';
-import BackButton from '@/assets/svg/back-button.svg';
-import ChatButton from '@/assets/svg/chat-button.svg';
-import NotificationButton from '@/assets/svg/notification-button.svg';
-import { getCategoryDisplayName, getCategoryIcon } from '../utils/categoryHelpers';
-import EventOptionsButton from '../components/EventOptionsButton';
-import { useSession } from '@/shared/providers/SessionContext';
 import { useEvent } from '../context/EventProvider';
 import { LinearGradient } from 'expo-linear-gradient';
+import EventOptionsButton from '../components/EventOptionsButton';
+import { getCategoryDisplayName, getCategoryIcon } from '../utils/categoryHelpers';
 import { EventServiceComplete } from '../services/eventServiceComplete';
 import BottomModal from '../components/BottomModal';
 import CostPerPersonModal from '../components/CostPerPersonModal';
@@ -58,6 +50,14 @@ import {
   FONTS as IMPORTED_FONTS,
   BACKGROUNDS as IMPORTED_BACKGROUNDS,
 } from '../data/eventTemplates';
+import { useSession } from '@/shared/providers/SessionContext';
+import NotificationButton from '@/assets/svg/notification-button.svg';
+import ChatButton from '@/assets/svg/chat-button.svg';
+import BackButton from '@/assets/svg/back-button.svg';
+import { useEvents } from '@/hooks/useEvents';
+import { useRatings } from '@/hooks/useRatings';
+import { useProfile } from '@/hooks/useProfile';
+import { useEventAttendees } from '@/hooks/useEventAttendees';
 
 // Map fonts with their styles
 const FONTS = IMPORTED_FONTS.map((font) => ({
@@ -96,6 +96,7 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
   const { profile } = useProfile();
   const { session } = useSession();
   const { attendees } = useEventAttendees(eventId);
+  const { updateRSVP } = useEvents();
   const {
     currentEvent: event,
     loading,
@@ -133,10 +134,15 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
     average_rating: number;
     total_ratings: number;
   } | null>(null);
-  const [coHostsRatings, setCoHostsRatings] = useState<Record<string, {
-    average_rating: number;
-    total_ratings: number;
-  }>>({});
+  const [coHostsRatings, setCoHostsRatings] = useState<
+    Record<
+      string,
+      {
+        average_rating: number;
+        total_ratings: number;
+      }
+    >
+  >({});
 
   useEffect(() => {
     if (!eventId) {
@@ -160,7 +166,7 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
         if (stats) {
           setOrganizerRating({
             average_rating: stats.average_rating,
-            total_ratings: stats.total_ratings
+            total_ratings: stats.total_ratings,
           });
         }
       }
@@ -174,7 +180,7 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
     const loadCoHostsRatings = async () => {
       const coHosts = event?.extra_data?.coHosts || [];
       const ratings: Record<string, { average_rating: number; total_ratings: number }> = {};
-      
+
       for (const coHost of coHosts) {
         if (coHost.id || coHost.user_id) {
           const userId = coHost.id || coHost.user_id;
@@ -182,12 +188,12 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
           if (stats) {
             ratings[userId] = {
               average_rating: stats.average_rating,
-              total_ratings: stats.total_ratings
+              total_ratings: stats.total_ratings,
             };
           }
         }
       }
-      
+
       setCoHostsRatings(ratings);
     };
 
@@ -199,65 +205,69 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
   // Charger les réponses au questionnaire
   const loadQuestionnaireResponses = async () => {
     if (!eventId || !event || questionnaire.length === 0) return;
-    
+
     setLoadingResponses(true);
     console.log('🔄 [EventDetailsScreen] Chargement des réponses au questionnaire...');
     console.log('📋 [EventDetailsScreen] Questions:', questionnaire);
-    
+
     const result = await EventServiceComplete.getQuestionnaireResponses(eventId);
-    
+
     if (result.success && result.responses) {
       console.log('✅ [EventDetailsScreen] Réponses chargées:', result.responses.length);
       console.log('📊 [EventDetailsScreen] Détail des réponses:', result.responses);
       setAllQuestionnaireResponses(result.responses);
     } else {
-      console.error('❌ [EventDetailsScreen] Erreur lors du chargement des réponses:', result.error);
+      console.error(
+        '❌ [EventDetailsScreen] Erreur lors du chargement des réponses:',
+        result.error
+      );
     }
-    
+
     setLoadingResponses(false);
   };
-
 
   // Load items with bringers function
   const loadItemsWithBringers = async () => {
     if (!eventId || !event) return;
-    
-    console.log('🔄 [loadItemsWithBringers] Chargement des bringers pour l\'événement', eventId);
-    
+
+    console.log("🔄 [loadItemsWithBringers] Chargement des bringers pour l'événement", eventId);
+
     // D'abord charger depuis extra_data si disponible
     const extraDataBringers = event.extra_data?.itemBringers || {};
     console.log('📦 [loadItemsWithBringers] Bringers depuis extra_data:', extraDataBringers);
-    
+
     const bringers: { [itemId: string]: string[] } = {};
-    
+
     // Charger les items depuis extra_data (anciens items)
     const itemsFromExtraData = event.extra_data?.itemsToBring || [];
     console.log('📋 [loadItemsWithBringers] Items depuis extra_data:', itemsFromExtraData);
-    
+
     itemsFromExtraData.forEach((item: any) => {
       // Pour les items required, tout le monde doit apporter
       if (item.type === 'required') {
-        bringers[item.id] = attendees.map(a => a.id);
+        bringers[item.id] = attendees.map((a) => a.id);
         console.log(`✅ [loadItemsWithBringers] Item required ${item.id}: tous les attendees`);
       } else if (extraDataBringers[item.id]) {
         // Utiliser les bringers depuis extra_data
         bringers[item.id] = extraDataBringers[item.id];
-        console.log(`📌 [loadItemsWithBringers] Item ${item.id} a ${extraDataBringers[item.id].length} bringers`);
+        console.log(
+          `📌 [loadItemsWithBringers] Item ${item.id} a ${extraDataBringers[item.id].length} bringers`
+        );
       } else {
         bringers[item.id] = [];
         console.log(`❌ [loadItemsWithBringers] Item ${item.id} n'a pas de bringers`);
       }
     });
-    
+
     // Ensuite charger depuis la table event_items (nouveaux items avec UUID)
     const result = await EventServiceComplete.getEventItemsWithBringers(eventId);
     if (result.success && result.items) {
       console.log('📊 [loadItemsWithBringers] Items depuis la table:', result.items);
-      
+
       result.items.forEach((item: any) => {
         // Pour les items required, tout le monde doit apporter
         if (item.type === 'required') {
-          bringers[item.id] = attendees.map(a => a.id);
+          bringers[item.id] = attendees.map((a) => a.id);
         } else if (extraDataBringers[item.id]) {
           // Utiliser les bringers depuis extra_data en priorité
           bringers[item.id] = extraDataBringers[item.id];
@@ -269,7 +279,7 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
         }
       });
     }
-    
+
     console.log('🎯 [loadItemsWithBringers] Bringers finaux:', bringers);
     setItemBringers(bringers);
   };
@@ -278,15 +288,14 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
   useEffect(() => {
     if (eventId && event) {
       loadItemsWithBringers();
-      
+
       // Charger aussi les réponses au questionnaire
       if (event.extra_data?.questionnaire?.length > 0 || event.event_questionnaire?.length > 0) {
         console.log('📋 [useEffect] Questionnaire trouvé, chargement des réponses...');
         loadQuestionnaireResponses();
       }
     }
-  }, [eventId, event, attendees]); // eslint-disable-line react-hooks/exhaustive-deps
-
+  }, [eventId, event, attendees]);
 
   // Helper functions for fonts
   const getTitleFontStyle = () => {
@@ -305,10 +314,82 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
   };
 
   const handleJoinEvent = () => {
+    if (!eventId || !session?.user) return;
+
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    Alert.alert(t('events.details.join'), t('events.details.joinComingSoon', 'Join event functionality coming soon!'));
+
+    // Show RSVP options
+    Alert.alert(
+      t('events.details.rsvpTitle', 'RSVP to Event'),
+      t('events.details.rsvpMessage', 'Please select your response:'),
+      [
+        {
+          text: t('events.details.going', 'Going'),
+          onPress: () => handleRSVPSelection('going'),
+          style: 'default',
+        },
+        {
+          text: t('events.details.maybe', 'Maybe'),
+          onPress: () => handleRSVPSelection('maybe'),
+          style: 'default',
+        },
+        {
+          text: t('events.details.notGoing', 'Not Going'),
+          onPress: () => handleRSVPSelection('not-going'),
+          style: 'default',
+        },
+        {
+          text: t('common.cancel', 'Cancel'),
+          style: 'cancel',
+        },
+      ],
+      { cancelable: true }
+    );
   };
 
+  const handleRSVPSelection = async (status: string) => {
+    if (!eventId) return;
+
+    try {
+      console.log('🔄 [EventDetails] Updating RSVP to:', status);
+
+      const result = await updateRSVP(eventId, status);
+
+      if (result.error) {
+        console.error('❌ [EventDetails] RSVP error:', result.error);
+        Alert.alert(
+          t('events.details.rsvpError', 'Error'),
+          t('events.details.rsvpErrorMessage', 'Failed to update RSVP. Please try again.')
+        );
+        return;
+      }
+
+      console.log('✅ [EventDetails] RSVP updated successfully');
+
+      // Show success feedback
+      const statusMessages = {
+        going: t('events.details.rsvpGoingSuccess', "You're going! 🎉"),
+        maybe: t('events.details.rsvpMaybeSuccess', "You're interested! 🤔"),
+        'not-going': t('events.details.rsvpNotGoingSuccess', "You won't be attending 😔"),
+      };
+
+      Alert.alert(
+        t('events.details.rsvpSuccess', 'RSVP Updated'),
+        statusMessages[status as keyof typeof statusMessages] || 'RSVP updated!'
+      );
+
+      // Refresh event data to reflect the change
+      if (loadEvent) {
+        await loadEvent();
+      }
+    } catch (error) {
+      console.error('💥 [EventDetails] Fatal RSVP error:', error);
+      Alert.alert(
+        t('events.details.rsvpError', 'Error'),
+        t('events.details.rsvpErrorMessage', 'Failed to update RSVP. Please try again.')
+      );
+    }
+  };
 
   const handleSuggestItem = () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -318,15 +399,21 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
       [
         {
           text: t('common.cancel'),
-          style: 'cancel'
+          style: 'cancel',
         },
         {
           text: t('events.details.suggest', 'Suggest'),
           onPress: () => {
             // In a real app, this would open a modal or form
-            Alert.alert(t('common.comingSoon', 'Coming Soon'), t('events.details.itemSuggestionComingSoon', 'Item suggestion feature will be available soon!'));
-          }
-        }
+            Alert.alert(
+              t('common.comingSoon', 'Coming Soon'),
+              t(
+                'events.details.itemSuggestionComingSoon',
+                'Item suggestion feature will be available soon!'
+              )
+            );
+          },
+        },
       ]
     );
   };
@@ -335,19 +422,19 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
     const itemType = item.type || 'suggested';
     const bringers = itemBringers[item.id] || [];
     const isBringingThis = bringers.includes(profile?.id || '');
-    
+
     console.log(`🎁 [renderItemCard] Item ${item.id} (${item.name}):`, {
       type: itemType,
       bringers: bringers,
       isBringingThis: isBringingThis,
-      profileId: profile?.id
+      profileId: profile?.id,
     });
     const bringersCount = bringers.length;
-    
+
     // Pour required, tout le monde doit apporter
     const isRequired = itemType === 'required';
     const canToggle = !isRequired; // On peut seulement toggle suggested et open
-    
+
     const typeConfigs = {
       required: { color: '#FF3B30', icon: 'alert-circle', label: 'Required' },
       suggested: { color: '#FF9500', icon: 'bulb-outline', label: 'Suggested' },
@@ -357,11 +444,11 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
 
     const handleItemPress = async () => {
       if (isRequired) return; // Required items ne peuvent pas être modifiés
-      
+
       if (canToggle && profile?.id) {
         const userId = profile.id;
         const shouldAdd = !isBringingThis;
-        
+
         // Optimistic update
         const newBringers = [...bringers];
         if (shouldAdd) {
@@ -370,22 +457,30 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
           const index = newBringers.indexOf(userId);
           if (index > -1) newBringers.splice(index, 1);
         }
-        
-        setItemBringers(prev => ({
+
+        setItemBringers((prev) => ({
           ...prev,
-          [item.id]: newBringers
+          [item.id]: newBringers,
         }));
-        
+
         // Sauvegarder dans Supabase
-        const result = await EventServiceComplete.toggleItemBringer(item.id, userId, shouldAdd, eventId);
-        
+        const result = await EventServiceComplete.toggleItemBringer(
+          item.id,
+          userId,
+          shouldAdd,
+          eventId
+        );
+
         if (!result.success) {
           // Rollback on error
-          setItemBringers(prev => ({
+          setItemBringers((prev) => ({
             ...prev,
-            [item.id]: bringers
+            [item.id]: bringers,
           }));
-          Alert.alert(t('errors.general'), t('events.details.itemUpdateError', 'Could not update item. Please try again.'));
+          Alert.alert(
+            t('errors.general'),
+            t('events.details.itemUpdateError', 'Could not update item. Please try again.')
+          );
         }
         // Si succès, on garde l'update optimiste qui a déjà été fait
       }
@@ -396,33 +491,35 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
       if (itemType === 'required') {
         const allAttendees = attendees.map((attendee: any) => ({
           id: attendee.id,
-          name: attendee.id === profile?.id 
-            ? 'You' 
-            : attendee.full_name || attendee.username || 'Anonymous',
-          avatar: attendee.avatar_url || null
+          name:
+            attendee.id === profile?.id
+              ? 'You'
+              : attendee.full_name || attendee.username || 'Anonymous',
+          avatar: attendee.avatar_url || null,
         }));
-        
+
         setSelectedItemForBringers({
           ...item,
-          bringers: allAttendees
+          bringers: allAttendees,
         });
         setShowBringersModal(true);
       } else {
         // Pour les autres items, charger les détails des bringers depuis Supabase
         const result = await EventServiceComplete.getItemBringers(item.id, eventId);
-        
+
         if (result.success && result.bringers) {
           const bringersWithProfiles = result.bringers.map((b: any) => ({
             id: b.user_id,
-            name: b.user_id === profile?.id 
-              ? 'You' 
-              : b.user?.full_name || b.user?.username || 'Anonymous',
-            avatar: b.user?.avatar_url || null
+            name:
+              b.user_id === profile?.id
+                ? 'You'
+                : b.user?.full_name || b.user?.username || 'Anonymous',
+            avatar: b.user?.avatar_url || null,
           }));
-          
+
           setSelectedItemForBringers({
             ...item,
-            bringers: bringersWithProfiles
+            bringers: bringersWithProfiles,
           });
           setShowBringersModal(true);
         }
@@ -432,10 +529,7 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
     return (
       <TouchableOpacity
         key={item.id || index}
-        style={[
-          styles.todoItem,
-          (isRequired || isBringingThis) && styles.todoItemCompleted
-        ]}
+        style={[styles.todoItem, (isRequired || isBringingThis) && styles.todoItemCompleted]}
         onPress={handleItemPress}
         activeOpacity={canToggle ? 0.7 : 1}
         disabled={isRequired}
@@ -444,36 +538,33 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
           <View
             style={[
               styles.todoCheckbox,
-              (isRequired || isBringingThis) && styles.todoCheckboxCompleted
+              (isRequired || isBringingThis) && styles.todoCheckboxCompleted,
             ]}
           >
-            {(isRequired || isBringingThis) && (
-              <Ionicons name="checkmark" size={16} color="#FFF" />
-            )}
+            {(isRequired || isBringingThis) && <Ionicons name="checkmark" size={16} color="#FFF" />}
           </View>
           <View style={styles.todoContent}>
             <View style={styles.todoHeader}>
-              <Text style={[
-                styles.todoText,
-                (isRequired || isBringingThis) && styles.todoTextCompleted
-              ]}>
+              <Text
+                style={[
+                  styles.todoText,
+                  (isRequired || isBringingThis) && styles.todoTextCompleted,
+                ]}
+              >
                 {item.name || item.item_name}
-                {itemsSettings.showQuantities && item.quantity && item.quantity > 1 && ` (${item.quantity})`}
+                {itemsSettings.showQuantities &&
+                  item.quantity &&
+                  item.quantity > 1 &&
+                  ` (${item.quantity})`}
               </Text>
             </View>
             {item.assignedTo && item.assignedTo !== 'Anyone' && (
-              <Text style={styles.todoAssignedText}>
-                Assigned to {item.assignedTo}
-              </Text>
+              <Text style={styles.todoAssignedText}>Assigned to {item.assignedTo}</Text>
             )}
-            {isRequired && (
-              <Text style={styles.todoRequiredText}>
-                Everyone must bring this
-              </Text>
-            )}
+            {isRequired && <Text style={styles.todoRequiredText}>Everyone must bring this</Text>}
           </View>
         </View>
-        
+
         {/* Afficher le nombre de personnes qui apportent */}
         {!isRequired && (
           <View style={styles.todoRightSection}>
@@ -492,7 +583,7 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                         key={bringerId}
                         style={[
                           styles.miniAvatar,
-                          { marginLeft: idx > 0 ? -8 : 0, zIndex: 3 - idx }
+                          { marginLeft: idx > 0 ? -8 : 0, zIndex: 3 - idx },
                         ]}
                       >
                         <Text style={styles.miniAvatarText}>
@@ -501,29 +592,21 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                       </View>
                     ))}
                   </View>
-                  <Text style={styles.bringersCountText}>
-                    {bringersCount}
-                  </Text>
+                  <Text style={styles.bringersCountText}>{bringersCount}</Text>
                 </>
               ) : (
                 <Text style={styles.bringersCountText}>0</Text>
               )}
               <Ionicons name="chevron-forward" size={16} color="#8E8E93" />
             </TouchableOpacity>
-            
+
             {/* Bouton pour toggle */}
             <TouchableOpacity
-              style={[
-                styles.todoClaimButton,
-                isBringingThis && styles.todoClaimButtonActive
-              ]}
+              style={[styles.todoClaimButton, isBringingThis && styles.todoClaimButtonActive]}
               onPress={handleItemPress}
               activeOpacity={0.7}
             >
-              <Text style={[
-                styles.todoClaimText,
-                isBringingThis && styles.todoClaimTextActive
-              ]}>
+              <Text style={[styles.todoClaimText, isBringingThis && styles.todoClaimTextActive]}>
                 {isBringingThis ? "I won't bring" : "I'll bring"}
               </Text>
             </TouchableOpacity>
@@ -551,12 +634,18 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
     });
 
     if (missingResponses.length > 0) {
-      Alert.alert(t('events.details.missingResponses', 'Missing responses'), t('events.details.answerAllQuestions', 'Please answer all required questions'));
+      Alert.alert(
+        t('events.details.missingResponses', 'Missing responses'),
+        t('events.details.answerAllQuestions', 'Please answer all required questions')
+      );
       return;
     }
 
     if (!profile?.id) {
-      Alert.alert(t('auth.signInRequired', 'Sign in required'), t('events.details.signInToRespond', 'Please sign in to submit responses'));
+      Alert.alert(
+        t('auth.signInRequired', 'Sign in required'),
+        t('events.details.signInToRespond', 'Please sign in to submit responses')
+      );
       return;
     }
 
@@ -568,11 +657,17 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
     );
 
     if (result.success) {
-      Alert.alert(t('common.success'), t('events.details.responsesSubmitted', 'Your responses have been submitted!'));
+      Alert.alert(
+        t('common.success'),
+        t('events.details.responsesSubmitted', 'Your responses have been submitted!')
+      );
       // Clear responses after successful submission
       setQuestionResponses({});
     } else {
-      Alert.alert(t('errors.general'), result.error || t('events.details.submitResponsesError', 'Failed to submit responses'));
+      Alert.alert(
+        t('errors.general'),
+        result.error || t('events.details.submitResponsesError', 'Failed to submit responses')
+      );
     }
   };
 
@@ -649,19 +744,25 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
   const items = (() => {
     // D'abord vérifier dans extra_data
     if (event.extra_data?.itemsToBring && event.extra_data.itemsToBring.length > 0) {
-      console.log('🎁 [EventDetailsScreen] Items from itemsToBring:', event.extra_data.itemsToBring);
+      console.log(
+        '🎁 [EventDetailsScreen] Items from itemsToBring:',
+        event.extra_data.itemsToBring
+      );
       // S'assurer que assignedTo est bien mappé
       return event.extra_data.itemsToBring.map((item: any) => ({
         ...item,
-        assignedTo: item.assignedTo || item.assigned_to || item.assignee || null
+        assignedTo: item.assignedTo || item.assigned_to || item.assignee || null,
       }));
     }
     if (event.extra_data?.items_to_bring && event.extra_data.items_to_bring.length > 0) {
-      console.log('🎁 [EventDetailsScreen] Items from items_to_bring:', event.extra_data.items_to_bring);
+      console.log(
+        '🎁 [EventDetailsScreen] Items from items_to_bring:',
+        event.extra_data.items_to_bring
+      );
       // S'assurer que assignedTo est bien mappé
       return event.extra_data.items_to_bring.map((item: any) => ({
         ...item,
-        assignedTo: item.assignedTo || item.assigned_to || item.assignee || null
+        assignedTo: item.assignedTo || item.assigned_to || item.assignee || null,
       }));
     }
     // Sinon utiliser event_items mais sans le type
@@ -677,7 +778,7 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
     }
     return [];
   })();
-  
+
   console.log('🎁 [EventDetailsScreen] Final items extracted:', items);
   console.log('🎁 [EventDetailsScreen] Event extra_data:', event.extra_data);
   console.log('🎁 [EventDetailsScreen] Raw event_items:', event.event_items);
@@ -723,7 +824,7 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
     fromExtraData: event.extra_data?.parkingInfo,
     fromParkingInfo: event.parking_info,
     final: parkingInfo,
-    hasParkingEnabled: event.has_parking_info_enabled
+    hasParkingEnabled: event.has_parking_info_enabled,
   });
   const accessibilityInfo = event.extra_data?.accessibilityInfo || event.accessibility_info || null;
   const capacityLimit = event.extra_data?.capacityLimit || event.max_attendees || null;
@@ -736,44 +837,42 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
   const rsvpReminderTiming =
     event.rsvp_reminder_timing || event.extra_data?.rsvpReminderTiming || '24h';
 
-
   // Calculer les statistiques pour une question à choix multiple
   const getMultipleChoiceStats = (questionId: string, options: string[]) => {
     console.log('🔍 [getMultipleChoiceStats] Question ID:', questionId);
     console.log('🔍 [getMultipleChoiceStats] Options:', options);
     console.log('🔍 [getMultipleChoiceStats] Toutes les réponses:', allQuestionnaireResponses);
-    
+
     const responsesForQuestion = allQuestionnaireResponses.filter(
-      r => r.question_id === questionId
+      (r) => r.question_id === questionId
     );
-    
+
     console.log('🔍 [getMultipleChoiceStats] Réponses pour cette question:', responsesForQuestion);
-    
-    const stats = options.map(option => {
-      const count = responsesForQuestion.filter(r => r.answer === option).length;
+
+    const stats = options.map((option) => {
+      const count = responsesForQuestion.filter((r) => r.answer === option).length;
       return {
         option,
         count,
-        percentage: responsesForQuestion.length > 0 
-          ? (count / responsesForQuestion.length) * 100 
-          : 0
+        percentage:
+          responsesForQuestion.length > 0 ? (count / responsesForQuestion.length) * 100 : 0,
       };
     });
-    
+
     return {
       stats,
-      totalVotes: responsesForQuestion.length
+      totalVotes: responsesForQuestion.length,
     };
   };
 
   // Obtenir les réponses texte pour une question
   const getTextResponses = (questionId: string) => {
     return allQuestionnaireResponses
-      .filter(r => r.question_id === questionId)
-      .map(r => ({
+      .filter((r) => r.question_id === questionId)
+      .map((r) => ({
         answer: r.answer,
         user: r.user || { full_name: 'Anonymous' },
-        submitted_at: r.submitted_at
+        submitted_at: r.submitted_at,
       }))
       .slice(0, 5); // Limiter à 5 réponses pour l'affichage
   };
@@ -855,7 +954,7 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                 eventTitle={event.title || 'Untitled Event'}
                 organizerId={event.created_by}
                 isOrganizer={isHost}
-                isAttending={attendees.some(a => a.user_id === session?.user?.id)}
+                isAttending={attendees.some((a) => a.user_id === session?.user?.id)}
                 onEdit={handleEditEvent}
                 onDelete={() => router.back()}
                 onLeave={() => router.back()}
@@ -927,45 +1026,57 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                 </View>
                 <Text style={styles.coverCapacityText}>
                   {event.current_attendees || 0} attending
-                  {(event.current_attendees || 0) < capacityLimit && 
-                    ` • ${capacityLimit - (event.current_attendees || 0)} spots remaining`
-                  }
+                  {(event.current_attendees || 0) < capacityLimit &&
+                    ` • ${capacityLimit - (event.current_attendees || 0)} spots remaining`}
                 </Text>
                 {/* Waitlist info */}
-                {event.extra_data?.waitlistEnabled && (event.current_attendees || 0) >= capacityLimit && (
-                  <View style={styles.waitlistInfo}>
-                    <Ionicons name="list-circle" size={16} color="#FF9500" />
-                    <Text style={styles.waitlistText}>
-                      {event.waitlist_count || 0} on waitlist
-                      {event.user_waitlist_position && ` • You're #${event.user_waitlist_position}`}
-                    </Text>
-                  </View>
-                )}
+                {event.extra_data?.waitlistEnabled &&
+                  (event.current_attendees || 0) >= capacityLimit && (
+                    <View style={styles.waitlistInfo}>
+                      <Ionicons name="list-circle" size={16} color="#FF9500" />
+                      <Text style={styles.waitlistText}>
+                        {event.waitlist_count || 0} on waitlist
+                        {event.user_waitlist_position &&
+                          ` • You're #${event.user_waitlist_position}`}
+                      </Text>
+                    </View>
+                  )}
               </View>
             )}
 
             {/* CTA Button - different for host vs guest */}
             {!isHost ? (
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[
                   styles.coverCTAButton,
-                  event.user_waitlist_position && styles.coverCTAButtonWaitlist
+                  event.user_waitlist_position && styles.coverCTAButtonWaitlist,
                 ]}
                 onPress={handleJoinEvent}
               >
                 <Text style={styles.coverCTAText}>
-                  {event.user_status === 'attending' ? 'You\'re Going!' :
-                   event.user_status === 'pending' ? 'Request Pending' :
-                   event.user_waitlist_position ? 'Join Waitlist' :
-                   capacityLimit && (event.current_attendees || 0) >= capacityLimit && event.extra_data?.waitlistEnabled ? 'Join Waitlist' :
-                   !event.extra_data?.autoApprove ? 'Request to Join' :
-                   event.is_private ? 'Request to Join' : 'Reserve Your Spot'}
+                  {event.user_status === 'attending'
+                    ? "You're Going!"
+                    : event.user_status === 'pending'
+                      ? 'Request Pending'
+                      : event.user_waitlist_position
+                        ? 'Join Waitlist'
+                        : capacityLimit &&
+                            (event.current_attendees || 0) >= capacityLimit &&
+                            event.extra_data?.waitlistEnabled
+                          ? 'Join Waitlist'
+                          : !event.extra_data?.autoApprove
+                            ? 'Request to Join'
+                            : event.is_private
+                              ? 'Request to Join'
+                              : 'Reserve Your Spot'}
                 </Text>
               </TouchableOpacity>
             ) : (
               <View style={styles.hostPreviewBadge}>
                 <Ionicons name="eye-outline" size={16} color="#FFFFFF" />
-                <Text style={styles.hostPreviewText}>{t('events.details.hostPreview', 'Host Preview')}</Text>
+                <Text style={styles.hostPreviewText}>
+                  {t('events.details.hostPreview', 'Host Preview')}
+                </Text>
               </View>
             )}
           </View>
@@ -980,22 +1091,28 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
               <View style={styles.hostButtonsRow}>
                 <TouchableOpacity style={styles.inviteButton}>
                   <Ionicons name="person-add-outline" size={18} color="#FFFFFF" />
-                  <Text style={styles.inviteButtonText}>{t('events.details.invite', 'Invite')}</Text>
+                  <Text style={styles.inviteButtonText}>
+                    {t('events.details.invite', 'Invite')}
+                  </Text>
                 </TouchableOpacity>
                 {!event.extra_data?.autoApprove && event.pending_requests?.length > 0 && (
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={[styles.sendReminderButton, styles.pendingRequestsButton]}
                     onPress={() => setShowAttendeesModal(true)}
                   >
                     <View style={styles.pendingBadge}>
                       <Text style={styles.pendingBadgeText}>{event.pending_requests.length}</Text>
                     </View>
-                    <Text style={styles.pendingRequestsButtonText}>{t('events.details.pendingRequests', 'Pending Requests')}</Text>
+                    <Text style={styles.pendingRequestsButtonText}>
+                      {t('events.details.pendingRequests', 'Pending Requests')}
+                    </Text>
                   </TouchableOpacity>
                 )}
                 <TouchableOpacity style={styles.sendReminderButton}>
                   <Ionicons name="send-outline" size={18} color="#007AFF" />
-                  <Text style={styles.sendReminderButtonText}>{t('events.details.sendReminder', 'Send Reminder')}</Text>
+                  <Text style={styles.sendReminderButtonText}>
+                    {t('events.details.sendReminder', 'Send Reminder')}
+                  </Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.moreButton}>
                   <Ionicons name="ellipsis-horizontal" size={20} color="#000" />
@@ -1018,7 +1135,9 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                     style={styles.organizerAvatar}
                   />
                   <View style={styles.organizerInfo}>
-                    <Text style={styles.hostLabel}>{t('events.details.hostedBy', 'Hosted by')}</Text>
+                    <Text style={styles.hostLabel}>
+                      {t('events.details.hostedBy', 'Hosted by')}
+                    </Text>
                     <Text style={styles.organizerName}>
                       {event.organizer?.full_name || event.extra_data?.host?.name || 'Host'}
                     </Text>
@@ -1038,7 +1157,9 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                       ))}
                       {organizerRating && organizerRating.total_ratings > 0 && (
                         <Text style={styles.hostRatingText}>
-                          {organizerRating.average_rating.toFixed(1)} • {organizerRating.total_ratings} rating{organizerRating.total_ratings > 1 ? 's' : ''}
+                          {organizerRating.average_rating.toFixed(1)} •{' '}
+                          {organizerRating.total_ratings} rating
+                          {organizerRating.total_ratings > 1 ? 's' : ''}
                         </Text>
                       )}
                     </View>
@@ -1061,7 +1182,9 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
               {/* Co-hosts section */}
               {event.extra_data?.coHosts && event.extra_data.coHosts.length > 0 && (
                 <View style={styles.coHostDivider}>
-                  <Text style={styles.coHostLabel}>{t('events.details.coHostedWith', 'Co-hosted with')}</Text>
+                  <Text style={styles.coHostLabel}>
+                    {t('events.details.coHostedWith', 'Co-hosted with')}
+                  </Text>
                   <View style={styles.coHostsList}>
                     {event.extra_data.coHosts.slice(0, 3).map((coHost: any, index: number) => {
                       const userId = coHost.id || coHost.user_id;
@@ -1172,8 +1295,8 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
               {/* Spots remaining message if limited */}
               {capacityLimit && capacityLimit > 0 && (
                 <Text style={styles.spotsRemainingText}>
-                  {(event.current_attendees || 0) >= capacityLimit 
-                    ? event.extra_data?.waitlistEnabled 
+                  {(event.current_attendees || 0) >= capacityLimit
+                    ? event.extra_data?.waitlistEnabled
                       ? `🔥 Event full • ${event.waitlist_count || 0} on waitlist`
                       : '🔥 Event full • No waitlist available'
                     : capacityLimit - (event.current_attendees || 0) < 20
@@ -1186,7 +1309,9 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
               {!event.extra_data?.autoApprove && (
                 <View style={styles.approvalIndicator}>
                   <Ionicons name="shield-checkmark-outline" size={16} color="#FF9500" />
-                  <Text style={styles.approvalText}>{t('events.details.hostApprovalRequired', 'Host approval required')}</Text>
+                  <Text style={styles.approvalText}>
+                    {t('events.details.hostApprovalRequired', 'Host approval required')}
+                  </Text>
                 </View>
               )}
             </View>
@@ -1219,7 +1344,10 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
             </View>
             <Text style={styles.aboutDescription}>
               {event.description ||
-                t('events.details.defaultDescription', 'Join us for an amazing experience! The host will share more details soon.')}
+                t(
+                  'events.details.defaultDescription',
+                  'Join us for an amazing experience! The host will share more details soon.'
+                )}
             </Text>
             {event.description && event.description.length > 200 && (
               <TouchableOpacity style={styles.showMoreButton}>
@@ -1241,7 +1369,9 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
             parkingInfo) && (
             <View style={styles.thingsToKnowSection}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>{t('events.details.thingsToKnow', 'Things to know')}</Text>
+                <Text style={styles.sectionTitle}>
+                  {t('events.details.thingsToKnow', 'Things to know')}
+                </Text>
               </View>
 
               <View style={styles.thingsToKnowGrid}>
@@ -1250,7 +1380,9 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                   <View style={styles.thingToKnowItem}>
                     <Ionicons name="timer-outline" size={20} color="#000" />
                     <View style={styles.thingToKnowContent}>
-                      <Text style={styles.thingToKnowTitle}>{t('events.details.rsvpDeadline', 'RSVP deadline')}</Text>
+                      <Text style={styles.thingToKnowTitle}>
+                        {t('events.details.rsvpDeadline', 'RSVP deadline')}
+                      </Text>
                       <Text style={styles.thingToKnowValue}>
                         {new Date(event.extra_data.rsvp_deadline).toLocaleDateString('en-US', {
                           month: 'short',
@@ -1266,7 +1398,9 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                   <View style={styles.thingToKnowItem}>
                     <Ionicons name="shirt-outline" size={20} color="#000" />
                     <View style={styles.thingToKnowContent}>
-                      <Text style={styles.thingToKnowTitle}>{t('events.details.dressCode', 'Dress code')}</Text>
+                      <Text style={styles.thingToKnowTitle}>
+                        {t('events.details.dressCode', 'Dress code')}
+                      </Text>
                       <Text style={styles.thingToKnowValue}>{dressCode}</Text>
                     </View>
                   </View>
@@ -1277,7 +1411,9 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                   <View style={styles.thingToKnowItem}>
                     <Ionicons name="color-palette-outline" size={20} color="#000" />
                     <View style={styles.thingToKnowContent}>
-                      <Text style={styles.thingToKnowTitle}>{t('events.details.eventTheme', 'Event theme')}</Text>
+                      <Text style={styles.thingToKnowTitle}>
+                        {t('events.details.eventTheme', 'Event theme')}
+                      </Text>
                       <Text style={styles.thingToKnowValue}>{eventTheme}</Text>
                     </View>
                   </View>
@@ -1288,7 +1424,9 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                   <View style={styles.thingToKnowItem}>
                     <MaterialCommunityIcons name="account-check-outline" size={20} color="#000" />
                     <View style={styles.thingToKnowContent}>
-                      <Text style={styles.thingToKnowTitle}>{t('events.details.ageRequirement', 'Age requirement')}</Text>
+                      <Text style={styles.thingToKnowTitle}>
+                        {t('events.details.ageRequirement', 'Age requirement')}
+                      </Text>
                       <Text style={styles.thingToKnowValue}>{ageRestriction}</Text>
                     </View>
                   </View>
@@ -1299,7 +1437,9 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                   <View style={styles.thingToKnowItem}>
                     <Ionicons name="person-add-outline" size={20} color="#000" />
                     <View style={styles.thingToKnowContent}>
-                      <Text style={styles.thingToKnowTitle}>{t('events.details.guestsAllowed', 'Guests allowed')}</Text>
+                      <Text style={styles.thingToKnowTitle}>
+                        {t('events.details.guestsAllowed', 'Guests allowed')}
+                      </Text>
                       <Text style={styles.thingToKnowValue}>
                         {event.extra_data.max_plus_ones
                           ? `Bring up to ${event.extra_data.max_plus_ones} guest${event.extra_data.max_plus_ones > 1 ? 's' : ''}`
@@ -1313,7 +1453,9 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                 <View style={styles.thingToKnowItem}>
                   <Ionicons name="pricetag-outline" size={20} color="#000" />
                   <View style={styles.thingToKnowContent}>
-                    <Text style={styles.thingToKnowTitle}>{t('events.details.eventType', 'Event type')}</Text>
+                    <Text style={styles.thingToKnowTitle}>
+                      {t('events.details.eventType', 'Event type')}
+                    </Text>
                     <Text style={styles.thingToKnowValue}>
                       {getCategoryDisplayName(
                         event.extra_data?.event_category ||
@@ -1330,7 +1472,9 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                   <View style={styles.thingToKnowItem}>
                     <Ionicons name="people-outline" size={20} color="#000" />
                     <View style={styles.thingToKnowContent}>
-                      <Text style={styles.thingToKnowTitle}>{t('events.details.eventCapacity', 'Event capacity')}</Text>
+                      <Text style={styles.thingToKnowTitle}>
+                        {t('events.details.eventCapacity', 'Event capacity')}
+                      </Text>
                       <Text style={styles.thingToKnowValue}>
                         Limited to {capacityLimit} guests
                         {event.extra_data?.waitlistEnabled && ' • Waitlist available'}
@@ -1344,8 +1488,12 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                   <View style={styles.thingToKnowItem}>
                     <Ionicons name="shield-checkmark-outline" size={20} color="#000" />
                     <View style={styles.thingToKnowContent}>
-                      <Text style={styles.thingToKnowTitle}>{t('events.details.registration', 'Registration')}</Text>
-                      <Text style={styles.thingToKnowValue}>{t('events.details.hostApprovalRequired', 'Host approval required')}</Text>
+                      <Text style={styles.thingToKnowTitle}>
+                        {t('events.details.registration', 'Registration')}
+                      </Text>
+                      <Text style={styles.thingToKnowValue}>
+                        {t('events.details.hostApprovalRequired', 'Host approval required')}
+                      </Text>
                     </View>
                   </View>
                 )}
@@ -1355,7 +1503,9 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                   <View style={styles.thingToKnowItem}>
                     <Ionicons name="call-outline" size={20} color="#000" />
                     <View style={styles.thingToKnowContent}>
-                      <Text style={styles.thingToKnowTitle}>{t('events.details.contact', 'Contact')}</Text>
+                      <Text style={styles.thingToKnowTitle}>
+                        {t('events.details.contact', 'Contact')}
+                      </Text>
                       <Text style={styles.thingToKnowValue}>{contactInfo}</Text>
                     </View>
                   </View>
@@ -1363,14 +1513,21 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
 
                 {/* Event Website */}
                 {eventWebsite && (
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.thingToKnowItem}
                     onPress={() => Linking.openURL(eventWebsite)}
                   >
                     <Ionicons name="globe-outline" size={20} color="#000" />
                     <View style={styles.thingToKnowContent}>
-                      <Text style={styles.thingToKnowTitle}>{t('events.details.website', 'Website')}</Text>
-                      <Text style={[styles.thingToKnowValue, { color: '#007AFF', textDecorationLine: 'underline' }]}>
+                      <Text style={styles.thingToKnowTitle}>
+                        {t('events.details.website', 'Website')}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.thingToKnowValue,
+                          { color: '#007AFF', textDecorationLine: 'underline' },
+                        ]}
+                      >
                         {eventWebsite.replace(/^https?:\/\//, '')}
                       </Text>
                     </View>
@@ -1385,12 +1542,12 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                         try {
                           const parsed = JSON.parse(parkingInfo);
                           if (!parsed.available) return '🚫';
-                          const emojis: {[key: string]: string} = {
-                            'free': '🆓',
-                            'paid': '💳',
-                            'street': '🛣️',
-                            'valet': '🚗',
-                            'limited': '⚠️'
+                          const emojis: { [key: string]: string } = {
+                            free: '🆓',
+                            paid: '💳',
+                            street: '🛣️',
+                            valet: '🚗',
+                            limited: '⚠️',
                           };
                           return emojis[parsed.type] || '🅿️';
                         } catch {
@@ -1399,21 +1556,26 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                       })()}
                     </Text>
                     <View style={styles.thingToKnowContent}>
-                      <Text style={styles.thingToKnowTitle}>{t('events.details.parking', 'Parking')}</Text>
+                      <Text style={styles.thingToKnowTitle}>
+                        {t('events.details.parking', 'Parking')}
+                      </Text>
                       <Text style={styles.thingToKnowValue}>
                         {(() => {
                           try {
                             const parsed = JSON.parse(parkingInfo);
                             if (!parsed.available) return 'No parking';
-                            const types: {[key: string]: string} = {
-                              'free': 'Free parking',
-                              'paid': 'Paid parking',
-                              'street': 'Street parking',
-                              'valet': 'Valet service',
-                              'limited': 'Limited parking'
+                            const types: { [key: string]: string } = {
+                              free: 'Free parking',
+                              paid: 'Paid parking',
+                              street: 'Street parking',
+                              valet: 'Valet service',
+                              limited: 'Limited parking',
                             };
                             let result = types[parsed.type] || 'Available';
-                            if (parsed.price && (parsed.type === 'paid' || parsed.type === 'valet')) {
+                            if (
+                              parsed.price &&
+                              (parsed.type === 'paid' || parsed.type === 'valet')
+                            ) {
                               result += ` • ${parsed.price}`;
                             }
                             return result;
@@ -1433,7 +1595,9 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
           {costs.length > 0 && (
             <View style={styles.costsDetailSection}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>{t('events.details.eventCosts', 'Event costs')}</Text>
+                <Text style={styles.sectionTitle}>
+                  {t('events.details.eventCosts', 'Event costs')}
+                </Text>
                 <Text style={styles.costsTotalBadge}>
                   $
                   {costs
@@ -1448,7 +1612,9 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                     <View style={styles.costLeft}>
                       <Text style={styles.costDescription}>{cost.description}</Text>
                       {cost.description.toLowerCase().includes('required') && (
-                        <Text style={styles.costRequired}>• {t('common.required', 'Required')}</Text>
+                        <Text style={styles.costRequired}>
+                          • {t('common.required', 'Required')}
+                        </Text>
                       )}
                     </View>
                     <Text style={styles.costAmount}>
@@ -1459,7 +1625,9 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                 ))}
                 <View style={styles.costNote}>
                   <Ionicons name="information-circle" size={16} color="#8E8E93" />
-                  <Text style={styles.costNoteText}>{t('events.details.paymentAtEvent', 'Payment collected at the event')}</Text>
+                  <Text style={styles.costNoteText}>
+                    {t('events.details.paymentAtEvent', 'Payment collected at the event')}
+                  </Text>
                 </View>
               </View>
             </View>
@@ -1469,31 +1637,41 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
           {parkingInfo && event.has_parking_info_enabled && (
             <View style={styles.parkingSection}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>{t('events.details.parkingTransportation', 'Parking & Transportation')}</Text>
+                <Text style={styles.sectionTitle}>
+                  {t('events.details.parkingTransportation', 'Parking & Transportation')}
+                </Text>
               </View>
               <View style={styles.infoCard}>
                 {(() => {
                   try {
                     // Try to parse as JSON (new format)
                     console.log('🚗 [EventDetailsScreen] Raw parking info to parse:', parkingInfo);
-                    console.log('🚗 [EventDetailsScreen] Type of parking info:', typeof parkingInfo);
+                    console.log(
+                      '🚗 [EventDetailsScreen] Type of parking info:',
+                      typeof parkingInfo
+                    );
                     const parsed = JSON.parse(parkingInfo);
                     console.log('🚗 [EventDetailsScreen] Parsed parking JSON:', parsed);
                     console.log('🚗 [EventDetailsScreen] Parsed type:', typeof parsed);
-                    const parkingTypes: {[key: string]: {label: string, emoji: string}} = {
-                      'free': { label: 'Free Parking', emoji: '🆓' },
-                      'paid': { label: 'Paid Parking', emoji: '💳' },
-                      'street': { label: 'Street Parking', emoji: '🛣️' },
-                      'valet': { label: 'Valet Service', emoji: '🚗' },
-                      'limited': { label: 'Limited Spots', emoji: '⚠️' }
+                    const parkingTypes: { [key: string]: { label: string; emoji: string } } = {
+                      free: { label: 'Free Parking', emoji: '🆓' },
+                      paid: { label: 'Paid Parking', emoji: '💳' },
+                      street: { label: 'Street Parking', emoji: '🛣️' },
+                      valet: { label: 'Valet Service', emoji: '🚗' },
+                      limited: { label: 'Limited Spots', emoji: '⚠️' },
                     };
-                    
+
                     if (!parsed.available) {
                       return (
                         <>
                           <View style={styles.infoRow}>
                             <Text style={styles.parkingEmoji}>🚫</Text>
-                            <Text style={styles.infoText}>{t('events.details.noParkingAtVenue', 'No parking available at venue')}</Text>
+                            <Text style={styles.infoText}>
+                              {t(
+                                'events.details.noParkingAtVenue',
+                                'No parking available at venue'
+                              )}
+                            </Text>
                           </View>
                           {parsed.nearbyOptions && (
                             <View style={[styles.infoRow, { marginTop: 12 }]}>
@@ -1504,7 +1682,7 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                         </>
                       );
                     }
-                    
+
                     // Get the parking type info - handle both string and parsed types
                     let typeKey = '';
                     if (typeof parsed === 'object' && parsed.type) {
@@ -1513,9 +1691,9 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                       // Handle case where type might be stored directly
                       typeKey = parsed;
                     }
-                    
+
                     const typeInfo = parkingTypes[typeKey];
-                    
+
                     // If we have a valid type, show it
                     if (typeInfo && parsed.available !== false) {
                       return (
@@ -1538,8 +1716,7 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                         </>
                       );
                     }
-                    
-                    
+
                     // No parking type specified - don't show anything
                     return null;
                   } catch {
@@ -1586,7 +1763,7 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                   {items.filter((i: any) => i.type === 'open').length} open
                 </Text>
               </View>
-              
+
               {/* Required Items */}
               {items.filter((item: any) => item.type === 'required').length > 0 && (
                 <View style={styles.itemsTypeSection}>
@@ -1601,7 +1778,7 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                   </View>
                 </View>
               )}
-              
+
               {/* Suggested Items */}
               {items.filter((item: any) => item.type === 'suggested').length > 0 && (
                 <View style={styles.itemsTypeSection}>
@@ -1616,13 +1793,15 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                   </View>
                 </View>
               )}
-              
+
               {/* Open Items */}
               {items.filter((item: any) => item.type === 'open').length > 0 && (
                 <View style={styles.itemsTypeSection}>
                   <View style={styles.itemsTypeHeader}>
                     <Ionicons name="add-circle-outline" size={18} color="#34C759" />
-                    <Text style={[styles.itemsTypeTitle, { color: '#34C759' }]}>Open (Guests can choose)</Text>
+                    <Text style={[styles.itemsTypeTitle, { color: '#34C759' }]}>
+                      Open (Guests can choose)
+                    </Text>
                   </View>
                   <View style={styles.todoContainer}>
                     {items
@@ -1631,15 +1810,12 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                   </View>
                 </View>
               )}
-              
+
               {/* Guest Suggestions Section */}
               {itemsSettings.allowGuestSuggestions && (
                 <View style={styles.guestSuggestionsSection}>
                   {!isHost ? (
-                    <TouchableOpacity 
-                      style={styles.suggestItemButton}
-                      onPress={handleSuggestItem}
-                    >
+                    <TouchableOpacity style={styles.suggestItemButton} onPress={handleSuggestItem}>
                       <Ionicons name="add-circle-outline" size={20} color="#007AFF" />
                       <Text style={styles.suggestItemText}>Suggest an item</Text>
                     </TouchableOpacity>
@@ -1651,14 +1827,12 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                   )}
                 </View>
               )}
-              
+
               {/* Sign Up Required Notice */}
               {itemsSettings.requireSignup && !isHost && (
                 <View style={styles.signupRequiredNotice}>
                   <Ionicons name="lock-closed-outline" size={16} color="#8E8E93" />
-                  <Text style={styles.signupRequiredText}>
-                    Sign up required to claim items
-                  </Text>
+                  <Text style={styles.signupRequiredText}>Sign up required to claim items</Text>
                 </View>
               )}
             </View>
@@ -1738,7 +1912,6 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
               </View>
             </View>
           )}
-
 
           {/* Playlist Section */}
           {playlist.length > 0 && (
@@ -1827,8 +2000,11 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                           <View style={styles.multipleChoiceResults}>
                             {(() => {
                               const questionId = question.id || index.toString();
-                              const { stats, totalVotes } = getMultipleChoiceStats(questionId, parsedOptions);
-                              
+                              const { stats, totalVotes } = getMultipleChoiceStats(
+                                questionId,
+                                parsedOptions
+                              );
+
                               return stats.map((stat, optIndex) => (
                                 <View key={optIndex} style={styles.voteOption}>
                                   <View style={styles.voteHeader}>
@@ -1836,7 +2012,9 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                                     <Text style={styles.voteCount}>{stat.count} votes</Text>
                                   </View>
                                   <View style={styles.voteBarContainer}>
-                                    <View style={[styles.voteBar, { width: `${stat.percentage}%` }]} />
+                                    <View
+                                      style={[styles.voteBar, { width: `${stat.percentage}%` }]}
+                                    />
                                   </View>
                                 </View>
                               ));
@@ -1853,30 +2031,29 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                             {(() => {
                               const questionId = question.id || index.toString();
                               const textResponses = getTextResponses(questionId);
-                              
+
                               if (textResponses.length === 0) {
-                                return (
-                                  <Text style={styles.noResponsesText}>No responses yet</Text>
-                                );
+                                return <Text style={styles.noResponsesText}>No responses yet</Text>;
                               }
-                              
+
                               return textResponses.map((response, idx) => (
                                 <View key={idx} style={styles.guestResponse}>
                                   <View style={styles.guestResponseHeader}>
                                     <Image
-                                      source={{ 
-                                        uri: response.user.avatar_url || 
-                                             `https://i.pravatar.cc/100?u=${response.user.id}` 
+                                      source={{
+                                        uri:
+                                          response.user.avatar_url ||
+                                          `https://i.pravatar.cc/100?u=${response.user.id}`,
                                       }}
                                       style={styles.guestResponseAvatar}
                                     />
                                     <Text style={styles.guestResponseName}>
-                                      {response.user.full_name || response.user.username || 'Anonymous'}
+                                      {response.user.full_name ||
+                                        response.user.username ||
+                                        'Anonymous'}
                                     </Text>
                                   </View>
-                                  <Text style={styles.guestResponseText}>
-                                    {response.answer}
-                                  </Text>
+                                  <Text style={styles.guestResponseText}>{response.answer}</Text>
                                 </View>
                               ));
                             })()}
@@ -1979,7 +2156,10 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                         Alert.alert(
                           t('events.details.rsvpSubmitted', 'RSVP Submitted'),
-                          t('events.details.rsvpWithoutQuestions', "You have RSVP'd without answering questions.")
+                          t(
+                            'events.details.rsvpWithoutQuestions',
+                            "You have RSVP'd without answering questions."
+                          )
                         );
                       }}
                     >
@@ -2022,8 +2202,11 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                               <View style={styles.multipleChoiceResults}>
                                 {(() => {
                                   const questionId = question.id || index.toString();
-                                  const { stats, totalVotes } = getMultipleChoiceStats(questionId, parsedOptions);
-                                  
+                                  const { stats, totalVotes } = getMultipleChoiceStats(
+                                    questionId,
+                                    parsedOptions
+                                  );
+
                                   return stats.map((stat, optIndex) => (
                                     <View key={optIndex} style={styles.voteOption}>
                                       <View style={styles.voteHeader}>
@@ -2055,7 +2238,7 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                                   {(() => {
                                     const questionId = question.id || index.toString();
                                     const textResponses = getTextResponses(questionId);
-                                    
+
                                     if (textResponses.length === 0) {
                                       return (
                                         <View style={styles.publicShortAnswer}>
@@ -2065,14 +2248,17 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                                         </View>
                                       );
                                     }
-                                    
+
                                     return textResponses.slice(0, 3).map((response, idx) => (
                                       <View key={idx} style={styles.publicShortAnswer}>
                                         <Text style={styles.publicShortAnswerText}>
                                           "{response.answer}"
                                         </Text>
                                         <Text style={styles.publicShortAnswerAuthor}>
-                                          - {response.user.full_name || response.user.username || 'Anonymous'}
+                                          -{' '}
+                                          {response.user.full_name ||
+                                            response.user.username ||
+                                            'Anonymous'}
                                         </Text>
                                       </View>
                                     ));
@@ -2090,7 +2276,6 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
               )}
             </View>
           )}
-
 
           {/* Bottom Action Buttons */}
           {isHost ? (
@@ -2165,7 +2350,10 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
               </Text>
               {event.pending_requests.map((request: any, index: number) => (
                 <View key={index} style={styles.pendingRequestItem}>
-                  <Image source={{ uri: request.avatar || 'https://i.pravatar.cc/100' }} style={styles.attendeeModalAvatar} />
+                  <Image
+                    source={{ uri: request.avatar || 'https://i.pravatar.cc/100' }}
+                    style={styles.attendeeModalAvatar}
+                  />
                   <Text style={styles.attendeeModalName}>{request.name}</Text>
                   <View style={styles.pendingActions}>
                     <TouchableOpacity style={styles.approveButton}>
@@ -2207,7 +2395,10 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
               {event.waitlist_users?.map((user: any, index: number) => (
                 <View key={index} style={styles.waitlistItem}>
                   <Text style={styles.waitlistPosition}>#{index + 1}</Text>
-                  <Image source={{ uri: user.avatar || 'https://i.pravatar.cc/100' }} style={styles.attendeeModalAvatar} />
+                  <Image
+                    source={{ uri: user.avatar || 'https://i.pravatar.cc/100' }}
+                    style={styles.attendeeModalAvatar}
+                  />
                   <Text style={styles.attendeeModalName}>{user.name}</Text>
                   {isHost && capacityLimit && (event.current_attendees || 0) < capacityLimit && (
                     <TouchableOpacity style={styles.promoteButton}>
@@ -2316,14 +2507,17 @@ export default function EventDetailsScreen({ eventId }: EventDetailsScreenProps)
                           {[1, 2, 3, 4, 5].map((star) => (
                             <Ionicons
                               key={star}
-                              name={star <= Math.floor(rating.average_rating) ? 'star' : 'star-outline'}
+                              name={
+                                star <= Math.floor(rating.average_rating) ? 'star' : 'star-outline'
+                              }
                               size={16}
                               color="#FFB800"
                               style={{ marginRight: 2 }}
                             />
                           ))}
                           <Text style={styles.hostRatingText}>
-                            {rating.average_rating.toFixed(1)} • {rating.total_ratings} rating{rating.total_ratings > 1 ? 's' : ''}
+                            {rating.average_rating.toFixed(1)} • {rating.total_ratings} rating
+                            {rating.total_ratings > 1 ? 's' : ''}
                           </Text>
                         </View>
                       );

@@ -24,11 +24,14 @@ export interface MessageRequest {
 export class ConversationService {
   // Créer un chat privé entre deux utilisateurs
   static async createPrivateChat(data: CreatePrivateChatData) {
-    console.log('💬 [ConversationService] Création d\'un chat privé avec:', data.userId);
-    
+    console.log("💬 [ConversationService] Création d'un chat privé avec:", data.userId);
+
     try {
       // 1. Obtenir l'utilisateur actuel
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
       if (userError || !user) {
         throw new Error('Utilisateur non authentifié');
       }
@@ -36,24 +39,31 @@ export class ConversationService {
       // 2. Vérifier si un chat privé existe déjà entre ces deux utilisateurs
       const { data: existingChats, error: searchError } = await supabase
         .from('chats')
-        .select(`
+        .select(
+          `
           *,
           chat_participants!inner(user_id)
-        `)
+        `
+        )
         .eq('is_group', false)
         .eq('event_id', null);
 
       if (searchError) {
-        console.error('❌ [ConversationService] Erreur lors de la recherche de chat existant:', searchError);
+        console.error(
+          '❌ [ConversationService] Erreur lors de la recherche de chat existant:',
+          searchError
+        );
         throw searchError;
       }
 
       // Filtrer pour trouver un chat avec exactement ces deux utilisateurs
-      const existingChat = existingChats?.find(chat => {
+      const existingChat = existingChats?.find((chat) => {
         const participants = chat.chat_participants.map((p: any) => p.user_id);
-        return participants.length === 2 && 
-               participants.includes(user.id) && 
-               participants.includes(data.userId);
+        return (
+          participants.length === 2 &&
+          participants.includes(user.id) &&
+          participants.includes(data.userId)
+        );
       });
 
       if (existingChat) {
@@ -64,10 +74,12 @@ export class ConversationService {
       // 3. Créer un nouveau chat privé
       const { data: newChat, error: chatError } = await supabase
         .from('chats')
-        .insert([{
-          is_group: false,
-          created_by: user.id
-        }])
+        .insert([
+          {
+            is_group: false,
+            created_by: user.id,
+          },
+        ])
         .select()
         .single();
 
@@ -79,7 +91,7 @@ export class ConversationService {
       // 4. Ajouter les deux participants
       const participants = [
         { chat_id: newChat.id, user_id: user.id },
-        { chat_id: newChat.id, user_id: data.userId }
+        { chat_id: newChat.id, user_id: data.userId },
       ];
 
       const { error: participantsError } = await supabase
@@ -87,7 +99,10 @@ export class ConversationService {
         .insert(participants);
 
       if (participantsError) {
-        console.error('❌ [ConversationService] Erreur lors de l\'ajout des participants:', participantsError);
+        console.error(
+          "❌ [ConversationService] Erreur lors de l'ajout des participants:",
+          participantsError
+        );
         throw participantsError;
       }
 
@@ -106,11 +121,14 @@ export class ConversationService {
 
   // Créer un chat de groupe
   static async createGroupChat(data: CreateGroupChatData) {
-    console.log('👥 [ConversationService] Création d\'un chat de groupe:', data.name);
-    
+    console.log("👥 [ConversationService] Création d'un chat de groupe:", data.name);
+
     try {
       // 1. Obtenir l'utilisateur actuel
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
       if (userError || !user) {
         throw new Error('Utilisateur non authentifié');
       }
@@ -118,11 +136,13 @@ export class ConversationService {
       // 2. Créer le chat de groupe
       const { data: groupChat, error: chatError } = await supabase
         .from('chats')
-        .insert([{
-          name: data.name,
-          is_group: true,
-          created_by: user.id
-        }])
+        .insert([
+          {
+            name: data.name,
+            is_group: true,
+            created_by: user.id,
+          },
+        ])
         .select()
         .single();
 
@@ -134,11 +154,11 @@ export class ConversationService {
       // 3. Ajouter tous les participants (créateur + invités)
       const participants = [
         { chat_id: groupChat.id, user_id: user.id, is_admin: true }, // Créateur est admin
-        ...data.userIds.map(userId => ({
+        ...data.userIds.map((userId) => ({
           chat_id: groupChat.id,
           user_id: userId,
-          is_admin: false
-        }))
+          is_admin: false,
+        })),
       ];
 
       const { error: participantsError } = await supabase
@@ -146,7 +166,10 @@ export class ConversationService {
         .insert(participants);
 
       if (participantsError) {
-        console.error('❌ [ConversationService] Erreur lors de l\'ajout des participants:', participantsError);
+        console.error(
+          "❌ [ConversationService] Erreur lors de l'ajout des participants:",
+          participantsError
+        );
         throw participantsError;
       }
 
@@ -163,10 +186,13 @@ export class ConversationService {
 
   // Envoyer une demande d'ami
   static async sendFriendRequest(data: CreateFriendRequestData) {
-    console.log('🤝 [ConversationService] Envoi d\'une demande d\'ami à:', data.recipientId);
-    
+    console.log("🤝 [ConversationService] Envoi d'une demande d'ami à:", data.recipientId);
+
     try {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
       if (userError || !user) {
         throw new Error('Utilisateur non authentifié');
       }
@@ -180,28 +206,33 @@ export class ConversationService {
         .single();
 
       if (existingRequest && !checkError) {
-        console.log('⚠️ [ConversationService] Une demande d\'ami existe déjà');
+        console.log("⚠️ [ConversationService] Une demande d'ami existe déjà");
         return { request: existingRequest, isNew: false };
       }
 
       // Créer la demande d'ami
       const { data: friendRequest, error: requestError } = await supabase
         .from('friend_requests')
-        .insert([{
-          sender_id: user.id,
-          recipient_id: data.recipientId,
-          message: data.message,
-          status: 'pending'
-        }])
+        .insert([
+          {
+            sender_id: user.id,
+            recipient_id: data.recipientId,
+            message: data.message,
+            status: 'pending',
+          },
+        ])
         .select()
         .single();
 
       if (requestError) {
-        console.error('❌ [ConversationService] Erreur lors de la création de la demande:', requestError);
+        console.error(
+          '❌ [ConversationService] Erreur lors de la création de la demande:',
+          requestError
+        );
         throw requestError;
       }
 
-      console.log('✅ [ConversationService] Demande d\'ami envoyée');
+      console.log("✅ [ConversationService] Demande d'ami envoyée");
       return { request: friendRequest, isNew: true };
     } catch (error) {
       console.error('💥 [ConversationService] Erreur fatale:', error);
@@ -211,10 +242,13 @@ export class ConversationService {
 
   // Accepter une demande d'ami
   static async acceptFriendRequest(requestId: string) {
-    console.log('✅ [ConversationService] Acceptation de la demande d\'ami:', requestId);
-    
+    console.log("✅ [ConversationService] Acceptation de la demande d'ami:", requestId);
+
     try {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
       if (userError || !user) {
         throw new Error('Utilisateur non authentifié');
       }
@@ -222,9 +256,9 @@ export class ConversationService {
       // Mettre à jour le statut de la demande
       const { data: request, error: updateError } = await supabase
         .from('friend_requests')
-        .update({ 
+        .update({
           status: 'accepted',
-          accepted_at: new Date().toISOString()
+          accepted_at: new Date().toISOString(),
         })
         .eq('id', requestId)
         .eq('recipient_id', user.id)
@@ -232,17 +266,17 @@ export class ConversationService {
         .single();
 
       if (updateError) {
-        console.error('❌ [ConversationService] Erreur lors de l\'acceptation:', updateError);
+        console.error("❌ [ConversationService] Erreur lors de l'acceptation:", updateError);
         throw updateError;
       }
 
       // Créer automatiquement un chat privé entre les deux utilisateurs
       await this.createPrivateChat({
         userId: request.sender_id,
-        message: 'Nous sommes maintenant amis ! 🎉'
+        message: 'Nous sommes maintenant amis ! 🎉',
       });
 
-      console.log('✅ [ConversationService] Demande d\'ami acceptée et chat créé');
+      console.log("✅ [ConversationService] Demande d'ami acceptée et chat créé");
       return { success: true };
     } catch (error) {
       console.error('💥 [ConversationService] Erreur fatale:', error);
@@ -252,10 +286,13 @@ export class ConversationService {
 
   // Envoyer une demande de message (pour les utilisateurs non amis)
   static async sendMessageRequest(data: MessageRequest) {
-    console.log('📨 [ConversationService] Envoi d\'une demande de message à:', data.recipientId);
-    
+    console.log("📨 [ConversationService] Envoi d'une demande de message à:", data.recipientId);
+
     try {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
       if (userError || !user) {
         throw new Error('Utilisateur non authentifié');
       }
@@ -263,23 +300,28 @@ export class ConversationService {
       // Créer un chat privé temporaire avec statut "pending"
       const { data: pendingChat, error: chatError } = await supabase
         .from('chats')
-        .insert([{
-          is_group: false,
-          created_by: user.id,
-          status: 'pending' // Nécessite l'ajout de cette colonne
-        }])
+        .insert([
+          {
+            is_group: false,
+            created_by: user.id,
+            status: 'pending', // Nécessite l'ajout de cette colonne
+          },
+        ])
         .select()
         .single();
 
       if (chatError) {
-        console.error('❌ [ConversationService] Erreur lors de la création du chat pending:', chatError);
+        console.error(
+          '❌ [ConversationService] Erreur lors de la création du chat pending:',
+          chatError
+        );
         throw chatError;
       }
 
       // Ajouter les participants
       const participants = [
         { chat_id: pendingChat.id, user_id: user.id },
-        { chat_id: pendingChat.id, user_id: data.recipientId, is_pending: true }
+        { chat_id: pendingChat.id, user_id: data.recipientId, is_pending: true },
       ];
 
       const { error: participantsError } = await supabase
@@ -287,7 +329,10 @@ export class ConversationService {
         .insert(participants);
 
       if (participantsError) {
-        console.error('❌ [ConversationService] Erreur lors de l\'ajout des participants:', participantsError);
+        console.error(
+          "❌ [ConversationService] Erreur lors de l'ajout des participants:",
+          participantsError
+        );
         throw participantsError;
       }
 
@@ -305,9 +350,12 @@ export class ConversationService {
   // Accepter une demande de message
   static async acceptMessageRequest(chatId: string) {
     console.log('✅ [ConversationService] Acceptation de la demande de message:', chatId);
-    
+
     try {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
       if (userError || !user) {
         throw new Error('Utilisateur non authentifié');
       }
@@ -319,7 +367,10 @@ export class ConversationService {
         .eq('id', chatId);
 
       if (chatUpdateError) {
-        console.error('❌ [ConversationService] Erreur lors de la mise à jour du chat:', chatUpdateError);
+        console.error(
+          '❌ [ConversationService] Erreur lors de la mise à jour du chat:',
+          chatUpdateError
+        );
         throw chatUpdateError;
       }
 
@@ -331,7 +382,10 @@ export class ConversationService {
         .eq('user_id', user.id);
 
       if (participantUpdateError) {
-        console.error('❌ [ConversationService] Erreur lors de la mise à jour du participant:', participantUpdateError);
+        console.error(
+          '❌ [ConversationService] Erreur lors de la mise à jour du participant:',
+          participantUpdateError
+        );
         throw participantUpdateError;
       }
 
@@ -349,20 +403,18 @@ export class ConversationService {
   // Ajouter des participants à un chat de groupe
   static async addParticipantsToGroup(chatId: string, userIds: string[]) {
     console.log('➕ [ConversationService] Ajout de participants au groupe:', chatId);
-    
+
     try {
-      const participants = userIds.map(userId => ({
+      const participants = userIds.map((userId) => ({
         chat_id: chatId,
         user_id: userId,
-        is_admin: false
+        is_admin: false,
       }));
 
-      const { error } = await supabase
-        .from('chat_participants')
-        .insert(participants);
+      const { error } = await supabase.from('chat_participants').insert(participants);
 
       if (error) {
-        console.error('❌ [ConversationService] Erreur lors de l\'ajout des participants:', error);
+        console.error("❌ [ConversationService] Erreur lors de l'ajout des participants:", error);
         throw error;
       }
 
@@ -375,24 +427,31 @@ export class ConversationService {
   }
 
   // Méthodes utilitaires
-  private static async sendMessage(chatId: string, userId: string, content: string, type: string = 'text') {
-    const { error } = await supabase
-      .from('messages')
-      .insert([{
+  private static async sendMessage(
+    chatId: string,
+    userId: string,
+    content: string,
+    type: string = 'text'
+  ) {
+    const { error } = await supabase.from('messages').insert([
+      {
         chat_id: chatId,
         user_id: userId,
         content: content,
-        type: type
-      }]);
+        type: type,
+      },
+    ]);
 
     if (error) {
-      console.error('❌ [ConversationService] Erreur lors de l\'envoi du message:', error);
+      console.error("❌ [ConversationService] Erreur lors de l'envoi du message:", error);
       throw error;
     }
   }
 
   private static async sendSystemMessage(chatId: string, content: string) {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     await this.sendMessage(chatId, user?.id || '', content, 'system');
   }
 }

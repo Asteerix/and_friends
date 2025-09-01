@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-
 import type { EventAdvanced } from '@/hooks/useEventsAdvanced';
 import { supabase } from '@/shared/lib/supabase/client';
 

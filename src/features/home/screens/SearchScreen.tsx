@@ -13,7 +13,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-
 import { useEventsAdvanced } from '@/hooks/useEventsAdvanced';
 import { useProfile } from '@/hooks/useProfile';
 import CustomText from '@/shared/ui/CustomText';
@@ -175,7 +174,9 @@ export default function SearchScreen() {
             {item.subtitle}
           </CustomText>
         )}
-        {item.type === 'user' && <RatingDisplay userId={item.id} size="small" showCount={false} style={{ marginTop: 2 }} />}
+        {item.type === 'user' && (
+          <RatingDisplay userId={item.id} size="small" showCount={false} style={{ marginTop: 2 }} />
+        )}
       </View>
 
       <CustomText size="lg" color="#999">

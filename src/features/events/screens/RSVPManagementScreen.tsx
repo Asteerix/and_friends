@@ -14,8 +14,8 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-
 import { useEvents } from '@/hooks/useEvents';
+import { supabase } from '@/shared/lib/supabase/client';
 
 const rsvpStatuses = [
   { id: 'going', label: 'Going', icon: 'checkmark-circle', color: '#4CAF50' },
@@ -44,20 +44,90 @@ export default function RSVPManagementScreen() {
   }, [eventId]);
 
   const loadAttendees = async () => {
-    // TODO: Load attendees from Supabase
-    // For now, using mock data
-    setAttendees({
-      going: [
-        { id: '1', name: 'John Doe', avatar: null, username: 'johndoe' },
-        { id: '2', name: 'Jane Smith', avatar: null, username: 'janesmith' },
-        { id: '3', name: 'Mike Johnson', avatar: null, username: 'mikej' },
-      ],
-      maybe: [
-        { id: '4', name: 'Sarah Williams', avatar: null, username: 'sarahw' },
-        { id: '5', name: 'Tom Brown', avatar: null, username: 'tomb' },
-      ],
-      'not-going': [{ id: '6', name: 'Emily Davis', avatar: null, username: 'emilyd' }],
-    });
+    if (!eventId) return;
+
+    try {
+      console.log('🔍 [RSVPManagement] Loading attendees for event:', eventId);
+
+      // Fetch event participants with their profile data
+      const { data: participants, error } = await supabase
+        .from('event_participants')
+        .select(
+          `
+          status,
+          user_id,
+          profiles:user_id (
+            id,
+            full_name,
+            username,
+            avatar_url
+          )
+        `
+        )
+        .eq('event_id', eventId);
+
+      if (error) {
+        console.error('❌ [RSVPManagement] Error loading attendees:', error);
+        // Fall back to empty state instead of mock data
+        setAttendees({
+          going: [],
+          maybe: [],
+          'not-going': [],
+        });
+        return;
+      }
+
+      if (!participants) {
+        console.log('ℹ️ [RSVPManagement] No participants found');
+        setAttendees({
+          going: [],
+          maybe: [],
+          'not-going': [],
+        });
+        return;
+      }
+
+      console.log('✅ [RSVPManagement] Found', participants.length, 'participants');
+
+      // Group participants by status
+      const groupedAttendees = {
+        going: [] as any[],
+        maybe: [] as any[],
+        'not-going': [] as any[],
+      };
+
+      participants.forEach((participant) => {
+        const profile = participant.profiles;
+        if (!profile) return;
+
+        const attendee = {
+          id: profile.id,
+          name: profile.full_name || profile.username || 'Anonymous',
+          username: profile.username || 'user',
+          avatar: profile.avatar_url,
+        };
+
+        const status = participant.status as keyof typeof groupedAttendees;
+        if (groupedAttendees[status]) {
+          groupedAttendees[status].push(attendee);
+        }
+      });
+
+      console.log('📊 [RSVPManagement] Attendees grouped:', {
+        going: groupedAttendees.going.length,
+        maybe: groupedAttendees.maybe.length,
+        'not-going': groupedAttendees['not-going'].length,
+      });
+
+      setAttendees(groupedAttendees);
+    } catch (error) {
+      console.error('💥 [RSVPManagement] Fatal error loading attendees:', error);
+      setAttendees({
+        going: [],
+        maybe: [],
+        'not-going': [],
+      });
+    }
   };
 
   const handleRefresh = async () => {
@@ -67,10 +137,26 @@ export default function RSVPManagementScreen() {
   };
 
   const handleChangeRSVP = async (newStatus: string) => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    await updateRSVP(eventId, newStatus);
-    // Refresh attendees list
-    loadAttendees();
+    if (!eventId) return;
+
+    try {
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      console.log('🔄 [RSVPManagement] Updating RSVP status to:', newStatus);
+
+      const result = await updateRSVP(eventId, newStatus);
+
+      if (result.error) {
+        console.error('❌ [RSVPManagement] Error updating RSVP:', result.error);
+        return;
+      }
+
+      console.log('✅ [RSVPManagement] RSVP updated successfully');
+
+      // Refresh attendees list to reflect the change
+      await loadAttendees();
+    } catch (error) {
+      console.error('💥 [RSVPManagement] Fatal error updating RSVP:', error);
+    }
   };
 
   const sections = [

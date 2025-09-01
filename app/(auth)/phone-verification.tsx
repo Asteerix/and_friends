@@ -1,1 +1,1 @@
-export { default } from '@/app/(auth)/phone-verification';
+export { default } from '../../src/app/(auth)/phone-verification';

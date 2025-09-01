@@ -1,4 +1,3 @@
-
 export interface Event {
   id: string;
   title: string;
@@ -41,7 +40,7 @@ export interface Event {
   shareCount: number;
   createdAt: Date;
   updatedAt: Date;
-};
+}
 export interface EventCoverData {
   type: 'template' | 'custom' | 'upload';
   style?: {
@@ -59,14 +58,14 @@ export interface EventCoverData {
     stickers?: Sticker[];
     text?: TextElement[];
   };
-};
+}
 export interface Sticker {
   id: string;
   url: string;
   position: { x: number; y: number };
   size: { width: number; height: number };
   rotation?: number;
-};
+}
 export interface TextElement {
   id: string;
   text: string;
@@ -74,8 +73,8 @@ export interface TextElement {
   font?: string;
   size?: number;
   color?: string;
-};
-export type EventCategory = 
+}
+export type EventCategory =
   | 'party'
   | 'casual'
   | 'celebration'
@@ -99,7 +98,7 @@ export interface EventAttendee {
   respondedAt?: Date;
   checkInTime?: Date;
   createdAt: Date;
-};
+}
 export type AttendeeStatus = 'invited' | 'going' | 'maybe' | 'declined' | 'waitlist';
 
 export interface CreateEventData {
@@ -119,8 +118,10 @@ export interface CreateEventData {
   maxAttendees?: number;
   whatToBring?: string[];
   price?: number;
-};
-export type UpdateEventData = Partial<Omit<Event, 'id' | 'organizerId' | 'createdAt' | 'updatedAt'>>;
+}
+export type UpdateEventData = Partial<
+  Omit<Event, 'id' | 'organizerId' | 'createdAt' | 'updatedAt'>
+>;
 
 export interface EventSearchParams {
   query?: string;
@@ -135,7 +136,7 @@ export interface EventSearchParams {
   privacy?: EventPrivacy[];
   limit?: number;
   offset?: number;
-};
+}
 export interface EventAnalytics {
   eventId: string;
   date: Date;

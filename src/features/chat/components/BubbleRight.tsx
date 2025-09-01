@@ -1,13 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 
-export default function BubbleRight({
-  text,
-  time,
-}: {
-  text: string;
-  time: string;
-}) {
+export default function BubbleRight({ text, time }: { text: string; time: string }) {
   return (
     <View style={styles.row}>
       <Text style={styles.time}>{time}</Text>

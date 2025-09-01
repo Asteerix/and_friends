@@ -50,26 +50,446 @@ const POPULAR_COUNTRIES = [
 ];
 
 const MAJOR_CITIES: { [key: string]: string[] } = {
-  'US': ['New York', 'Los Angeles', 'Chicago', 'Houston', 'Phoenix', 'Philadelphia', 'San Antonio', 'San Diego', 'Dallas', 'San Jose', 'Austin', 'Jacksonville', 'San Francisco', 'Seattle', 'Denver', 'Boston', 'Miami', 'Atlanta', 'Las Vegas', 'Portland'],
-  'GB': ['London', 'Birmingham', 'Leeds', 'Glasgow', 'Sheffield', 'Bradford', 'Liverpool', 'Edinburgh', 'Manchester', 'Bristol', 'Coventry', 'Nottingham', 'Leicester', 'Newcastle', 'Brighton', 'Cambridge', 'Oxford', 'Cardiff', 'Belfast', 'Aberdeen'],
-  'CA': ['Toronto', 'Montreal', 'Vancouver', 'Calgary', 'Edmonton', 'Ottawa', 'Winnipeg', 'Quebec City', 'Hamilton', 'Kitchener', 'London', 'Victoria', 'Halifax', 'Oshawa', 'Windsor', 'Saskatoon', 'Regina', 'Barrie', 'St. Johns', 'Kelowna'],
-  'AU': ['Sydney', 'Melbourne', 'Brisbane', 'Perth', 'Adelaide', 'Gold Coast', 'Newcastle', 'Canberra', 'Sunshine Coast', 'Wollongong', 'Hobart', 'Geelong', 'Townsville', 'Cairns', 'Darwin', 'Toowoomba', 'Ballarat', 'Bendigo', 'Albury', 'Launceston'],
-  'FR': ['Paris', 'Marseille', 'Lyon', 'Toulouse', 'Nice', 'Nantes', 'Montpellier', 'Strasbourg', 'Bordeaux', 'Lille', 'Rennes', 'Reims', 'Saint-Étienne', 'Toulon', 'Le Havre', 'Grenoble', 'Dijon', 'Angers', 'Nîmes', 'Aix-en-Provence'],
-  'DE': ['Berlin', 'Hamburg', 'Munich', 'Cologne', 'Frankfurt', 'Stuttgart', 'Düsseldorf', 'Dortmund', 'Essen', 'Leipzig', 'Bremen', 'Dresden', 'Hanover', 'Nuremberg', 'Duisburg', 'Bochum', 'Wuppertal', 'Bielefeld', 'Bonn', 'Münster'],
-  'IT': ['Rome', 'Milan', 'Naples', 'Turin', 'Palermo', 'Genoa', 'Bologna', 'Florence', 'Bari', 'Catania', 'Venice', 'Verona', 'Messina', 'Padua', 'Trieste', 'Taranto', 'Brescia', 'Parma', 'Prato', 'Modena'],
-  'ES': ['Madrid', 'Barcelona', 'Valencia', 'Seville', 'Zaragoza', 'Málaga', 'Murcia', 'Palma', 'Las Palmas', 'Bilbao', 'Alicante', 'Córdoba', 'Valladolid', 'Vigo', 'Gijón', 'Hospitalet', 'Granada', 'Vitoria', 'Elche', 'Oviedo'],
-  'JP': ['Tokyo', 'Yokohama', 'Osaka', 'Nagoya', 'Sapporo', 'Kobe', 'Kyoto', 'Fukuoka', 'Kawasaki', 'Saitama', 'Hiroshima', 'Sendai', 'Chiba', 'Kitakyushu', 'Sakai', 'Niigata', 'Hamamatsu', 'Shizuoka', 'Kumamoto', 'Okayama'],
-  'BR': ['São Paulo', 'Rio de Janeiro', 'Salvador', 'Brasília', 'Fortaleza', 'Belo Horizonte', 'Manaus', 'Curitiba', 'Recife', 'Porto Alegre', 'Belém', 'Goiânia', 'Guarulhos', 'Campinas', 'São Luís', 'São Gonçalo', 'Maceió', 'Duque de Caxias', 'Natal', 'Campo Grande'],
-  'MX': ['Mexico City', 'Guadalajara', 'Monterrey', 'Puebla', 'Toluca', 'Tijuana', 'León', 'Ciudad Juárez', 'Torreón', 'Zapopan', 'San Luis Potosí', 'Querétaro', 'Mérida', 'Aguascalientes', 'Mexicali', 'Cuernavaca', 'Tampico', 'Chihuahua', 'Morelia', 'Saltillo'],
-  'IN': ['Mumbai', 'Delhi', 'Bangalore', 'Hyderabad', 'Ahmedabad', 'Chennai', 'Kolkata', 'Surat', 'Pune', 'Jaipur', 'Lucknow', 'Kanpur', 'Nagpur', 'Indore', 'Thane', 'Bhopal', 'Visakhapatnam', 'Pimpri-Chinchwad', 'Patna', 'Vadodara'],
-  'CN': ['Shanghai', 'Beijing', 'Guangzhou', 'Shenzhen', 'Tianjin', 'Wuhan', 'Dongguan', 'Chengdu', 'Nanjing', 'Chongqing', 'Xian', 'Hangzhou', 'Foshan', 'Shenyang', 'Harbin', 'Suzhou', 'Qingdao', 'Dalian', 'Zhengzhou', 'Jinan'],
-  'KR': ['Seoul', 'Busan', 'Incheon', 'Daegu', 'Daejeon', 'Gwangju', 'Suwon', 'Ulsan', 'Changwon', 'Goyang', 'Yongin', 'Seongnam', 'Bucheon', 'Cheongju', 'Ansan', 'Jeonju', 'Cheonan', 'Namyangju', 'Hwaseong', 'Anyang'],
-  'NL': ['Amsterdam', 'Rotterdam', 'The Hague', 'Utrecht', 'Eindhoven', 'Groningen', 'Tilburg', 'Almere', 'Breda', 'Nijmegen', 'Enschede', 'Haarlem', 'Arnhem', 'Zaanstad', 'Amersfoort', 'Apeldoorn', 'Hoofddorp', 'Maastricht', 'Leiden', 'Dordrecht'],
-  'SE': ['Stockholm', 'Gothenburg', 'Malmö', 'Uppsala', 'Västerås', 'Örebro', 'Linköping', 'Helsingborg', 'Jönköping', 'Norrköping', 'Lund', 'Umeå', 'Gävle', 'Borås', 'Eskilstuna', 'Södertälje', 'Karlstad', 'Täby', 'Växjö', 'Halmstad'],
-  'NO': ['Oslo', 'Bergen', 'Trondheim', 'Stavanger', 'Drammen', 'Fredrikstad', 'Kristiansand', 'Tromsø', 'Sandnes', 'Sarpsborg', 'Skien', 'Ålesund', 'Sandefjord', 'Haugesund', 'Tønsberg', 'Moss', 'Porsgrunn', 'Bodø', 'Arendal', 'Larvik'],
-  'DK': ['Copenhagen', 'Aarhus', 'Odense', 'Aalborg', 'Esbjerg', 'Randers', 'Horsens', 'Vejle', 'Kolding', 'Hvidovre', 'Greve', 'Roskilde', 'Herning', 'Hørsholm', 'Silkeborg', 'Næstved', 'Fredericia', 'Viborg', 'Køge', 'Holstebro'],
-  'CH': ['Zurich', 'Geneva', 'Basel', 'Lausanne', 'Bern', 'Winterthur', 'Lucerne', 'St. Gallen', 'Lugano', 'Biel', 'Thun', 'Köniz', 'La Chaux-de-Fonds', 'Schaffhausen', 'Fribourg', 'Chur', 'Neuchâtel', 'Vernier', 'Uster', 'Sion'],
-  'BE': ['Brussels', 'Antwerp', 'Ghent', 'Charleroi', 'Liège', 'Bruges', 'Namur', 'Leuven', 'Mons', 'Aalst', 'Mechelen', 'La Louvière', 'Kortrijk', 'Hasselt', 'Sint-Niklaas', 'Ostend', 'Tournai', 'Genk', 'Seraing', 'Roeselare'],
+  US: [
+    'New York',
+    'Los Angeles',
+    'Chicago',
+    'Houston',
+    'Phoenix',
+    'Philadelphia',
+    'San Antonio',
+    'San Diego',
+    'Dallas',
+    'San Jose',
+    'Austin',
+    'Jacksonville',
+    'San Francisco',
+    'Seattle',
+    'Denver',
+    'Boston',
+    'Miami',
+    'Atlanta',
+    'Las Vegas',
+    'Portland',
+  ],
+  GB: [
+    'London',
+    'Birmingham',
+    'Leeds',
+    'Glasgow',
+    'Sheffield',
+    'Bradford',
+    'Liverpool',
+    'Edinburgh',
+    'Manchester',
+    'Bristol',
+    'Coventry',
+    'Nottingham',
+    'Leicester',
+    'Newcastle',
+    'Brighton',
+    'Cambridge',
+    'Oxford',
+    'Cardiff',
+    'Belfast',
+    'Aberdeen',
+  ],
+  CA: [
+    'Toronto',
+    'Montreal',
+    'Vancouver',
+    'Calgary',
+    'Edmonton',
+    'Ottawa',
+    'Winnipeg',
+    'Quebec City',
+    'Hamilton',
+    'Kitchener',
+    'London',
+    'Victoria',
+    'Halifax',
+    'Oshawa',
+    'Windsor',
+    'Saskatoon',
+    'Regina',
+    'Barrie',
+    'St. Johns',
+    'Kelowna',
+  ],
+  AU: [
+    'Sydney',
+    'Melbourne',
+    'Brisbane',
+    'Perth',
+    'Adelaide',
+    'Gold Coast',
+    'Newcastle',
+    'Canberra',
+    'Sunshine Coast',
+    'Wollongong',
+    'Hobart',
+    'Geelong',
+    'Townsville',
+    'Cairns',
+    'Darwin',
+    'Toowoomba',
+    'Ballarat',
+    'Bendigo',
+    'Albury',
+    'Launceston',
+  ],
+  FR: [
+    'Paris',
+    'Marseille',
+    'Lyon',
+    'Toulouse',
+    'Nice',
+    'Nantes',
+    'Montpellier',
+    'Strasbourg',
+    'Bordeaux',
+    'Lille',
+    'Rennes',
+    'Reims',
+    'Saint-Étienne',
+    'Toulon',
+    'Le Havre',
+    'Grenoble',
+    'Dijon',
+    'Angers',
+    'Nîmes',
+    'Aix-en-Provence',
+  ],
+  DE: [
+    'Berlin',
+    'Hamburg',
+    'Munich',
+    'Cologne',
+    'Frankfurt',
+    'Stuttgart',
+    'Düsseldorf',
+    'Dortmund',
+    'Essen',
+    'Leipzig',
+    'Bremen',
+    'Dresden',
+    'Hanover',
+    'Nuremberg',
+    'Duisburg',
+    'Bochum',
+    'Wuppertal',
+    'Bielefeld',
+    'Bonn',
+    'Münster',
+  ],
+  IT: [
+    'Rome',
+    'Milan',
+    'Naples',
+    'Turin',
+    'Palermo',
+    'Genoa',
+    'Bologna',
+    'Florence',
+    'Bari',
+    'Catania',
+    'Venice',
+    'Verona',
+    'Messina',
+    'Padua',
+    'Trieste',
+    'Taranto',
+    'Brescia',
+    'Parma',
+    'Prato',
+    'Modena',
+  ],
+  ES: [
+    'Madrid',
+    'Barcelona',
+    'Valencia',
+    'Seville',
+    'Zaragoza',
+    'Málaga',
+    'Murcia',
+    'Palma',
+    'Las Palmas',
+    'Bilbao',
+    'Alicante',
+    'Córdoba',
+    'Valladolid',
+    'Vigo',
+    'Gijón',
+    'Hospitalet',
+    'Granada',
+    'Vitoria',
+    'Elche',
+    'Oviedo',
+  ],
+  JP: [
+    'Tokyo',
+    'Yokohama',
+    'Osaka',
+    'Nagoya',
+    'Sapporo',
+    'Kobe',
+    'Kyoto',
+    'Fukuoka',
+    'Kawasaki',
+    'Saitama',
+    'Hiroshima',
+    'Sendai',
+    'Chiba',
+    'Kitakyushu',
+    'Sakai',
+    'Niigata',
+    'Hamamatsu',
+    'Shizuoka',
+    'Kumamoto',
+    'Okayama',
+  ],
+  BR: [
+    'São Paulo',
+    'Rio de Janeiro',
+    'Salvador',
+    'Brasília',
+    'Fortaleza',
+    'Belo Horizonte',
+    'Manaus',
+    'Curitiba',
+    'Recife',
+    'Porto Alegre',
+    'Belém',
+    'Goiânia',
+    'Guarulhos',
+    'Campinas',
+    'São Luís',
+    'São Gonçalo',
+    'Maceió',
+    'Duque de Caxias',
+    'Natal',
+    'Campo Grande',
+  ],
+  MX: [
+    'Mexico City',
+    'Guadalajara',
+    'Monterrey',
+    'Puebla',
+    'Toluca',
+    'Tijuana',
+    'León',
+    'Ciudad Juárez',
+    'Torreón',
+    'Zapopan',
+    'San Luis Potosí',
+    'Querétaro',
+    'Mérida',
+    'Aguascalientes',
+    'Mexicali',
+    'Cuernavaca',
+    'Tampico',
+    'Chihuahua',
+    'Morelia',
+    'Saltillo',
+  ],
+  IN: [
+    'Mumbai',
+    'Delhi',
+    'Bangalore',
+    'Hyderabad',
+    'Ahmedabad',
+    'Chennai',
+    'Kolkata',
+    'Surat',
+    'Pune',
+    'Jaipur',
+    'Lucknow',
+    'Kanpur',
+    'Nagpur',
+    'Indore',
+    'Thane',
+    'Bhopal',
+    'Visakhapatnam',
+    'Pimpri-Chinchwad',
+    'Patna',
+    'Vadodara',
+  ],
+  CN: [
+    'Shanghai',
+    'Beijing',
+    'Guangzhou',
+    'Shenzhen',
+    'Tianjin',
+    'Wuhan',
+    'Dongguan',
+    'Chengdu',
+    'Nanjing',
+    'Chongqing',
+    'Xian',
+    'Hangzhou',
+    'Foshan',
+    'Shenyang',
+    'Harbin',
+    'Suzhou',
+    'Qingdao',
+    'Dalian',
+    'Zhengzhou',
+    'Jinan',
+  ],
+  KR: [
+    'Seoul',
+    'Busan',
+    'Incheon',
+    'Daegu',
+    'Daejeon',
+    'Gwangju',
+    'Suwon',
+    'Ulsan',
+    'Changwon',
+    'Goyang',
+    'Yongin',
+    'Seongnam',
+    'Bucheon',
+    'Cheongju',
+    'Ansan',
+    'Jeonju',
+    'Cheonan',
+    'Namyangju',
+    'Hwaseong',
+    'Anyang',
+  ],
+  NL: [
+    'Amsterdam',
+    'Rotterdam',
+    'The Hague',
+    'Utrecht',
+    'Eindhoven',
+    'Groningen',
+    'Tilburg',
+    'Almere',
+    'Breda',
+    'Nijmegen',
+    'Enschede',
+    'Haarlem',
+    'Arnhem',
+    'Zaanstad',
+    'Amersfoort',
+    'Apeldoorn',
+    'Hoofddorp',
+    'Maastricht',
+    'Leiden',
+    'Dordrecht',
+  ],
+  SE: [
+    'Stockholm',
+    'Gothenburg',
+    'Malmö',
+    'Uppsala',
+    'Västerås',
+    'Örebro',
+    'Linköping',
+    'Helsingborg',
+    'Jönköping',
+    'Norrköping',
+    'Lund',
+    'Umeå',
+    'Gävle',
+    'Borås',
+    'Eskilstuna',
+    'Södertälje',
+    'Karlstad',
+    'Täby',
+    'Växjö',
+    'Halmstad',
+  ],
+  NO: [
+    'Oslo',
+    'Bergen',
+    'Trondheim',
+    'Stavanger',
+    'Drammen',
+    'Fredrikstad',
+    'Kristiansand',
+    'Tromsø',
+    'Sandnes',
+    'Sarpsborg',
+    'Skien',
+    'Ålesund',
+    'Sandefjord',
+    'Haugesund',
+    'Tønsberg',
+    'Moss',
+    'Porsgrunn',
+    'Bodø',
+    'Arendal',
+    'Larvik',
+  ],
+  DK: [
+    'Copenhagen',
+    'Aarhus',
+    'Odense',
+    'Aalborg',
+    'Esbjerg',
+    'Randers',
+    'Horsens',
+    'Vejle',
+    'Kolding',
+    'Hvidovre',
+    'Greve',
+    'Roskilde',
+    'Herning',
+    'Hørsholm',
+    'Silkeborg',
+    'Næstved',
+    'Fredericia',
+    'Viborg',
+    'Køge',
+    'Holstebro',
+  ],
+  CH: [
+    'Zurich',
+    'Geneva',
+    'Basel',
+    'Lausanne',
+    'Bern',
+    'Winterthur',
+    'Lucerne',
+    'St. Gallen',
+    'Lugano',
+    'Biel',
+    'Thun',
+    'Köniz',
+    'La Chaux-de-Fonds',
+    'Schaffhausen',
+    'Fribourg',
+    'Chur',
+    'Neuchâtel',
+    'Vernier',
+    'Uster',
+    'Sion',
+  ],
+  BE: [
+    'Brussels',
+    'Antwerp',
+    'Ghent',
+    'Charleroi',
+    'Liège',
+    'Bruges',
+    'Namur',
+    'Leuven',
+    'Mons',
+    'Aalst',
+    'Mechelen',
+    'La Louvière',
+    'Kortrijk',
+    'Hasselt',
+    'Sint-Niklaas',
+    'Ostend',
+    'Tournai',
+    'Genk',
+    'Seraing',
+    'Roeselare',
+  ],
 };
 
 export default function LocationPickerScreen() {
@@ -90,9 +510,9 @@ export default function LocationPickerScreen() {
     setLoading(true);
     try {
       const locationString = `${selectedCountry.code === 'US' ? 'USA' : selectedCountry.name}, ${city.trim()}`;
-      
+
       const { error } = await updateProfile({ location: locationString });
-      
+
       if (!error) {
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         navigateNext('age-input');
@@ -128,13 +548,13 @@ export default function LocationPickerScreen() {
           </View>
         </View>
       </View>
-      
+
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.content}
         keyboardVerticalOffset={0}
       >
-        <ScrollView 
+        <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
@@ -153,20 +573,16 @@ export default function LocationPickerScreen() {
                 style={styles.countrySelector}
                 onPress={() => setShowCountryPicker(!showCountryPicker)}
               >
-                <CountryFlag
-                  isoCode={selectedCountry.code}
-                  size={24}
-                  style={styles.flag}
-                />
+                <CountryFlag isoCode={selectedCountry.code} size={24} style={styles.flag} />
                 <Text style={styles.countryText}>{selectedCountry.name}</Text>
-                <Ionicons 
-                  name={showCountryPicker ? "chevron-up" : "chevron-down"} 
-                  size={20} 
-                  color={COLORS.grey2} 
+                <Ionicons
+                  name={showCountryPicker ? 'chevron-up' : 'chevron-down'}
+                  size={20}
+                  color={COLORS.grey2}
                   style={styles.chevron}
                 />
               </Pressable>
-              
+
               {showCountryPicker && (
                 <ScrollView style={styles.countryList} showsVerticalScrollIndicator={false}>
                   {POPULAR_COUNTRIES.map((country) => (
@@ -174,7 +590,7 @@ export default function LocationPickerScreen() {
                       key={country.code}
                       style={[
                         styles.countryItem,
-                        selectedCountry.code === country.code && styles.countryItemSelected
+                        selectedCountry.code === country.code && styles.countryItemSelected,
                       ]}
                       onPress={() => {
                         setSelectedCountry(country);
@@ -190,17 +606,19 @@ export default function LocationPickerScreen() {
                         size={20}
                         style={styles.countryItemFlag}
                       />
-                      <Text style={[
-                        styles.countryItemText,
-                        selectedCountry.code === country.code && styles.countryItemTextSelected
-                      ]}>
+                      <Text
+                        style={[
+                          styles.countryItemText,
+                          selectedCountry.code === country.code && styles.countryItemTextSelected,
+                        ]}
+                      >
                         {country.name}
                       </Text>
                       {selectedCountry.code === country.code && (
-                        <Ionicons 
-                          name="checkmark" 
-                          size={20} 
-                          color={COLORS.primary} 
+                        <Ionicons
+                          name="checkmark"
+                          size={20}
+                          color={COLORS.primary}
                           style={styles.checkmark}
                         />
                       )}
@@ -221,40 +639,39 @@ export default function LocationPickerScreen() {
                     <Text style={[styles.countryText, !city && { color: COLORS.grey1 }]}>
                       {city || 'Select a city'}
                     </Text>
-                    <Ionicons 
-                      name={showCitySuggestions ? "chevron-up" : "chevron-down"} 
-                      size={20} 
-                      color={COLORS.grey2} 
+                    <Ionicons
+                      name={showCitySuggestions ? 'chevron-up' : 'chevron-down'}
+                      size={20}
+                      color={COLORS.grey2}
                       style={styles.chevron}
                     />
                   </Pressable>
-                  
+
                   {showCitySuggestions && (
                     <ScrollView style={styles.cityList} showsVerticalScrollIndicator={false}>
                       {MAJOR_CITIES[selectedCountry.code]?.map((cityName) => (
                         <Pressable
                           key={cityName}
-                          style={[
-                            styles.cityItem,
-                            city === cityName && styles.cityItemSelected
-                          ]}
+                          style={[styles.cityItem, city === cityName && styles.cityItemSelected]}
                           onPress={() => {
                             setCity(cityName);
                             setShowCitySuggestions(false);
                             void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                           }}
                         >
-                          <Text style={[
-                            styles.cityItemText,
-                            city === cityName && styles.cityItemTextSelected
-                          ]}>
+                          <Text
+                            style={[
+                              styles.cityItemText,
+                              city === cityName && styles.cityItemTextSelected,
+                            ]}
+                          >
                             {cityName}
                           </Text>
                           {city === cityName && (
-                            <Ionicons 
-                              name="checkmark" 
-                              size={20} 
-                              color={COLORS.primary} 
+                            <Ionicons
+                              name="checkmark"
+                              size={20}
+                              color={COLORS.primary}
                               style={styles.checkmark}
                             />
                           )}
@@ -269,7 +686,9 @@ export default function LocationPickerScreen() {
                         }}
                       >
                         <Ionicons name="add-circle-outline" size={20} color={COLORS.primary} />
-                        <Text style={[styles.cityItemText, { color: COLORS.primary, marginLeft: 8 }]}>
+                        <Text
+                          style={[styles.cityItemText, { color: COLORS.primary, marginLeft: 8 }]}
+                        >
                           Enter custom city
                         </Text>
                       </Pressable>

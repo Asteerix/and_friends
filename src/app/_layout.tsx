@@ -1,4 +1,4 @@
-
+import '../../globals';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -6,8 +6,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { SessionProvider } from '@/shared/providers/SessionContext';
 import { NavigationErrorBoundary } from '@/shared/ui/NavigationErrorBoundary';
 import { GlobalErrorBoundary } from '@/shared/ui/GlobalErrorBoundary';
@@ -33,7 +32,7 @@ import '@/i18n/i18n';
 setupGlobalErrorHandler();
 
 // Initialize startup logger
-startupLogger.init().catch(error => {
+startupLogger.init().catch((error) => {
   errorLogger.log(error, { context: 'startup logger init' });
 });
 
@@ -46,7 +45,7 @@ SplashScreen.preventAutoHideAsync().catch((error) => {
 export default function RootLayout() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [initError, setInitError] = useState<Error | null>(null);
-  
+
   // Load fonts with proper error handling
   const [fontsLoaded, fontError] = useFonts({
     SpaceMono: require('../../assets/fonts/SpaceMono-Regular.ttf'),
@@ -58,21 +57,21 @@ export default function RootLayout() {
     const initializeApp = async () => {
       try {
         startupLogger.log('Starting app initialization');
-        
+
         // Check font loading
         if (fontError) {
           startupLogger.log('Font loading error', 'error', fontError);
           errorLogger.log(fontError, { context: 'font loading' });
         }
-        
+
         // Initialize critical services
         startupLogger.log('Initializing network monitoring');
         await initializeNetworkMonitoring();
-        
+
         startupLogger.log('App initialization complete', 'info', {
-          startupTime: startupLogger.getStartupTime()
+          startupTime: startupLogger.getStartupTime(),
         });
-        
+
         setIsInitialized(true);
       } catch (error) {
         const err = error as Error;
@@ -82,7 +81,7 @@ export default function RootLayout() {
         setIsInitialized(true); // Still mark as initialized to show error UI
       }
     };
-    
+
     initializeApp();
   }, [fontError]);
 
@@ -103,7 +102,7 @@ export default function RootLayout() {
         // Don't throw - app should continue
       }
     };
-    
+
     hideSplash();
   }, [isInitialized, fontsLoaded, fontError]);
 
@@ -116,7 +115,7 @@ export default function RootLayout() {
       </View>
     );
   }
-  
+
   // Show error screen if critical initialization failed
   if (initError) {
     return (
@@ -148,42 +147,42 @@ export default function RootLayout() {
                                   <NetworkBanner />
                                   <UploadProgressBar />
                                   <NetworkErrorModal />
-                            <Stack
-                      screenOptions={{
-                        headerShown: false,
-                        animation: 'slide_from_right',
-                      }}
-                    >
-            <Stack.Screen name="index" />
-            <Stack.Screen name="splash" options={{ animation: 'fade' }} />
-            <Stack.Screen name="(auth)" options={{ animation: 'fade' }} />
-            <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
-            <Stack.Screen name="screens/chat" />
-            <Stack.Screen name="screens/conversation" />
-            <Stack.Screen name="screens/create-story" />
-            <Stack.Screen name="screens/event-details" />
-            <Stack.Screen name="screens/map" />
-            <Stack.Screen name="screens/notifications" />
-            <Stack.Screen name="screens/person-card" />
-            <Stack.Screen name="screens/friends" />
-            <Stack.Screen name="screens/search-users" />
-            <Stack.Screen name="screens/profile/edit" />
-            <Stack.Screen name="screens/settings/index" />
-            <Stack.Screen name="screens/settings/preferences" />
-            <Stack.Screen name="screens/calendar-month" />
-            <Stack.Screen name="screens/stories" />
-            <Stack.Screen name="screens/create-event" />
-            <Stack.Screen name="screens/create-event-advanced" />
-            <Stack.Screen name="screens/edit-cover" />
-            <Stack.Screen name="screens/invite-friends" />
-            <Stack.Screen name="screens/rsvp-confirmation" />
-            <Stack.Screen name="screens/rsvp-management" />
-            <Stack.Screen name="screens/poll" />
-            <Stack.Screen name="screens/conversations-list" />
-            <Stack.Screen name="screens/map-ar" />
-            <Stack.Screen name="screens/notifications-full" />
-            <Stack.Screen name="screens/story-viewer" />
-          </Stack>
+                                  <Stack
+                                    screenOptions={{
+                                      headerShown: false,
+                                      animation: 'slide_from_right',
+                                    }}
+                                  >
+                                    <Stack.Screen name="index" />
+                                    <Stack.Screen name="splash" options={{ animation: 'fade' }} />
+                                    <Stack.Screen name="(auth)" options={{ animation: 'fade' }} />
+                                    <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
+                                    <Stack.Screen name="screens/chat" />
+                                    <Stack.Screen name="screens/conversation" />
+                                    <Stack.Screen name="screens/create-story" />
+                                    <Stack.Screen name="screens/event-details" />
+                                    <Stack.Screen name="screens/map" />
+                                    <Stack.Screen name="screens/notifications" />
+                                    <Stack.Screen name="screens/person-card" />
+                                    <Stack.Screen name="screens/friends" />
+                                    <Stack.Screen name="screens/search-users" />
+                                    <Stack.Screen name="screens/profile/edit" />
+                                    <Stack.Screen name="screens/settings/index" />
+                                    <Stack.Screen name="screens/settings/preferences" />
+                                    <Stack.Screen name="screens/calendar-month" />
+                                    <Stack.Screen name="screens/stories" />
+                                    <Stack.Screen name="screens/create-event" />
+                                    <Stack.Screen name="screens/create-event-advanced" />
+                                    <Stack.Screen name="screens/edit-cover" />
+                                    <Stack.Screen name="screens/invite-friends" />
+                                    <Stack.Screen name="screens/rsvp-confirmation" />
+                                    <Stack.Screen name="screens/rsvp-management" />
+                                    <Stack.Screen name="screens/poll" />
+                                    <Stack.Screen name="screens/conversations-list" />
+                                    <Stack.Screen name="screens/map-ar" />
+                                    <Stack.Screen name="screens/notifications-full" />
+                                    <Stack.Screen name="screens/story-viewer" />
+                                  </Stack>
                                 </EventProvider>
                               </EventCoverProvider>
                             </MemoriesProvider>
@@ -207,35 +206,35 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff'
+    backgroundColor: '#fff',
   },
   loadingText: {
     marginTop: 20,
     fontSize: 16,
-    color: '#666'
+    color: '#666',
   },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
-    backgroundColor: '#fff'
+    backgroundColor: '#fff',
   },
   errorTitle: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#FF6B6B',
-    marginBottom: 10
+    marginBottom: 10,
   },
   errorMessage: {
     fontSize: 16,
     color: '#666',
     textAlign: 'center',
-    marginBottom: 20
+    marginBottom: 20,
   },
   errorHint: {
     fontSize: 14,
     color: '#999',
-    fontStyle: 'italic'
-  }
+    fontStyle: 'italic',
+  },
 });

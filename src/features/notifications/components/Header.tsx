@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-
 import { t } from '@/shared/locales';
 
 export default function Header() {

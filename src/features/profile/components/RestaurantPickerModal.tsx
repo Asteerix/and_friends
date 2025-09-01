@@ -85,7 +85,7 @@ export default function RestaurantPickerModal({
   useEffect(() => {
     const getLocation = async () => {
       if (!visible) return;
-      
+
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status === 'granted') {
@@ -98,7 +98,7 @@ export default function RestaurantPickerModal({
         console.warn('GPS permission or fetch error:', e);
       }
     };
-    
+
     getLocation();
   }, [visible]);
 
@@ -118,7 +118,7 @@ export default function RestaurantPickerModal({
       url.searchParams.set('limit', '20');
       url.searchParams.set('q', text.trim().length ? `${text.trim()} restaurant` : 'restaurant');
       url.searchParams.set('extratags', '1');
-      
+
       if (coords) {
         url.searchParams.set(
           'viewbox',
@@ -126,14 +126,14 @@ export default function RestaurantPickerModal({
         );
         url.searchParams.set('bounded', '0');
       }
-      
+
       const r = await fetch(url.toString(), {
         headers: { 'User-Agent': 'and_friends/1.0' },
       });
-      
+
       if (!r.ok) throw new Error('nominatim_fail');
       const js: any[] = await r.json();
-      
+
       return js.map((f: any) => {
         const lat = parseFloat(f.lat);
         const lon = parseFloat(f.lon);
@@ -155,28 +155,28 @@ export default function RestaurantPickerModal({
   const fetchGeoapify = useCallback(
     async (text: string): Promise<Place[]> => {
       if (!GEOAPIFY_KEY) return [];
-      
+
       const url = new URL('https://api.geoapify.com/v2/places');
       url.searchParams.set('categories', 'catering.restaurant');
       url.searchParams.set('limit', '20');
-      
+
       if (coords) {
         url.searchParams.set('filter', `circle:${coords.lon},${coords.lat},20000`);
         url.searchParams.set('bias', `proximity:${coords.lon},${coords.lat}`);
       }
-      
+
       url.searchParams.set('text', text.trim() || '');
       url.searchParams.set('apiKey', GEOAPIFY_KEY);
-      
+
       const r = await fetch(url.toString());
       if (!r.ok) throw new Error('geoapify_fail');
-      
+
       const js = await r.json();
       return (js.features || []).map((f: any) => {
         const [lon, lat] = f.geometry.coordinates as [number, number];
         const p = f.properties || {};
         const address = [p.street, p.city, p.country].filter(Boolean).join(', ');
-        
+
         return {
           id: p.place_id ? String(p.place_id) : uuidv4(),
           name: p.name || p.street || 'Unnamed',
@@ -192,10 +192,10 @@ export default function RestaurantPickerModal({
     async (text: string): Promise<void> => {
       setIsSearching(true);
       setSearchError(null);
-      
+
       try {
         let combined: Place[] = [];
-        
+
         try {
           combined = await fetchNominatim(text);
         } catch (nominatimError) {
@@ -203,7 +203,7 @@ export default function RestaurantPickerModal({
           if (GEOAPIFY_KEY) combined = await fetchGeoapify(text);
           else throw nominatimError;
         }
-        
+
         if (!combined.length && GEOAPIFY_KEY) {
           console.log('Nominatim returned 0, trying Geoapify as primary for this query.');
           combined = await fetchGeoapify(text);
@@ -211,13 +211,13 @@ export default function RestaurantPickerModal({
 
         const unique = dedupe(combined);
         const sorted = coords ? unique.sort((a, b) => a.distKm - b.distKm) : unique;
-        
+
         if (!sorted.length && text.trim()) {
           setSearchError(`No restaurants found for "${text.trim()}"`);
         } else if (!sorted.length && !text.trim()) {
           setSearchError('No restaurants found nearby');
         }
-        
+
         setPlaces(sorted);
       } catch (e: unknown) {
         console.error('Search error:', e instanceof Error ? e.message : e);
@@ -288,7 +288,7 @@ export default function RestaurantPickerModal({
           keyboardVerticalOffset={0}
         >
           <View style={styles.handle} />
-          
+
           <View style={styles.header}>
             <Text style={styles.title}>Your Go-To Spot</Text>
             <Text style={styles.subtitle}>Share your favorite local place</Text>
@@ -315,7 +315,9 @@ export default function RestaurantPickerModal({
               query.trim() === '' &&
               !searchError &&
               !selectedPlace && (
-                <Text style={styles.infoText}>Search for a restaurant or discover nearby places</Text>
+                <Text style={styles.infoText}>
+                  Search for a restaurant or discover nearby places
+                </Text>
               )}
 
             <FlatList
@@ -441,7 +443,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   listStyle: { flex: 1 },
-  listContentContainer: { 
+  listContentContainer: {
     paddingTop: 4,
     paddingBottom: 20,
     flexGrow: 1,

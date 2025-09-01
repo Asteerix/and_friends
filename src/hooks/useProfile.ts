@@ -1,3 +1,4 @@
+import { useProfileCompat } from './useProfileCompat';
 import { useProfileContext } from '@/shared/providers/ProfileProvider';
 
 export interface UserProfile {
@@ -51,14 +52,24 @@ export interface UserProfile {
 
 // This hook now acts as a wrapper around the ProfileContext
 export function useProfile() {
+  // Always call both hooks to comply with rules of hooks
+  let contextResult = null;
+  let contextError = null;
+
   try {
-    // Try to use the context if we're within a ProfileProvider
-    return useProfileContext();
+    contextResult = useProfileContext();
   } catch (error) {
-    // If we're not within a ProfileProvider, use the compatibility layer
+    contextError = error;
+  }
+
+  const compatResult = useProfileCompat();
+
+  // If context is available, use it, otherwise use compat layer
+  if (contextResult && !contextError) {
+    return contextResult;
+  } else {
     // This is a temporary solution while migrating to ProfileProvider
     console.warn('useProfile called outside ProfileProvider, using compatibility layer');
-    const { useProfileCompat } = require('./useProfileCompat');
-    return useProfileCompat();
+    return compatResult;
   }
 }

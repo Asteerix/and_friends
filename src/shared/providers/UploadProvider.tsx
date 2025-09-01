@@ -23,11 +23,7 @@ export function UploadProvider({ children }: { children: ReactNode }) {
     uploadHook.loadUploadQueue();
   }, []);
 
-  return (
-    <UploadContext.Provider value={uploadHook}>
-      {children}
-    </UploadContext.Provider>
-  );
+  return <UploadContext.Provider value={uploadHook}>{children}</UploadContext.Provider>;
 }
 
 export function useUpload() {

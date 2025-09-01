@@ -1,15 +1,7 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  Image,
-  StyleSheet,
-  TouchableOpacity,
-  Platform,
-} from 'react-native';
-import { getEventImage } from '@/features/events/utils/getEventImage';
+import { View, Text, Image, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { format } from 'date-fns';
-
+import { getEventImage } from '@/features/events/utils/getEventImage';
 
 interface Participant {
   id: string;
@@ -41,13 +33,13 @@ interface EventThumbnailProps {
   currentUserId?: string;
 }
 
-export default function EventThumbnail({ 
-  event, 
-  onPress, 
+export default function EventThumbnail({
+  event,
+  onPress,
   style,
   showLocation = true,
   compact = false,
-  currentUserId
+  currentUserId,
 }: EventThumbnailProps) {
   const eventImage = getEventImage(event);
 
@@ -56,11 +48,11 @@ export default function EventThumbnail({
     try {
       const eventDate = new Date(event.date);
       const dateStr = format(eventDate, 'MMM d');
-      
+
       if (event.start_time) {
         return `${dateStr}, ${event.start_time}`;
       }
-      
+
       const timeStr = format(eventDate, 'h:mm a');
       return `${dateStr}, ${timeStr}`;
     } catch {
@@ -86,17 +78,17 @@ export default function EventThumbnail({
 
   const renderParticipants = () => {
     const displayParticipants = event.participants?.slice(0, 3) || [];
-    let totalCount = event.participants_count || 0;
-    
+    const totalCount = event.participants_count || 0;
+
     // Check if current user is the host
     const isHost = currentUserId && event.created_by === currentUserId;
-    
+
     // If user is host and not in participants list, we should count them
-    const isHostInParticipants = isHost && event.participants?.some(p => p.id === currentUserId);
-    
+    const isHostInParticipants = isHost && event.participants?.some((p) => p.id === currentUserId);
+
     // Adjust count: if host but not in participants, add 1 to the count
     const effectiveCount = isHost && !isHostInParticipants ? totalCount + 1 : totalCount;
-    
+
     // Remaining count after showing first 3 avatars
     const remainingCount = Math.max(0, effectiveCount - displayParticipants.length);
 
@@ -108,17 +100,14 @@ export default function EventThumbnail({
               key={participant.id}
               style={[
                 styles.avatarWrapper,
-                { 
+                {
                   marginLeft: index === 0 ? 0 : -12,
                   zIndex: displayParticipants.length - index,
                 },
               ]}
             >
               {participant.avatar_url ? (
-                <Image
-                  source={{ uri: participant.avatar_url }}
-                  style={styles.avatar}
-                />
+                <Image source={{ uri: participant.avatar_url }} style={styles.avatar} />
               ) : (
                 <View style={[styles.avatar, styles.avatarPlaceholder]}>
                   <Text style={styles.avatarInitial}>
@@ -128,23 +117,28 @@ export default function EventThumbnail({
               )}
             </View>
           ))}
-          
+
           {remainingCount > 0 && (
-            <View style={[styles.remainingCount, { marginLeft: displayParticipants.length > 0 ? -12 : 0 }]}>
+            <View
+              style={[
+                styles.remainingCount,
+                { marginLeft: displayParticipants.length > 0 ? -12 : 0 },
+              ]}
+            >
               <Text style={styles.remainingCountText}>+{remainingCount}</Text>
             </View>
           )}
         </View>
-        
+
         <View style={styles.goingInfo}>
           <Text style={styles.goingText}>
-            {effectiveCount === 0 
-              ? 'Be the first' 
+            {effectiveCount === 0
+              ? 'Be the first'
               : effectiveCount === 1 && isHost && !isHostInParticipants
-              ? 'You\'re going'
-              : effectiveCount === 1
-              ? '1 going'
-              : `${effectiveCount} going`}
+                ? "You're going"
+                : effectiveCount === 1
+                  ? '1 going'
+                  : `${effectiveCount} going`}
           </Text>
           {isHost && (
             <View style={styles.hostBadge}>
@@ -165,17 +159,9 @@ export default function EventThumbnail({
       <View style={[styles.imageContainer, compact && styles.imageContainerCompact]}>
         {eventImage && eventImage.hasImage ? (
           eventImage.source ? (
-            <Image 
-              source={eventImage.source}
-              style={styles.eventImage}
-              resizeMode="cover"
-            />
+            <Image source={eventImage.source} style={styles.eventImage} resizeMode="cover" />
           ) : (
-            <Image 
-              source={{ uri: eventImage.uri }}
-              style={styles.eventImage}
-              resizeMode="cover"
-            />
+            <Image source={{ uri: eventImage.uri }} style={styles.eventImage} resizeMode="cover" />
           )
         ) : (
           <View style={[styles.eventImage, styles.imagePlaceholder]}>
@@ -190,17 +176,17 @@ export default function EventThumbnail({
         <Text style={[styles.title, compact && styles.titleCompact]} numberOfLines={2}>
           {event.title}
         </Text>
-        
+
         <Text style={[styles.dateTime, compact && styles.dateTimeCompact]}>
           {formatEventDateTime()}
         </Text>
-        
+
         {showLocation && getLocationName() && (
           <Text style={[styles.location, compact && styles.locationCompact]} numberOfLines={1}>
             {getLocationName()}
           </Text>
         )}
-        
+
         {renderParticipants()}
       </View>
     </TouchableOpacity>

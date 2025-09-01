@@ -28,8 +28,8 @@ class ErrorLogger {
       deviceInfo: {
         osVersion: Platform.Version,
         isDevice: Constants.isDevice,
-        deviceName: Constants.deviceName
-      }
+        deviceName: Constants.deviceName,
+      },
     };
 
     this.logs.unshift(entry);
@@ -60,7 +60,7 @@ class ErrorLogger {
 
   getLogString(): string {
     return this.logs
-      .map(log => `[${log.timestamp}] ${log.error}\n${log.stack || 'No stack trace'}`)
+      .map((log) => `[${log.timestamp}] ${log.error}\n${log.stack || 'No stack trace'}`)
       .join('\n\n');
   }
 }
@@ -80,15 +80,14 @@ export function setupGlobalErrorHandler() {
   });
 
   // Handle unhandled promise rejections
-  if (!__DEV__) {
+  if (!__DEV__ && typeof global !== 'undefined' && global.onunhandledrejection !== undefined) {
     const originalRejectionHandler = global.onunhandledrejection;
-    global.onunhandledrejection = (event: any) => {
-      errorLogger.log(
-        new Error(`Unhandled promise rejection: ${event.reason}`),
-        { type: 'unhandledRejection' }
-      );
+    global.onunhandledrejection = function (event: PromiseRejectionEvent) {
+      errorLogger.log(new Error(`Unhandled promise rejection: ${event.reason}`), {
+        type: 'unhandledRejection',
+      });
       if (originalRejectionHandler) {
-        originalRejectionHandler(event);
+        originalRejectionHandler.call(this, event);
       }
     };
   }

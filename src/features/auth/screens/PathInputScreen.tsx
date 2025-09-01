@@ -36,7 +36,9 @@ const PathInputScreen: React.FC = React.memo(() => {
   useEffect(() => {
     const fetchProfile = async () => {
       setIsFetchingInitialData(true);
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (user) {
         try {
           const { data } = await supabase
@@ -115,77 +117,77 @@ const PathInputScreen: React.FC = React.memo(() => {
           <View style={styles.container}>
             {/* Header bar with back arrow and progress */}
             <View style={styles.headerRow}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-            onPress={navigateBack}
-            hitSlop={16}
-            style={styles.backBtn}
-            disabled={isLoading}
-          >
-            <Text style={styles.backArrow}>{'\u2190'}</Text>
-          </Pressable>
-          <View style={styles.progressBarBg}>
-            <View style={[styles.progressBarFill, { width: `${getProgress() * 100}%` }]} />
-          </View>
-        </View>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Go back"
+                onPress={navigateBack}
+                hitSlop={16}
+                style={styles.backBtn}
+                disabled={isLoading}
+              >
+                <Text style={styles.backArrow}>{'\u2190'}</Text>
+              </Pressable>
+              <View style={styles.progressBarBg}>
+                <View style={[styles.progressBarFill, { width: `${getProgress() * 100}%` }]} />
+              </View>
+            </View>
 
-        {/* Title */}
-        <Text
-          style={styles.title}
-          accessibilityRole="header"
-          accessibilityLabel="What's your path?"
-        >
-          What's your <Text style={styles.titleItalic}>path?</Text>
-        </Text>
-        {/* Subtitle */}
-        <Text
-          style={styles.subtitle}
-          accessibilityLabel="Work, school, or anything else — it helps us find your crew."
-        >
-          Work, school, or anything else — it helps us find your crew.
-        </Text>
+            {/* Title */}
+            <Text
+              style={styles.title}
+              accessibilityRole="header"
+              accessibilityLabel="What's your path?"
+            >
+              What's your <Text style={styles.titleItalic}>path?</Text>
+            </Text>
+            {/* Subtitle */}
+            <Text
+              style={styles.subtitle}
+              accessibilityLabel="Work, school, or anything else — it helps us find your crew."
+            >
+              Work, school, or anything else — it helps us find your crew.
+            </Text>
 
-        {/* Input */}
-        <TextInput
-          style={styles.input}
-          placeholder="Job, School, Freelance, Exploring..."
-          placeholderTextColor="#B0B0B0"
-          value={value}
-          onChangeText={setValue}
-          accessibilityLabel="Your path"
-          accessibilityRole="search"
-          returnKeyType="done"
-        />
+            {/* Input */}
+            <TextInput
+              style={styles.input}
+              placeholder="Job, School, Freelance, Exploring..."
+              placeholderTextColor="#B0B0B0"
+              value={value}
+              onChangeText={setValue}
+              accessibilityLabel="Your path"
+              accessibilityRole="search"
+              returnKeyType="done"
+            />
 
-        {/* Illustration */}
-        <Image
-          source={require('@/assets/images/register/life.png')}
-          style={styles.illustration}
-          resizeMode="contain"
-          accessible
-          accessibilityLabel="Person with a drink illustration"
-        />
+            {/* Illustration */}
+            <Image
+              source={require('@/assets/images/register/life.png')}
+              style={styles.illustration}
+              resizeMode="contain"
+              accessible
+              accessibilityLabel="Person with a drink illustration"
+            />
 
-        {/* Spacer */}
-        <View style={{ flex: 1 }} />
+            {/* Spacer */}
+            <View style={{ flex: 1 }} />
 
-        {/* Continue Button */}
-        <TouchableOpacity
-          style={[styles.button, (isLoading || !value.trim()) && { opacity: 0.5 }]}
-          activeOpacity={0.8}
-          onPress={handleContinue}
-          accessibilityRole="button"
-          accessibilityLabel="Continue"
-          disabled={isLoading || !value.trim()}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          {isLoading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.buttonText}>Continue</Text>
-          )}
-        </TouchableOpacity>
+            {/* Continue Button */}
+            <TouchableOpacity
+              style={[styles.button, (isLoading || !value.trim()) && { opacity: 0.5 }]}
+              activeOpacity={0.8}
+              onPress={handleContinue}
+              accessibilityRole="button"
+              accessibilityLabel="Continue"
+              disabled={isLoading || !value.trim()}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              {isLoading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.buttonText}>Continue</Text>
+              )}
+            </TouchableOpacity>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

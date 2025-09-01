@@ -64,24 +64,23 @@ interface PickerColumnProps {
   placeholder: string;
 }
 
-const PickerColumn: React.FC<PickerColumnProps> = ({ data, selectedValue, onSelect, placeholder }) => {
+const PickerColumn: React.FC<PickerColumnProps> = ({
+  data,
+  selectedValue,
+  onSelect,
+  placeholder,
+}) => {
   const [showList, setShowList] = useState(false);
 
   return (
     <View style={styles.pickerColumn}>
-      <Pressable
-        style={styles.pickerBox}
-        onPress={() => setShowList(!showList)}
-      >
-        <Text style={[
-          styles.pickerText,
-          !selectedValue && styles.pickerPlaceholder
-        ]}>
+      <Pressable style={styles.pickerBox} onPress={() => setShowList(!showList)}>
+        <Text style={[styles.pickerText, !selectedValue && styles.pickerPlaceholder]}>
           {selectedValue || placeholder}
         </Text>
         <Text style={styles.chevron}>⌄</Text>
       </Pressable>
-      
+
       {showList && (
         <Modal
           transparent
@@ -107,15 +106,14 @@ const PickerColumn: React.FC<PickerColumnProps> = ({ data, selectedValue, onSele
                     setShowList(false);
                     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   }}
-                  style={[
-                    styles.pickerItem,
-                    selectedValue === item && styles.pickerItemSelected
-                  ]}
+                  style={[styles.pickerItem, selectedValue === item && styles.pickerItemSelected]}
                 >
-                  <Text style={[
-                    styles.pickerItemText,
-                    selectedValue === item && styles.pickerItemTextSelected
-                  ]}>
+                  <Text
+                    style={[
+                      styles.pickerItemText,
+                      selectedValue === item && styles.pickerItemTextSelected,
+                    ]}
+                  >
                     {item}
                   </Text>
                 </Pressable>
@@ -154,27 +152,27 @@ export default function EventDatePickerModal({
   useEffect(() => {
     if (visible) {
       const now = new Date();
-      const minimumDate = new Date(now.getTime() + (24 * 60 * 60 * 1000));
-      
+      const minimumDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
       let dateToUse = currentDate || minimumDate;
       let timeToUse = currentTime || minimumDate;
-      
+
       // Ensure the date is not in the past
       if (dateToUse < minimumDate) {
         dateToUse = minimumDate;
         timeToUse = minimumDate;
       }
-      
+
       setYear(String(dateToUse.getFullYear()));
       setMonth(MONTHS[dateToUse.getMonth()] || null);
       setDay(String(dateToUse.getDate()));
       setHour(String(timeToUse.getHours()).padStart(2, '0'));
       setMinute(String(timeToUse.getMinutes()).padStart(2, '0'));
-      
+
       // Set end date/time (default to 3 hours after start)
-      let endDateToUse = currentEndDate || new Date(timeToUse.getTime() + (3 * 60 * 60 * 1000));
-      let endTimeToUse = currentEndTime || new Date(timeToUse.getTime() + (3 * 60 * 60 * 1000));
-      
+      const endDateToUse = currentEndDate || new Date(timeToUse.getTime() + 3 * 60 * 60 * 1000);
+      const endTimeToUse = currentEndTime || new Date(timeToUse.getTime() + 3 * 60 * 60 * 1000);
+
       setEndYear(String(endDateToUse.getFullYear()));
       setEndMonth(MONTHS[endDateToUse.getMonth()] || null);
       setEndDay(String(endDateToUse.getDate()));
@@ -184,7 +182,18 @@ export default function EventDatePickerModal({
   }, [visible, currentDate, currentTime, currentEndDate, currentEndTime]);
 
   const validateDateTime = (): boolean => {
-    if (!month || !day || !year || !hour || !minute || !endMonth || !endDay || !endYear || !endHour || !endMinute) {
+    if (
+      !month ||
+      !day ||
+      !year ||
+      !hour ||
+      !minute ||
+      !endMonth ||
+      !endDay ||
+      !endYear ||
+      !endHour ||
+      !endMinute
+    ) {
       setDateError('Please select complete start and end dates');
       return false;
     }
@@ -208,19 +217,19 @@ export default function EventDatePickerModal({
     );
 
     const now = new Date();
-    const minimumDate = new Date(now.getTime() + (24 * 60 * 60 * 1000)); // 24 hours from now
-    
+    const minimumDate = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours from now
+
     if (selectedDate < now) {
       setDateError('Event date cannot be in the past');
       return false;
     }
-    
+
     if (selectedDate < minimumDate) {
       const hoursUntil = Math.ceil((selectedDate.getTime() - now.getTime()) / (1000 * 60 * 60));
       setDateError(`Event must be at least 24 hours from now (currently ${hoursUntil} hours)`);
       return false;
     }
-    
+
     if (selectedEndDate <= selectedDate) {
       setDateError('End time must be after start time');
       return false;
@@ -231,7 +240,18 @@ export default function EventDatePickerModal({
   };
 
   useEffect(() => {
-    if (month && day && year && hour && minute && endMonth && endDay && endYear && endHour && endMinute) {
+    if (
+      month &&
+      day &&
+      year &&
+      hour &&
+      minute &&
+      endMonth &&
+      endDay &&
+      endYear &&
+      endHour &&
+      endMinute
+    ) {
       validateDateTime();
     } else {
       setDateError(null);
@@ -241,15 +261,22 @@ export default function EventDatePickerModal({
   const handleConfirm = () => {
     if (!validateDateTime()) return;
 
-    if (year && month && day && hour && minute && endYear && endMonth && endDay && endHour && endMinute) {
+    if (
+      year &&
+      month &&
+      day &&
+      hour &&
+      minute &&
+      endYear &&
+      endMonth &&
+      endDay &&
+      endHour &&
+      endMinute
+    ) {
       const monthIndex = MONTHS.indexOf(month);
       const endMonthIndex = MONTHS.indexOf(endMonth);
-      
-      const eventDate = new Date(
-        parseInt(year),
-        monthIndex,
-        parseInt(day)
-      );
+
+      const eventDate = new Date(parseInt(year), monthIndex, parseInt(day));
       const eventTime = new Date(
         parseInt(year),
         monthIndex,
@@ -257,12 +284,8 @@ export default function EventDatePickerModal({
         parseInt(hour),
         parseInt(minute)
       );
-      
-      const eventEndDate = new Date(
-        parseInt(endYear),
-        endMonthIndex,
-        parseInt(endDay)
-      );
+
+      const eventEndDate = new Date(parseInt(endYear), endMonthIndex, parseInt(endDay));
       const eventEndTime = new Date(
         parseInt(endYear),
         endMonthIndex,
@@ -270,7 +293,7 @@ export default function EventDatePickerModal({
         parseInt(endHour),
         parseInt(endMinute)
       );
-      
+
       onSelect(eventDate, eventTime, eventEndDate, eventEndTime);
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       onClose();
@@ -292,11 +315,23 @@ export default function EventDatePickerModal({
     onClose();
   };
 
-  const isValid = month && day && year && hour && minute && endMonth && endDay && endYear && endHour && endMinute && !dateError;
+  const isValid =
+    month &&
+    day &&
+    year &&
+    hour &&
+    minute &&
+    endMonth &&
+    endDay &&
+    endYear &&
+    endHour &&
+    endMinute &&
+    !dateError;
 
   const formatSelectedDateTime = () => {
     if (!month || !day || !year || !hour || !minute) return 'Select start date & time';
-    if (!endMonth || !endDay || !endYear || !endHour || !endMinute) return `${month} ${day}, ${year} at ${hour}:${minute} - Select end time`;
+    if (!endMonth || !endDay || !endYear || !endHour || !endMinute)
+      return `${month} ${day}, ${year} at ${hour}:${minute} - Select end time`;
     return `${month} ${day}, ${year} at ${hour}:${minute} - ${endMonth} ${endDay}, ${endYear} at ${endHour}:${endMinute}`;
   };
 
@@ -312,7 +347,7 @@ export default function EventDatePickerModal({
         <Pressable style={styles.backdrop} onPress={onClose} />
         <View style={[styles.modalContent, { paddingBottom: insets.bottom || 20 }]}>
           <View style={styles.handle} />
-          
+
           <View style={styles.header}>
             <Text style={styles.title}>When is your event?</Text>
             <Text style={styles.subtitle}>Select start and end times</Text>
@@ -321,7 +356,9 @@ export default function EventDatePickerModal({
           <ScrollView showsVerticalScrollIndicator={false}>
             <View style={styles.dateTimeDisplay}>
               <Ionicons name="calendar-outline" size={20} color={COLORS.primary} />
-              <Text style={styles.dateTimeText} numberOfLines={2}>{formatSelectedDateTime()}</Text>
+              <Text style={styles.dateTimeText} numberOfLines={2}>
+                {formatSelectedDateTime()}
+              </Text>
             </View>
 
             {/* Start Date/Time */}
@@ -334,12 +371,7 @@ export default function EventDatePickerModal({
                   onSelect={setMonth}
                   placeholder="Month"
                 />
-                <PickerColumn
-                  data={DAYS}
-                  selectedValue={day}
-                  onSelect={setDay}
-                  placeholder="Day"
-                />
+                <PickerColumn data={DAYS} selectedValue={day} onSelect={setDay} placeholder="Day" />
                 <PickerColumn
                   data={YEARS}
                   selectedValue={year}
@@ -411,7 +443,7 @@ export default function EventDatePickerModal({
                 />
               </View>
             </View>
-            
+
             {/* Validation info */}
             <View style={styles.validationInfo}>
               <Ionicons name="information-circle-outline" size={16} color="#666" />
@@ -419,10 +451,8 @@ export default function EventDatePickerModal({
                 Event must be at least 24 hours in the future
               </Text>
             </View>
-            
-            {dateError && (
-              <Text style={styles.errorText}>{dateError}</Text>
-            )}
+
+            {dateError && <Text style={styles.errorText}>{dateError}</Text>}
           </ScrollView>
 
           <View style={styles.footer}>

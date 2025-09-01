@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import { generalCache } from '@/shared/utils/cache/cacheManager';
 import { useQuery, UseQueryOptions } from '@tanstack/react-query';
 import NetInfo from '@react-native-community/netinfo';
+import { generalCache } from '@/shared/utils/cache/cacheManager';
 
 interface UseCacheOptions<T> {
   key: string;
@@ -129,11 +129,7 @@ export function useClearCache() {
   };
 }
 
-export function usePrefetch<T>(
-  key: string,
-  fetcher: () => Promise<T>,
-  ttl?: number
-) {
+export function usePrefetch<T>(key: string, fetcher: () => Promise<T>, ttl?: number) {
   return useCallback(async () => {
     try {
       const data = await fetcher();
@@ -147,18 +143,15 @@ export function usePrefetch<T>(
 }
 
 export function useBatchCache<T>() {
-  const setMany = useCallback(
-    async (items: Array<{ key: string; data: T; ttl?: number }>) => {
-      await generalCache.setMany(
-        items.map((item) => ({
-          key: item.key,
-          data: item.data,
-          options: { ttl: item.ttl },
-        }))
-      );
-    },
-    []
-  );
+  const setMany = useCallback(async (items: Array<{ key: string; data: T; ttl?: number }>) => {
+    await generalCache.setMany(
+      items.map((item) => ({
+        key: item.key,
+        data: item.data,
+        options: { ttl: item.ttl },
+      }))
+    );
+  }, []);
 
   const getMany = useCallback((keys: string[]): Map<string, T | null> => {
     return generalCache.getMany<T>(keys);

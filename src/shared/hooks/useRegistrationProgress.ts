@@ -30,10 +30,14 @@ export const useRegistrationProgress = () => {
   const checkRegistrationProgress = async () => {
     try {
       console.log('🔍 [useRegistrationProgress] Checking registration progress...');
-      const { data: { user } } = await supabase.auth.getUser();
-      
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
       if (!user) {
-        console.log('❌ [useRegistrationProgress] No user found, redirecting to phone verification');
+        console.log(
+          '❌ [useRegistrationProgress] No user found, redirecting to phone verification'
+        );
         setIsLoading(false);
         router.replace('/(auth)/phone-verification');
         return;
@@ -49,7 +53,9 @@ export const useRegistrationProgress = () => {
         .single();
 
       if (error || !profile) {
-        console.log('❌ [useRegistrationProgress] No profile found, redirecting to phone verification');
+        console.log(
+          '❌ [useRegistrationProgress] No profile found, redirecting to phone verification'
+        );
         setIsLoading(false);
         router.replace('/(auth)/phone-verification');
         return;

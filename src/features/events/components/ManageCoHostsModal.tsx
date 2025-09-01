@@ -38,22 +38,50 @@ export default function ManageCoHostsModal({
 
   // Demo users for search
   const demoUsers: CoHost[] = [
-    { id: '1', name: 'Ana Garcia', avatar: 'https://i.pravatar.cc/150?img=5', username: '@anagarcia' },
-    { id: '2', name: 'Mike Johnson', avatar: 'https://i.pravatar.cc/150?img=8', username: '@mikej' },
-    { id: '3', name: 'Sarah Williams', avatar: 'https://i.pravatar.cc/150?img=9', username: '@sarahw' },
-    { id: '4', name: 'David Brown', avatar: 'https://i.pravatar.cc/150?img=7', username: '@davidb' },
+    {
+      id: '1',
+      name: 'Ana Garcia',
+      avatar: 'https://i.pravatar.cc/150?img=5',
+      username: '@anagarcia',
+    },
+    {
+      id: '2',
+      name: 'Mike Johnson',
+      avatar: 'https://i.pravatar.cc/150?img=8',
+      username: '@mikej',
+    },
+    {
+      id: '3',
+      name: 'Sarah Williams',
+      avatar: 'https://i.pravatar.cc/150?img=9',
+      username: '@sarahw',
+    },
+    {
+      id: '4',
+      name: 'David Brown',
+      avatar: 'https://i.pravatar.cc/150?img=7',
+      username: '@davidb',
+    },
     { id: '5', name: 'Emma Davis', avatar: 'https://i.pravatar.cc/150?img=10', username: '@emmad' },
-    { id: '6', name: 'James Wilson', avatar: 'https://i.pravatar.cc/150?img=11', username: '@jamesw' },
+    {
+      id: '6',
+      name: 'James Wilson',
+      avatar: 'https://i.pravatar.cc/150?img=11',
+      username: '@jamesw',
+    },
   ];
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
     if (query.trim()) {
-      const results = demoUsers.filter(user => 
-        user.name.toLowerCase().includes(query.toLowerCase()) ||
-        user.username?.toLowerCase().includes(query.toLowerCase()) ||
-        false
-      ).filter(user => !coHosts.find(ch => ch.id === user.id));
+      const results = demoUsers
+        .filter(
+          (user) =>
+            user.name.toLowerCase().includes(query.toLowerCase()) ||
+            user.username?.toLowerCase().includes(query.toLowerCase()) ||
+            false
+        )
+        .filter((user) => !coHosts.find((ch) => ch.id === user.id));
       setSearchResults(results);
     } else {
       setSearchResults([]);
@@ -61,7 +89,7 @@ export default function ManageCoHostsModal({
   };
 
   const addCoHost = (user: CoHost) => {
-    if (!coHosts.find(ch => ch.id === user.id)) {
+    if (!coHosts.find((ch) => ch.id === user.id)) {
       setCoHosts([...coHosts, user]);
       setSearchQuery('');
       setSearchResults([]);
@@ -69,18 +97,14 @@ export default function ManageCoHostsModal({
   };
 
   const removeCoHost = (id: string) => {
-    Alert.alert(
-      'Remove Co-Host',
-      'Are you sure you want to remove this co-host?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Remove', 
-          style: 'destructive',
-          onPress: () => setCoHosts(coHosts.filter(ch => ch.id !== id))
-        },
-      ]
-    );
+    Alert.alert('Remove Co-Host', 'Are you sure you want to remove this co-host?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Remove',
+        style: 'destructive',
+        onPress: () => setCoHosts(coHosts.filter((ch) => ch.id !== id)),
+      },
+    ]);
   };
 
   const handleSave = () => {
@@ -123,14 +147,9 @@ export default function ManageCoHostsModal({
                   <Image source={{ uri: user.avatar }} style={styles.avatar} />
                   <View style={styles.userInfo}>
                     <Text style={styles.userName}>{user.name}</Text>
-                    {user.username && (
-                      <Text style={styles.username}>{user.username}</Text>
-                    )}
+                    {user.username && <Text style={styles.username}>{user.username}</Text>}
                   </View>
-                  <TouchableOpacity 
-                    style={styles.addButton}
-                    onPress={() => addCoHost(user)}
-                  >
+                  <TouchableOpacity style={styles.addButton} onPress={() => addCoHost(user)}>
                     <Ionicons name="add" size={20} color="#007AFF" />
                   </TouchableOpacity>
                 </TouchableOpacity>
@@ -142,7 +161,9 @@ export default function ManageCoHostsModal({
         <View style={styles.coHostsSection}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Current Co-Hosts</Text>
-            <Text style={styles.coHostCount}>{coHosts.length} co-host{coHosts.length !== 1 ? 's' : ''}</Text>
+            <Text style={styles.coHostCount}>
+              {coHosts.length} co-host{coHosts.length !== 1 ? 's' : ''}
+            </Text>
           </View>
 
           {coHosts.length === 0 ? (
@@ -160,9 +181,7 @@ export default function ManageCoHostsModal({
                   <Image source={{ uri: coHost.avatar }} style={styles.avatar} />
                   <View style={styles.userInfo}>
                     <Text style={styles.userName}>{coHost.name}</Text>
-                    {coHost.username && (
-                      <Text style={styles.username}>{coHost.username}</Text>
-                    )}
+                    {coHost.username && <Text style={styles.username}>{coHost.username}</Text>}
                   </View>
                   <TouchableOpacity
                     style={styles.removeButton}

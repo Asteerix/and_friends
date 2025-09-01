@@ -1,12 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Modal,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-  TextInput,
-} from 'react-native';
+import { Modal, Pressable, StyleSheet, Text, View, TextInput } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
@@ -53,18 +46,18 @@ export default function CapacityLimitModal({
       setError(null);
       return true;
     }
-    
+
     const num = parseInt(value);
     if (isNaN(num) || num < 1) {
       setError('Please enter a valid number');
       return false;
     }
-    
+
     if (num > 10000) {
       setError('Maximum capacity is 10,000');
       return false;
     }
-    
+
     setError(null);
     return true;
   };
@@ -84,7 +77,7 @@ export default function CapacityLimitModal({
 
   const handleSave = () => {
     if (!validateCapacity(capacity)) return;
-    
+
     const capacityValue = capacity ? parseInt(capacity) : null;
     onSave(capacityValue);
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -117,7 +110,7 @@ export default function CapacityLimitModal({
         <Pressable style={styles.backdrop} onPress={onClose} />
         <View style={[styles.modalContent, { paddingBottom: insets.bottom || 20 }]}>
           <View style={styles.handle} />
-          
+
           <View style={styles.header}>
             <Text style={styles.title}>Guest Capacity</Text>
             <Text style={styles.subtitle}>Set a maximum number of guests</Text>
@@ -141,10 +134,8 @@ export default function CapacityLimitModal({
                 </Text>
               )}
             </View>
-            
-            {error && (
-              <Text style={styles.errorText}>{error}</Text>
-            )}
+
+            {error && <Text style={styles.errorText}>{error}</Text>}
 
             <View style={styles.quickOptionsContainer}>
               <Text style={styles.quickOptionsTitle}>Quick select</Text>
@@ -158,10 +149,12 @@ export default function CapacityLimitModal({
                     ]}
                     onPress={() => handleQuickOption(option)}
                   >
-                    <Text style={[
-                      styles.quickOptionText,
-                      capacity === option.toString() && styles.quickOptionTextSelected,
-                    ]}>
+                    <Text
+                      style={[
+                        styles.quickOptionText,
+                        capacity === option.toString() && styles.quickOptionTextSelected,
+                      ]}
+                    >
                       {option}
                     </Text>
                   </Pressable>
@@ -172,8 +165,8 @@ export default function CapacityLimitModal({
             <View style={styles.infoBox}>
               <Ionicons name="information-circle-outline" size={20} color={COLORS.grey2} />
               <Text style={styles.infoText}>
-                Setting a capacity limit helps manage RSVPs and prevents overbooking. 
-                Guests will see when the event is full.
+                Setting a capacity limit helps manage RSVPs and prevents overbooking. Guests will
+                see when the event is full.
               </Text>
             </View>
           </View>

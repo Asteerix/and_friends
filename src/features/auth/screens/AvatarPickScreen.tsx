@@ -1,18 +1,10 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Image,
-  TouchableOpacity,
-  Platform,
-  Alert,
-} from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, Platform, Alert } from 'react-native';
 import { create } from 'react-native-pixel-perfect';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
-import { useProfile } from '@/hooks/useProfile';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { useProfile } from '@/hooks/useProfile';
 import { useAuthNavigation } from '@/shared/hooks/useAuthNavigation';
 import { useRegistrationStep } from '@/shared/hooks/useRegistrationStep';
 
@@ -127,7 +119,11 @@ const AvatarPickScreen: React.FC = React.memo(() => {
       </Text>
 
       {/* Illustration */}
-      <View style={styles.illustrationContainer} accessible accessibilityLabel="Avatar illustration">
+      <View
+        style={styles.illustrationContainer}
+        accessible
+        accessibilityLabel="Avatar illustration"
+      >
         {selectedImage ? (
           <Image source={{ uri: selectedImage }} style={styles.selectedAvatar} resizeMode="cover" />
         ) : (
@@ -153,7 +149,12 @@ const AvatarPickScreen: React.FC = React.memo(() => {
             <Icon name="camera-outline" size={perfectSize(22)} color="#000" />
           </View>
           <Text style={styles.actionText}>Snap a picture</Text>
-          <Icon name="chevron-forward" size={perfectSize(20)} color="#C7C7CC" style={styles.chevronIcon} />
+          <Icon
+            name="chevron-forward"
+            size={perfectSize(20)}
+            color="#C7C7CC"
+            style={styles.chevronIcon}
+          />
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.actionButton}
@@ -166,7 +167,12 @@ const AvatarPickScreen: React.FC = React.memo(() => {
             <Icon name="images-outline" size={perfectSize(22)} color="#000" />
           </View>
           <Text style={styles.actionText}>Grab one from your gallery</Text>
-          <Icon name="chevron-forward" size={perfectSize(20)} color="#C7C7CC" style={styles.chevronIcon} />
+          <Icon
+            name="chevron-forward"
+            size={perfectSize(20)}
+            color="#C7C7CC"
+            style={styles.chevronIcon}
+          />
         </TouchableOpacity>
       </View>
 

@@ -1,0 +1,249 @@
+{
+  "timestamp": "2025-08-24T21:55:31.292Z",
+  "tests": {
+    "unit": {
+      "passed": 0,
+      "failed": 0,
+      "total": 0
+    },
+    "integration": {
+      "passed": 0,
+      "failed": 0,
+      "total": 0
+    },
+    "performance": {
+      "score": 0,
+      "issues": [
+        {
+          "type": "console-logs",
+          "count": 1911,
+          "message": "Found 1911 console statements. Consider removing for production.",
+          "files": [
+            {
+              "file": "/Users/amaury/Desktop/and_friends/src/app/(auth)/banned.tsx",
+              "count": 1
+            },
+            {
+              "file": "/Users/amaury/Desktop/and_friends/src/app/_layout.tsx",
+              "count": 1
+            },
+            {
+              "file": "/Users/amaury/Desktop/and_friends/src/app/event/[id].tsx",
+              "count": 2
+            },
+            {
+              "file": "/Users/amaury/Desktop/and_friends/src/app/screens/event-details.tsx",
+              "count": 2
+            },
+            {
+              "file": "/Users/amaury/Desktop/and_friends/src/app/story/[id].tsx",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "type": "large-dependency",
+          "package": "lodash",
+          "recommendation": "Consider using lodash-es or individual imports"
+        },
+        {
+          "type": "memory-leak",
+          "file": "/Users/amaury/Desktop/and_friends/src/features/auth/screens/CodeVerificationScreen.tsx",
+          "issue": "addEventListener without removeEventListener"
+        },
+        {
+          "type": "memory-leak",
+          "file": "/Users/amaury/Desktop/and_friends/src/features/chat/components/OnlineStatus.tsx",
+          "issue": "Subscription without unsubscribe"
+        },
+        {
+          "type": "memory-leak",
+          "file": "/Users/amaury/Desktop/and_friends/src/features/chats/initializeConversationSystem.ts",
+          "issue": "addEventListener without removeEventListener"
+        },
+        {
+          "type": "memory-leak",
+          "file": "/Users/amaury/Desktop/and_friends/src/features/chats/initializeConversationSystem.ts",
+          "issue": "Subscription without unsubscribe"
+        },
+        {
+          "type": "memory-leak",
+          "file": "/Users/amaury/Desktop/and_friends/src/features/events/context/EventProvider.tsx",
+          "issue": "Subscription without unsubscribe"
+        },
+        {
+          "type": "memory-leak",
+          "file": "/Users/amaury/Desktop/and_friends/src/features/map/hooks/useNearbyEvents.ts",
+          "issue": "Subscription without unsubscribe"
+        },
+        {
+          "type": "memory-leak",
+          "file": "/Users/amaury/Desktop/and_friends/src/features/stories/hooks/useStories.ts",
+          "issue": "Subscription without unsubscribe"
+        },
+        {
+          "type": "memory-leak",
+          "file": "/Users/amaury/Desktop/and_friends/src/hooks/useChats.ts",
+          "issue": "Subscription without unsubscribe"
+        },
+        {
+          "type": "memory-leak",
+          "file": "/Users/amaury/Desktop/and_friends/src/hooks/useEventMemories.ts",
+          "issue": "Subscription without unsubscribe"
+        },
+        {
+          "type": "memory-leak",
+          "file": "/Users/amaury/Desktop/and_friends/src/hooks/useEvents.ts",
+          "issue": "Subscription without unsubscribe"
+        },
+        {
+          "type": "memory-leak",
+          "file": "/Users/amaury/Desktop/and_friends/src/hooks/useEventsAdvanced.ts",
+          "issue": "Subscription without unsubscribe"
+        },
+        {
+          "type": "memory-leak",
+          "file": "/Users/amaury/Desktop/and_friends/src/hooks/useFriends.ts",
+          "issue": "Subscription without unsubscribe"
+        },
+        {
+          "type": "memory-leak",
+          "file": "/Users/amaury/Desktop/and_friends/src/hooks/useMessages.ts",
+          "issue": "Subscription without unsubscribe"
+        },
+        {
+          "type": "memory-leak",
+          "file": "/Users/amaury/Desktop/and_friends/src/hooks/useMessagesAdvanced.ts",
+          "issue": "Subscription without unsubscribe"
+        },
+        {
+          "type": "memory-leak",
+          "file": "/Users/amaury/Desktop/and_friends/src/hooks/useNotifications.ts",
+          "issue": "Subscription without unsubscribe"
+        },
+        {
+          "type": "memory-leak",
+          "file": "/Users/amaury/Desktop/and_friends/src/hooks/usePollsSupabase.ts",
+          "issue": "Subscription without unsubscribe"
+        },
+        {
+          "type": "memory-leak",
+          "file": "/Users/amaury/Desktop/and_friends/src/hooks/usePresence.ts",
+          "issue": "addEventListener without removeEventListener"
+        },
+        {
+          "type": "memory-leak",
+          "file": "/Users/amaury/Desktop/and_friends/src/hooks/usePresence.ts",
+          "issue": "Subscription without unsubscribe"
+        },
+        {
+          "type": "memory-leak",
+          "file": "/Users/amaury/Desktop/and_friends/src/hooks/useStories.ts",
+          "issue": "Subscription without unsubscribe"
+        },
+        {
+          "type": "memory-leak",
+          "file": "/Users/amaury/Desktop/and_friends/src/hooks/useUserProfile.ts",
+          "issue": "Subscription without unsubscribe"
+        },
+        {
+          "type": "memory-leak",
+          "file": "/Users/amaury/Desktop/and_friends/src/shared/hooks/useCache.ts",
+          "issue": "addEventListener without removeEventListener"
+        },
+        {
+          "type": "memory-leak",
+          "file": "/Users/amaury/Desktop/and_friends/src/shared/hooks/useNetworkQuality.ts",
+          "issue": "addEventListener without removeEventListener"
+        },
+        {
+          "type": "memory-leak",
+          "file": "/Users/amaury/Desktop/and_friends/src/shared/hooks/useNetworkStatus.ts",
+          "issue": "addEventListener without removeEventListener"
+        },
+        {
+          "type": "memory-leak",
+          "file": "/Users/amaury/Desktop/and_friends/src/shared/hooks/useOfflineQueue.ts",
+          "issue": "addEventListener without removeEventListener"
+        },
+        {
+          "type": "memory-leak",
+          "file": "/Users/amaury/Desktop/and_friends/src/shared/hooks/useRealtimeManager.example.tsx",
+          "issue": "Subscription without unsubscribe"
+        },
+        {
+          "type": "memory-leak",
+          "file": "/Users/amaury/Desktop/and_friends/src/shared/hooks/useRealtimeManager.ts",
+          "issue": "addEventListener without removeEventListener"
+        },
+        {
+          "type": "memory-leak",
+          "file": "/Users/amaury/Desktop/and_friends/src/shared/hooks/useRealtimeManager.ts",
+          "issue": "Subscription without unsubscribe"
+        },
+        {
+          "type": "memory-leak",
+          "file": "/Users/amaury/Desktop/and_friends/src/shared/hooks/useRealtimeSubscription.ts",
+          "issue": "Subscription without unsubscribe"
+        },
+        {
+          "type": "memory-leak",
+          "file": "/Users/amaury/Desktop/and_friends/src/shared/providers/MemoriesProvider.tsx",
+          "issue": "Subscription without unsubscribe"
+        },
+        {
+          "type": "memory-leak",
+          "file": "/Users/amaury/Desktop/and_friends/src/shared/providers/NetworkProvider.tsx",
+          "issue": "addEventListener without removeEventListener"
+        },
+        {
+          "type": "memory-leak",
+          "file": "/Users/amaury/Desktop/and_friends/src/shared/providers/NotificationProvider.tsx",
+          "issue": "Subscription without unsubscribe"
+        },
+        {
+          "type": "memory-leak",
+          "file": "/Users/amaury/Desktop/and_friends/src/shared/providers/ProfileProvider.tsx",
+          "issue": "Subscription without unsubscribe"
+        },
+        {
+          "type": "memory-leak",
+          "file": "/Users/amaury/Desktop/and_friends/src/shared/providers/StoriesContext.tsx",
+          "issue": "Subscription without unsubscribe"
+        },
+        {
+          "type": "memory-leak",
+          "file": "/Users/amaury/Desktop/and_friends/src/shared/stores/networkStore.ts",
+          "issue": "addEventListener without removeEventListener"
+        },
+        {
+          "type": "memory-leak",
+          "file": "/Users/amaury/Desktop/and_friends/src/shared/utils/cache/offlineSync.ts",
+          "issue": "addEventListener without removeEventListener"
+        }
+      ]
+    },
+    "security": {
+      "score": 71,
+      "critical": 1,
+      "warnings": 3
+    }
+  },
+  "validation": {
+    "typescript": false,
+    "lint": true,
+    "build": true,
+    "assets": true,
+    "configuration": false
+  },
+  "readiness": {
+    "score": 33,
+    "ready": false,
+    "blockers": [
+      "Supabase URL not configured"
+    ],
+    "warnings": [
+      "Critical security issues detected"
+    ]
+  }
+}

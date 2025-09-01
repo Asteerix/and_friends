@@ -64,24 +64,23 @@ interface PickerColumnProps {
   placeholder: string;
 }
 
-const PickerColumn: React.FC<PickerColumnProps> = ({ data, selectedValue, onSelect, placeholder }) => {
+const PickerColumn: React.FC<PickerColumnProps> = ({
+  data,
+  selectedValue,
+  onSelect,
+  placeholder,
+}) => {
   const [showList, setShowList] = useState(false);
 
   return (
     <View style={styles.pickerColumn}>
-      <Pressable
-        style={styles.pickerBox}
-        onPress={() => setShowList(!showList)}
-      >
-        <Text style={[
-          styles.pickerText,
-          !selectedValue && styles.pickerPlaceholder
-        ]}>
+      <Pressable style={styles.pickerBox} onPress={() => setShowList(!showList)}>
+        <Text style={[styles.pickerText, !selectedValue && styles.pickerPlaceholder]}>
           {selectedValue || placeholder}
         </Text>
         <Text style={styles.chevron}>⌄</Text>
       </Pressable>
-      
+
       {showList && (
         <Modal
           transparent
@@ -107,15 +106,14 @@ const PickerColumn: React.FC<PickerColumnProps> = ({ data, selectedValue, onSele
                     setShowList(false);
                     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   }}
-                  style={[
-                    styles.pickerItem,
-                    selectedValue === item && styles.pickerItemSelected
-                  ]}
+                  style={[styles.pickerItem, selectedValue === item && styles.pickerItemSelected]}
                 >
-                  <Text style={[
-                    styles.pickerItemText,
-                    selectedValue === item && styles.pickerItemTextSelected
-                  ]}>
+                  <Text
+                    style={[
+                      styles.pickerItemText,
+                      selectedValue === item && styles.pickerItemTextSelected,
+                    ]}
+                  >
                     {item}
                   </Text>
                 </Pressable>
@@ -149,11 +147,11 @@ export default function EventEndDateModal({
   useEffect(() => {
     if (visible) {
       // Default to 3 hours after start time
-      const defaultEndTime = new Date(startTime.getTime() + (3 * 60 * 60 * 1000));
-      
-      let endDateToUse = currentEndDate || defaultEndTime;
-      let endTimeToUse = currentEndTime || defaultEndTime;
-      
+      const defaultEndTime = new Date(startTime.getTime() + 3 * 60 * 60 * 1000);
+
+      const endDateToUse = currentEndDate || defaultEndTime;
+      const endTimeToUse = currentEndTime || defaultEndTime;
+
       setYear(String(endDateToUse.getFullYear()));
       setMonth(MONTHS[endDateToUse.getMonth()] || null);
       setDay(String(endDateToUse.getDate()));
@@ -207,12 +205,8 @@ export default function EventEndDateModal({
 
     if (year && month && day && hour && minute) {
       const monthIndex = MONTHS.indexOf(month);
-      
-      const eventEndDate = new Date(
-        parseInt(year),
-        monthIndex,
-        parseInt(day)
-      );
+
+      const eventEndDate = new Date(parseInt(year), monthIndex, parseInt(day));
       const eventEndTime = new Date(
         parseInt(year),
         monthIndex,
@@ -220,7 +214,7 @@ export default function EventEndDateModal({
         parseInt(hour),
         parseInt(minute)
       );
-      
+
       onSelect(eventEndDate, eventEndTime);
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       onClose();
@@ -260,7 +254,7 @@ export default function EventEndDateModal({
         <Pressable style={styles.backdrop} onPress={onClose} />
         <View style={[styles.modalContent, { paddingBottom: insets.bottom || 20 }]}>
           <View style={styles.handle} />
-          
+
           <View style={styles.header}>
             <Text style={styles.title}>When does it end?</Text>
             <Text style={styles.subtitle}>Select the end date and time</Text>
@@ -287,12 +281,7 @@ export default function EventEndDateModal({
                   onSelect={setMonth}
                   placeholder="Month"
                 />
-                <PickerColumn
-                  data={DAYS}
-                  selectedValue={day}
-                  onSelect={setDay}
-                  placeholder="Day"
-                />
+                <PickerColumn data={DAYS} selectedValue={day} onSelect={setDay} placeholder="Day" />
                 <PickerColumn
                   data={YEARS}
                   selectedValue={year}
@@ -320,18 +309,14 @@ export default function EventEndDateModal({
                 />
               </View>
             </View>
-            
+
             {/* Validation info */}
             <View style={styles.validationInfo}>
               <Ionicons name="information-circle-outline" size={16} color="#666" />
-              <Text style={styles.validationText}>
-                End time must be after start time
-              </Text>
+              <Text style={styles.validationText}>End time must be after start time</Text>
             </View>
-            
-            {dateError && (
-              <Text style={styles.errorText}>{dateError}</Text>
-            )}
+
+            {dateError && <Text style={styles.errorText}>{dateError}</Text>}
           </ScrollView>
 
           <View style={styles.footer}>

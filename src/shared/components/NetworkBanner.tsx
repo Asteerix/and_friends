@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, Animated, StyleSheet } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useNetworkStore } from '../stores/networkStore';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNetworkStore } from '../stores/networkStore';
 
 interface NetworkBannerProps {
   autoHideDelay?: number;
@@ -13,7 +13,7 @@ interface NetworkBannerProps {
  * Bannière qui s'affiche en cas de problème réseau
  * @example
  * <NetworkBanner />
- * 
+ *
  * // Avec callback de retry
  * <NetworkBanner onRetry={() => refetchData()} />
  */
@@ -23,7 +23,8 @@ export function NetworkBanner({ autoHideDelay, onRetry }: NetworkBannerProps) {
   const [animatedValue] = useState(new Animated.Value(0));
   const insets = useSafeAreaInsets();
 
-  const shouldShow = connectionQuality === 'offline' || connectionQuality === 'poor' || connectionQuality === 'fair';
+  const shouldShow =
+    connectionQuality === 'offline' || connectionQuality === 'poor' || connectionQuality === 'fair';
 
   useEffect(() => {
     if (shouldShow && !isVisible) {
@@ -63,32 +64,32 @@ export function NetworkBanner({ autoHideDelay, onRetry }: NetworkBannerProps) {
       bg: '#ef4444',
       text: 'Aucune connexion internet',
       icon: 'wifi-off' as const,
-      showRetry: true
+      showRetry: true,
     },
     poor: {
-      bg: '#f59e0b', 
+      bg: '#f59e0b',
       text: 'Connexion lente détectée',
       icon: 'network-check' as const,
-      showRetry: false
+      showRetry: false,
     },
     fair: {
-      bg: '#f59e0b', 
+      bg: '#f59e0b',
       text: 'Connexion moyenne',
       icon: 'network-check' as const,
-      showRetry: false
+      showRetry: false,
     },
     good: {
       bg: '#22c55e',
       text: 'Connexion rétablie',
       icon: 'wifi' as const,
-      showRetry: false
+      showRetry: false,
     },
     excellent: {
       bg: '#22c55e',
       text: 'Excellente connexion',
       icon: 'wifi' as const,
-      showRetry: false
-    }
+      showRetry: false,
+    },
   };
 
   // Fallback to 'good' if connectionQuality is undefined or not in config
@@ -101,14 +102,14 @@ export function NetworkBanner({ autoHideDelay, onRetry }: NetworkBannerProps) {
   });
 
   return (
-    <Animated.View 
+    <Animated.View
       style={[
         styles.container,
-        { 
+        {
           backgroundColor: bg,
           transform: [{ translateY }],
-          paddingTop: insets.top + 12
-        }
+          paddingTop: insets.top + 12,
+        },
       ]}
     >
       <View style={styles.content}>
@@ -116,9 +117,9 @@ export function NetworkBanner({ autoHideDelay, onRetry }: NetworkBannerProps) {
           <MaterialIcons name={icon} size={20} color="white" style={styles.icon} />
           <Text style={styles.text}>{text}</Text>
         </View>
-        
+
         {showRetry && onRetry && (
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={onRetry}
             style={styles.retryButton}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}

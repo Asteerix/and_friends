@@ -5,7 +5,7 @@ console.log('🚀 [MapScreenSimple] File loaded');
 
 const MapScreenSimple = () => {
   console.log('🏁 [MapScreenSimple] Component rendering');
-  
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>

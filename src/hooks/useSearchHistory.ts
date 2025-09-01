@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-
 import { supabase } from '../shared/lib/supabase/client';
 import { useSession } from '../shared/providers/SessionContext';
 

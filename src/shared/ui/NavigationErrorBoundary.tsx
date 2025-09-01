@@ -50,10 +50,7 @@ const ErrorFallback: React.FC<{ error: Error | null }> = ({ error }) => {
     <View style={styles.container}>
       <Text style={styles.title}>Something went wrong</Text>
       <Text style={styles.message}>{error?.message || 'An unexpected error occurred'}</Text>
-      <TouchableOpacity
-        style={styles.button}
-        onPress={() => router.replace('/')}
-      >
+      <TouchableOpacity style={styles.button} onPress={() => router.replace('/')}>
         <Text style={styles.buttonText}>Go to Home</Text>
       </TouchableOpacity>
     </View>

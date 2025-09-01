@@ -12,15 +12,15 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { create } from 'react-native-pixel-perfect';
+import { formatDistanceToNow } from 'date-fns';
+import ChatCard, { ChatCardProps } from '../components/ChatCard';
 import BackButton from '@/assets/svg/back-button.svg';
 import ChatButton from '@/assets/svg/chat-button.svg';
 import NotificationButton from '@/assets/svg/notification-button.svg';
 import SearchIcon from '@/assets/svg/search.svg';
 import LongUnderlineDecoration from '@/features/home/components/LongUnderlineDecoration.svg';
 import NotificationBadge from '@/shared/ui/NotificationBadge';
-import ChatCard, { ChatCardProps } from '../components/ChatCard';
 import { useMessagesAdvanced } from '@/hooks/useMessagesAdvanced';
-import { formatDistanceToNow } from 'date-fns';
 
 const designResolution = { width: 375, height: 812 };
 const perfectSize = create(designResolution);
@@ -31,14 +31,22 @@ const ChatScreen: React.FC = React.memo(() => {
   const [search, setSearch] = React.useState('');
 
   // Organisation des chats par catégorie
-  const circles = useMemo(() => chats.filter((c) => {
-    // Les groupes incluent les chats d'événements annulés (qui ont "(annulé)" dans le nom)
-    return c.is_group && (!c.event_id || c.name?.includes('(annulé)'));
-  }), [chats]);
-  const events = useMemo(() => chats.filter((c) => {
-    // Seulement les chats d'événements actifs
-    return !!c.event_id && !c.name?.includes('(annulé)');
-  }), [chats]);
+  const circles = useMemo(
+    () =>
+      chats.filter((c) => {
+        // Les groupes incluent les chats d'événements annulés (qui ont "(annulé)" dans le nom)
+        return c.is_group && (!c.event_id || c.name?.includes('(annulé)'));
+      }),
+    [chats]
+  );
+  const events = useMemo(
+    () =>
+      chats.filter((c) => {
+        // Seulement les chats d'événements actifs
+        return !!c.event_id && !c.name?.includes('(annulé)');
+      }),
+    [chats]
+  );
   const friends = useMemo(() => chats.filter((c) => !c.is_group && !c.event_id), [chats]);
 
   // Filtrage par recherche
@@ -96,7 +104,13 @@ const ChatScreen: React.FC = React.memo(() => {
           accessibilityLabel="Go back"
           onPress={() => router.back()}
         >
-          <BackButton width={perfectSize(22)} height={perfectSize(22)} fill="#000" color="#000" stroke="#000" />
+          <BackButton
+            width={perfectSize(22)}
+            height={perfectSize(22)}
+            fill="#000"
+            color="#000"
+            stroke="#000"
+          />
         </TouchableOpacity>
         <View style={styles.headerTitleWrapper} pointerEvents="none">
           <Text style={styles.headerTitle} accessibilityRole="header" accessibilityLabel="Chat">

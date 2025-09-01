@@ -17,7 +17,6 @@ import {
   Text,
   Image,
 } from 'react-native';
-
 import { EventMemory, MemoryComment } from '@/hooks/useEventMemories';
 import { useSession } from '@/shared/providers/SessionContext';
 

@@ -12,7 +12,6 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
 import { useEventsAdvanced } from '@/hooks/useEventsAdvanced';
 import { useSession } from '@/shared/providers/SessionContext';
 import CustomText, { AfterHoursText } from '@/shared/ui/CustomText';

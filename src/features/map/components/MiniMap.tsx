@@ -4,64 +4,64 @@ import { View, StyleSheet, Pressable } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 // import { SharedElement } from 'react-navigation-shared-element';
 
-import { useMapStore } from '@/store/mapStore';
 import ExpandIcon from './ExpandIcon.svg';
+import { useMapStore } from '@/store/mapStore';
 import { useEventsAdvanced } from '@/hooks/useEventsAdvanced';
 
 // Black and white map style
 const GRAYSCALE_MAP_STYLE = [
   {
-    elementType: "all",
+    elementType: 'all',
     stylers: [
       {
-        saturation: -100
-      }
-    ]
+        saturation: -100,
+      },
+    ],
   },
   {
-    elementType: "geometry",
+    elementType: 'geometry',
     stylers: [
       {
-        lightness: 40
-      }
-    ]
+        lightness: 40,
+      },
+    ],
   },
   {
-    featureType: "poi",
-    elementType: "all",
+    featureType: 'poi',
+    elementType: 'all',
     stylers: [
       {
-        visibility: "off"
-      }
-    ]
+        visibility: 'off',
+      },
+    ],
   },
   {
-    featureType: "transit",
-    elementType: "all",
+    featureType: 'transit',
+    elementType: 'all',
     stylers: [
       {
-        visibility: "off"
-      }
-    ]
+        visibility: 'off',
+      },
+    ],
   },
   {
-    featureType: "road",
-    elementType: "labels.icon",
+    featureType: 'road',
+    elementType: 'labels.icon',
     stylers: [
       {
-        visibility: "off"
-      }
-    ]
+        visibility: 'off',
+      },
+    ],
   },
   {
-    featureType: "administrative",
-    elementType: "labels",
+    featureType: 'administrative',
+    elementType: 'labels',
     stylers: [
       {
-        lightness: 30
-      }
-    ]
-  }
+        lightness: 30,
+      },
+    ],
+  },
 ];
 
 export default function MiniMap() {
@@ -84,11 +84,11 @@ export default function MiniMap() {
         longitude: event.location_details.coordinates.longitude,
       };
     }
-    
+
     // Then try parsing location string
     const location = event.location;
     if (!location) return null;
-    
+
     const coords = location.match(/(-?\d+\.?\d*),\s*(-?\d+\.?\d*)/);
     if (coords && coords[1] && coords[2]) {
       return {
@@ -96,7 +96,7 @@ export default function MiniMap() {
         longitude: parseFloat(coords[2]),
       };
     }
-    
+
     return null;
   };
 
@@ -148,9 +148,7 @@ export default function MiniMap() {
             </Marker>
           ))}
         </MapView>
-        {isInteracting && (
-          <View style={styles.interactionOverlay} pointerEvents="none" />
-        )}
+        {isInteracting && <View style={styles.interactionOverlay} pointerEvents="none" />}
       </View>
       <Pressable style={styles.expandBtn} onPress={onExpand}>
         <ExpandIcon width={30} height={30} />

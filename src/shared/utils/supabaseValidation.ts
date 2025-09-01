@@ -14,7 +14,12 @@ export const ProfileSchema = z.object({
   is_profile_complete: z.boolean().default(false),
   full_name: z.string().max(255).nullable().optional(),
   display_name: z.string().max(255).nullable().optional(),
-  username: z.string().max(50).regex(/^[a-zA-Z0-9_]+$/).nullable().optional(),
+  username: z
+    .string()
+    .max(50)
+    .regex(/^[a-zA-Z0-9_]+$/)
+    .nullable()
+    .optional(),
   avatar_url: z.string().url().nullable().optional(),
   cover_url: z.string().url().nullable().optional(),
   bio: z.string().max(500).nullable().optional(),
@@ -38,7 +43,11 @@ export const ProfileSchema = z.object({
   location: z.string().max(255).nullable().optional(),
   location_permission_granted: z.boolean().nullable().optional(),
   contacts_permission_status: z.string().nullable().optional(),
-  phone: z.string().regex(/^\+?[1-9]\d{1,14}$/).nullable().optional(),
+  phone: z
+    .string()
+    .regex(/^\+?[1-9]\d{1,14}$/)
+    .nullable()
+    .optional(),
   email: z.string().email().nullable().optional(),
   last_name_change: z.string().datetime().nullable().optional(),
   last_username_change: z.string().datetime().nullable().optional(),
@@ -121,7 +130,7 @@ export const RatingSchema = z.object({
 // VALIDATION FUNCTIONS
 // ============================================
 
-export function validateProfileUpdate(data: any): z.infer<typeof ProfileSchema> {
+export function validateProfileUpdate(data: any): Partial<z.infer<typeof ProfileSchema>> {
   // Remove undefined values to prevent overwriting with null
   const cleanData = Object.entries(data).reduce((acc, [key, value]) => {
     if (value !== undefined) {
@@ -133,15 +142,21 @@ export function validateProfileUpdate(data: any): z.infer<typeof ProfileSchema> 
   return ProfileSchema.partial().parse(cleanData);
 }
 
-export function validateEventCreate(data: any): z.infer<typeof EventSchema> {
+export function validateEventCreate(
+  data: any
+): Omit<z.infer<typeof EventSchema>, 'id' | 'created_at' | 'updated_at'> {
   return EventSchema.omit({ id: true, created_at: true, updated_at: true }).parse(data);
 }
 
-export function validateMessageCreate(data: any): z.infer<typeof MessageSchema> {
+export function validateMessageCreate(
+  data: any
+): Omit<z.infer<typeof MessageSchema>, 'id' | 'created_at'> {
   return MessageSchema.omit({ id: true, created_at: true }).parse(data);
 }
 
-export function validateNotificationCreate(data: any): z.infer<typeof NotificationSchema> {
+export function validateNotificationCreate(
+  data: any
+): Omit<z.infer<typeof NotificationSchema>, 'id' | 'created_at'> {
   return NotificationSchema.omit({ id: true, created_at: true }).parse(data);
 }
 
@@ -152,7 +167,7 @@ export function validateNotificationCreate(data: any): z.infer<typeof Notificati
 // Sanitize string inputs to prevent SQL injection
 export function sanitizeString(input: string): string {
   if (!input) return '';
-  
+
   // Remove or escape potentially dangerous characters
   return input
     .replace(/'/g, "''") // Escape single quotes
@@ -172,8 +187,8 @@ export function validateUUID(uuid: string): boolean {
 // Sanitize array inputs
 export function sanitizeArray<T>(arr: T[]): T[] {
   if (!Array.isArray(arr)) return [];
-  
-  return arr.map(item => {
+
+  return arr.map((item) => {
     if (typeof item === 'string') {
       return sanitizeString(item) as T;
     }
@@ -191,14 +206,20 @@ export interface SafeResult<T> {
 }
 
 export class ValidationError extends Error {
-  constructor(message: string, public field?: string) {
+  constructor(
+    message: string,
+    public field?: string
+  ) {
     super(message);
     this.name = 'ValidationError';
   }
 }
 
 export class DatabaseError extends Error {
-  constructor(message: string, public code?: string) {
+  constructor(
+    message: string,
+    public code?: string
+  ) {
     super(message);
     this.name = 'DatabaseError';
   }
@@ -248,14 +269,14 @@ export async function safeSupabaseOperation<T>(
 ): Promise<SafeResult<T>> {
   try {
     const { data, error } = await operation();
-    
+
     if (error) {
       return {
         data: null,
         error: handleSupabaseError(error),
       };
     }
-    
+
     return { data, error: null };
   } catch (err) {
     return {
@@ -274,7 +295,8 @@ export const InputValidators = {
     if (!value) return 'Username is required';
     if (value.length < 3) return 'Username must be at least 3 characters';
     if (value.length > 50) return 'Username must be less than 50 characters';
-    if (!/^[a-zA-Z0-9_]+$/.test(value)) return 'Username can only contain letters, numbers, and underscores';
+    if (!/^[a-zA-Z0-9_]+$/.test(value))
+      return 'Username can only contain letters, numbers, and underscores';
     return null;
   },
 
@@ -303,11 +325,11 @@ export const InputValidators = {
     if (!value) return 'Birth date is required';
     const date = new Date(value);
     if (isNaN(date.getTime())) return 'Invalid date format';
-    
+
     const age = new Date().getFullYear() - date.getFullYear();
     if (age < 13) return 'You must be at least 13 years old';
     if (age > 120) return 'Invalid birth date';
-    
+
     return null;
   },
 

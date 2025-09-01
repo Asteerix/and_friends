@@ -2,9 +2,7 @@ import { useEffect, useState } from 'react';
 import { offlineSyncManager } from '@/shared/utils/cache/offlineSync';
 
 export function useOfflineSync() {
-  const [syncStatus, setSyncStatus] = useState(() => 
-    offlineSyncManager.getQueueStatus()
-  );
+  const [syncStatus, setSyncStatus] = useState(() => offlineSyncManager.getQueueStatus());
 
   useEffect(() => {
     const updateStatus = () => {

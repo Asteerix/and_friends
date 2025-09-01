@@ -3,7 +3,6 @@ import { Share, Alert } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import * as MediaLibrary from 'expo-media-library';
 import * as FileSystem from 'expo-file-system';
-
 import OptionsMenu, { OptionItem } from '@/shared/ui/OptionsMenu';
 import ReportModal from '@/features/reports/components/ReportModal';
 import { supabase } from '@/shared/lib/supabase/client';
@@ -48,18 +47,24 @@ export default function StoryOptionsButton({
     try {
       const { status } = await MediaLibrary.requestPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission refusée', 'Nous avons besoin de votre permission pour sauvegarder dans la galerie.');
+        Alert.alert(
+          'Permission refusée',
+          'Nous avons besoin de votre permission pour sauvegarder dans la galerie.'
+        );
         return;
       }
 
       const fileUri = FileSystem.documentDirectory + `${storyType}_${Date.now()}.jpg`;
       const downloadResult = await FileSystem.downloadAsync(mediaUrl, fileUri);
-      
+
       const asset = await MediaLibrary.createAssetAsync(downloadResult.uri);
       await MediaLibrary.createAlbumAsync('And Friends', asset, false);
-      
+
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert('Sauvegardé', `${storyType === 'story' ? 'Story' : 'Souvenir'} sauvegardé dans votre galerie`);
+      Alert.alert(
+        'Sauvegardé',
+        `${storyType === 'story' ? 'Story' : 'Souvenir'} sauvegardé dans votre galerie`
+      );
     } catch (error) {
       console.error('Error saving to gallery:', error);
       Alert.alert('Erreur', 'Impossible de sauvegarder dans la galerie');
@@ -78,23 +83,23 @@ export default function StoryOptionsButton({
           onPress: async () => {
             try {
               void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-              
+
               const tableName = storyType === 'story' ? 'stories' : 'memories';
-              const { error } = await supabase
-                .from(tableName)
-                .delete()
-                .eq('id', storyId);
+              const { error } = await supabase.from(tableName).delete().eq('id', storyId);
 
               if (error) throw error;
 
               Alert.alert(
-                'Supprimé', 
+                'Supprimé',
                 `${storyType === 'story' ? 'Story' : 'Souvenir'} supprimé avec succès.`
               );
               onDelete?.();
             } catch (error) {
               console.error('Error deleting:', error);
-              Alert.alert('Erreur', `Impossible de supprimer ${storyType === 'story' ? 'la story' : 'le souvenir'}.`);
+              Alert.alert(
+                'Erreur',
+                `Impossible de supprimer ${storyType === 'story' ? 'la story' : 'le souvenir'}.`
+              );
             }
           },
         },
@@ -128,12 +133,16 @@ export default function StoryOptionsButton({
       <OptionsMenu
         options={options}
         trigger={trigger}
-        reportConfig={!isOwnStory ? {
-          enabled: true,
-          onReport: () => setShowReportModal(true)
-        } : undefined}
+        reportConfig={
+          !isOwnStory
+            ? {
+                enabled: true,
+                onReport: () => setShowReportModal(true),
+              }
+            : undefined
+        }
       />
-      
+
       <ReportModal
         visible={showReportModal}
         onClose={() => setShowReportModal(false)}

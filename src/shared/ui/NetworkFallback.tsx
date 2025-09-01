@@ -1,11 +1,5 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ActivityIndicator,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 interface NetworkFallbackProps {
@@ -25,15 +19,13 @@ export const NetworkFallback: React.FC<NetworkFallbackProps> = ({
     <View style={styles.container}>
       <View style={styles.content}>
         <Ionicons name="cloud-offline" size={80} color="#666" />
-        
+
         <Text style={styles.title}>Pas de connexion</Text>
-        
+
         <Text style={styles.message}>{message}</Text>
-        
-        <Text style={styles.submessage}>
-          Vérifie ta connexion internet et réessaye
-        </Text>
-        
+
+        <Text style={styles.submessage}>Vérifie ta connexion internet et réessaye</Text>
+
         {showRetryButton && onRetry && (
           <TouchableOpacity
             style={[styles.retryButton, isRetrying && styles.retryButtonDisabled]}

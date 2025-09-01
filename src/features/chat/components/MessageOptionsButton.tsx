@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Alert } from 'react-native';
 import * as Haptics from 'expo-haptics';
-
 import OptionsMenu, { OptionItem } from '@/shared/ui/OptionsMenu';
 import ReportModal from '@/features/reports/components/ReportModal';
 import { supabase } from '@/shared/lib/supabase/client';
@@ -38,34 +37,30 @@ export default function MessageOptionsButton({
   };
 
   const handleDelete = () => {
-    Alert.alert(
-      'Supprimer le message',
-      'Êtes-vous sûr de vouloir supprimer ce message ?',
-      [
-        { text: 'Annuler', style: 'cancel' },
-        {
-          text: 'Supprimer',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-              
-              const { error } = await supabase
-                .from('messages')
-                .update({ deleted_at: new Date().toISOString() })
-                .eq('id', messageId);
+    Alert.alert('Supprimer le message', 'Êtes-vous sûr de vouloir supprimer ce message ?', [
+      { text: 'Annuler', style: 'cancel' },
+      {
+        text: 'Supprimer',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-              if (error) throw error;
+            const { error } = await supabase
+              .from('messages')
+              .update({ deleted_at: new Date().toISOString() })
+              .eq('id', messageId);
 
-              onDelete?.();
-            } catch (error) {
-              console.error('Error deleting message:', error);
-              Alert.alert('Erreur', 'Impossible de supprimer ce message.');
-            }
-          },
+            if (error) throw error;
+
+            onDelete?.();
+          } catch (error) {
+            console.error('Error deleting message:', error);
+            Alert.alert('Erreur', 'Impossible de supprimer ce message.');
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const options: OptionItem[] = [
@@ -94,12 +89,16 @@ export default function MessageOptionsButton({
       <OptionsMenu
         options={options}
         trigger={trigger}
-        reportConfig={!isOwnMessage ? {
-          enabled: true,
-          onReport: () => setShowReportModal(true)
-        } : undefined}
+        reportConfig={
+          !isOwnMessage
+            ? {
+                enabled: true,
+                onReport: () => setShowReportModal(true),
+              }
+            : undefined
+        }
       />
-      
+
       <ReportModal
         visible={showReportModal}
         onClose={() => setShowReportModal(false)}

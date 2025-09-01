@@ -62,24 +62,23 @@ interface PickerColumnProps {
   placeholder: string;
 }
 
-const PickerColumn: React.FC<PickerColumnProps> = ({ data, selectedValue, onSelect, placeholder }) => {
+const PickerColumn: React.FC<PickerColumnProps> = ({
+  data,
+  selectedValue,
+  onSelect,
+  placeholder,
+}) => {
   const [showList, setShowList] = useState(false);
 
   return (
     <View style={styles.pickerColumn}>
-      <Pressable
-        style={styles.pickerBox}
-        onPress={() => setShowList(!showList)}
-      >
-        <Text style={[
-          styles.pickerText,
-          !selectedValue && styles.pickerPlaceholder
-        ]}>
+      <Pressable style={styles.pickerBox} onPress={() => setShowList(!showList)}>
+        <Text style={[styles.pickerText, !selectedValue && styles.pickerPlaceholder]}>
           {selectedValue || placeholder}
         </Text>
         <Text style={styles.chevron}>⌄</Text>
       </Pressable>
-      
+
       {showList && (
         <Modal
           transparent
@@ -105,15 +104,14 @@ const PickerColumn: React.FC<PickerColumnProps> = ({ data, selectedValue, onSele
                     setShowList(false);
                     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   }}
-                  style={[
-                    styles.pickerItem,
-                    selectedValue === item && styles.pickerItemSelected
-                  ]}
+                  style={[styles.pickerItem, selectedValue === item && styles.pickerItemSelected]}
                 >
-                  <Text style={[
-                    styles.pickerItemText,
-                    selectedValue === item && styles.pickerItemTextSelected
-                  ]}>
+                  <Text
+                    style={[
+                      styles.pickerItemText,
+                      selectedValue === item && styles.pickerItemTextSelected,
+                    ]}
+                  >
                     {item}
                   </Text>
                 </Pressable>
@@ -148,61 +146,64 @@ export default function BirthDatePickerModal({
     }
   }, [visible, currentDate]);
 
-  const calculateAge = useCallback((
-    birthMonthStr: string | null,
-    birthDayStr: string | null,
-    birthYearStr: string | null
-  ): number | null => {
-    if (!birthMonthStr || !birthDayStr || !birthYearStr) return null;
-    
-    const monthIndex = MONTHS.indexOf(birthMonthStr);
-    if (monthIndex === -1) return null;
-    
-    const birthYear = parseInt(birthYearStr, 10);
-    const birthDay = parseInt(birthDayStr, 10);
-    const birthDate = new Date(birthYear, monthIndex, birthDay);
-    
-    if (
-      isNaN(birthDate.getTime()) ||
-      birthDate.getFullYear() !== birthYear ||
-      birthDate.getMonth() !== monthIndex ||
-      birthDate.getDate() !== birthDay
-    ) {
-      return null;
-    }
-    
-    const today = new Date();
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const m = today.getMonth() - birthDate.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-      age--;
-    }
-    
-    return age;
-  }, []);
+  const calculateAge = useCallback(
+    (
+      birthMonthStr: string | null,
+      birthDayStr: string | null,
+      birthYearStr: string | null
+    ): number | null => {
+      if (!birthMonthStr || !birthDayStr || !birthYearStr) return null;
+
+      const monthIndex = MONTHS.indexOf(birthMonthStr);
+      if (monthIndex === -1) return null;
+
+      const birthYear = parseInt(birthYearStr, 10);
+      const birthDay = parseInt(birthDayStr, 10);
+      const birthDate = new Date(birthYear, monthIndex, birthDay);
+
+      if (
+        isNaN(birthDate.getTime()) ||
+        birthDate.getFullYear() !== birthYear ||
+        birthDate.getMonth() !== monthIndex ||
+        birthDate.getDate() !== birthDay
+      ) {
+        return null;
+      }
+
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const m = today.getMonth() - birthDate.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+
+      return age;
+    },
+    []
+  );
 
   const validateAge = useCallback((): boolean => {
     if (!month || !day || !year) {
       setAgeError('Please select a complete date');
       return false;
     }
-    
+
     const age = calculateAge(month, day, year);
     if (age === null) {
       setAgeError('Invalid date selected');
       return false;
     }
-    
+
     if (age < 13) {
       setAgeError('You must be at least 13 years old');
       return false;
     }
-    
+
     if (age > 120) {
       setAgeError('Please enter a valid birth date');
       return false;
     }
-    
+
     setAgeError(null);
     return true;
   }, [month, day, year, calculateAge]);
@@ -217,7 +218,7 @@ export default function BirthDatePickerModal({
 
   const handleConfirm = () => {
     if (!validateAge()) return;
-    
+
     if (year && month && day) {
       const monthIndex = MONTHS.indexOf(month);
       const birthDateISO = `${year}-${String(monthIndex + 1).padStart(2, '0')}-${day.padStart(2, '0')}`;
@@ -249,7 +250,7 @@ export default function BirthDatePickerModal({
         <Pressable style={styles.backdrop} onPress={onClose} />
         <View style={[styles.modalContent, { paddingBottom: insets.bottom || 20 }]}>
           <View style={styles.handle} />
-          
+
           <View style={styles.header}>
             <Text style={styles.title}>When were you born?</Text>
             <Text style={styles.subtitle}>This helps us personalize your experience</Text>
@@ -263,12 +264,7 @@ export default function BirthDatePickerModal({
                 onSelect={setMonth}
                 placeholder="Month"
               />
-              <PickerColumn
-                data={DAYS}
-                selectedValue={day}
-                onSelect={setDay}
-                placeholder="Day"
-              />
+              <PickerColumn data={DAYS} selectedValue={day} onSelect={setDay} placeholder="Day" />
               <PickerColumn
                 data={YEARS}
                 selectedValue={year}
@@ -276,10 +272,8 @@ export default function BirthDatePickerModal({
                 placeholder="Year"
               />
             </View>
-            
-            {ageError && (
-              <Text style={styles.errorText}>{ageError}</Text>
-            )}
+
+            {ageError && <Text style={styles.errorText}>{ageError}</Text>}
           </View>
 
           <View style={styles.footer}>

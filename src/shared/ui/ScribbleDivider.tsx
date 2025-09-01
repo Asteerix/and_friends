@@ -11,6 +11,6 @@ const styles = StyleSheet.create({
     height: 3,
     marginTop: 4,
     backgroundColor: '#E5E5E5',
-    opacity: 0.7
+    opacity: 0.7,
   },
 });

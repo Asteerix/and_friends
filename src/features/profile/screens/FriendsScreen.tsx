@@ -12,7 +12,6 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
 import { useFriends, Friend, FriendRequest } from '@/hooks/useFriends';
 import { Colors } from '@/shared/config/Colors';
 import CustomText from '@/shared/ui/CustomText';

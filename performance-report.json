@@ -1,0 +1,471 @@
+{
+  "timestamp": "2025-08-24T21:48:31.506Z",
+  "score": 0,
+  "issues": [],
+  "warnings": [
+    {
+      "type": "console-logs",
+      "count": 1911,
+      "message": "Found 1911 console statements. Consider removing for production.",
+      "files": [
+        {
+          "file": "/Users/amaury/Desktop/and_friends/src/app/(auth)/banned.tsx",
+          "count": 1
+        },
+        {
+          "file": "/Users/amaury/Desktop/and_friends/src/app/_layout.tsx",
+          "count": 1
+        },
+        {
+          "file": "/Users/amaury/Desktop/and_friends/src/app/event/[id].tsx",
+          "count": 2
+        },
+        {
+          "file": "/Users/amaury/Desktop/and_friends/src/app/screens/event-details.tsx",
+          "count": 2
+        },
+        {
+          "file": "/Users/amaury/Desktop/and_friends/src/app/story/[id].tsx",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "type": "large-dependency",
+      "package": "lodash",
+      "recommendation": "Consider using lodash-es or individual imports"
+    },
+    {
+      "type": "memory-leak",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/auth/screens/CodeVerificationScreen.tsx",
+      "issue": "addEventListener without removeEventListener"
+    },
+    {
+      "type": "memory-leak",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/chat/components/OnlineStatus.tsx",
+      "issue": "Subscription without unsubscribe"
+    },
+    {
+      "type": "memory-leak",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/chats/initializeConversationSystem.ts",
+      "issue": "addEventListener without removeEventListener"
+    },
+    {
+      "type": "memory-leak",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/chats/initializeConversationSystem.ts",
+      "issue": "Subscription without unsubscribe"
+    },
+    {
+      "type": "memory-leak",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/events/context/EventProvider.tsx",
+      "issue": "Subscription without unsubscribe"
+    },
+    {
+      "type": "memory-leak",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/map/hooks/useNearbyEvents.ts",
+      "issue": "Subscription without unsubscribe"
+    },
+    {
+      "type": "memory-leak",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/stories/hooks/useStories.ts",
+      "issue": "Subscription without unsubscribe"
+    },
+    {
+      "type": "memory-leak",
+      "file": "/Users/amaury/Desktop/and_friends/src/hooks/useChats.ts",
+      "issue": "Subscription without unsubscribe"
+    },
+    {
+      "type": "memory-leak",
+      "file": "/Users/amaury/Desktop/and_friends/src/hooks/useEventMemories.ts",
+      "issue": "Subscription without unsubscribe"
+    },
+    {
+      "type": "memory-leak",
+      "file": "/Users/amaury/Desktop/and_friends/src/hooks/useEvents.ts",
+      "issue": "Subscription without unsubscribe"
+    },
+    {
+      "type": "memory-leak",
+      "file": "/Users/amaury/Desktop/and_friends/src/hooks/useEventsAdvanced.ts",
+      "issue": "Subscription without unsubscribe"
+    },
+    {
+      "type": "memory-leak",
+      "file": "/Users/amaury/Desktop/and_friends/src/hooks/useFriends.ts",
+      "issue": "Subscription without unsubscribe"
+    },
+    {
+      "type": "memory-leak",
+      "file": "/Users/amaury/Desktop/and_friends/src/hooks/useMessages.ts",
+      "issue": "Subscription without unsubscribe"
+    },
+    {
+      "type": "memory-leak",
+      "file": "/Users/amaury/Desktop/and_friends/src/hooks/useMessagesAdvanced.ts",
+      "issue": "Subscription without unsubscribe"
+    },
+    {
+      "type": "memory-leak",
+      "file": "/Users/amaury/Desktop/and_friends/src/hooks/useNotifications.ts",
+      "issue": "Subscription without unsubscribe"
+    },
+    {
+      "type": "memory-leak",
+      "file": "/Users/amaury/Desktop/and_friends/src/hooks/usePollsSupabase.ts",
+      "issue": "Subscription without unsubscribe"
+    },
+    {
+      "type": "memory-leak",
+      "file": "/Users/amaury/Desktop/and_friends/src/hooks/usePresence.ts",
+      "issue": "addEventListener without removeEventListener"
+    },
+    {
+      "type": "memory-leak",
+      "file": "/Users/amaury/Desktop/and_friends/src/hooks/usePresence.ts",
+      "issue": "Subscription without unsubscribe"
+    },
+    {
+      "type": "memory-leak",
+      "file": "/Users/amaury/Desktop/and_friends/src/hooks/useStories.ts",
+      "issue": "Subscription without unsubscribe"
+    },
+    {
+      "type": "memory-leak",
+      "file": "/Users/amaury/Desktop/and_friends/src/hooks/useUserProfile.ts",
+      "issue": "Subscription without unsubscribe"
+    },
+    {
+      "type": "memory-leak",
+      "file": "/Users/amaury/Desktop/and_friends/src/shared/hooks/useCache.ts",
+      "issue": "addEventListener without removeEventListener"
+    },
+    {
+      "type": "memory-leak",
+      "file": "/Users/amaury/Desktop/and_friends/src/shared/hooks/useNetworkQuality.ts",
+      "issue": "addEventListener without removeEventListener"
+    },
+    {
+      "type": "memory-leak",
+      "file": "/Users/amaury/Desktop/and_friends/src/shared/hooks/useNetworkStatus.ts",
+      "issue": "addEventListener without removeEventListener"
+    },
+    {
+      "type": "memory-leak",
+      "file": "/Users/amaury/Desktop/and_friends/src/shared/hooks/useOfflineQueue.ts",
+      "issue": "addEventListener without removeEventListener"
+    },
+    {
+      "type": "memory-leak",
+      "file": "/Users/amaury/Desktop/and_friends/src/shared/hooks/useRealtimeManager.example.tsx",
+      "issue": "Subscription without unsubscribe"
+    },
+    {
+      "type": "memory-leak",
+      "file": "/Users/amaury/Desktop/and_friends/src/shared/hooks/useRealtimeManager.ts",
+      "issue": "addEventListener without removeEventListener"
+    },
+    {
+      "type": "memory-leak",
+      "file": "/Users/amaury/Desktop/and_friends/src/shared/hooks/useRealtimeManager.ts",
+      "issue": "Subscription without unsubscribe"
+    },
+    {
+      "type": "memory-leak",
+      "file": "/Users/amaury/Desktop/and_friends/src/shared/hooks/useRealtimeSubscription.ts",
+      "issue": "Subscription without unsubscribe"
+    },
+    {
+      "type": "memory-leak",
+      "file": "/Users/amaury/Desktop/and_friends/src/shared/providers/MemoriesProvider.tsx",
+      "issue": "Subscription without unsubscribe"
+    },
+    {
+      "type": "memory-leak",
+      "file": "/Users/amaury/Desktop/and_friends/src/shared/providers/NetworkProvider.tsx",
+      "issue": "addEventListener without removeEventListener"
+    },
+    {
+      "type": "memory-leak",
+      "file": "/Users/amaury/Desktop/and_friends/src/shared/providers/NotificationProvider.tsx",
+      "issue": "Subscription without unsubscribe"
+    },
+    {
+      "type": "memory-leak",
+      "file": "/Users/amaury/Desktop/and_friends/src/shared/providers/ProfileProvider.tsx",
+      "issue": "Subscription without unsubscribe"
+    },
+    {
+      "type": "memory-leak",
+      "file": "/Users/amaury/Desktop/and_friends/src/shared/providers/StoriesContext.tsx",
+      "issue": "Subscription without unsubscribe"
+    },
+    {
+      "type": "memory-leak",
+      "file": "/Users/amaury/Desktop/and_friends/src/shared/stores/networkStore.ts",
+      "issue": "addEventListener without removeEventListener"
+    },
+    {
+      "type": "memory-leak",
+      "file": "/Users/amaury/Desktop/and_friends/src/shared/utils/cache/offlineSync.ts",
+      "issue": "addEventListener without removeEventListener"
+    }
+  ],
+  "optimizations": [
+    {
+      "type": "flatlist-optimization",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/auth/screens/AgeInputScreen.tsx",
+      "recommendation": "Consider adding getItemLayout for better performance"
+    },
+    {
+      "type": "flatlist-optimization",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/auth/screens/ContactsFriendsScreen.tsx",
+      "recommendation": "Consider adding getItemLayout for better performance"
+    },
+    {
+      "type": "flatlist-optimization",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/auth/screens/JamPickerScreen.tsx",
+      "recommendation": "Consider adding getItemLayout for better performance"
+    },
+    {
+      "type": "flatlist-optimization",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/auth/screens/RestaurantPickerScreen.tsx",
+      "recommendation": "Consider adding getItemLayout for better performance"
+    },
+    {
+      "type": "memo-optimization",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/calendar/screens/EventRow.tsx",
+      "recommendation": "Consider wrapping with React.memo to prevent unnecessary re-renders"
+    },
+    {
+      "type": "memo-optimization",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/chat/components/ChatCard.tsx",
+      "recommendation": "Consider wrapping with React.memo to prevent unnecessary re-renders"
+    },
+    {
+      "type": "flatlist-optimization",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/chat/screens/AddParticipantsScreen.tsx",
+      "recommendation": "Consider adding getItemLayout for better performance"
+    },
+    {
+      "type": "flatlist-optimization",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/chat/screens/ChatListScreen.tsx",
+      "recommendation": "Consider adding getItemLayout for better performance"
+    },
+    {
+      "type": "flatlist-optimization",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/chat/screens/ConversationScreen.tsx",
+      "recommendation": "Consider adding getItemLayout for better performance"
+    },
+    {
+      "type": "flatlist-optimization",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/chat/screens/ConversationsListScreen.tsx",
+      "recommendation": "Consider adding getItemLayout for better performance"
+    },
+    {
+      "type": "flatlist-optimization",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/chat/screens/EnhancedConversationScreen.tsx",
+      "recommendation": "Consider adding getItemLayout for better performance"
+    },
+    {
+      "type": "flatlist-optimization",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/chat/screens/InstagramChatDetailsScreen.tsx",
+      "recommendation": "Consider adding getItemLayout for better performance"
+    },
+    {
+      "type": "flatlist-optimization",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/chat/screens/InstagramChatListScreen.tsx",
+      "recommendation": "Consider adding getItemLayout for better performance"
+    },
+    {
+      "type": "flatlist-optimization",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/chat/screens/InstagramConversationScreen.tsx",
+      "recommendation": "Consider adding getItemLayout for better performance"
+    },
+    {
+      "type": "flatlist-optimization",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/chat/screens/InstagramNewChatScreen.tsx",
+      "recommendation": "Consider adding getItemLayout for better performance"
+    },
+    {
+      "type": "flatlist-optimization",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/chat/screens/InstagramSearchMessagesScreen.tsx",
+      "recommendation": "Consider adding getItemLayout for better performance"
+    },
+    {
+      "type": "flatlist-optimization",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/chat/screens/NewChatScreen.tsx",
+      "recommendation": "Consider adding getItemLayout for better performance"
+    },
+    {
+      "type": "memo-optimization",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/events/components/EventCardEnhanced.tsx",
+      "recommendation": "Consider wrapping with React.memo to prevent unnecessary re-renders"
+    },
+    {
+      "type": "flatlist-optimization",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/events/components/EventComments.tsx",
+      "recommendation": "Consider adding getItemLayout for better performance"
+    },
+    {
+      "type": "flatlist-optimization",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/events/components/EventDatePickerModal.tsx",
+      "recommendation": "Consider adding getItemLayout for better performance"
+    },
+    {
+      "type": "flatlist-optimization",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/events/components/EventDateTimePickerModal.tsx",
+      "recommendation": "Consider adding getItemLayout for better performance"
+    },
+    {
+      "type": "flatlist-optimization",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/events/components/EventEndDateModal.tsx",
+      "recommendation": "Consider adding getItemLayout for better performance"
+    },
+    {
+      "type": "flatlist-optimization",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/events/components/EventMemories.tsx",
+      "recommendation": "Consider adding getItemLayout for better performance"
+    },
+    {
+      "type": "flatlist-optimization",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/events/components/EventStartDateModal.tsx",
+      "recommendation": "Consider adding getItemLayout for better performance"
+    },
+    {
+      "type": "flatlist-optimization",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/events/components/ItemsToBringModal.tsx",
+      "recommendation": "Consider adding getItemLayout for better performance"
+    },
+    {
+      "type": "memo-optimization",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/events/components/ItemsToBringModal.tsx",
+      "recommendation": "Consider wrapping with React.memo to prevent unnecessary re-renders"
+    },
+    {
+      "type": "flatlist-optimization",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/events/components/MemoryCard.tsx",
+      "recommendation": "Consider adding getItemLayout for better performance"
+    },
+    {
+      "type": "memo-optimization",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/events/components/MemoryCard.tsx",
+      "recommendation": "Consider wrapping with React.memo to prevent unnecessary re-renders"
+    },
+    {
+      "type": "flatlist-optimization",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/events/components/RSVPDeadlineModal.tsx",
+      "recommendation": "Consider adding getItemLayout for better performance"
+    },
+    {
+      "type": "flatlist-optimization",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/events/components/WhosBringingModal.tsx",
+      "recommendation": "Consider adding getItemLayout for better performance"
+    },
+    {
+      "type": "flatlist-optimization",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/events/screens/EditCoverScreen.tsx",
+      "recommendation": "Consider adding getItemLayout for better performance"
+    },
+    {
+      "type": "flatlist-optimization",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/events/screens/InviteFriendsScreen.tsx",
+      "recommendation": "Consider adding getItemLayout for better performance"
+    },
+    {
+      "type": "flatlist-optimization",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/events/screens/MyEventsScreen.tsx",
+      "recommendation": "Consider adding getItemLayout for better performance"
+    },
+    {
+      "type": "memo-optimization",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/home/components/EventCard.tsx",
+      "recommendation": "Consider wrapping with React.memo to prevent unnecessary re-renders"
+    },
+    {
+      "type": "memo-optimization",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/home/components/EventCardNew.tsx",
+      "recommendation": "Consider wrapping with React.memo to prevent unnecessary re-renders"
+    },
+    {
+      "type": "memo-optimization",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/home/components/LinkCard.tsx",
+      "recommendation": "Consider wrapping with React.memo to prevent unnecessary re-renders"
+    },
+    {
+      "type": "flatlist-optimization",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/home/screens/SearchScreen.tsx",
+      "recommendation": "Consider adding getItemLayout for better performance"
+    },
+    {
+      "type": "memo-optimization",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/notifications/components/NotificationItem.tsx",
+      "recommendation": "Consider wrapping with React.memo to prevent unnecessary re-renders"
+    },
+    {
+      "type": "flatlist-optimization",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/notifications/screens/NotificationsFullScreen.tsx",
+      "recommendation": "Consider adding getItemLayout for better performance"
+    },
+    {
+      "type": "flatlist-optimization",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/notifications/screens/NotificationsScreen.tsx",
+      "recommendation": "Consider adding getItemLayout for better performance"
+    },
+    {
+      "type": "flatlist-optimization",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/profile/components/BirthDatePickerModal.tsx",
+      "recommendation": "Consider adding getItemLayout for better performance"
+    },
+    {
+      "type": "memo-optimization",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/profile/components/FriendCard.tsx",
+      "recommendation": "Consider wrapping with React.memo to prevent unnecessary re-renders"
+    },
+    {
+      "type": "flatlist-optimization",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/profile/components/MusicPickerModal.tsx",
+      "recommendation": "Consider adding getItemLayout for better performance"
+    },
+    {
+      "type": "flatlist-optimization",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/profile/components/RestaurantPickerModal.tsx",
+      "recommendation": "Consider adding getItemLayout for better performance"
+    },
+    {
+      "type": "memo-optimization",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/profile/screens/PersonCardScreen.tsx",
+      "recommendation": "Consider wrapping with React.memo to prevent unnecessary re-renders"
+    },
+    {
+      "type": "flatlist-optimization",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/profile/screens/SearchUsersScreen.tsx",
+      "recommendation": "Consider adding getItemLayout for better performance"
+    },
+    {
+      "type": "memo-optimization",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/stories/components/MemoryItem.tsx",
+      "recommendation": "Consider wrapping with React.memo to prevent unnecessary re-renders"
+    },
+    {
+      "type": "flatlist-optimization",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/stories/components/StoriesStrip.tsx",
+      "recommendation": "Consider adding getItemLayout for better performance"
+    },
+    {
+      "type": "flatlist-optimization",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/stories/screens/MemoriesScreen.tsx",
+      "recommendation": "Consider adding getItemLayout for better performance"
+    },
+    {
+      "type": "flatlist-optimization",
+      "file": "/Users/amaury/Desktop/and_friends/src/features/stories/screens/UserMemoriesViewerScreen.tsx",
+      "recommendation": "Consider adding getItemLayout for better performance"
+    },
+    {
+      "type": "flatlist-optimization",
+      "file": "/Users/amaury/Desktop/and_friends/src/shared/hooks/useRealtimeManager.example.tsx",
+      "recommendation": "Consider adding getItemLayout for better performance"
+    }
+  ]
+}

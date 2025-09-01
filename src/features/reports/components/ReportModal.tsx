@@ -14,7 +14,6 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
-
 import CustomText from '@/shared/ui/CustomText';
 import { Colors } from '@/shared/config/Colors';
 import { useReports, ReportType, ReportReason } from '@/hooks/useReports';
@@ -76,7 +75,7 @@ const REPORT_REASONS = [
   },
   {
     value: 'copyright' as ReportReason,
-    label: 'Violation de droits d\'auteur',
+    label: "Violation de droits d'auteur",
     icon: 'shield-checkmark-outline',
   },
   {
@@ -143,10 +142,7 @@ export default function ReportModal({
       }
     } catch (error: any) {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert(
-        'Erreur',
-        error.message || 'Une erreur est survenue lors du signalement'
-      );
+      Alert.alert('Erreur', error.message || 'Une erreur est survenue lors du signalement');
     } finally {
       setIsSubmitting(false);
     }
@@ -176,12 +172,7 @@ export default function ReportModal({
   };
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={handleClose}
-    >
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
       <BlurView intensity={80} style={styles.container}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -199,11 +190,7 @@ export default function ReportModal({
             </View>
 
             {/* Content */}
-            <ScrollView
-              style={styles.content}
-              showsVerticalScrollIndicator={false}
-              bounces={false}
-            >
+            <ScrollView style={styles.content} showsVerticalScrollIndicator={false} bounces={false}>
               {targetName && (
                 <View style={styles.targetInfo}>
                   <CustomText size="md" color="#666">
@@ -242,20 +229,14 @@ export default function ReportModal({
                     <CustomText
                       size="md"
                       color={
-                        selectedReason === reason.value
-                          ? Colors.light.tint
-                          : Colors.light.text
+                        selectedReason === reason.value ? Colors.light.tint : Colors.light.text
                       }
                       style={styles.reasonLabel}
                     >
                       {reason.label}
                     </CustomText>
                     {selectedReason === reason.value && (
-                      <Ionicons
-                        name="checkmark-circle"
-                        size={20}
-                        color={Colors.light.tint}
-                      />
+                      <Ionicons name="checkmark-circle" size={20} color={Colors.light.tint} />
                     )}
                   </TouchableOpacity>
                 ))}

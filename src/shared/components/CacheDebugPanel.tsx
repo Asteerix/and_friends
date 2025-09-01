@@ -1,12 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  Alert,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { generalCache, userCache, eventCache } from '@/shared/utils/cache/cacheManager';
 import { imageCacheManager } from '@/shared/utils/cache/imageCache';
 import { useClearCache } from '@/shared/hooks/useCache';
@@ -27,9 +20,7 @@ export const CacheDebugPanel: React.FC = () => {
 
   useEffect(() => {
     const updateCacheInfo = async () => {
-      const [imageInfo] = await Promise.all([
-        imageCacheManager.getCacheInfo(),
-      ]);
+      const [imageInfo] = await Promise.all([imageCacheManager.getCacheInfo()]);
 
       setCacheInfo({
         general: generalCache.getCacheInfo(),
@@ -53,22 +44,18 @@ export const CacheDebugPanel: React.FC = () => {
   };
 
   const clearAllCaches = () => {
-    Alert.alert(
-      'Clear All Caches',
-      'This will remove all cached data. Are you sure?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Clear',
-          style: 'destructive',
-          onPress: async () => {
-            clearAll();
-            await imageCacheManager.clearCache();
-            Alert.alert('Success', 'All caches cleared');
-          },
+    Alert.alert('Clear All Caches', 'This will remove all cached data. Are you sure?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Clear',
+        style: 'destructive',
+        onPress: async () => {
+          clearAll();
+          await imageCacheManager.clearCache();
+          Alert.alert('Success', 'All caches cleared');
         },
-      ]
-    );
+      },
+    ]);
   };
 
   return (
@@ -80,10 +67,7 @@ export const CacheDebugPanel: React.FC = () => {
         <Text style={styles.sectionTitle}>Network Status</Text>
         <View style={styles.row}>
           <Text>Status:</Text>
-          <Text style={[
-            styles.status,
-            { color: syncStatus.isOnline ? '#4CAF50' : '#F44336' }
-          ]}>
+          <Text style={[styles.status, { color: syncStatus.isOnline ? '#4CAF50' : '#F44336' }]}>
             {syncStatus.isOnline ? 'Online' : 'Offline'}
           </Text>
         </View>
@@ -98,13 +82,9 @@ export const CacheDebugPanel: React.FC = () => {
         </View>
         <View style={styles.row}>
           <Text>Failed Operations:</Text>
-          <Text style={[styles.value, failedCount > 0 && styles.error]}>
-            {failedCount}
-          </Text>
+          <Text style={[styles.value, failedCount > 0 && styles.error]}>{failedCount}</Text>
         </View>
-        {syncStatus.isSyncing && (
-          <Text style={styles.syncing}>Syncing...</Text>
-        )}
+        {syncStatus.isSyncing && <Text style={styles.syncing}>Syncing...</Text>}
         <View style={styles.actions}>
           {failedCount > 0 && (
             <TouchableOpacity
@@ -137,38 +117,43 @@ export const CacheDebugPanel: React.FC = () => {
       {/* Cache Sizes */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Cache Sizes</Text>
-        
+
         <View style={styles.cacheItem}>
           <Text style={styles.cacheName}>General Cache</Text>
           <Text>{cacheInfo.general.itemCount} items</Text>
-          <Text>{formatBytes(cacheInfo.general.totalSize)} / {formatBytes(cacheInfo.general.maxSize)}</Text>
+          <Text>
+            {formatBytes(cacheInfo.general.totalSize)} / {formatBytes(cacheInfo.general.maxSize)}
+          </Text>
         </View>
 
         <View style={styles.cacheItem}>
           <Text style={styles.cacheName}>User Cache</Text>
           <Text>{cacheInfo.user.itemCount} items</Text>
-          <Text>{formatBytes(cacheInfo.user.totalSize)} / {formatBytes(cacheInfo.user.maxSize)}</Text>
+          <Text>
+            {formatBytes(cacheInfo.user.totalSize)} / {formatBytes(cacheInfo.user.maxSize)}
+          </Text>
         </View>
 
         <View style={styles.cacheItem}>
           <Text style={styles.cacheName}>Event Cache</Text>
           <Text>{cacheInfo.event.itemCount} items</Text>
-          <Text>{formatBytes(cacheInfo.event.totalSize)} / {formatBytes(cacheInfo.event.maxSize)}</Text>
+          <Text>
+            {formatBytes(cacheInfo.event.totalSize)} / {formatBytes(cacheInfo.event.maxSize)}
+          </Text>
         </View>
 
         <View style={styles.cacheItem}>
           <Text style={styles.cacheName}>Image Cache</Text>
           <Text>{cacheInfo.image.fileCount} files</Text>
-          <Text>{formatBytes(cacheInfo.image.totalSize)} / {formatBytes(cacheInfo.image.maxSize)}</Text>
+          <Text>
+            {formatBytes(cacheInfo.image.totalSize)} / {formatBytes(cacheInfo.image.maxSize)}
+          </Text>
         </View>
       </View>
 
       {/* Actions */}
       <View style={styles.section}>
-        <TouchableOpacity
-          style={[styles.button, styles.clearAllButton]}
-          onPress={clearAllCaches}
-        >
+        <TouchableOpacity style={[styles.button, styles.clearAllButton]} onPress={clearAllCaches}>
           <Text style={styles.buttonText}>Clear All Caches</Text>
         </TouchableOpacity>
       </View>

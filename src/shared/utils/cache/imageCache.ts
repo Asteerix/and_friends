@@ -36,7 +36,7 @@ class ImageCacheManager {
       if (!dirInfo.exists) {
         await FileSystem.makeDirectoryAsync(this.cacheDir, { intermediates: true });
       }
-      
+
       // Calculate current disk usage
       await this.calculateDiskUsage();
     } catch (error) {
@@ -72,7 +72,7 @@ class ImageCacheManager {
     let hash = 0;
     for (let i = 0; i < uri.length; i++) {
       const char = uri.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash; // Convert to 32bit integer
     }
     return Math.abs(hash).toString(16);
@@ -88,7 +88,7 @@ class ImageCacheManager {
     try {
       const cacheKey = CacheKeys.IMAGE(uri);
       const metadata = await this.cache.get<ImageCacheEntry>(cacheKey);
-      
+
       if (!metadata) {
         return null;
       }
@@ -117,7 +117,7 @@ class ImageCacheManager {
       }
 
       const localPath = this.getLocalPath(uri);
-      
+
       // Download image
       const downloadResult = await FileSystem.downloadAsync(uri, localPath);
 
@@ -138,11 +138,7 @@ class ImageCacheManager {
       let dimensions = { width: 0, height: 0 };
       try {
         dimensions = await new Promise((resolve, reject) => {
-          Image.getSize(
-            localPath,
-            (width, height) => resolve({ width, height }),
-            reject
-          );
+          Image.getSize(localPath, (width, height) => resolve({ width, height }), reject);
         });
       } catch {
         // Ignore dimension errors
@@ -170,10 +166,8 @@ class ImageCacheManager {
   }
 
   async preloadImages(uris: string[]): Promise<void> {
-    const promises = uris.map(uri => 
-      this.cacheImage(uri).catch(error => 
-        console.error(`Failed to preload image ${uri}:`, error)
-      )
+    const promises = uris.map((uri) =>
+      this.cacheImage(uri).catch((error) => console.error(`Failed to preload image ${uri}:`, error))
     );
     await Promise.all(promises);
   }
@@ -252,7 +246,7 @@ class ImageCacheManager {
     try {
       const cacheKey = CacheKeys.IMAGE(uri);
       const metadata = await this.cache.get<ImageCacheEntry>(cacheKey);
-      
+
       if (metadata) {
         await FileSystem.deleteAsync(metadata.localPath, { idempotent: true });
         await this.cache.delete(cacheKey);

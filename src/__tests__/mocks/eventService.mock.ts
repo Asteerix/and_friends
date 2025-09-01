@@ -1,0 +1,20 @@
+
+export const eventService = {
+  createEvent: jest.fn().mockResolvedValue({ data: { id: 'test-event-1' }, error: null }),
+  updateRSVP: jest.fn().mockResolvedValue({ data: { status: 'going' }, error: null }),
+  joinEvent: jest.fn().mockResolvedValue({ data: {}, error: null }),
+  searchNearbyEvents: jest.fn().mockResolvedValue({ data: [], error: null }),
+  searchEvents: jest.fn().mockResolvedValue({ data: [], error: null }),
+  getPersonalizedRecommendations: jest.fn().mockResolvedValue({ data: [], error: null }),
+  uploadEventPhoto: jest.fn().mockResolvedValue({ data: {}, error: null }),
+  createPhotoAlbum: jest.fn().mockResolvedValue({ data: { title: 'Album' }, error: null }),
+  generateEventHighlights: jest.fn().mockResolvedValue({ data: {}, error: null }),
+  sendEventAnnouncement: jest.fn().mockResolvedValue({ data: {}, error: null }),
+  createEventChat: jest.fn().mockResolvedValue({ data: { event_id: 'test' }, error: null }),
+  getEventAnalytics: jest.fn().mockResolvedValue({ data: {}, error: null }),
+  generateEventReport: jest.fn().mockResolvedValue({ data: {}, error: null }),
+  createEventTemplate: jest.fn().mockResolvedValue({ data: { name: 'Template' }, error: null }),
+  createRecurringEventSeries: jest.fn().mockResolvedValue({ data: [], error: null }),
+  reportEvent: jest.fn().mockResolvedValue({ data: {}, error: null }),
+  addSafetyFeatures: jest.fn().mockResolvedValue({ data: {}, error: null }),
+};

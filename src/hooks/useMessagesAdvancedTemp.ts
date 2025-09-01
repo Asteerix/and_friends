@@ -1,7 +1,6 @@
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { useState, useEffect, useRef } from 'react';
 import { Alert } from 'react-native';
-
 import { supabase } from '@/shared/lib/supabase/client';
 import { useSession } from '@/shared/providers/SessionContext';
 
@@ -51,13 +50,13 @@ export const useMessagesAdvanced = (chatId?: string) => {
     // Show alert about the issue
     Alert.alert(
       'Problème temporaire',
-      'Les conversations sont temporairement indisponibles en raison d\'un problème de configuration. Nous travaillons à le résoudre.',
+      "Les conversations sont temporairement indisponibles en raison d'un problème de configuration. Nous travaillons à le résoudre.",
       [{ text: 'OK' }]
     );
   }, []);
 
   const sendMessage = async (content: string, type: string = 'text', metadata?: any) => {
-    Alert.alert('Indisponible', 'L\'envoi de messages est temporairement désactivé.');
+    Alert.alert('Indisponible', "L'envoi de messages est temporairement désactivé.");
     return null;
   };
 

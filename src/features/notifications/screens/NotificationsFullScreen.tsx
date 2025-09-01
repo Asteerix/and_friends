@@ -11,7 +11,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-
 import { useNotifications, type Notification } from '@/shared/providers/NotificationProvider';
 export default function NotificationsFullScreen() {
   const router = useRouter();
@@ -107,7 +106,6 @@ export default function NotificationsFullScreen() {
       Alert.alert('Erreur', 'Impossible de marquer toutes les notifications comme lues');
     }
   };
-
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>

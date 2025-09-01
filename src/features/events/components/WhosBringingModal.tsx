@@ -1,12 +1,5 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  Image,
-  TouchableOpacity,
-} from 'react-native';
+import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import BottomModal from './BottomModal';
 
@@ -34,9 +27,7 @@ export default function WhosBringingModal({
           <Image source={{ uri: item.avatar }} style={styles.avatar} />
         ) : (
           <View style={[styles.avatar, styles.avatarPlaceholder]}>
-            <Text style={styles.avatarText}>
-              {item.name.charAt(0).toUpperCase()}
-            </Text>
+            <Text style={styles.avatarText}>{item.name.charAt(0).toUpperCase()}</Text>
           </View>
         )}
         <Text style={styles.bringerName}>{item.name}</Text>

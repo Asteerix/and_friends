@@ -1,7 +1,12 @@
 const HERE_API_KEY = String(process.env.EXPO_PUBLIC_HERE_API_KEY || '');
 
 // Log API key status on module load
-console.log('🔑 HERE API Key status:', HERE_API_KEY && typeof HERE_API_KEY === 'string' && HERE_API_KEY.length > 0 ? `Loaded (${HERE_API_KEY.slice(0, 8)}...)` : '❌ NOT LOADED - Check .env file');
+console.log(
+  '🔑 HERE API Key status:',
+  HERE_API_KEY && typeof HERE_API_KEY === 'string' && HERE_API_KEY.length > 0
+    ? `Loaded (${HERE_API_KEY.slice(0, 8)}...)`
+    : '❌ NOT LOADED - Check .env file'
+);
 
 export interface HereGeocodingResult {
   items: HereLocation[];
@@ -47,9 +52,12 @@ class HereApiService {
   private baseUrl = 'https://autosuggest.search.hereapi.com/v1';
   private geocodeUrl = 'https://geocode.search.hereapi.com/v1';
 
-  async searchLocations(query: string, at?: { lat: number; lng: number }): Promise<LocationSearchResult[]> {
+  async searchLocations(
+    query: string,
+    at?: { lat: number; lng: number }
+  ): Promise<LocationSearchResult[]> {
     console.log('🌍 HereApiService.searchLocations called with query:', query);
-    
+
     if (!HERE_API_KEY) {
       console.error('❌ HERE API key is not configured! Check EXPO_PUBLIC_HERE_API_KEY in .env');
       return [];
@@ -80,10 +88,10 @@ class HereApiService {
 
       const url = `${this.baseUrl}/autosuggest?${params.toString()}`;
       console.log('🔗 HERE API URL:', url.replace(HERE_API_KEY, 'API_KEY_HIDDEN'));
-      
+
       const response = await fetch(url);
       console.log('📨 HERE API Response status:', response.status);
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error('❌ HERE API Error response:', errorText);
@@ -92,10 +100,10 @@ class HereApiService {
 
       const data = await response.json();
       console.log('📦 HERE API Raw response:', JSON.stringify(data, null, 2));
-      
+
       const formattedResults = this.formatSearchResults(data.items || []);
       console.log('✨ Formatted results:', formattedResults);
-      
+
       return formattedResults;
     } catch (error) {
       console.error('❌ Error in searchLocations:', error);
@@ -117,13 +125,13 @@ class HereApiService {
       });
 
       const response = await fetch(`${this.geocodeUrl}/geocode?${params.toString()}`);
-      
+
       if (!response.ok) {
         throw new Error(`HERE API geocoding failed: ${response.status}`);
       }
 
       const data: HereGeocodingResult = await response.json();
-      
+
       if (data.items && data.items.length > 0) {
         const results = this.formatSearchResults(data.items);
         return results[0] || null;
@@ -138,20 +146,22 @@ class HereApiService {
 
   private formatSearchResults(items: any[]): LocationSearchResult[] {
     return items
-      .filter(item => item.position && item.address)
-      .map(item => ({
+      .filter((item) => item.position && item.address)
+      .map((item) => ({
         id: item.id || `here-${Date.now()}-${Math.random()}`,
         name: item.title || item.address?.label || 'Unknown Location',
         address: this.extractAddress(item),
         city: item.address?.city || item.address?.county || '',
         postalCode: item.address?.postalCode,
         country: item.address?.countryName || item.address?.countryCode || '',
-        coordinates: item.position ? {
-          latitude: item.position.lat,
-          longitude: item.position.lng,
-        } : undefined,
+        coordinates: item.position
+          ? {
+              latitude: item.position.lat,
+              longitude: item.position.lng,
+            }
+          : undefined,
       }))
-      .filter(result => result.coordinates); // Only return results with coordinates
+      .filter((result) => result.coordinates); // Only return results with coordinates
   }
 
   private extractAddress(item: any): string {
@@ -160,10 +170,10 @@ class HereApiService {
 
     // Try to build a clean address from components
     const parts: string[] = [];
-    
+
     if (address.houseNumber) parts.push(address.houseNumber);
     if (address.street) parts.push(address.street);
-    
+
     // If we don't have street info, use the label but remove city/country info
     if (parts.length === 0 && address.label) {
       const labelParts = address.label.split(',');

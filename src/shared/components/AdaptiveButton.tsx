@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { 
-  TouchableOpacity, 
-  Text, 
-  ActivityIndicator, 
-  StyleSheet, 
-  ViewStyle, 
-  TextStyle 
+import {
+  TouchableOpacity,
+  Text,
+  ActivityIndicator,
+  StyleSheet,
+  ViewStyle,
+  TextStyle,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useNetworkQuality } from '../hooks/useNetworkQuality';
@@ -36,7 +36,7 @@ export const AdaptiveButton: React.FC<AdaptiveButtonProps> = ({
 
   const handlePress = async () => {
     if (loading || disabled) return;
-    
+
     try {
       if (isSlowConnection && retryCount > 0) {
         setIsRetrying(true);
@@ -45,7 +45,7 @@ export const AdaptiveButton: React.FC<AdaptiveButtonProps> = ({
       setRetryCount(0);
       setIsRetrying(false);
     } catch (error) {
-      setRetryCount(prev => prev + 1);
+      setRetryCount((prev) => prev + 1);
       setIsRetrying(false);
       throw error;
     }
@@ -73,9 +73,7 @@ export const AdaptiveButton: React.FC<AdaptiveButtonProps> = ({
       {loading ? (
         <ActivityIndicator color="white" size="small" />
       ) : (
-        <Text style={[styles.buttonText, textStyle]}>
-          {getButtonTitle()}
-        </Text>
+        <Text style={[styles.buttonText, textStyle]}>{getButtonTitle()}</Text>
       )}
     </TouchableOpacity>
   );

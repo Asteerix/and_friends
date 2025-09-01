@@ -1,1 +1,1 @@
-export { default } from '@/features/calendar/screens/CalendarScreenNew';
+export { default } from '../../src/features/calendar/screens/CalendarPerfect';

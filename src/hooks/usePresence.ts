@@ -28,18 +28,18 @@ export function usePresence() {
         .on('presence', { event: 'sync' }, () => {
           const state = channel.presenceState();
           const userIds = new Set<string>();
-          
-          Object.keys(state).forEach(key => {
+
+          Object.keys(state).forEach((key) => {
             userIds.add(key);
           });
-          
+
           setOnlineUsers(userIds);
         })
         .on('presence', { event: 'join' }, ({ key, newPresences }) => {
-          setOnlineUsers(prev => new Set([...prev, key]));
+          setOnlineUsers((prev) => new Set([...prev, key]));
         })
         .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
-          setOnlineUsers(prev => {
+          setOnlineUsers((prev) => {
             const next = new Set(prev);
             next.delete(key);
             return next;

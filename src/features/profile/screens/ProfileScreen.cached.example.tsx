@@ -63,8 +63,8 @@ export const FriendAvatarExample = ({ friend }) => {
 // Exemple de galerie avec préchargement
 export const AlbumGalleryExample = ({ albums }) => {
   // Précharger toutes les images de l'album
-  const albumCovers = albums.map(album => album.cover_url).filter(Boolean);
-  
+  const albumCovers = albums.map((album) => album.cover_url).filter(Boolean);
+
   // Hook pour précharger
   React.useEffect(() => {
     if (albumCovers.length > 0) {

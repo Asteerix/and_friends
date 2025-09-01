@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   Dimensions,
   ImageBackground,
+  Pressable,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import Animated, {
@@ -34,7 +36,7 @@ export default function OnboardingScreen() {
       withTiming(1, { duration: 300, easing: Easing.ease })
     );
     ampersandOpacity.value = withTiming(1, { duration: 400 });
-  }, []);
+  }, [ampersandOpacity, ampersandScale]);
 
   const ampersandAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: ampersandScale.value }],
@@ -54,27 +56,19 @@ export default function OnboardingScreen() {
       <View style={[styles.content, { paddingTop: insets.top + 40 }]}>
         <View style={styles.topSection}>
           {/* &Friends title */}
-          <Animated.Text
-            entering={FadeInDown.delay(800).duration(600)}
-            style={styles.title}
-          >
+          <Animated.Text entering={FadeInDown.delay(800).duration(600)} style={styles.title}>
             &Friends
           </Animated.Text>
 
           {/* Tagline */}
-          <Animated.Text
-            entering={FadeInDown.delay(1200).duration(600)}
-            style={styles.tagline}
-          >
+          <Animated.Text entering={FadeInDown.delay(1200).duration(600)} style={styles.tagline}>
             No more guessing.{'\n'}Real plans, real people, real good times.
           </Animated.Text>
         </View>
 
         {/* Animated & in the center */}
         <View style={styles.ampersandContainer}>
-          <Animated.Text style={[styles.ampersand, ampersandAnimatedStyle]}>
-            &
-          </Animated.Text>
+          <Animated.Text style={[styles.ampersand, ampersandAnimatedStyle]}>&</Animated.Text>
         </View>
 
         {/* Continue button */}
@@ -82,14 +76,16 @@ export default function OnboardingScreen() {
           entering={FadeIn.delay(1600).duration(600)}
           style={[styles.buttonContainer, { paddingBottom: insets.bottom + 40 }]}
         >
-          <TouchableOpacity 
-            style={styles.button} 
+          <Pressable
+            style={({ pressed }) => [
+              styles.button,
+              pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] }
+            ]}
             onPress={handleContinue}
-            activeOpacity={0.8}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            android_ripple={{ color: 'rgba(255, 255, 255, 0.3)' }}
           >
             <Text style={styles.buttonText}>Continue</Text>
-          </TouchableOpacity>
+          </Pressable>
         </Animated.View>
       </View>
     </ImageBackground>

@@ -11,9 +11,9 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { useSession } from '@/shared/providers/SessionContext';
 import { supabase } from '@/shared/lib/supabase/client';
-import * as Haptics from 'expo-haptics';
 
 interface NotificationSettings {
   notifications_muted: boolean;
@@ -33,7 +33,7 @@ export default function InstagramNotificationSettingsScreen() {
   const router = useRouter();
   const { session } = useSession();
   const currentUserId = session?.user?.id;
-  
+
   const [settings, setSettings] = useState<NotificationSettings>({
     notifications_muted: false,
     message_notifications: true,
@@ -44,7 +44,7 @@ export default function InstagramNotificationSettingsScreen() {
     vibration_enabled: true,
     preview_enabled: true,
   });
-  
+
   const [showMuteDuration, setShowMuteDuration] = useState(false);
 
   useEffect(() => {
@@ -59,11 +59,11 @@ export default function InstagramNotificationSettingsScreen() {
         .eq('user_id', currentUserId)
         .eq('chat_id', chatId)
         .single();
-        
+
       if (data && !error) {
-        setSettings(prev => ({
+        setSettings((prev) => ({
           ...prev,
-          ...data
+          ...data,
         }));
       }
     } catch (error) {
@@ -75,18 +75,19 @@ export default function InstagramNotificationSettingsScreen() {
     const newSettings = { ...settings, [key]: value };
     setSettings(newSettings);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    
+
     try {
-      await supabase
-        .from('chat_preferences')
-        .upsert({
+      await supabase.from('chat_preferences').upsert(
+        {
           user_id: currentUserId,
           chat_id: chatId,
           [key]: value,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'user_id,chat_id'
-        });
+          updated_at: new Date().toISOString(),
+        },
+        {
+          onConflict: 'user_id,chat_id',
+        }
+      );
     } catch (error) {
       console.error('Error updating setting:', error);
       // Revert on error
@@ -95,21 +96,17 @@ export default function InstagramNotificationSettingsScreen() {
   };
 
   const handleMuteDuration = (duration: string) => {
-    Alert.alert(
-      'Muet pendant',
-      `Les notifications seront désactivées pendant ${duration}`,
-      [
-        { text: 'Annuler', style: 'cancel' },
-        { 
-          text: 'Confirmer', 
-          onPress: async () => {
-            await updateSetting('notifications_muted', true);
-            setShowMuteDuration(false);
-            // TODO: Schedule unmute based on duration
-          }
-        }
-      ]
-    );
+    Alert.alert('Muet pendant', `Les notifications seront désactivées pendant ${duration}`, [
+      { text: 'Annuler', style: 'cancel' },
+      {
+        text: 'Confirmer',
+        onPress: async () => {
+          await updateSetting('notifications_muted', true);
+          setShowMuteDuration(false);
+          // TODO: Schedule unmute based on duration
+        },
+      },
+    ]);
   };
 
   return (
@@ -153,7 +150,7 @@ export default function InstagramNotificationSettingsScreen() {
           <>
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Types de notifications</Text>
-              
+
               <View style={styles.option}>
                 <View style={styles.optionInfo}>
                   <Ionicons name="chatbubble-outline" size={24} color="#000" />
@@ -210,7 +207,7 @@ export default function InstagramNotificationSettingsScreen() {
             {/* Alert Settings */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Paramètres d'alerte</Text>
-              
+
               <View style={styles.option}>
                 <View style={styles.optionInfo}>
                   <Ionicons name="volume-high-outline" size={24} color="#000" />
@@ -256,38 +253,35 @@ export default function InstagramNotificationSettingsScreen() {
         {/* Mute Duration Options */}
         {showMuteDuration && (
           <View style={styles.muteOptions}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.muteOption}
               onPress={() => handleMuteDuration('1 heure')}
             >
               <Text style={styles.muteOptionText}>1 heure</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={styles.muteOption}
               onPress={() => handleMuteDuration('8 heures')}
             >
               <Text style={styles.muteOptionText}>8 heures</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={styles.muteOption}
               onPress={() => handleMuteDuration('24 heures')}
             >
               <Text style={styles.muteOptionText}>24 heures</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={styles.muteOption}
-              onPress={() => handleMuteDuration('Jusqu\'à réactivation')}
+              onPress={() => handleMuteDuration("Jusqu'à réactivation")}
             >
               <Text style={styles.muteOptionText}>Jusqu'à réactivation</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.muteOption}
-              onPress={() => setShowMuteDuration(false)}
-            >
+
+            <TouchableOpacity style={styles.muteOption} onPress={() => setShowMuteDuration(false)}>
               <Text style={[styles.muteOptionText, { color: '#999' }]}>Annuler</Text>
             </TouchableOpacity>
           </View>

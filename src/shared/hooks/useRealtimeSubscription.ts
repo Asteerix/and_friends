@@ -1,7 +1,5 @@
 import { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
-import { REALTIME_LISTEN_TYPES } from '@supabase/realtime-js';
 import { useEffect, useRef } from 'react';
-
 import { supabase } from '../lib/supabase/client';
 
 interface UseRealtimeSubscriptionOptions<T extends Record<string, any>> {
@@ -28,7 +26,7 @@ export function useRealtimeSubscription<T extends Record<string, any>>({
     const channel = supabase
       .channel(`${table}_changes`)
       .on(
-        REALTIME_LISTEN_TYPES.POSTGRES_CHANGES as any,
+        'postgres_changes' as any,
         Object.assign(
           {
             event,

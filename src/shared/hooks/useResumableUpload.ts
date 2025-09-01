@@ -1,7 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
 import * as tus from 'tus-js-client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
 import { supabase } from '@/shared/lib/supabase/client';
 
 interface UploadTask {
@@ -34,11 +33,11 @@ export const useResumableUpload = () => {
       const savedQueue = await AsyncStorage.getItem(UPLOAD_QUEUE_KEY);
       if (savedQueue) {
         const tasks = JSON.parse(savedQueue) as UploadTask[];
-        const queueMap = new Map(tasks.map(task => [task.id, task]));
+        const queueMap = new Map(tasks.map((task) => [task.id, task]));
         setUploadQueue(queueMap);
-        
+
         // Reprendre les uploads en attente
-        tasks.forEach(task => {
+        tasks.forEach((task) => {
           if (task.status === 'uploading' || task.status === 'pending') {
             resumeUpload(task);
           }
@@ -52,7 +51,7 @@ export const useResumableUpload = () => {
   // Sauvegarder la file d'attente
   const saveUploadQueue = useCallback(async (queue: Map<string, UploadTask>) => {
     try {
-      const tasks = Array.from(queue.values()).map(task => ({
+      const tasks = Array.from(queue.values()).map((task) => ({
         ...task,
         tusUpload: undefined, // Ne pas sauvegarder l'objet TUS
       }));
@@ -64,7 +63,9 @@ export const useResumableUpload = () => {
 
   // Obtenir les headers d'authentification Supabase
   const getAuthHeaders = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
     if (!session) throw new Error('Not authenticated');
 
     return {
@@ -74,171 +75,180 @@ export const useResumableUpload = () => {
   };
 
   // Créer une nouvelle tâche d'upload
-  const createUploadTask = useCallback(async (
-    uri: string,
-    bucket: string,
-    fileName?: string,
-    options?: UploadOptions
-  ): Promise<string> => {
-    const ext = uri.split('.').pop()?.toLowerCase() || 'jpg';
-    const finalFileName = fileName || `${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
-    const taskId = `${Date.now()}-${Math.random().toString(36).substring(7)}`;
+  const createUploadTask = useCallback(
+    async (
+      uri: string,
+      bucket: string,
+      fileName?: string,
+      options?: UploadOptions
+    ): Promise<string> => {
+      const ext = uri.split('.').pop()?.toLowerCase() || 'jpg';
+      const finalFileName =
+        fileName || `${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
+      const taskId = `${Date.now()}-${Math.random().toString(36).substring(7)}`;
 
-    const task: UploadTask = {
-      id: taskId,
-      uri,
-      bucket,
-      fileName: finalFileName,
-      status: 'pending',
-      progress: 0,
-    };
+      const task: UploadTask = {
+        id: taskId,
+        uri,
+        bucket,
+        fileName: finalFileName,
+        status: 'pending',
+        progress: 0,
+      };
 
-    setUploadQueue(prev => {
-      const newQueue = new Map(prev);
-      newQueue.set(taskId, task);
-      saveUploadQueue(newQueue);
-      return newQueue;
-    });
+      setUploadQueue((prev) => {
+        const newQueue = new Map(prev);
+        newQueue.set(taskId, task);
+        saveUploadQueue(newQueue);
+        return newQueue;
+      });
 
-    // Démarrer l'upload
-    await startUpload(taskId, options);
+      // Démarrer l'upload
+      await startUpload(taskId, options);
 
-    return taskId;
-  }, []);
+      return taskId;
+    },
+    []
+  );
 
   // Démarrer ou reprendre un upload
-  const startUpload = useCallback(async (taskId: string, options?: UploadOptions) => {
-    const task = uploadQueue.get(taskId);
-    if (!task) return;
+  const startUpload = useCallback(
+    async (taskId: string, options?: UploadOptions) => {
+      const task = uploadQueue.get(taskId);
+      if (!task) return;
 
-    try {
-      const authHeaders = await getAuthHeaders();
-      const uploadUrl = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/storage/v1/upload/resumable`;
+      try {
+        const authHeaders = await getAuthHeaders();
+        const uploadUrl = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/storage/v1/upload/resumable`;
 
-      // Fetch the file
-      const response = await fetch(task.uri);
-      const blob = await response.blob();
+        // Fetch the file
+        const response = await fetch(task.uri);
+        const blob = await response.blob();
 
-      console.log('[useResumableUpload] Starting TUS upload for:', task.fileName);
+        console.log('[useResumableUpload] Starting TUS upload for:', task.fileName);
 
-      const upload = new tus.Upload(blob, {
-        endpoint: uploadUrl,
-        retryDelays: [0, 3000, 5000, 10000, 20000],
-        headers: authHeaders,
-        metadata: {
-          bucketName: task.bucket,
-          objectName: task.fileName,
-          contentType: `image/${task.fileName.split('.').pop()}`,
-          cacheControl: '3600',
-        },
-        chunkSize: 6 * 1024 * 1024, // 6MB chunks
-        onError: (error) => {
-          console.error('[useResumableUpload] Upload error:', error);
-          
-          setUploadQueue(prev => {
-            const newQueue = new Map(prev);
-            const updatedTask = newQueue.get(taskId);
-            if (updatedTask) {
-              updatedTask.status = 'failed';
-              updatedTask.error = error.message;
-              saveUploadQueue(newQueue);
-            }
-            return newQueue;
-          });
+        const upload = new tus.Upload(blob, {
+          endpoint: uploadUrl,
+          retryDelays: [0, 3000, 5000, 10000, 20000],
+          headers: authHeaders,
+          metadata: {
+            bucketName: task.bucket,
+            objectName: task.fileName,
+            contentType: `image/${task.fileName.split('.').pop()}`,
+            cacheControl: '3600',
+          },
+          chunkSize: 6 * 1024 * 1024, // 6MB chunks
+          onError: (error) => {
+            console.error('[useResumableUpload] Upload error:', error);
 
-          options?.onError?.(error);
-        },
-        onProgress: (bytesUploaded, bytesTotal) => {
-          const percentage = Math.round((bytesUploaded / bytesTotal) * 100);
-          
-          setUploadQueue(prev => {
-            const newQueue = new Map(prev);
-            const updatedTask = newQueue.get(taskId);
-            if (updatedTask) {
-              updatedTask.progress = percentage;
-              updatedTask.status = 'uploading';
-            }
-            return newQueue;
-          });
+            setUploadQueue((prev) => {
+              const newQueue = new Map(prev);
+              const updatedTask = newQueue.get(taskId);
+              if (updatedTask) {
+                updatedTask.status = 'failed';
+                updatedTask.error = error.message;
+                saveUploadQueue(newQueue);
+              }
+              return newQueue;
+            });
 
-          options?.onProgress?.(percentage);
-        },
-        onSuccess: () => {
-          console.log('[useResumableUpload] Upload completed successfully');
-          
-          // Obtenir l'URL publique
-          const { data: { publicUrl } } = supabase.storage
-            .from(task.bucket)
-            .getPublicUrl(task.fileName);
+            options?.onError?.(error);
+          },
+          onProgress: (bytesUploaded, bytesTotal) => {
+            const percentage = Math.round((bytesUploaded / bytesTotal) * 100);
 
-          setUploadQueue(prev => {
-            const newQueue = new Map(prev);
-            const updatedTask = newQueue.get(taskId);
-            if (updatedTask) {
-              updatedTask.status = 'completed';
-              updatedTask.progress = 100;
-              updatedTask.publicUrl = publicUrl;
-              saveUploadQueue(newQueue);
-            }
-            return newQueue;
-          });
+            setUploadQueue((prev) => {
+              const newQueue = new Map(prev);
+              const updatedTask = newQueue.get(taskId);
+              if (updatedTask) {
+                updatedTask.progress = percentage;
+                updatedTask.status = 'uploading';
+              }
+              return newQueue;
+            });
 
-          options?.onSuccess?.(publicUrl);
-          
-          // Supprimer de la file après un délai
-          setTimeout(() => {
-            removeFromQueue(taskId);
-          }, 5000);
-        },
-      });
+            options?.onProgress?.(percentage);
+          },
+          onSuccess: () => {
+            console.log('[useResumableUpload] Upload completed successfully');
 
-      // Stocker la référence de l'upload
-      activeUploads.current.set(taskId, upload);
-      
-      // Démarrer l'upload
-      upload.start();
+            // Obtenir l'URL publique
+            const {
+              data: { publicUrl },
+            } = supabase.storage.from(task.bucket).getPublicUrl(task.fileName);
 
-      setUploadQueue(prev => {
-        const newQueue = new Map(prev);
-        const updatedTask = newQueue.get(taskId);
-        if (updatedTask) {
-          updatedTask.status = 'uploading';
-          updatedTask.tusUpload = upload;
-          saveUploadQueue(newQueue);
-        }
-        return newQueue;
-      });
+            setUploadQueue((prev) => {
+              const newQueue = new Map(prev);
+              const updatedTask = newQueue.get(taskId);
+              if (updatedTask) {
+                updatedTask.status = 'completed';
+                updatedTask.progress = 100;
+                updatedTask.publicUrl = publicUrl;
+                saveUploadQueue(newQueue);
+              }
+              return newQueue;
+            });
 
-    } catch (error) {
-      console.error('[useResumableUpload] Error starting upload:', error);
-      
-      setUploadQueue(prev => {
-        const newQueue = new Map(prev);
-        const updatedTask = newQueue.get(taskId);
-        if (updatedTask) {
-          updatedTask.status = 'failed';
-          updatedTask.error = error instanceof Error ? error.message : String(error);
-          saveUploadQueue(newQueue);
-        }
-        return newQueue;
-      });
+            options?.onSuccess?.(publicUrl);
 
-      options?.onError?.(error instanceof Error ? error : new Error(String(error)));
-    }
-  }, [uploadQueue]);
+            // Supprimer de la file après un délai
+            setTimeout(() => {
+              removeFromQueue(taskId);
+            }, 5000);
+          },
+        });
+
+        // Stocker la référence de l'upload
+        activeUploads.current.set(taskId, upload);
+
+        // Démarrer l'upload
+        upload.start();
+
+        setUploadQueue((prev) => {
+          const newQueue = new Map(prev);
+          const updatedTask = newQueue.get(taskId);
+          if (updatedTask) {
+            updatedTask.status = 'uploading';
+            updatedTask.tusUpload = upload;
+            saveUploadQueue(newQueue);
+          }
+          return newQueue;
+        });
+      } catch (error) {
+        console.error('[useResumableUpload] Error starting upload:', error);
+
+        setUploadQueue((prev) => {
+          const newQueue = new Map(prev);
+          const updatedTask = newQueue.get(taskId);
+          if (updatedTask) {
+            updatedTask.status = 'failed';
+            updatedTask.error = error instanceof Error ? error.message : String(error);
+            saveUploadQueue(newQueue);
+          }
+          return newQueue;
+        });
+
+        options?.onError?.(error instanceof Error ? error : new Error(String(error)));
+      }
+    },
+    [uploadQueue]
+  );
 
   // Reprendre un upload
-  const resumeUpload = useCallback(async (task: UploadTask) => {
-    await startUpload(task.id);
-  }, [startUpload]);
+  const resumeUpload = useCallback(
+    async (task: UploadTask) => {
+      await startUpload(task.id);
+    },
+    [startUpload]
+  );
 
   // Mettre en pause un upload
   const pauseUpload = useCallback((taskId: string) => {
     const upload = activeUploads.current.get(taskId);
     if (upload) {
       upload.abort();
-      
-      setUploadQueue(prev => {
+
+      setUploadQueue((prev) => {
         const newQueue = new Map(prev);
         const task = newQueue.get(taskId);
         if (task) {
@@ -251,12 +261,15 @@ export const useResumableUpload = () => {
   }, []);
 
   // Reprendre un upload en pause
-  const unpauseUpload = useCallback((taskId: string) => {
-    const task = uploadQueue.get(taskId);
-    if (task && task.status === 'paused') {
-      startUpload(taskId);
-    }
-  }, [uploadQueue, startUpload]);
+  const unpauseUpload = useCallback(
+    (taskId: string) => {
+      const task = uploadQueue.get(taskId);
+      if (task && task.status === 'paused') {
+        startUpload(taskId);
+      }
+    },
+    [uploadQueue, startUpload]
+  );
 
   // Annuler un upload
   const cancelUpload = useCallback((taskId: string) => {
@@ -265,13 +278,13 @@ export const useResumableUpload = () => {
       upload.abort();
       activeUploads.current.delete(taskId);
     }
-    
+
     removeFromQueue(taskId);
   }, []);
 
   // Supprimer de la file d'attente
   const removeFromQueue = useCallback((taskId: string) => {
-    setUploadQueue(prev => {
+    setUploadQueue((prev) => {
       const newQueue = new Map(prev);
       newQueue.delete(taskId);
       saveUploadQueue(newQueue);
@@ -280,24 +293,30 @@ export const useResumableUpload = () => {
   }, []);
 
   // Réessayer un upload échoué
-  const retryUpload = useCallback((taskId: string) => {
-    const task = uploadQueue.get(taskId);
-    if (task && task.status === 'failed') {
-      task.status = 'pending';
-      task.error = undefined;
-      startUpload(taskId);
-    }
-  }, [uploadQueue, startUpload]);
+  const retryUpload = useCallback(
+    (taskId: string) => {
+      const task = uploadQueue.get(taskId);
+      if (task && task.status === 'failed') {
+        task.status = 'pending';
+        task.error = undefined;
+        startUpload(taskId);
+      }
+    },
+    [uploadQueue, startUpload]
+  );
 
   // Obtenir le statut d'un upload
-  const getUploadStatus = useCallback((taskId: string): UploadTask | undefined => {
-    return uploadQueue.get(taskId);
-  }, [uploadQueue]);
+  const getUploadStatus = useCallback(
+    (taskId: string): UploadTask | undefined => {
+      return uploadQueue.get(taskId);
+    },
+    [uploadQueue]
+  );
 
   // Obtenir tous les uploads actifs
   const getActiveUploads = useCallback((): UploadTask[] => {
     return Array.from(uploadQueue.values()).filter(
-      task => task.status === 'uploading' || task.status === 'pending'
+      (task) => task.status === 'uploading' || task.status === 'pending'
     );
   }, [uploadQueue]);
 

@@ -1,7 +1,11 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
-import { RealtimeChannel, RealtimePostgresChangesPayload, REALTIME_SUBSCRIBE_STATES } from '@supabase/supabase-js';
-import { supabase } from '@/shared/lib/supabase/client';
+import {
+  RealtimeChannel,
+  RealtimePostgresChangesPayload,
+  REALTIME_SUBSCRIBE_STATES,
+} from '@supabase/supabase-js';
 import NetInfo from '@react-native-community/netinfo';
+import { supabase } from '@/shared/lib/supabase/client';
 
 interface SubscriptionOptions {
   event?: '*' | 'INSERT' | 'UPDATE' | 'DELETE';
@@ -38,7 +42,7 @@ export function useRealtimeManager(options: RealtimeManagerOptions = {}) {
 
   // Monitor network connectivity
   useEffect(() => {
-    const unsubscribe = NetInfo.addEventListener(state => {
+    const unsubscribe = NetInfo.addEventListener((state) => {
       const connected = state.isConnected ?? false;
       isConnectedRef.current = connected;
       setIsConnected(connected);
@@ -63,116 +67,141 @@ export function useRealtimeManager(options: RealtimeManagerOptions = {}) {
     });
   }, []);
 
-  const reconnectChannel = useCallback((channelId: string) => {
-    if (!autoReconnect || !subscriptionsRef.current.has(channelId)) return;
+  const reconnectChannel = useCallback(
+    (channelId: string) => {
+      if (!autoReconnect || !subscriptionsRef.current.has(channelId)) return;
 
-    const attempts = reconnectAttemptsRef.current.get(channelId) || 0;
-    if (attempts >= maxReconnectAttempts) {
-      console.error(`[RealtimeManager] Max reconnection attempts reached for channel ${channelId}`);
-      return;
-    }
-
-    // Clear any existing timeout
-    const existingTimeout = reconnectTimeoutsRef.current.get(channelId);
-    if (existingTimeout) {
-      clearTimeout(existingTimeout);
-    }
-
-    const timeout = setTimeout(() => {
-      if (!isConnectedRef.current) {
-        // Still no network, try again later
-        reconnectChannel(channelId);
+      const attempts = reconnectAttemptsRef.current.get(channelId) || 0;
+      if (attempts >= maxReconnectAttempts) {
+        console.error(
+          `[RealtimeManager] Max reconnection attempts reached for channel ${channelId}`
+        );
         return;
       }
 
-      console.log(`[RealtimeManager] Attempting to reconnect channel ${channelId} (attempt ${attempts + 1})`);
-      
-      // Remove old channel
-      const oldChannel = channelsRef.current.get(channelId);
-      if (oldChannel) {
-        supabase.removeChannel(oldChannel);
-        channelsRef.current.delete(channelId);
+      // Clear any existing timeout
+      const existingTimeout = reconnectTimeoutsRef.current.get(channelId);
+      if (existingTimeout) {
+        clearTimeout(existingTimeout);
       }
 
-      // Recreate subscription
-      const options = subscriptionsRef.current.get(channelId);
-      if (options) {
-        const newChannel = createChannel(channelId, options);
-        channelsRef.current.set(channelId, newChannel);
-        reconnectAttemptsRef.current.set(channelId, attempts + 1);
-      }
-    }, reconnectDelay * Math.pow(2, Math.min(attempts, 3))); // Exponential backoff with max delay
+      const timeout = setTimeout(
+        () => {
+          if (!isConnectedRef.current) {
+            // Still no network, try again later
+            reconnectChannel(channelId);
+            return;
+          }
 
-    reconnectTimeoutsRef.current.set(channelId, timeout);
-  }, [autoReconnect, maxReconnectAttempts, reconnectDelay]);
+          console.log(
+            `[RealtimeManager] Attempting to reconnect channel ${channelId} (attempt ${attempts + 1})`
+          );
 
-  const createChannel = useCallback((channelId: string, options: SubscriptionOptions): RealtimeChannel => {
-    const { event = '*', schema = 'public', table, filter, onInsert, onUpdate, onDelete, onChange } = options;
+          // Remove old channel
+          const oldChannel = channelsRef.current.get(channelId);
+          if (oldChannel) {
+            supabase.removeChannel(oldChannel);
+            channelsRef.current.delete(channelId);
+          }
 
-    const channel = supabase
-      .channel(channelId)
-      .on(
-        'postgres_changes' as any,
-        {
-          event,
-          schema,
-          table,
-          ...(filter ? { filter } : {}),
+          // Recreate subscription
+          const options = subscriptionsRef.current.get(channelId);
+          if (options) {
+            const newChannel = createChannel(channelId, options);
+            channelsRef.current.set(channelId, newChannel);
+            reconnectAttemptsRef.current.set(channelId, attempts + 1);
+          }
         },
-        (payload: any) => {
-          // Reset reconnection attempts on successful message
-          reconnectAttemptsRef.current.set(channelId, 0);
+        reconnectDelay * Math.pow(2, Math.min(attempts, 3))
+      ); // Exponential backoff with max delay
 
-          // Call appropriate handler
-          switch (payload.eventType) {
-            case 'INSERT':
-              onInsert?.(payload);
-              break;
-            case 'UPDATE':
-              onUpdate?.(payload);
-              break;
-            case 'DELETE':
-              onDelete?.(payload);
-              break;
+      reconnectTimeoutsRef.current.set(channelId, timeout);
+    },
+    [autoReconnect, maxReconnectAttempts, reconnectDelay]
+  );
+
+  const createChannel = useCallback(
+    (channelId: string, options: SubscriptionOptions): RealtimeChannel => {
+      const {
+        event = '*',
+        schema = 'public',
+        table,
+        filter,
+        onInsert,
+        onUpdate,
+        onDelete,
+        onChange,
+      } = options;
+
+      const channel = supabase
+        .channel(channelId)
+        .on(
+          'postgres_changes' as any,
+          {
+            event,
+            schema,
+            table,
+            ...(filter ? { filter } : {}),
+          },
+          (payload: any) => {
+            // Reset reconnection attempts on successful message
+            reconnectAttemptsRef.current.set(channelId, 0);
+
+            // Call appropriate handler
+            switch (payload.eventType) {
+              case 'INSERT':
+                onInsert?.(payload);
+                break;
+              case 'UPDATE':
+                onUpdate?.(payload);
+                break;
+              case 'DELETE':
+                onDelete?.(payload);
+                break;
+            }
+            onChange?.(payload);
           }
-          onChange?.(payload);
-        }
-      )
-      .subscribe((status) => {
-        console.log(`[RealtimeManager] Channel ${channelId} status:`, status);
-        
-        if (status === REALTIME_SUBSCRIBE_STATES.SUBSCRIBED) {
-          console.log(`[RealtimeManager] Channel ${channelId} subscribed successfully`);
-          reconnectAttemptsRef.current.set(channelId, 0);
-        } else if (status === REALTIME_SUBSCRIBE_STATES.CLOSED) {
-          console.log(`[RealtimeManager] Channel ${channelId} closed`);
-          if (autoReconnect && isConnectedRef.current) {
-            reconnectChannel(channelId);
+        )
+        .subscribe((status) => {
+          console.log(`[RealtimeManager] Channel ${channelId} status:`, status);
+
+          if (status === REALTIME_SUBSCRIBE_STATES.SUBSCRIBED) {
+            console.log(`[RealtimeManager] Channel ${channelId} subscribed successfully`);
+            reconnectAttemptsRef.current.set(channelId, 0);
+          } else if (status === REALTIME_SUBSCRIBE_STATES.CLOSED) {
+            console.log(`[RealtimeManager] Channel ${channelId} closed`);
+            if (autoReconnect && isConnectedRef.current) {
+              reconnectChannel(channelId);
+            }
+          } else if (status === REALTIME_SUBSCRIBE_STATES.CHANNEL_ERROR) {
+            console.error(`[RealtimeManager] Channel ${channelId} error`);
+            if (autoReconnect) {
+              reconnectChannel(channelId);
+            }
           }
-        } else if (status === REALTIME_SUBSCRIBE_STATES.CHANNEL_ERROR) {
-          console.error(`[RealtimeManager] Channel ${channelId} error`);
-          if (autoReconnect) {
-            reconnectChannel(channelId);
-          }
-        }
-      });
+        });
 
-    return channel;
-  }, [autoReconnect, reconnectChannel]);
+      return channel;
+    },
+    [autoReconnect, reconnectChannel]
+  );
 
-  const subscribe = useCallback((channelId: string, options: SubscriptionOptions): (() => void) => {
-    // Store subscription options for reconnection
-    subscriptionsRef.current.set(channelId, options);
+  const subscribe = useCallback(
+    (channelId: string, options: SubscriptionOptions): (() => void) => {
+      // Store subscription options for reconnection
+      subscriptionsRef.current.set(channelId, options);
 
-    // Create and store channel
-    const channel = createChannel(channelId, options);
-    channelsRef.current.set(channelId, channel);
+      // Create and store channel
+      const channel = createChannel(channelId, options);
+      channelsRef.current.set(channelId, channel);
 
-    // Return cleanup function
-    return () => {
-      unsubscribe(channelId);
-    };
-  }, [createChannel]);
+      // Return cleanup function
+      return () => {
+        unsubscribe(channelId);
+      };
+    },
+    [createChannel]
+  );
 
   const unsubscribe = useCallback((channelId: string) => {
     // Clear any reconnection timeout
@@ -196,11 +225,11 @@ export function useRealtimeManager(options: RealtimeManagerOptions = {}) {
 
   const unsubscribeAll = useCallback(() => {
     // Clear all timeouts
-    reconnectTimeoutsRef.current.forEach(timeout => clearTimeout(timeout));
+    reconnectTimeoutsRef.current.forEach((timeout) => clearTimeout(timeout));
     reconnectTimeoutsRef.current.clear();
 
     // Remove all channels
-    channelsRef.current.forEach(channel => {
+    channelsRef.current.forEach((channel) => {
       supabase.removeChannel(channel);
     });
     channelsRef.current.clear();

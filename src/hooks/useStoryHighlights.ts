@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-
 import { supabase } from '../shared/lib/supabase/client';
 import { useSession } from '../shared/providers/SessionContext';
 
@@ -69,36 +68,32 @@ export function useStoryHighlights(userId?: string) {
   const createHighlight = async (title: string, storyIds: string[], coverUrl?: string) => {
     if (!session?.user) throw new Error('User not authenticated');
 
-    try {
-      // Get the next position
-      const maxPosition = highlights.reduce((max, h) => Math.max(max, h.position), -1);
+    // Get the next position
+    const maxPosition = highlights.reduce((max, h) => Math.max(max, h.position), -1);
 
-      const { data, error } = await supabase
-        .from('story_highlights')
-        .insert({
-          user_id: session.user.id,
-          title,
-          cover_url: coverUrl,
-          story_ids: storyIds,
-          position: maxPosition + 1,
-        })
-        .select()
-        .single();
+    const { data, error } = await supabase
+      .from('story_highlights')
+      .insert({
+        user_id: session.user.id,
+        title,
+        cover_url: coverUrl,
+        story_ids: storyIds,
+        position: maxPosition + 1,
+      })
+      .select()
+      .single();
 
-      if (error) throw error;
+    if (error) throw error;
 
-      // Fetch stories for the new highlight
-      if (storyIds.length > 0) {
-        const { data: stories } = await supabase.from('stories').select('*').in('id', storyIds);
+    // Fetch stories for the new highlight
+    if (storyIds.length > 0) {
+      const { data: stories } = await supabase.from('stories').select('*').in('id', storyIds);
 
-        data.stories = stories || [];
-      }
-
-      setHighlights((prev) => [...prev, data]);
-      return data;
-    } catch (err) {
-      throw err;
+      data.stories = stories || [];
     }
+
+    setHighlights((prev) => [...prev, data]);
+    return data;
   };
 
   const updateHighlight = async (
@@ -109,50 +104,42 @@ export function useStoryHighlights(userId?: string) {
       story_ids?: string[];
     }
   ) => {
-    try {
-      const { data, error } = await supabase
-        .from('story_highlights')
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', highlightId)
-        .select()
-        .single();
+    const { data, error } = await supabase
+      .from('story_highlights')
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', highlightId)
+      .select()
+      .single();
 
-      if (error) throw error;
+    if (error) throw error;
 
-      // Fetch updated stories if story_ids were updated
-      if (updates.story_ids && updates.story_ids.length > 0) {
-        const { data: stories } = await supabase
-          .from('stories')
-          .select('*')
-          .in('id', updates.story_ids);
+    // Fetch updated stories if story_ids were updated
+    if (updates.story_ids && updates.story_ids.length > 0) {
+      const { data: stories } = await supabase
+        .from('stories')
+        .select('*')
+        .in('id', updates.story_ids);
 
-        data.stories = stories || [];
-      }
-
-      setHighlights((prev) => prev.map((h) => (h.id === highlightId ? data : h)));
-
-      return data;
-    } catch (err) {
-      throw err;
+      data.stories = stories || [];
     }
+
+    setHighlights((prev) => prev.map((h) => (h.id === highlightId ? data : h)));
+
+    return data;
   };
 
   const deleteHighlight = async (highlightId: string) => {
-    try {
-      const { error: fetchError } = await supabase
-        .from('story_highlights')
-        .delete()
-        .eq('id', highlightId);
+    const { error: fetchError } = await supabase
+      .from('story_highlights')
+      .delete()
+      .eq('id', highlightId);
 
-      if (fetchError) throw fetchError;
+    if (fetchError) throw fetchError;
 
-      setHighlights((prev) => prev.filter((h) => h.id !== highlightId));
-    } catch (err) {
-      throw err;
-    }
+    setHighlights((prev) => prev.filter((h) => h.id !== highlightId));
   };
 
   const addStoryToHighlight = async (highlightId: string, storyId: string) => {
@@ -172,29 +159,25 @@ export function useStoryHighlights(userId?: string) {
   };
 
   const reorderHighlights = async (newOrder: string[]) => {
-    try {
-      // Update positions based on new order
-      const updates = newOrder.map((id, index) => ({
-        id,
-        position: index,
-      }));
+    // Update positions based on new order
+    const updates = newOrder.map((id, index) => ({
+      id,
+      position: index,
+    }));
 
-      // Update each highlight's position
-      await Promise.all(
-        updates.map(({ id, position }) =>
-          supabase.from('story_highlights').update({ position }).eq('id', id)
-        )
-      );
+    // Update each highlight's position
+    await Promise.all(
+      updates.map(({ id, position }) =>
+        supabase.from('story_highlights').update({ position }).eq('id', id)
+      )
+    );
 
-      // Reorder local state
-      const reordered = newOrder
-        .map((id) => highlights.find((h) => h.id === id))
-        .filter(Boolean) as StoryHighlight[];
+    // Reorder local state
+    const reordered = newOrder
+      .map((id) => highlights.find((h) => h.id === id))
+      .filter(Boolean) as StoryHighlight[];
 
-      setHighlights(reordered);
-    } catch (err) {
-      throw err;
-    }
+    setHighlights(reordered);
   };
 
   return {

@@ -1,0 +1,284 @@
+import { render, fireEvent, waitFor, screen } from '@testing-library/react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import React from 'react';
+import CreateEventScreen from '../../features/events/screens/CreateEventScreen';
+import { EventProvider } from '../../features/events/context/EventProvider';
+import { supabase } from '../../shared/lib/supabase/client';
+
+// Mock Supabase
+jest.mock('../../shared/lib/supabase/client');
+
+const mockSupabase = supabase as jest.Mocked<typeof supabase>;
+
+const TestWrapper = ({ children }: { children: React.ReactNode }) => (
+  <NavigationContainer>
+    <EventProvider>
+      {children}
+    </EventProvider>
+  </NavigationContainer>
+);
+
+describe('Event Creation Integration Tests', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    
+    // Mock successful Supabase responses
+    mockSupabase.from.mockReturnValue({
+      insert: jest.fn().mockReturnThis(),
+      select: jest.fn().mockReturnThis(),
+      single: jest.fn().mockResolvedValue({
+        data: { id: '1', title: 'Test Event', created_at: new Date().toISOString() },
+        error: null
+      }),
+    } as any);
+  });
+
+  it('should create an event with basic information', async () => {
+    const { getByTestId } = render(
+      <TestWrapper>
+        <CreateEventScreen />
+      </TestWrapper>
+    );
+
+    // Wait for component to load
+    await waitFor(() => {
+      expect(getByTestId('event-title-input')).toBeTruthy();
+    });
+
+    // Fill in basic event information
+    const titleInput = getByTestId('event-title-input');
+    const descriptionInput = getByTestId('event-description-input');
+    const createButton = getByTestId('create-event-button');
+
+    fireEvent.changeText(titleInput, 'Test Event');
+    fireEvent.changeText(descriptionInput, 'This is a test event description');
+
+    // Submit the form
+    fireEvent.press(createButton);
+
+    // Verify Supabase was called with correct data
+    await waitFor(() => {
+      expect(mockSupabase.from).toHaveBeenCalledWith('events');
+    });
+  });
+
+  it('should handle date selection for event creation', async () => {
+    const { getByTestId } = render(
+      <TestWrapper>
+        <CreateEventScreen />
+      </TestWrapper>
+    );
+
+    await waitFor(() => {
+      expect(getByTestId('date-picker-button')).toBeTruthy();
+    });
+
+    const datePickerButton = getByTestId('date-picker-button');
+    fireEvent.press(datePickerButton);
+
+    // Verify date picker modal appears
+    await waitFor(() => {
+      expect(getByTestId('date-picker-modal')).toBeTruthy();
+    });
+
+    // Select a date
+    const confirmDateButton = getByTestId('confirm-date-button');
+    fireEvent.press(confirmDateButton);
+
+    // Verify date is set
+    await waitFor(() => {
+      expect(getByTestId('selected-date-display')).toBeTruthy();
+    });
+  });
+
+  it('should handle location selection for event creation', async () => {
+    const { getByTestId } = render(
+      <TestWrapper>
+        <CreateEventScreen />
+      </TestWrapper>
+    );
+
+    await waitFor(() => {
+      expect(getByTestId('location-search-input')).toBeTruthy();
+    });
+
+    const locationInput = getByTestId('location-search-input');
+    fireEvent.changeText(locationInput, 'Paris, France');
+
+    // Mock location search results
+    await waitFor(() => {
+      expect(getByTestId('location-suggestion-0')).toBeTruthy();
+    });
+
+    const firstSuggestion = getByTestId('location-suggestion-0');
+    fireEvent.press(firstSuggestion);
+
+    // Verify location is selected
+    await waitFor(() => {
+      expect(getByTestId('selected-location-display')).toBeTruthy();
+    });
+  });
+
+  it('should handle event category selection', async () => {
+    const { getByTestId } = render(
+      <TestWrapper>
+        <CreateEventScreen />
+      </TestWrapper>
+    );
+
+    await waitFor(() => {
+      expect(getByTestId('category-selector')).toBeTruthy();
+    });
+
+    const categorySelector = getByTestId('category-selector');
+    fireEvent.press(categorySelector);
+
+    await waitFor(() => {
+      expect(getByTestId('category-party')).toBeTruthy();
+    });
+
+    const partyCategory = getByTestId('category-party');
+    fireEvent.press(partyCategory);
+
+    // Verify category is selected
+    await waitFor(() => {
+      expect(getByTestId('selected-category-party')).toBeTruthy();
+    });
+  });
+
+  it('should validate required fields before submission', async () => {
+    const { getByTestId, queryByText } = render(
+      <TestWrapper>
+        <CreateEventScreen />
+      </TestWrapper>
+    );
+
+    await waitFor(() => {
+      expect(getByTestId('create-event-button')).toBeTruthy();
+    });
+
+    const createButton = getByTestId('create-event-button');
+    fireEvent.press(createButton);
+
+    // Verify validation errors appear
+    await waitFor(() => {
+      expect(queryByText('Event title is required')).toBeTruthy();
+    });
+
+    // Verify Supabase was not called
+    expect(mockSupabase.from).not.toHaveBeenCalled();
+  });
+
+  it('should handle complete event creation flow', async () => {
+    const { getByTestId } = render(
+      <TestWrapper>
+        <CreateEventScreen />
+      </TestWrapper>
+    );
+
+    // Fill all required fields
+    await waitFor(() => {
+      expect(getByTestId('event-title-input')).toBeTruthy();
+    });
+
+    fireEvent.changeText(getByTestId('event-title-input'), 'Complete Test Event');
+    fireEvent.changeText(getByTestId('event-description-input'), 'Full event description');
+    
+    // Set date
+    fireEvent.press(getByTestId('date-picker-button'));
+    await waitFor(() => fireEvent.press(getByTestId('confirm-date-button')));
+    
+    // Set location
+    fireEvent.changeText(getByTestId('location-search-input'), 'Test Location');
+    await waitFor(() => fireEvent.press(getByTestId('location-suggestion-0')));
+    
+    // Set category
+    fireEvent.press(getByTestId('category-selector'));
+    await waitFor(() => fireEvent.press(getByTestId('category-party')));
+    
+    // Submit form
+    fireEvent.press(getByTestId('create-event-button'));
+
+    // Verify success
+    await waitFor(() => {
+      expect(getByTestId('creation-success-message')).toBeTruthy();
+    });
+
+    // Verify Supabase was called with complete data
+    expect(mockSupabase.from).toHaveBeenCalledWith('events');
+  });
+
+  it('should handle event creation errors gracefully', async () => {
+    // Mock Supabase error
+    mockSupabase.from.mockReturnValue({
+      insert: jest.fn().mockReturnThis(),
+      select: jest.fn().mockReturnThis(),
+      single: jest.fn().mockResolvedValue({
+        data: null,
+        error: { message: 'Database error' }
+      }),
+    } as any);
+
+    const { getByTestId, queryByText } = render(
+      <TestWrapper>
+        <CreateEventScreen />
+      </TestWrapper>
+    );
+
+    // Fill required fields and submit
+    await waitFor(() => {
+      fireEvent.changeText(getByTestId('event-title-input'), 'Error Test Event');
+      fireEvent.press(getByTestId('create-event-button'));
+    });
+
+    // Verify error message appears
+    await waitFor(() => {
+      expect(queryByText('Failed to create event')).toBeTruthy();
+    });
+  });
+
+  it('should handle image upload for event creation', async () => {
+    const { getByTestId } = render(
+      <TestWrapper>
+        <CreateEventScreen />
+      </TestWrapper>
+    );
+
+    await waitFor(() => {
+      expect(getByTestId('image-upload-button')).toBeTruthy();
+    });
+
+    const imageUploadButton = getByTestId('image-upload-button');
+    fireEvent.press(imageUploadButton);
+
+    // Mock successful image upload
+    await waitFor(() => {
+      expect(getByTestId('uploaded-image-preview')).toBeTruthy();
+    });
+  });
+
+  it('should handle capacity and privacy settings', async () => {
+    const { getByTestId } = render(
+      <TestWrapper>
+        <CreateEventScreen />
+      </TestWrapper>
+    );
+
+    // Set capacity
+    await waitFor(() => {
+      expect(getByTestId('capacity-input')).toBeTruthy();
+    });
+
+    fireEvent.changeText(getByTestId('capacity-input'), '50');
+
+    // Toggle privacy settings
+    const privateToggle = getByTestId('private-event-toggle');
+    fireEvent.press(privateToggle);
+
+    // Verify settings are applied
+    await waitFor(() => {
+      expect(getByTestId('capacity-display')).toHaveTextContent('50');
+      expect(getByTestId('privacy-indicator')).toHaveTextContent('Private');
+    });
+  });
+});

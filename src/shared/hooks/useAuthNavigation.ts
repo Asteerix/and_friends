@@ -38,10 +38,18 @@ export const useAuthNavigation = (currentScreen: string) => {
     }
   }, [router, currentScreen]);
 
-  const navigateNext = useCallback((nextScreen: string, params?: Record<string, string>) => {
-    const queryString = params ? '?' + Object.entries(params).map(([key, value]) => `${key}=${encodeURIComponent(value)}`).join('&') : '';
-    router.push(`/(auth)/${nextScreen}${queryString}`);
-  }, [router]);
+  const navigateNext = useCallback(
+    (nextScreen: string, params?: Record<string, string>) => {
+      const queryString = params
+        ? '?' +
+          Object.entries(params)
+            .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
+            .join('&')
+        : '';
+      router.push(`/(auth)/${nextScreen}${queryString}`);
+    },
+    [router]
+  );
 
   const getProgress = useCallback(() => {
     const currentIndex = AUTH_FLOW.indexOf(currentScreen);

@@ -11,12 +11,7 @@ type Props = {
 
 export default function Scribble({ width, height = 3, style }: Props) {
   return (
-    <Svg
-      width={width}
-      height={height}
-      style={style}
-      viewBox={`0 0 ${width} ${height}`}
-    >
+    <Svg width={width} height={height} style={style} viewBox={`0 0 ${width} ${height}`}>
       <Path
         d={`M0 ${height / 2} Q ${width / 4} ${height}, ${width / 2} ${
           height / 2

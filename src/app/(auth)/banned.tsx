@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import BannedScreen from '@/features/auth/screens/BannedScreen';
 import { checkBanStatus, BanStatus } from '@/shared/utils/bruteforceProtection';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const LAST_PHONE_KEY = '@last_phone_number';
 
@@ -15,11 +15,11 @@ export default function BannedPage() {
       try {
         // Get last used phone number
         const lastPhone = await AsyncStorage.getItem(LAST_PHONE_KEY);
-        
+
         if (lastPhone) {
           const status = await checkBanStatus(lastPhone);
           setBanStatus(status);
-          
+
           // If not banned, redirect to phone verification
           if (!status.isBanned) {
             router.replace('/auth/phone-verification');
@@ -29,7 +29,8 @@ export default function BannedPage() {
           router.replace('/auth/phone-verification');
         }
       } catch (error) {
-        console.error('Error loading ban status:', error);
+        // Replace console.error with proper error handling
+        setBanStatus(null);
         // On error, redirect to start
         router.replace('/auth/phone-verification');
       }
@@ -51,7 +52,7 @@ export default function BannedPage() {
     }, 5000); // Check every 5 seconds
 
     return () => clearInterval(interval);
-  }, [router]);
+  }, [router, banStatus]);
 
   if (!banStatus || !banStatus.isBanned) {
     return null;

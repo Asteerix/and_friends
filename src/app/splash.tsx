@@ -48,7 +48,7 @@ export default function SplashScreen() {
   const [splashImage, setSplashImage] = useState<any>(null);
   const ampersandScale = useSharedValue(0);
   const ampersandOpacity = useSharedValue(0);
-  
+
   // Load splash image with error handling
   useEffect(() => {
     try {
@@ -61,7 +61,7 @@ export default function SplashScreen() {
 
   useEffect(() => {
     startupLogger.log('Splash screen mounted');
-    
+
     // Animate the ampersand
     try {
       ampersandScale.value = withSequence(
@@ -78,13 +78,13 @@ export default function SplashScreen() {
       try {
         if (!loading) {
           startupLogger.log('Session check complete', 'info', { hasSession: !!session });
-          
+
           if (!isSupabaseConfigured) {
             startupLogger.log('Supabase not configured, going to onboarding', 'warning');
             router.replace('/(auth)/onboarding');
             return;
           }
-          
+
           if (session) {
             // Check registration progress with error handling
             try {
@@ -93,17 +93,17 @@ export default function SplashScreen() {
                 .select('current_registration_step')
                 .eq('id', session.user.id)
                 .single();
-              
+
               if (error) {
                 startupLogger.log('Profile fetch error', 'error', error);
                 // If profile doesn't exist, start registration
                 router.replace('/(auth)/onboarding');
                 return;
               }
-              
+
               const step = profile?.current_registration_step;
               startupLogger.log('User registration step', 'info', { step });
-              
+
               if (!step) {
                 // No step, user needs to start registration
                 router.replace('/(auth)/onboarding');
@@ -159,27 +159,22 @@ export default function SplashScreen() {
       </View>
     );
   }
-  
+
   // Render with or without background image
   const content = (
     <View style={[styles.content, { paddingTop: insets.top + 40 }]}>
       {/* &Friends title */}
-      <Animated.Text
-        entering={FadeIn.delay(200).duration(600)}
-        style={styles.title}
-      >
+      <Animated.Text entering={FadeIn.delay(200).duration(600)} style={styles.title}>
         &Friends
       </Animated.Text>
 
       {/* Animated & in the center */}
       <View style={styles.ampersandContainer}>
-        <Animated.Text style={[styles.ampersand, ampersandAnimatedStyle]}>
-          &
-        </Animated.Text>
+        <Animated.Text style={[styles.ampersand, ampersandAnimatedStyle]}>&</Animated.Text>
       </View>
     </View>
   );
-  
+
   if (splashImage) {
     return (
       <ImageBackground
@@ -195,13 +190,9 @@ export default function SplashScreen() {
       </ImageBackground>
     );
   }
-  
+
   // Fallback without background image
-  return (
-    <View style={[styles.container, { backgroundColor: '#FF6B6B' }]}>
-      {content}
-    </View>
-  );
+  return <View style={[styles.container, { backgroundColor: '#FF6B6B' }]}>{content}</View>;
 }
 
 const styles = StyleSheet.create({

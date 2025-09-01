@@ -7,7 +7,7 @@ import {
   ScrollView,
   SafeAreaView,
   Platform,
-  Alert
+  Alert,
 } from 'react-native';
 import * as Linking from 'expo-linking';
 import Constants from 'expo-constants';
@@ -30,7 +30,7 @@ export class GlobalErrorBoundary extends Component<Props, State> {
       hasError: false,
       error: null,
       errorInfo: null,
-      errorCount: 0
+      errorCount: 0,
     };
   }
 
@@ -48,12 +48,12 @@ export class GlobalErrorBoundary extends Component<Props, State> {
       platform: Platform.OS,
       version: Constants.expoConfig?.version || 'unknown',
       nativeApplicationVersion: Constants.nativeApplicationVersion || 'unknown',
-      nativeBuildVersion: Constants.nativeBuildVersion || 'unknown'
+      nativeBuildVersion: Constants.nativeBuildVersion || 'unknown',
     });
 
-    this.setState(prevState => ({
+    this.setState((prevState) => ({
       errorInfo,
-      errorCount: prevState.errorCount + 1
+      errorCount: prevState.errorCount + 1,
     }));
 
     // Send error to crash reporting service in production
@@ -71,7 +71,7 @@ export class GlobalErrorBoundary extends Component<Props, State> {
     this.setState({
       hasError: false,
       error: null,
-      errorInfo: null
+      errorInfo: null,
     });
   };
 
@@ -98,7 +98,9 @@ ${errorInfo?.componentStack || 'No component stack available'}
     Linking.openURL(mailto).catch(() => {
       Alert.alert(
         'Unable to open email',
-        'Please send the following details to support@andfriends.app:\n\n' + errorDetails.substring(0, 500) + '...'
+        'Please send the following details to support@andfriends.app:\n\n' +
+          errorDetails.substring(0, 500) +
+          '...'
       );
     });
   };
@@ -134,9 +136,7 @@ ${errorInfo?.componentStack || 'No component stack available'}
                 <Text style={styles.infoText}>
                   Platform: {Platform.OS} {Platform.Version}
                 </Text>
-                <Text style={styles.infoText}>
-                  Error Count: {this.state.errorCount}
-                </Text>
+                <Text style={styles.infoText}>Error Count: {this.state.errorCount}</Text>
               </View>
 
               <View style={styles.buttonContainer}>
@@ -158,7 +158,7 @@ ${errorInfo?.componentStack || 'No component stack available'}
                         {
                           error: this.state.error?.toString(),
                           componentStack: this.state.errorInfo?.componentStack,
-                          timestamp: new Date().toISOString()
+                          timestamp: new Date().toISOString(),
                         },
                         null,
                         2
@@ -180,33 +180,33 @@ ${errorInfo?.componentStack || 'No component stack available'}
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f8f8'
+    backgroundColor: '#f8f8f8',
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: 'center'
+    justifyContent: 'center',
   },
   content: {
     padding: 20,
-    alignItems: 'center'
+    alignItems: 'center',
   },
   emoji: {
     fontSize: 60,
-    marginBottom: 20
+    marginBottom: 20,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#333',
     marginBottom: 10,
-    textAlign: 'center'
+    textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,
     color: '#666',
     marginBottom: 30,
     textAlign: 'center',
-    paddingHorizontal: 20
+    paddingHorizontal: 20,
   },
   errorBox: {
     backgroundColor: '#ffe6e6',
@@ -215,52 +215,52 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     width: '100%',
     borderWidth: 1,
-    borderColor: '#ffcccc'
+    borderColor: '#ffcccc',
   },
   errorTitle: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#cc0000',
-    marginBottom: 5
+    marginBottom: 5,
   },
   errorMessage: {
     fontSize: 14,
     color: '#990000',
-    marginBottom: 5
+    marginBottom: 5,
   },
   errorStack: {
     fontSize: 12,
     color: '#666',
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-    marginTop: 10
+    marginTop: 10,
   },
   infoBox: {
     backgroundColor: '#f0f0f0',
     padding: 15,
     borderRadius: 10,
     marginBottom: 30,
-    width: '100%'
+    width: '100%',
   },
   infoText: {
     fontSize: 14,
     color: '#666',
-    marginBottom: 5
+    marginBottom: 5,
   },
   buttonContainer: {
     width: '100%',
-    gap: 10
+    gap: 10,
   },
   primaryButton: {
     backgroundColor: '#FF6B6B',
     paddingVertical: 15,
     borderRadius: 10,
     alignItems: 'center',
-    marginBottom: 10
+    marginBottom: 10,
   },
   primaryButtonText: {
     color: 'white',
     fontSize: 16,
-    fontWeight: 'bold'
+    fontWeight: 'bold',
   },
   secondaryButton: {
     backgroundColor: 'transparent',
@@ -268,32 +268,32 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#FF6B6B'
+    borderColor: '#FF6B6B',
   },
   secondaryButtonText: {
     color: '#FF6B6B',
     fontSize: 16,
-    fontWeight: '600'
+    fontWeight: '600',
   },
   debugInfo: {
     marginTop: 30,
     width: '100%',
     backgroundColor: '#f5f5f5',
     padding: 15,
-    borderRadius: 10
+    borderRadius: 10,
   },
   debugTitle: {
     fontSize: 14,
     fontWeight: 'bold',
     color: '#666',
-    marginBottom: 10
+    marginBottom: 10,
   },
   debugScroll: {
-    maxHeight: 200
+    maxHeight: 200,
   },
   debugText: {
     fontSize: 12,
     color: '#666',
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace'
-  }
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+  },
 });

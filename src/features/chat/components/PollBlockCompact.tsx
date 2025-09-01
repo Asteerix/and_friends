@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
-
 import { Poll } from '@/hooks/usePollStore';
 
 export default function PollBlockCompact({ poll }: { poll: Poll }) {

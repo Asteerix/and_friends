@@ -1,7 +1,6 @@
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
-
 import ChatButtonIcon from '@/assets/svg/chat-button.svg';
 import NotificationButtonIcon from '@/assets/svg/notification-button.svg';
 import NotificationBadge from '@/features/notifications/components/NotificationBadge';
@@ -12,7 +11,6 @@ export default function HeaderGreeting() {
   const router = useRouter();
   const { profile } = useProfile();
   const { unreadCount } = useNotifications();
-
 
   const handleNotificationsPress = () => {
     void router.push('/screens/notifications');
@@ -26,7 +24,9 @@ export default function HeaderGreeting() {
     <View style={styles.container}>
       <View style={styles.textContainer}>
         <Text style={styles.greeting}>Plans brewing,</Text>
-        <Text style={styles.name}>{profile?.first_name || profile?.full_name?.split(' ')[0] || 'User'}?</Text>
+        <Text style={styles.name}>
+          {profile?.first_name || profile?.full_name?.split(' ')[0] || 'User'}?
+        </Text>
       </View>
       <View style={styles.iconsRow}>
         <TouchableOpacity onPress={handleChatPress}>

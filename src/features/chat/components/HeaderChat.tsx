@@ -7,13 +7,8 @@ interface Props {
   avatarUrl?: string;
   title: string;
   subtitle: string;
-};
-export default function HeaderChat({
-  type,
-  avatarUrl,
-  title,
-  subtitle,
-}: Props) {
+}
+export default function HeaderChat({ type, avatarUrl, title, subtitle }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.left}>
@@ -21,9 +16,7 @@ export default function HeaderChat({
           <Image source={{ uri: avatarUrl }} style={styles.avatarRound} />
         ) : (
           <View style={styles.avatarSquare}>
-            {avatarUrl ? (
-              <Image source={{ uri: avatarUrl }} style={styles.avatarSquare} />
-            ) : null}
+            {avatarUrl ? <Image source={{ uri: avatarUrl }} style={styles.avatarSquare} /> : null}
           </View>
         )}
         <View style={styles.textContainer}>
@@ -32,12 +25,7 @@ export default function HeaderChat({
         </View>
       </View>
       <View style={styles.right}>
-        <Ionicons
-          name="chatbubble-outline"
-          size={24}
-          color="#5C5C5C"
-          style={styles.chatIcon}
-        />
+        <Ionicons name="chatbubble-outline" size={24} color="#5C5C5C" style={styles.chatIcon} />
         <Ionicons name="notifications-outline" size={24} color="#5C5C5C" />
       </View>
     </View>

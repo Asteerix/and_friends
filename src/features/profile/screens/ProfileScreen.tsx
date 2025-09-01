@@ -14,12 +14,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import CountryFlag from 'react-native-country-flag';
-import UnderlineDecoration from '@/features/home/components/UnderlineDecoration.svg';
 import { create } from 'react-native-pixel-perfect';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
-
+import UnderlineDecoration from '@/features/home/components/UnderlineDecoration.svg';
 import { useProfile } from '@/hooks/useProfile';
 import { RootStackParamList } from '@/types/navigation';
 import { useUserProfile } from '@/hooks/useUserProfile';
@@ -46,7 +45,7 @@ const getTabs = (t: any) => [
 ];
 
 // Définir le chemin de l'avatar par défaut
-const DEFAULT_AVATAR = require('../../../assets/default_avatar.png'); // eslint-disable-line @typescript-eslint/no-var-requires
+const DEFAULT_AVATAR = require('@/assets/default_avatar.png');
 
 // Helper pour vérifier si une image est valide (non vide, non null, non undefined)
 function isValidAvatar(url?: string | null) {

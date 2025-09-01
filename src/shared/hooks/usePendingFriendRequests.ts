@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
+import { Alert } from 'react-native';
 import { useProfile } from '@/hooks/useProfile';
 import { pendingFriendRequestsManager } from '@/shared/utils/pendingFriendRequests';
-import { Alert } from 'react-native';
 
 export const usePendingFriendRequests = () => {
   const { profile } = useProfile();
@@ -20,7 +20,7 @@ export const usePendingFriendRequests = () => {
     setIsProcessing(true);
     try {
       const result = await pendingFriendRequestsManager.processPendingRequests(profile.id);
-      
+
       if (result.sent > 0) {
         Alert.alert(
           'Friend Requests Sent',

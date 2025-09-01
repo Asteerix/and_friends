@@ -31,10 +31,10 @@ export function withSafeScreen<P extends object>(
         try {
           startupLogger.log(`Initializing screen: ${screenName}`, 'info');
           testFlightLogger.log(`Screen mounted: ${screenName}`, 'info');
-          
+
           // Add a small delay to ensure smooth transition
-          await new Promise(resolve => setTimeout(resolve, 100));
-          
+          await new Promise((resolve) => setTimeout(resolve, 100));
+
           setIsLoading(false);
         } catch (error) {
           const err = error as Error;
@@ -107,15 +107,14 @@ class ErrorBoundary extends React.Component<
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    errorLogger.log(error, { 
+    errorLogger.log(error, {
       context: `${this.props.screenName} error boundary`,
-      componentStack: errorInfo.componentStack 
+      componentStack: errorInfo.componentStack,
     });
-    testFlightLogger.log(
-      `Screen crashed: ${this.props.screenName}`, 
-      'error', 
-      { error: error.message, stack: error.stack }
-    );
+    testFlightLogger.log(`Screen crashed: ${this.props.screenName}`, 'error', {
+      error: error.message,
+      stack: error.stack,
+    });
   }
 
   render() {
@@ -125,12 +124,8 @@ class ErrorBoundary extends React.Component<
           <View style={styles.centerContent}>
             <Text style={styles.errorIcon}>💥</Text>
             <Text style={styles.errorTitle}>Oops!</Text>
-            <Text style={styles.errorMessage}>
-              This screen crashed unexpectedly
-            </Text>
-            <Text style={styles.errorHint}>
-              Please restart the app
-            </Text>
+            <Text style={styles.errorMessage}>This screen crashed unexpectedly</Text>
+            <Text style={styles.errorHint}>Please restart the app</Text>
           </View>
         </SafeAreaView>
       );
@@ -143,51 +138,51 @@ class ErrorBoundary extends React.Component<
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff'
+    backgroundColor: '#fff',
   },
   centerContent: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20
+    padding: 20,
   },
   loadingText: {
     marginTop: 20,
     fontSize: 16,
-    color: '#666'
+    color: '#666',
   },
   errorIcon: {
     fontSize: 60,
-    marginBottom: 20
+    marginBottom: 20,
   },
   errorTitle: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 10
+    marginBottom: 10,
   },
   errorMessage: {
     fontSize: 16,
     color: '#666',
     textAlign: 'center',
-    marginBottom: 30
+    marginBottom: 30,
   },
   errorHint: {
     fontSize: 14,
     color: '#999',
     fontStyle: 'italic',
-    marginTop: 10
+    marginTop: 10,
   },
   retryButton: {
     backgroundColor: '#FF6B6B',
     paddingHorizontal: 30,
     paddingVertical: 15,
     borderRadius: 25,
-    marginTop: 20
+    marginTop: 20,
   },
   retryButtonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: 'bold'
-  }
+    fontWeight: 'bold',
+  },
 });

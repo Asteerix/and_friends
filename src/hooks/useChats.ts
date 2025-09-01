@@ -1,7 +1,5 @@
 import type { PostgrestError } from '@supabase/supabase-js';
 import { useEffect, useState } from 'react';
-
-
 import { supabase } from '@/shared/lib/supabase/client';
 
 export interface Chat {
@@ -11,7 +9,7 @@ export interface Chat {
   event_id?: string;
   created_by?: string;
   created_at?: string;
-};
+}
 export function useChats() {
   const [chats, setChats] = useState<Chat[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -29,18 +27,13 @@ export function useChats() {
   }
 
   async function createChat(chat: Chat) {
-    const { data, error } = await supabase
-      .from('chats')
-      .insert([chat])
-      .select();
+    const { data, error } = await supabase.from('chats').insert([chat]).select();
     if (!error && data) setChats((prev) => [...prev, ...(data as Chat[])]);
     return { data, error };
   }
 
   async function joinChat(chat_id: string, user_id: string) {
-    return await supabase
-      .from('chat_participants')
-      .insert([{ chat_id, user_id }]);
+    return await supabase.from('chat_participants').insert([{ chat_id, user_id }]);
   }
 
   useEffect(() => {
@@ -58,19 +51,15 @@ export function useChats() {
         },
         (payload) => {
           console.log('🔔 [useChats] Realtime update received:', payload.eventType);
-          
+
           if (payload.eventType === 'INSERT' && payload.new) {
             setChats((prev) => [payload.new as Chat, ...prev]);
           } else if (payload.eventType === 'UPDATE' && payload.new) {
-            setChats((prev) => 
-              prev.map((chat) => 
-                chat.id === payload.new.id ? payload.new as Chat : chat
-              )
+            setChats((prev) =>
+              prev.map((chat) => (chat.id === payload.new.id ? (payload.new as Chat) : chat))
             );
           } else if (payload.eventType === 'DELETE' && payload.old) {
-            setChats((prev) => 
-              prev.filter((chat) => chat.id !== (payload.old as any).id)
-            );
+            setChats((prev) => prev.filter((chat) => chat.id !== (payload.old as any).id));
           }
         }
       )

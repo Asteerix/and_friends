@@ -1,11 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { FlatList, View, StyleSheet, ActivityIndicator, Text, TouchableOpacity, Animated } from 'react-native';
-
+import {
+  FlatList,
+  View,
+  StyleSheet,
+  ActivityIndicator,
+  Text,
+  TouchableOpacity,
+  Animated,
+} from 'react-native';
+import MemoryItem from './MemoryItem';
 import { useProfile } from '@/hooks/useProfile';
 import { useStories } from '@/shared/providers/StoriesContext';
 import { useSession } from '@/shared/providers/SessionContext';
-
-import MemoryItem from './MemoryItem';
 
 export default function StoriesStrip() {
   const { stories, loading } = useStories();
@@ -13,7 +19,7 @@ export default function StoriesStrip() {
   const { profile } = useProfile();
   const [activeTab, setActiveTab] = useState<'discover' | 'following'>('discover');
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  
+
   useEffect(() => {
     Animated.timing(fadeAnim, {
       toValue: 1,
@@ -33,25 +39,37 @@ export default function StoriesStrip() {
   }, {});
 
   // Check if current user has active stories
-  const userHasActiveStory = stories.some(story => story.user_id === session?.user?.id);
-  
-  console.log('[StoriesStrip] User has active story:', userHasActiveStory, 'Total stories:', stories.length);
-  console.log('[StoriesStrip] Stories grouped by user:', Object.keys(storiesByUser).length, 'users');
+  const userHasActiveStory = stories.some((story) => story.user_id === session?.user?.id);
+
+  console.log(
+    '[StoriesStrip] User has active story:',
+    userHasActiveStory,
+    'Total stories:',
+    stories.length
+  );
+  console.log(
+    '[StoriesStrip] Stories grouped by user:',
+    Object.keys(storiesByUser).length,
+    'users'
+  );
   console.log('[StoriesStrip] Current user ID:', session?.user?.id);
-  console.log('[StoriesStrip] Stories:', stories.map(s => ({ id: s.id, user_id: s.user_id })));
+  console.log(
+    '[StoriesStrip] Stories:',
+    stories.map((s) => ({ id: s.id, user_id: s.user_id }))
+  );
 
   // Create memory items - one per user
   const memoryItems = Object.entries(storiesByUser).map(([userId, userStories]) => {
     const firstStory = userStories[0];
-    const latestStory = userStories.sort((a, b) => 
-      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    const latestStory = userStories.sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     )[0];
-    
+
     // Check if all stories from this user have been viewed
-    const allViewed = userStories.every(story => 
-      story.viewed_by?.includes(session?.user?.id || '') || false
+    const allViewed = userStories.every(
+      (story) => story.viewed_by?.includes(session?.user?.id || '') || false
     );
-    
+
     return {
       id: userId,
       type: 'story' as const,
@@ -104,7 +122,7 @@ export default function StoriesStrip() {
   return (
     <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
       <View style={styles.tabsContainer}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.tab, activeTab === 'discover' && styles.activeTab]}
           onPress={() => setActiveTab('discover')}
         >
@@ -112,7 +130,7 @@ export default function StoriesStrip() {
             Discover
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.tab, activeTab === 'following' && styles.activeTab]}
           onPress={() => setActiveTab('following')}
         >
@@ -129,10 +147,10 @@ export default function StoriesStrip() {
         contentContainerStyle={styles.listContent}
         ItemSeparatorComponent={() => <View style={{ width: 12 }} />}
         renderItem={({ item }) => (
-          <MemoryItem 
-            imageUri={item.imageUri} 
-            avatarUri={item.avatarUri} 
-            type={item.type as any} 
+          <MemoryItem
+            imageUri={item.imageUri}
+            avatarUri={item.avatarUri}
+            type={item.type as any}
             username={item.username}
             userId={item.userId}
             isOwn={item.isOwn}

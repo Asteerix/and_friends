@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-
 import { supabase } from '@/shared/lib/supabase/client';
 import { useSession } from '@/shared/providers/SessionContext';
 
@@ -21,7 +20,7 @@ export function useOnboardingStatus(): ProfileStatus {
 
   const fetchProfileStatus = useCallback(async () => {
     console.log('[useOnboardingStatus] fetchProfileStatus called. session:', session);
-    
+
     if (!session?.user) {
       console.log('[useOnboardingStatus] 🚫 PAS DE SESSION USER - FORCE AUTH');
       console.log(

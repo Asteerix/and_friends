@@ -17,7 +17,11 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import CountryFlag from 'react-native-country-flag';
-
+import MusicPickerModal from '../components/MusicPickerModal';
+import RestaurantPickerModal from '../components/RestaurantPickerModal';
+import LocationPickerModal from '../components/LocationPickerModal';
+import HobbiesPickerModal from '../components/HobbiesPickerModal';
+import BirthDatePickerModal from '../components/BirthDatePickerModal';
 import { useProfile } from '@/hooks/useProfile';
 import { useFriends } from '@/hooks/useFriends';
 import BackButton from '@/assets/svg/back-button.svg';
@@ -25,14 +29,9 @@ import ChatButton from '@/assets/svg/chat-button.svg';
 import NotificationButton from '@/assets/svg/notification-button.svg';
 
 // Import modal components
-import MusicPickerModal from '../components/MusicPickerModal';
-import RestaurantPickerModal from '../components/RestaurantPickerModal';
-import LocationPickerModal from '../components/LocationPickerModal';
-import HobbiesPickerModal from '../components/HobbiesPickerModal';
-import BirthDatePickerModal from '../components/BirthDatePickerModal';
 
 // Définir le chemin de l'avatar par défaut
-const DEFAULT_AVATAR = require('../../../assets/default_avatar.png'); // eslint-disable-line @typescript-eslint/no-var-requires
+const DEFAULT_AVATAR = require('@/assets/default_avatar.png');
 
 // Helper pour vérifier si une image est valide (non vide, non null, non undefined)
 function isValidAvatar(url?: string | null) {
@@ -64,96 +63,96 @@ const USERNAME_CHANGE_DAYS = 14; // Can change username every 14 days
 // Helper function to get country ISO code from location string
 const getCountryISOCode = (location: string) => {
   if (!location) return 'US';
-  
+
   // Common country mappings
   const countryMappings: { [key: string]: string } = {
-    'USA': 'US',
+    USA: 'US',
     'United States': 'US',
     'United States of America': 'US',
-    'UK': 'GB',
+    UK: 'GB',
     'United Kingdom': 'GB',
-    'England': 'GB',
-    'Scotland': 'GB',
-    'Wales': 'GB',
-    'Canada': 'CA',
-    'Australia': 'AU',
-    'France': 'FR',
-    'Germany': 'DE',
-    'Italy': 'IT',
-    'Spain': 'ES',
-    'Japan': 'JP',
-    'Brazil': 'BR',
-    'Mexico': 'MX',
-    'India': 'IN',
-    'China': 'CN',
+    England: 'GB',
+    Scotland: 'GB',
+    Wales: 'GB',
+    Canada: 'CA',
+    Australia: 'AU',
+    France: 'FR',
+    Germany: 'DE',
+    Italy: 'IT',
+    Spain: 'ES',
+    Japan: 'JP',
+    Brazil: 'BR',
+    Mexico: 'MX',
+    India: 'IN',
+    China: 'CN',
     'South Korea': 'KR',
-    'Korea': 'KR',
-    'Netherlands': 'NL',
-    'Holland': 'NL',
-    'Sweden': 'SE',
-    'Norway': 'NO',
-    'Denmark': 'DK',
-    'Switzerland': 'CH',
-    'Belgium': 'BE',
-    'Argentina': 'AR',
-    'Chile': 'CL',
-    'Colombia': 'CO',
-    'Portugal': 'PT',
-    'Greece': 'GR',
-    'Poland': 'PL',
-    'Russia': 'RU',
-    'Turkey': 'TR',
-    'Egypt': 'EG',
+    Korea: 'KR',
+    Netherlands: 'NL',
+    Holland: 'NL',
+    Sweden: 'SE',
+    Norway: 'NO',
+    Denmark: 'DK',
+    Switzerland: 'CH',
+    Belgium: 'BE',
+    Argentina: 'AR',
+    Chile: 'CL',
+    Colombia: 'CO',
+    Portugal: 'PT',
+    Greece: 'GR',
+    Poland: 'PL',
+    Russia: 'RU',
+    Turkey: 'TR',
+    Egypt: 'EG',
     'South Africa': 'ZA',
     'New Zealand': 'NZ',
-    'Ireland': 'IE',
-    'Austria': 'AT',
-    'Finland': 'FI',
-    'Singapore': 'SG',
-    'Thailand': 'TH',
-    'Malaysia': 'MY',
-    'Indonesia': 'ID',
-    'Philippines': 'PH',
-    'Vietnam': 'VN',
-    'UAE': 'AE',
+    Ireland: 'IE',
+    Austria: 'AT',
+    Finland: 'FI',
+    Singapore: 'SG',
+    Thailand: 'TH',
+    Malaysia: 'MY',
+    Indonesia: 'ID',
+    Philippines: 'PH',
+    Vietnam: 'VN',
+    UAE: 'AE',
     'United Arab Emirates': 'AE',
     'Saudi Arabia': 'SA',
-    'Israel': 'IL',
+    Israel: 'IL',
     'Czech Republic': 'CZ',
-    'Hungary': 'HU',
-    'Romania': 'RO',
-    'Ukraine': 'UA',
+    Hungary: 'HU',
+    Romania: 'RO',
+    Ukraine: 'UA',
   };
-  
+
   // Try to extract country from location (handle "City, Country" format)
   const parts = location.split(',');
-  
+
   // Try last part first (usually country in "City, Country" format)
   if (parts.length > 1) {
     const lastPart = parts[parts.length - 1]?.trim() || '';
-    
+
     // Check if it's a known country
     if (countryMappings[lastPart]) {
       return countryMappings[lastPart];
     }
-    
+
     // If it's already a 2-letter code
     if (lastPart.length === 2) {
       return lastPart.toUpperCase();
     }
   }
-  
+
   // Try first part (in case location is just country name)
   const firstPart = parts[0]?.trim() || '';
   if (countryMappings[firstPart]) {
     return countryMappings[firstPart];
   }
-  
+
   // If it's already a 2-letter code
   if (firstPart.length === 2) {
     return firstPart.toUpperCase();
   }
-  
+
   // Default to US
   return 'US';
 };
@@ -162,7 +161,7 @@ export default function EditProfileScreen() {
   const router = useRouter();
   const { profile, updateProfile, uploadAvatar, uploadCover, fetchProfile } = useProfile();
   const { friends: userFriends } = useFriends();
-  
+
   // Initialize state with profile data
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -174,29 +173,29 @@ export default function EditProfileScreen() {
   const [location, setLocation] = useState('');
   const [occupation, setOccupation] = useState('');
   const [interests, setInterests] = useState<string[]>([]);
-  const [jam, setJam] = useState({ 
-    track_id: '', 
-    title: '', 
-    artist: '', 
-    cover_url: '', 
-    preview_url: '' 
+  const [jam, setJam] = useState({
+    track_id: '',
+    title: '',
+    artist: '',
+    cover_url: '',
+    preview_url: '',
   });
-  const [restaurant, setRestaurant] = useState({ 
-    id: '', 
-    name: '', 
-    address: '' 
+  const [restaurant, setRestaurant] = useState({
+    id: '',
+    name: '',
+    address: '',
   });
   const [avatarUri, setAvatarUri] = useState('');
   const [coverUri, setCoverUri] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  
+
   // Modal states
   const [showJamModal, setShowJamModal] = useState(false);
   const [showRestaurantModal, setShowRestaurantModal] = useState(false);
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [showBirthDateModal, setShowBirthDateModal] = useState(false);
   const [showHobbiesModal, setShowHobbiesModal] = useState(false);
-  
+
   // Update state when profile loads
   useEffect(() => {
     if (profile) {
@@ -211,18 +210,18 @@ export default function EditProfileScreen() {
       setAvatarUri(profile.avatar_url || '');
       setCoverUri(profile.cover_url || '');
       setHideBirthDate(profile.hide_birth_date || false);
-      
+
       // Birth date and age
       if (profile.birth_date) {
         setBirthDate(profile.birth_date);
         setAge(calculateAge(profile.birth_date).toString());
       }
-      
+
       // Location
       if (profile.location) {
         setLocation(profile.location);
       }
-      
+
       // Load jam/music preference from individual fields
       if (profile.jam_title || profile.jam_artist) {
         setJam({
@@ -230,31 +229,27 @@ export default function EditProfileScreen() {
           title: profile.jam_title || '',
           artist: profile.jam_artist || '',
           cover_url: profile.jam_cover_url || '',
-          preview_url: profile.jam_preview_url || ''
+          preview_url: profile.jam_preview_url || '',
         });
       }
-      
+
       // Load restaurant preference from individual fields
       if (profile.selected_restaurant_name) {
         setRestaurant({
           id: profile.selected_restaurant_id || '',
           name: profile.selected_restaurant_name || '',
-          address: profile.selected_restaurant_address || ''
+          address: profile.selected_restaurant_address || '',
         });
       }
     }
   }, [profile]);
 
   const handleSwitchPhoto = async () => {
-    Alert.alert(
-      'Switch Photo',
-      'Choose your profile photo source',
-      [
-        { text: 'Camera', onPress: handleTakePhoto },
-        { text: 'Photo Library', onPress: handlePickPhoto },
-        { text: 'Cancel', style: 'cancel' }
-      ]
-    );
+    Alert.alert('Switch Photo', 'Choose your profile photo source', [
+      { text: 'Camera', onPress: handleTakePhoto },
+      { text: 'Photo Library', onPress: handlePickPhoto },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
   };
 
   const handleTakePhoto = async () => {
@@ -287,7 +282,6 @@ export default function EditProfileScreen() {
     }
   };
 
-
   const handleRemoveInterest = (index: number) => {
     const newInterests = interests.filter((_, i) => i !== index);
     setInterests(newInterests);
@@ -309,7 +303,9 @@ export default function EditProfileScreen() {
     if (!profile?.last_name_change) return true;
     const lastChange = new Date(profile.last_name_change);
     const now = new Date();
-    const daysSinceChange = Math.floor((now.getTime() - lastChange.getTime()) / (1000 * 60 * 60 * 24));
+    const daysSinceChange = Math.floor(
+      (now.getTime() - lastChange.getTime()) / (1000 * 60 * 60 * 24)
+    );
     return daysSinceChange >= NAME_CHANGE_DAYS;
   };
 
@@ -317,7 +313,9 @@ export default function EditProfileScreen() {
     if (!profile?.last_username_change) return true;
     const lastChange = new Date(profile.last_username_change);
     const now = new Date();
-    const daysSinceChange = Math.floor((now.getTime() - lastChange.getTime()) / (1000 * 60 * 60 * 24));
+    const daysSinceChange = Math.floor(
+      (now.getTime() - lastChange.getTime()) / (1000 * 60 * 60 * 24)
+    );
     return daysSinceChange >= USERNAME_CHANGE_DAYS;
   };
 
@@ -325,7 +323,9 @@ export default function EditProfileScreen() {
     if (!profile?.last_name_change) return 0;
     const lastChange = new Date(profile.last_name_change);
     const now = new Date();
-    const daysSinceChange = Math.floor((now.getTime() - lastChange.getTime()) / (1000 * 60 * 60 * 24));
+    const daysSinceChange = Math.floor(
+      (now.getTime() - lastChange.getTime()) / (1000 * 60 * 60 * 24)
+    );
     return Math.max(0, NAME_CHANGE_DAYS - daysSinceChange);
   };
 
@@ -333,7 +333,9 @@ export default function EditProfileScreen() {
     if (!profile?.last_username_change) return 0;
     const lastChange = new Date(profile.last_username_change);
     const now = new Date();
-    const daysSinceChange = Math.floor((now.getTime() - lastChange.getTime()) / (1000 * 60 * 60 * 24));
+    const daysSinceChange = Math.floor(
+      (now.getTime() - lastChange.getTime()) / (1000 * 60 * 60 * 24)
+    );
     return Math.max(0, USERNAME_CHANGE_DAYS - daysSinceChange);
   };
 
@@ -343,7 +345,7 @@ export default function EditProfileScreen() {
     const nameParts = originalName.split(' ');
     const originalFirstName = nameParts[0] || '';
     const originalLastName = nameParts.slice(1).join(' ') || '';
-    
+
     return firstName !== originalFirstName || lastName !== originalLastName;
   };
 
@@ -353,7 +355,7 @@ export default function EditProfileScreen() {
 
   const handleSave = async () => {
     setIsLoading(true);
-    
+
     try {
       // Upload new avatar if changed
       if (avatarUri && avatarUri !== profile?.avatar_url && !avatarUri.startsWith('http')) {
@@ -362,7 +364,7 @@ export default function EditProfileScreen() {
           throw avatarResult.error;
         }
       }
-      
+
       // Upload new cover if changed
       if (coverUri && coverUri !== profile?.cover_url && !coverUri.startsWith('http')) {
         const coverResult = await uploadCover(coverUri);
@@ -370,31 +372,31 @@ export default function EditProfileScreen() {
           throw coverResult.error;
         }
       }
-      
+
       // Check if name/username can be changed
       const nameChanged = hasNameChanged();
       const usernameChanged = hasUsernameChanged();
-      
+
       if (nameChanged && !canChangeName()) {
         const daysLeft = getDaysUntilNameChange();
         Alert.alert(
-          'Cannot Change Name', 
+          'Cannot Change Name',
           `You can change your name again in ${daysLeft} ${daysLeft === 1 ? 'day' : 'days'}.`
         );
         setIsLoading(false);
         return;
       }
-      
+
       if (usernameChanged && !canChangeUsername()) {
         const daysLeft = getDaysUntilUsernameChange();
         Alert.alert(
-          'Cannot Change Username', 
+          'Cannot Change Username',
           `You can change your username again in ${daysLeft} ${daysLeft === 1 ? 'day' : 'days'}.`
         );
         setIsLoading(false);
         return;
       }
-      
+
       // Build update data
       const updateData: any = {
         full_name: `${firstName} ${lastName}`.trim(),
@@ -415,7 +417,7 @@ export default function EditProfileScreen() {
         selected_restaurant_name: restaurant.name || undefined,
         selected_restaurant_address: restaurant.address || undefined,
       };
-      
+
       // Only update username if it can be changed
       if (usernameChanged && canChangeUsername()) {
         updateData.username = username;
@@ -423,22 +425,22 @@ export default function EditProfileScreen() {
       } else if (!usernameChanged) {
         updateData.username = username;
       }
-      
+
       // Track name change if changed
       if (nameChanged && canChangeName()) {
         updateData.last_name_change = new Date().toISOString();
       }
-      
+
       // Update profile fields
       const result = await updateProfile(updateData);
 
       if (result.error) {
         throw result.error;
       }
-      
+
       // Force refresh profile data to ensure UI is updated
       await fetchProfile();
-      
+
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Alert.alert('Success', 'Profile updated successfully');
       void router.back();
@@ -468,20 +470,20 @@ export default function EditProfileScreen() {
           />
           {/* Overlay for readability */}
           <View style={styles.headerOverlay} pointerEvents="none" />
-          
+
           {/* Top navigation bar */}
           <View style={styles.topNavBar}>
-            <TouchableOpacity 
-              onPress={() => router.back()} 
+            <TouchableOpacity
+              onPress={() => router.back()}
               style={styles.backButton}
-              accessibilityRole="button" 
+              accessibilityRole="button"
               accessibilityLabel="Go back"
             >
               <BackButton width={24} height={24} fill="#FFF" color="#FFF" stroke="#FFF" />
             </TouchableOpacity>
-            
+
             <Text style={styles.headerTitle}>Edit Profile</Text>
-            
+
             <View style={styles.rightIcons}>
               <TouchableOpacity
                 accessibilityRole="button"
@@ -499,7 +501,7 @@ export default function EditProfileScreen() {
               </TouchableOpacity>
             </View>
           </View>
-          
+
           {/* Profile info overlay */}
           <View style={styles.profileInfoOverlay}>
             <View style={styles.flagRow}>
@@ -524,11 +526,11 @@ export default function EditProfileScreen() {
               {occupation || 'Self-employed'} • {userFriends.length} followers
             </Text>
           </View>
-          
+
           {/* Switch Photo button */}
           <View style={styles.switchPhotoContainer}>
-            <TouchableOpacity 
-              style={styles.switchPhotoBtn} 
+            <TouchableOpacity
+              style={styles.switchPhotoBtn}
               onPress={handleSwitchPhoto}
               accessibilityRole="button"
               accessibilityLabel="Switch Photo"
@@ -543,7 +545,7 @@ export default function EditProfileScreen() {
         <View style={styles.formSheet}>
           {/* Basic Info Section */}
           <Text style={styles.sectionTitle}>Basic Info</Text>
-          
+
           {/* Name Section with Lock Status */}
           <View style={[styles.formRow, { marginBottom: 8 }]}>
             <View style={styles.fieldHeader}>
@@ -564,7 +566,7 @@ export default function EditProfileScreen() {
               editable={canChangeName()}
             />
           </View>
-          
+
           <View style={styles.formRow}>
             <View style={styles.fieldHeader}>
               <Text style={styles.fieldLabel}>Last Name</Text>
@@ -586,7 +588,7 @@ export default function EditProfileScreen() {
               </View>
             )}
           </View>
-          
+
           {/* Username Section with Lock Status */}
           <View style={styles.formRow}>
             <View style={styles.fieldHeader}>
@@ -602,7 +604,7 @@ export default function EditProfileScreen() {
               style={[styles.textInput, !canChangeUsername() && styles.disabledInput]}
               value={username}
               onChangeText={setUsername}
-              placeholder={profile?.username || "@username"}
+              placeholder={profile?.username || '@username'}
               placeholderTextColor="#999"
               autoCapitalize="none"
               editable={canChangeUsername()}
@@ -616,7 +618,7 @@ export default function EditProfileScreen() {
               </View>
             )}
           </View>
-          
+
           <View style={styles.formRow}>
             <Text style={styles.fieldLabel}>Birth Date</Text>
             <TouchableOpacity
@@ -630,7 +632,7 @@ export default function EditProfileScreen() {
               </Text>
             </TouchableOpacity>
           </View>
-          
+
           <View style={styles.formRow}>
             <View style={styles.switchRow}>
               <View style={styles.switchLabel}>
@@ -645,37 +647,34 @@ export default function EditProfileScreen() {
               />
             </View>
           </View>
-          
+
           <View style={styles.formRow}>
             <Text style={styles.fieldLabel}>Location</Text>
-            <TouchableOpacity
-              style={styles.textInput}
-              onPress={() => setShowLocationModal(true)}
-            >
+            <TouchableOpacity style={styles.textInput} onPress={() => setShowLocationModal(true)}>
               <Text style={location ? styles.textInputText : styles.placeholderText}>
                 {location || 'Select location'}
               </Text>
             </TouchableOpacity>
           </View>
-          
+
           <View style={styles.formRow}>
             <Text style={styles.fieldLabel}>Occupation / School</Text>
             <TextInput
               style={styles.textInput}
               value={occupation}
               onChangeText={setOccupation}
-              placeholder={profile?.path || "What do you do?"}
+              placeholder={profile?.path || 'What do you do?'}
               placeholderTextColor="#999"
             />
           </View>
-          
+
           <View style={styles.formRow}>
             <Text style={styles.fieldLabel}>Phone Number</Text>
             <View style={[styles.textInput, styles.disabledInput]}>
               <Text style={styles.textInputText}>{profile?.phone || 'No phone number'}</Text>
             </View>
           </View>
-          
+
           <View style={styles.formRow}>
             <Text style={styles.fieldLabel}>Bio</Text>
             <TextInput
@@ -690,15 +689,15 @@ export default function EditProfileScreen() {
             />
             <Text style={styles.charCount}>{bio.length}/150</Text>
           </View>
-          
+
           {/* Interests Section */}
           <Text style={styles.sectionTitle}>Talk to Me About</Text>
           <Text style={styles.sectionSubtitle}>Your Interests (Max 10 tags)</Text>
-          
+
           <View style={styles.tagsContainer}>
             {interests.map((interest, index) => (
-              <TouchableOpacity 
-                key={index} 
+              <TouchableOpacity
+                key={index}
                 style={styles.interestTag}
                 onPress={() => handleRemoveInterest(index)}
               >
@@ -707,27 +706,21 @@ export default function EditProfileScreen() {
               </TouchableOpacity>
             ))}
             {interests.length < 10 && (
-              <TouchableOpacity 
-                style={styles.addTag} 
-                onPress={() => setShowHobbiesModal(true)}
-              >
+              <TouchableOpacity style={styles.addTag} onPress={() => setShowHobbiesModal(true)}>
                 <Text style={styles.addTagText}>+ Add</Text>
               </TouchableOpacity>
             )}
           </View>
-          
+
           {/* Music Section */}
           <Text style={styles.sectionTitle}>On Repeat</Text>
           <Text style={styles.sectionSubtitle}>Current Favorite Song</Text>
-          
-          <TouchableOpacity 
-            style={styles.spotifySearchBar}
-            onPress={() => setShowJamModal(true)}
-          >
+
+          <TouchableOpacity style={styles.spotifySearchBar} onPress={() => setShowJamModal(true)}>
             <Ionicons name="search" size={20} color="#999" />
             <Text style={styles.searchPlaceholder}>Search song or paste Spotify link</Text>
           </TouchableOpacity>
-          
+
           {jam.title && (
             <View style={styles.songCard}>
               {jam.cover_url ? (
@@ -746,19 +739,19 @@ export default function EditProfileScreen() {
               </TouchableOpacity>
             </View>
           )}
-          
+
           {/* Place Section */}
           <Text style={styles.sectionTitle}>Go-To Spot</Text>
           <Text style={styles.sectionSubtitle}>Favorite Local Place</Text>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             style={styles.spotifySearchBar}
             onPress={() => setShowRestaurantModal(true)}
           >
             <Ionicons name="search" size={20} color="#999" />
             <Text style={styles.searchPlaceholder}>Search for a place</Text>
           </TouchableOpacity>
-          
+
           {restaurant.name && (
             <View style={styles.placeCard}>
               <View style={styles.placeInfo}>
@@ -770,13 +763,9 @@ export default function EditProfileScreen() {
               </TouchableOpacity>
             </View>
           )}
-          
+
           {/* Save Button */}
-          <TouchableOpacity 
-            style={styles.saveButton}
-            onPress={handleSave}
-            disabled={isLoading}
-          >
+          <TouchableOpacity style={styles.saveButton} onPress={handleSave} disabled={isLoading}>
             {isLoading ? (
               <ActivityIndicator color="#FFF" />
             ) : (
@@ -785,7 +774,7 @@ export default function EditProfileScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
-      
+
       {/* Music Picker Modal */}
       <MusicPickerModal
         visible={showJamModal}
@@ -796,18 +785,22 @@ export default function EditProfileScreen() {
             title: song.title,
             artist: song.artist,
             cover_url: song.cover,
-            preview_url: song.preview || ''
+            preview_url: song.preview || '',
           });
         }}
-        currentSong={jam.track_id ? {
-          id: jam.track_id,
-          title: jam.title,
-          artist: jam.artist,
-          cover: jam.cover_url,
-          preview: jam.preview_url
-        } : null}
+        currentSong={
+          jam.track_id
+            ? {
+                id: jam.track_id,
+                title: jam.title,
+                artist: jam.artist,
+                cover: jam.cover_url,
+                preview: jam.preview_url,
+              }
+            : null
+        }
       />
-      
+
       {/* Restaurant Picker Modal */}
       <RestaurantPickerModal
         visible={showRestaurantModal}
@@ -816,15 +809,19 @@ export default function EditProfileScreen() {
           setRestaurant({
             id: place.id,
             name: place.name,
-            address: place.address
+            address: place.address,
           });
         }}
-        currentPlace={restaurant.id ? {
-          ...restaurant,
-          distKm: 0
-        } : null}
+        currentPlace={
+          restaurant.id
+            ? {
+                ...restaurant,
+                distKm: 0,
+              }
+            : null
+        }
       />
-      
+
       {/* Location Picker Modal */}
       <LocationPickerModal
         visible={showLocationModal}
@@ -832,7 +829,7 @@ export default function EditProfileScreen() {
         onSelect={(loc) => setLocation(loc)}
         currentLocation={location}
       />
-      
+
       {/* Birth Date Picker Modal */}
       <BirthDatePickerModal
         visible={showBirthDateModal}
@@ -843,7 +840,7 @@ export default function EditProfileScreen() {
         }}
         currentDate={birthDate}
       />
-      
+
       {/* Hobbies Picker Modal */}
       <HobbiesPickerModal
         visible={showHobbiesModal}

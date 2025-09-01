@@ -23,7 +23,8 @@ export function useEventAttendees(eventId: string | undefined) {
         // Get all users who have RSVP'd as attending
         const { data, error } = await supabase
           .from('event_attendees')
-          .select(`
+          .select(
+            `
             user_id,
             status,
             profiles!event_attendees_user_id_fkey (
@@ -32,19 +33,21 @@ export function useEventAttendees(eventId: string | undefined) {
               username,
               avatar_url
             )
-          `)
+          `
+          )
           .eq('event_id', eventId)
           .eq('status', 'attending');
 
         if (error) throw error;
 
-        const attendeesList = data?.map((invite: any) => ({
-          id: invite.user_id,
-          full_name: invite.profiles?.full_name || '',
-          username: invite.profiles?.username || '',
-          avatar_url: invite.profiles?.avatar_url || null,
-          rsvp_status: invite.status
-        })) || [];
+        const attendeesList =
+          data?.map((invite: any) => ({
+            id: invite.user_id,
+            full_name: invite.profiles?.full_name || '',
+            username: invite.profiles?.username || '',
+            avatar_url: invite.profiles?.avatar_url || null,
+            rsvp_status: invite.status,
+          })) || [];
 
         setAttendees(attendeesList);
       } catch (err) {

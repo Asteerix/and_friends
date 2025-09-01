@@ -1,12 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Platform,
-  SafeAreaView,
-  StatusBar,
-} from 'react-native';
+import { View, Text, StyleSheet, Platform, SafeAreaView, StatusBar } from 'react-native';
 import { create } from 'react-native-pixel-perfect';
 import { Feather } from '@expo/vector-icons';
 import { BanStatus } from '@/shared/utils/bruteforceProtection';
@@ -61,14 +54,13 @@ const BannedScreen: React.FC<BannedScreenProps> = ({ banStatus }) => {
           </View>
 
           <Text style={styles.title}>Accès Temporairement Bloqué</Text>
-          
-          <Text style={styles.subtitle}>
-            Trop de tentatives de connexion échouées
-          </Text>
+
+          <Text style={styles.subtitle}>Trop de tentatives de connexion échouées</Text>
 
           <View style={styles.messageContainer}>
             <Text style={styles.message}>
-              Pour des raisons de sécurité, votre accès a été temporairement suspendu suite à plusieurs tentatives de connexion infructueuses.
+              Pour des raisons de sécurité, votre accès a été temporairement suspendu suite à
+              plusieurs tentatives de connexion infructueuses.
             </Text>
           </View>
 

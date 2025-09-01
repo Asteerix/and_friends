@@ -15,7 +15,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { hybridGeocodingService, type LocationSearchResult } from '../../../services/hybridGeocodingService';
+import {
+  hybridGeocodingService,
+  type LocationSearchResult,
+} from '../../../services/hybridGeocodingService';
 
 interface EventLocationSearchModalProps {
   visible: boolean;
@@ -49,7 +52,7 @@ export default function EventLocationSearchModal({
   const [searchResults, setSearchResults] = useState<LocationSearchResult[]>([]);
   const [recentLocations, setRecentLocations] = useState<LocationSearchResult[]>([]);
   const [showManualEntry, setShowManualEntry] = useState(false);
-  
+
   // Manual entry fields
   const [manualName, setManualName] = useState('');
   const [manualAddress, setManualAddress] = useState('');
@@ -90,7 +93,7 @@ export default function EventLocationSearchModal({
   // Search for locations using HERE API
   const handleSearch = async (query: string) => {
     console.log('🔍 EventLocationSearchModal - Starting search for:', query);
-    
+
     if (!query.trim()) {
       console.log('❌ Empty query, clearing results');
       setSearchResults([]);
@@ -105,7 +108,7 @@ export default function EventLocationSearchModal({
     }
 
     setIsSearching(true);
-    
+
     try {
       console.log('📡 Calling Geocoding API...');
       // Use HERE API to search for locations
@@ -136,24 +139,24 @@ export default function EventLocationSearchModal({
     console.log('  - Address:', location.address);
     console.log('  - City:', location.city);
     console.log('  - Coordinates:', location.coordinates);
-    
+
     onSelect(location);
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    
+
     // Add to recent locations and save
     const newRecentLocations = (() => {
       // Remove duplicate if it exists
-      const filtered = recentLocations.filter(loc => {
+      const filtered = recentLocations.filter((loc) => {
         // Compare by address and city to avoid duplicates
         return !(loc.address === location.address && loc.city === location.city);
       });
       // Add new location at the beginning and limit to MAX_RECENT_LOCATIONS
       return [location, ...filtered].slice(0, MAX_RECENT_LOCATIONS);
     })();
-    
+
     setRecentLocations(newRecentLocations);
     void saveRecentLocations(newRecentLocations);
-    
+
     onClose();
   };
 
@@ -176,7 +179,7 @@ export default function EventLocationSearchModal({
 
   const handleRemoveRecentLocation = (locationToRemove: LocationSearchResult) => {
     const newRecentLocations = recentLocations.filter(
-      loc => !(loc.address === locationToRemove.address && loc.city === locationToRemove.city)
+      (loc) => !(loc.address === locationToRemove.address && loc.city === locationToRemove.city)
     );
     setRecentLocations(newRecentLocations);
     void saveRecentLocations(newRecentLocations);
@@ -225,7 +228,7 @@ export default function EventLocationSearchModal({
           keyboardVerticalOffset={0}
         >
           <View style={styles.handle} />
-          
+
           <View style={styles.header}>
             <Text style={styles.title}>Event Location</Text>
             <Text style={styles.subtitle}>Search for a place or enter an address</Text>
@@ -269,7 +272,9 @@ export default function EventLocationSearchModal({
                   <View style={styles.emptyState}>
                     <Ionicons name="information-circle-outline" size={48} color={COLORS.grey1} />
                     <Text style={styles.emptyStateText}>Keep typing...</Text>
-                    <Text style={styles.emptyStateSubtext}>Enter at least 4 characters to search</Text>
+                    <Text style={styles.emptyStateSubtext}>
+                      Enter at least 4 characters to search
+                    </Text>
                   </View>
                 ) : searchQuery.length >= 4 && searchResults.length === 0 ? (
                   <View style={styles.emptyState}>
@@ -301,7 +306,9 @@ export default function EventLocationSearchModal({
                     <View style={styles.sectionHeader}>
                       <View>
                         <Text style={styles.sectionTitle}>Recent Locations</Text>
-                        <Text style={styles.sectionSubtitle}>Tap to select • Press X to delete</Text>
+                        <Text style={styles.sectionSubtitle}>
+                          Tap to select • Press X to delete
+                        </Text>
                       </View>
                       {recentLocations.length > 3 && (
                         <Pressable onPress={handleClearAllRecent} style={styles.clearAllButton}>
@@ -354,10 +361,7 @@ export default function EventLocationSearchModal({
           ) : (
             /* Manual Entry Form */
             <ScrollView style={styles.manualForm} showsVerticalScrollIndicator={false}>
-              <Pressable
-                style={styles.backButton}
-                onPress={() => setShowManualEntry(false)}
-              >
+              <Pressable style={styles.backButton} onPress={() => setShowManualEntry(false)}>
                 <Ionicons name="arrow-back" size={20} color={COLORS.primary} />
                 <Text style={styles.backButtonText}>Back to search</Text>
               </Pressable>
@@ -370,7 +374,9 @@ export default function EventLocationSearchModal({
                 <View style={styles.warningContent}>
                   <Text style={styles.warningTitle}>Important Notice</Text>
                   <Text style={styles.warningText}>
-                    Manual addresses may not be properly referenced on maps and could make your event harder to find. We recommend using the search function above for better results.
+                    Manual addresses may not be properly referenced on maps and could make your
+                    event harder to find. We recommend using the search function above for better
+                    results.
                   </Text>
                 </View>
               </View>
@@ -450,8 +456,8 @@ export default function EventLocationSearchModal({
               <Pressable
                 style={[
                   styles.confirmButton,
-                  (!manualName.trim() || !manualAddress.trim() || !manualCity.trim()) && 
-                  styles.confirmButtonDisabled
+                  (!manualName.trim() || !manualAddress.trim() || !manualCity.trim()) &&
+                    styles.confirmButtonDisabled,
                 ]}
                 onPress={handleManualSubmit}
                 disabled={!manualName.trim() || !manualAddress.trim() || !manualCity.trim()}

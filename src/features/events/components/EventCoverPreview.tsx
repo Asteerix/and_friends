@@ -1,18 +1,13 @@
 import React from 'react';
-import {
-  View,
-  Image,
-  Text,
-  StyleSheet,
-  ImageStyle,
-  ViewStyle,
-  TextStyle,
-} from 'react-native';
+import { View, Image, Text, StyleSheet, ImageStyle, ViewStyle, TextStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 
 // Import fonts and backgrounds data
-import { FONTS as IMPORTED_FONTS, BACKGROUNDS as IMPORTED_BACKGROUNDS } from '../data/eventTemplates';
+import {
+  FONTS as IMPORTED_FONTS,
+  BACKGROUNDS as IMPORTED_BACKGROUNDS,
+} from '../data/eventTemplates';
 
 // Map fonts with their styles
 const FONTS = IMPORTED_FONTS.map((font) => ({
@@ -68,14 +63,14 @@ interface EventCoverPreviewProps {
   showOverlay?: boolean;
 }
 
-export default function EventCoverPreview({ 
-  event, 
-  style, 
+export default function EventCoverPreview({
+  event,
+  style,
   showTitle = true,
-  showOverlay = true 
+  showOverlay = true,
 }: EventCoverPreviewProps) {
   const coverData = event.cover_data || {};
-  
+
   // Get font styles
   const getTitleFontStyle = () => {
     const font = FONTS.find((f) => f.id === coverData.selectedTitleFont);
@@ -100,13 +95,10 @@ export default function EventCoverPreview({
     <View style={[styles.container, style]}>
       {/* Background */}
       {coverData.selectedBackground && !coverData.coverImage && !coverData.selectedTemplate ? (
-        <LinearGradient
-          colors={getBackgroundColors() as any}
-          style={styles.gradient}
-        />
+        <LinearGradient colors={getBackgroundColors() as any} style={styles.gradient} />
       ) : coverData.selectedTemplate ? (
-        <Image 
-          source={coverData.selectedTemplate.image} 
+        <Image
+          source={coverData.selectedTemplate.image}
           style={styles.image as ImageStyle}
           resizeMode="cover"
         />
@@ -118,16 +110,8 @@ export default function EventCoverPreview({
         />
       ) : (
         <View style={styles.placeholder}>
-          <LinearGradient
-            colors={['#E0E0E0', '#CCCCCC']}
-            style={styles.gradient}
-          />
-          <Ionicons 
-            name="image-outline" 
-            size={40} 
-            color="#FFF" 
-            style={{ opacity: 0.5 }} 
-          />
+          <LinearGradient colors={['#E0E0E0', '#CCCCCC']} style={styles.gradient} />
+          <Ionicons name="image-outline" size={40} color="#FFF" style={{ opacity: 0.5 }} />
         </View>
       )}
 
@@ -144,7 +128,7 @@ export default function EventCoverPreview({
                   top: `${sticker.y}%`,
                   transform: [
                     { scale: sticker.scale * 0.5 }, // Scale down for preview
-                    { rotate: `${sticker.rotation}deg` }
+                    { rotate: `${sticker.rotation}deg` },
                   ],
                 },
               ]}
@@ -168,18 +152,12 @@ export default function EventCoverPreview({
       {showTitle && (event.title || event.subtitle) && (
         <View style={styles.titleContainer}>
           {event.title && (
-            <Text 
-              style={[styles.title, getTitleFontStyle()]} 
-              numberOfLines={2}
-            >
+            <Text style={[styles.title, getTitleFontStyle()]} numberOfLines={2}>
               {event.title}
             </Text>
           )}
           {event.subtitle && (
-            <Text 
-              style={[styles.subtitle, getSubtitleFontStyle()]}
-              numberOfLines={1}
-            >
+            <Text style={[styles.subtitle, getSubtitleFontStyle()]} numberOfLines={1}>
               {event.subtitle}
             </Text>
           )}

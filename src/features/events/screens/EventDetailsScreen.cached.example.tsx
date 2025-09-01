@@ -10,7 +10,7 @@ import { useOfflineQueue } from '@/shared/hooks/cache';
 // Exemple de galerie d'images avec cache
 export const EventGalleryExample = ({ eventId, photos }) => {
   // Précharger toutes les photos de la galerie
-  const photoUrls = photos.map(p => p.url).filter(Boolean);
+  const photoUrls = photos.map((p) => p.url).filter(Boolean);
   usePreloadImages(photoUrls);
 
   return (
@@ -88,7 +88,7 @@ export const EventDetailsExample = ({ eventId }) => {
           style={styles.coverImage}
           priority="high"
         />
-        
+
         {/* Overlay avec infos */}
         <View style={styles.overlay}>
           <Text style={styles.title}>{event.title}</Text>
@@ -111,18 +111,13 @@ export const EventDetailsExample = ({ eventId }) => {
 
       {/* Participants avec avatars cachés */}
       <View style={styles.participants}>
-        <Text style={styles.sectionTitle}>
-          Participants ({participants?.length || 0})
-        </Text>
+        <Text style={styles.sectionTitle}>Participants ({participants?.length || 0})</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           {participants?.slice(0, 10).map((participant, index) => (
             <View key={participant.user_id} style={styles.participantItem}>
               <CachedImage
                 uri={participant.profile?.avatar_url}
-                style={[
-                  styles.participantAvatar,
-                  index > 0 && styles.participantOverlap
-                ]}
+                style={[styles.participantAvatar, index > 0 && styles.participantOverlap]}
                 placeholder={require('@/assets/images/default-avatar.png')}
                 priority="low" // Priorité basse pour les avatars
               />
@@ -144,7 +139,7 @@ export const EventDetailsExample = ({ eventId }) => {
         >
           <Text style={styles.buttonText}>J'y vais</Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity
           style={[styles.button, styles.maybeButton]}
           onPress={() => handleRSVP('maybe')}

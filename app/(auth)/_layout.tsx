@@ -1,1 +1,1 @@
-export { default } from '@/app/(auth)/_layout';
+export { default } from '../../src/app/(auth)/_layout';

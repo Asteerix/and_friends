@@ -23,7 +23,7 @@ const NETWORK_ERROR_MESSAGES = [
 
 function isNetworkError(error: any): boolean {
   const errorMessage = error?.message || error?.toString() || '';
-  return NETWORK_ERROR_MESSAGES.some(msg => 
+  return NETWORK_ERROR_MESSAGES.some((msg) =>
     errorMessage.toLowerCase().includes(msg.toLowerCase())
   );
 }
@@ -38,34 +38,34 @@ export async function withNetworkRetry<T>(
   };
 
   let lastError: any;
-  
+
   for (let attempt = 0; attempt <= maxRetries!; attempt++) {
     try {
       return await operation();
     } catch (error) {
       lastError = error;
-      
+
       // Only retry network errors
       if (!isNetworkError(error)) {
         throw error;
       }
-      
+
       // Don't retry after the last attempt
       if (attempt === maxRetries) {
         break;
       }
-      
+
       // Calculate delay with exponential backoff if enabled
-      const delay = exponentialBackoff 
-        ? retryDelay! * Math.pow(2, attempt)
-        : retryDelay!;
-      
-      console.log(`Network error, retrying in ${delay}ms... (attempt ${attempt + 1}/${maxRetries})`);
-      
-      await new Promise(resolve => setTimeout(resolve, delay));
+      const delay = exponentialBackoff ? retryDelay! * Math.pow(2, attempt) : retryDelay!;
+
+      console.log(
+        `Network error, retrying in ${delay}ms... (attempt ${attempt + 1}/${maxRetries})`
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, delay));
     }
   }
-  
+
   // If we get here, all retries failed
   throw lastError;
 }

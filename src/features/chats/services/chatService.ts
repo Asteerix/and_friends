@@ -21,7 +21,9 @@ export class ChatService {
   // Create a new chat (direct or group)
   static async createChat(params: CreateChatParams) {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
       // Create the chat
@@ -32,7 +34,7 @@ export class ChatService {
           is_group: params.is_group,
           event_id: params.event_id,
           created_by: user.id,
-          status: 'active'
+          status: 'active',
         })
         .select()
         .single();
@@ -40,10 +42,10 @@ export class ChatService {
       if (chatError) throw chatError;
 
       // Add participants (including the creator)
-      const participants = [user.id, ...params.participant_ids].map(id => ({
+      const participants = [user.id, ...params.participant_ids].map((id) => ({
         chat_id: chat.id,
         user_id: id,
-        is_admin: id === user.id
+        is_admin: id === user.id,
       }));
 
       const { error: participantsError } = await supabase
@@ -54,15 +56,13 @@ export class ChatService {
 
       // Create a system message for group creation
       if (params.is_group) {
-        await supabase
-          .from('messages')
-          .insert({
-            chat_id: chat.id,
-            user_id: user.id,
-            message_type: 'system',
-            content: `${user.user_metadata?.full_name || 'Someone'} created the group "${params.name || 'Unnamed group'}"`,
-            metadata: { action: 'group_created' }
-          });
+        await supabase.from('messages').insert({
+          chat_id: chat.id,
+          user_id: user.id,
+          message_type: 'system',
+          content: `${user.user_metadata?.full_name || 'Someone'} created the group "${params.name || 'Unnamed group'}"`,
+          metadata: { action: 'group_created' },
+        });
       }
 
       return { data: chat, error: null };
@@ -75,20 +75,24 @@ export class ChatService {
   // Get or create a direct chat between two users
   static async getOrCreateDirectChat(otherUserId: string) {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
       // Check if a direct chat already exists between these users
       const { data: existingChats } = await supabase
         .from('chat_participants')
-        .select(`
+        .select(
+          `
           chat_id,
           chats!inner (
             id,
             is_group,
             name
           )
-        `)
+        `
+        )
         .eq('user_id', user.id)
         .eq('chats.is_group', false);
 
@@ -109,7 +113,7 @@ export class ChatService {
       // No existing chat, create a new one
       return await this.createChat({
         is_group: false,
-        participant_ids: [otherUserId]
+        participant_ids: [otherUserId],
       });
     } catch (error) {
       console.error('Error getting/creating direct chat:', error);
@@ -120,7 +124,9 @@ export class ChatService {
   // Add participants to a group chat
   static async addParticipants(params: AddParticipantsParams) {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
       // Check if user is admin of the chat
@@ -136,15 +142,13 @@ export class ChatService {
       }
 
       // Add new participants
-      const participants = params.user_ids.map(id => ({
+      const participants = params.user_ids.map((id) => ({
         chat_id: params.chat_id,
         user_id: id,
-        is_admin: false
+        is_admin: false,
       }));
 
-      const { error } = await supabase
-        .from('chat_participants')
-        .insert(participants);
+      const { error } = await supabase.from('chat_participants').insert(participants);
 
       if (error) throw error;
 
@@ -154,18 +158,16 @@ export class ChatService {
         .select('id, full_name')
         .in('id', params.user_ids);
 
-      const names = users?.map(u => u.full_name).join(', ') || 'users';
+      const names = users?.map((u) => u.full_name).join(', ') || 'users';
 
       // Create system message
-      await supabase
-        .from('messages')
-        .insert({
-          chat_id: params.chat_id,
-          user_id: user.id,
-          message_type: 'system',
-          content: `${user.user_metadata?.full_name || 'Someone'} added ${names} to the group`,
-          metadata: { action: 'participants_added', user_ids: params.user_ids }
-        });
+      await supabase.from('messages').insert({
+        chat_id: params.chat_id,
+        user_id: user.id,
+        message_type: 'system',
+        content: `${user.user_metadata?.full_name || 'Someone'} added ${names} to the group`,
+        metadata: { action: 'participants_added', user_ids: params.user_ids },
+      });
 
       return { success: true, error: null };
     } catch (error) {
@@ -177,7 +179,9 @@ export class ChatService {
   // Remove a participant from a group chat
   static async removeParticipant(params: RemoveParticipantParams) {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
       // Check if user is admin or removing themselves
@@ -210,17 +214,18 @@ export class ChatService {
 
       // Create system message
       const isLeaving = params.user_id === user.id;
-      await supabase
-        .from('messages')
-        .insert({
-          chat_id: params.chat_id,
-          user_id: user.id,
-          message_type: 'system',
-          content: isLeaving 
-            ? `${user.user_metadata?.full_name || 'Someone'} left the group`
-            : `${user.user_metadata?.full_name || 'Someone'} removed ${removedUser?.full_name || 'someone'} from the group`,
-          metadata: { action: isLeaving ? 'participant_left' : 'participant_removed', user_id: params.user_id }
-        });
+      await supabase.from('messages').insert({
+        chat_id: params.chat_id,
+        user_id: user.id,
+        message_type: 'system',
+        content: isLeaving
+          ? `${user.user_metadata?.full_name || 'Someone'} left the group`
+          : `${user.user_metadata?.full_name || 'Someone'} removed ${removedUser?.full_name || 'someone'} from the group`,
+        metadata: {
+          action: isLeaving ? 'participant_left' : 'participant_removed',
+          user_id: params.user_id,
+        },
+      });
 
       return { success: true, error: null };
     } catch (error) {
@@ -232,7 +237,9 @@ export class ChatService {
   // Update chat details (name, etc.)
   static async updateChat(chatId: string, updates: { name?: string }) {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
       // Check if user is admin
@@ -247,24 +254,19 @@ export class ChatService {
         throw new Error('Only admins can update chat details');
       }
 
-      const { error } = await supabase
-        .from('chats')
-        .update(updates)
-        .eq('id', chatId);
+      const { error } = await supabase.from('chats').update(updates).eq('id', chatId);
 
       if (error) throw error;
 
       // Create system message if name was changed
       if (updates.name) {
-        await supabase
-          .from('messages')
-          .insert({
-            chat_id: chatId,
-            user_id: user.id,
-            message_type: 'system',
-            content: `${user.user_metadata?.full_name || 'Someone'} changed the group name to "${updates.name}"`,
-            metadata: { action: 'chat_renamed', new_name: updates.name }
-          });
+        await supabase.from('messages').insert({
+          chat_id: chatId,
+          user_id: user.id,
+          message_type: 'system',
+          content: `${user.user_metadata?.full_name || 'Someone'} changed the group name to "${updates.name}"`,
+          metadata: { action: 'chat_renamed', new_name: updates.name },
+        });
       }
 
       return { success: true, error: null };
@@ -296,7 +298,8 @@ export class ChatService {
     try {
       const { data, error } = await supabase
         .from('chat_participants')
-        .select(`
+        .select(
+          `
           user_id,
           is_admin,
           joined_at,
@@ -307,7 +310,8 @@ export class ChatService {
             avatar_url,
             bio
           )
-        `)
+        `
+        )
         .eq('chat_id', chatId);
 
       if (error) throw error;
@@ -321,7 +325,9 @@ export class ChatService {
   // Mark messages as read
   static async markMessagesAsRead(chatId: string, messageIds: string[]) {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
       // Get current read_by arrays for all messages
@@ -337,11 +343,8 @@ export class ChatService {
         const readBy = message.read_by || [];
         if (!readBy.includes(user.id)) {
           readBy.push(user.id);
-          
-          await supabase
-            .from('messages')
-            .update({ read_by: readBy })
-            .eq('id', message.id);
+
+          await supabase.from('messages').update({ read_by: readBy }).eq('id', message.id);
         }
       }
 

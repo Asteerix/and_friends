@@ -53,10 +53,12 @@ const NameInputScreen: React.FC<NameInputScreenProps> = React.memo(() => {
   const checkHandleUnique = async (h: string) => {
     setCheckingHandle(true);
     setHandleTaken(false);
-    
+
     try {
       // Get current user ID
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) {
         setHandleError('User not authenticated.');
         setCheckingHandle(false);
@@ -70,21 +72,21 @@ const NameInputScreen: React.FC<NameInputScreenProps> = React.memo(() => {
         .eq('username', h.trim())
         .neq('id', user.id)
         .maybeSingle();
-      
+
       if (error) {
         console.error('Erreur lors de la vérification du handle:', error);
         setHandleError('Erreur lors de la vérification.');
         setCheckingHandle(false);
         return false;
       }
-      
+
       if (data) {
         setHandleTaken(true);
         setHandleError('This handle is already taken.');
         setCheckingHandle(false);
         return false;
       }
-      
+
       setHandleTaken(false);
       setHandleError('');
       setCheckingHandle(false);
@@ -106,7 +108,7 @@ const NameInputScreen: React.FC<NameInputScreenProps> = React.memo(() => {
     setFirstNameError('');
     return true;
   };
-  
+
   const validateLastName = (name: string) => {
     if (!name.trim()) {
       setLastNameError('Last name is required.');
@@ -142,7 +144,7 @@ const NameInputScreen: React.FC<NameInputScreenProps> = React.memo(() => {
     const validHandle = await validateHandle(handle);
     if (validFirstName && validLastName && validHandle) {
       setIsSubmitting(true);
-      
+
       try {
         // Sauvegarder les données dans le profil
         console.log('🔄 [NameInputScreen] Mise à jour du profil...');
@@ -151,7 +153,7 @@ const NameInputScreen: React.FC<NameInputScreenProps> = React.memo(() => {
           username: handle.trim(),
         };
         console.log('📝 [NameInputScreen] Données à sauvegarder:', profileData);
-        
+
         const { data, error } = await updateProfile(profileData);
 
         if (error) {
@@ -160,17 +162,19 @@ const NameInputScreen: React.FC<NameInputScreenProps> = React.memo(() => {
           setIsSubmitting(false);
           return;
         }
-        
+
         console.log('✅ [NameInputScreen] Profil mis à jour avec succès:', data);
-        
+
         // Update registration step
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
         if (user) {
           await supabase
             .from('profiles')
-            .update({ 
+            .update({
               current_registration_step: 'avatar_pick',
-              updated_at: new Date().toISOString()
+              updated_at: new Date().toISOString(),
             })
             .eq('id', user.id);
         }
@@ -179,7 +183,7 @@ const NameInputScreen: React.FC<NameInputScreenProps> = React.memo(() => {
         navigateNext('avatar-pick');
       } catch (error) {
         console.error('Erreur inattendue:', error);
-        Alert.alert('Erreur', 'Une erreur inattendue s\'est produite.');
+        Alert.alert('Erreur', "Une erreur inattendue s'est produite.");
         setIsSubmitting(false);
       }
     }
@@ -228,69 +232,69 @@ const NameInputScreen: React.FC<NameInputScreenProps> = React.memo(() => {
 
           {/* Inputs */}
           <View style={styles.inputsContainer}>
-        <View style={styles.inputWrapper}>
-          <TextInput
-            style={[styles.input, firstNameError ? styles.inputError : undefined]}
-            placeholder="Enter your first name"
-            placeholderTextColor="#AEB0B4"
-            value={firstName}
-            onChangeText={setFirstName}
-            onBlur={() => validateFirstName(firstName)}
-            returnKeyType="next"
-            autoCapitalize="words"
-            accessible
-            accessibilityLabel="First name"
-            accessibilityRole="text"
-            onSubmitEditing={() => lastNameInputRef.current?.focus()}
-          />
-          {!!firstNameError && <Text style={styles.errorText}>{firstNameError}</Text>}
-        </View>
-        <View style={styles.inputWrapper}>
-          <TextInput
-            ref={lastNameInputRef}
-            style={[styles.input, lastNameError ? styles.inputError : undefined]}
-            placeholder="Enter your last name"
-            placeholderTextColor="#AEB0B4"
-            value={lastName}
-            onChangeText={setLastName}
-            onBlur={() => validateLastName(lastName)}
-            returnKeyType="next"
-            autoCapitalize="words"
-            accessible
-            accessibilityLabel="Last name"
-            accessibilityRole="text"
-            onSubmitEditing={() => handleInputRef.current?.focus()}
-          />
-          {!!lastNameError && <Text style={styles.errorText}>{lastNameError}</Text>}
-        </View>
-        <View style={styles.inputWrapper}>
-          <TextInput
-            ref={handleInputRef}
-            style={[styles.input, handleError ? styles.inputError : undefined]}
-            placeholder="Create a handle (e.g., @ana_eremina_)"
-            placeholderTextColor="#AEB0B4"
-            value={handle}
-            onChangeText={async (text) => {
-              setHandle(text);
-              setHandleError('');
-              setHandleTaken(false);
-              if (text.trim()) {
-                await validateHandle(text);
-              }
-            }}
-            onBlur={async () => {
-              if (handle.trim()) {
-                await validateHandle(handle);
-              }
-            }}
-            returnKeyType="done"
-            autoCapitalize="none"
-            accessible
-            accessibilityLabel="Handle"
-            accessibilityRole="text"
-          />
-          {!!handleError && <Text style={styles.errorText}>{handleError}</Text>}
-        </View>
+            <View style={styles.inputWrapper}>
+              <TextInput
+                style={[styles.input, firstNameError ? styles.inputError : undefined]}
+                placeholder="Enter your first name"
+                placeholderTextColor="#AEB0B4"
+                value={firstName}
+                onChangeText={setFirstName}
+                onBlur={() => validateFirstName(firstName)}
+                returnKeyType="next"
+                autoCapitalize="words"
+                accessible
+                accessibilityLabel="First name"
+                accessibilityRole="text"
+                onSubmitEditing={() => lastNameInputRef.current?.focus()}
+              />
+              {!!firstNameError && <Text style={styles.errorText}>{firstNameError}</Text>}
+            </View>
+            <View style={styles.inputWrapper}>
+              <TextInput
+                ref={lastNameInputRef}
+                style={[styles.input, lastNameError ? styles.inputError : undefined]}
+                placeholder="Enter your last name"
+                placeholderTextColor="#AEB0B4"
+                value={lastName}
+                onChangeText={setLastName}
+                onBlur={() => validateLastName(lastName)}
+                returnKeyType="next"
+                autoCapitalize="words"
+                accessible
+                accessibilityLabel="Last name"
+                accessibilityRole="text"
+                onSubmitEditing={() => handleInputRef.current?.focus()}
+              />
+              {!!lastNameError && <Text style={styles.errorText}>{lastNameError}</Text>}
+            </View>
+            <View style={styles.inputWrapper}>
+              <TextInput
+                ref={handleInputRef}
+                style={[styles.input, handleError ? styles.inputError : undefined]}
+                placeholder="Create a handle (e.g., @ana_eremina_)"
+                placeholderTextColor="#AEB0B4"
+                value={handle}
+                onChangeText={async (text) => {
+                  setHandle(text);
+                  setHandleError('');
+                  setHandleTaken(false);
+                  if (text.trim()) {
+                    await validateHandle(text);
+                  }
+                }}
+                onBlur={async () => {
+                  if (handle.trim()) {
+                    await validateHandle(handle);
+                  }
+                }}
+                returnKeyType="done"
+                autoCapitalize="none"
+                accessible
+                accessibilityLabel="Handle"
+                accessibilityRole="text"
+              />
+              {!!handleError && <Text style={styles.errorText}>{handleError}</Text>}
+            </View>
           </View>
 
           {/* Illustration */}
@@ -317,9 +321,7 @@ const NameInputScreen: React.FC<NameInputScreenProps> = React.memo(() => {
             disabled={!canContinue}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Text style={styles.continueButtonText}>
-              {isSubmitting ? 'Saving...' : 'Continue'}
-            </Text>
+            <Text style={styles.continueButtonText}>{isSubmitting ? 'Saving...' : 'Continue'}</Text>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>

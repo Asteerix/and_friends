@@ -47,7 +47,7 @@ export const UploadProgress: React.FC<UploadProgressProps> = ({
   return (
     <Modal transparent animationType="fade" visible={isVisible}>
       <BlurView intensity={30} style={styles.container}>
-        <Animated.View 
+        <Animated.View
           style={[
             styles.content,
             {
@@ -56,7 +56,7 @@ export const UploadProgress: React.FC<UploadProgressProps> = ({
           ]}
         >
           <View style={styles.progressCircle}>
-            <Animated.View 
+            <Animated.View
               style={[
                 styles.progressFill,
                 {
@@ -65,13 +65,13 @@ export const UploadProgress: React.FC<UploadProgressProps> = ({
                     outputRange: ['0%', '100%'],
                   }),
                 },
-              ]} 
+              ]}
             />
             <CustomText size="xl" weight="bold" color="#FFF">
               {Math.round(progress)}%
             </CustomText>
           </View>
-          
+
           <CustomText size="md" color="#FFF" style={styles.message}>
             {message}
           </CustomText>

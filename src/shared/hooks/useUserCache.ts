@@ -9,7 +9,7 @@ export function useUserProfile(userId: string) {
     queryKey: ['user', 'profile', userId],
     queryFn: async () => {
       const cacheKey = CacheKeys.USER_PROFILE(userId);
-      
+
       // Try to get from cache first
       const cached = userCache.get<UserProfile>(cacheKey);
       if (cached) {
@@ -17,17 +17,13 @@ export function useUserProfile(userId: string) {
       }
 
       // Fetch from API
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
+      const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
 
       if (error) throw error;
 
       // Cache the result
       await userCache.set(cacheKey, data, { ttl: 24 * 60 * 60 * 1000 }); // 24 hours
-      
+
       return data as UserProfile;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -40,7 +36,7 @@ export function useUserFriends(userId: string) {
     queryKey: ['user', 'friends', userId],
     queryFn: async () => {
       const cacheKey = CacheKeys.USER_FRIENDS(userId);
-      
+
       // Try cache first
       const cached = userCache.get<any[]>(cacheKey);
       if (cached) {
@@ -50,10 +46,12 @@ export function useUserFriends(userId: string) {
       // Fetch from API
       const { data, error } = await supabase
         .from('friendships')
-        .select(`
+        .select(
+          `
           *,
           friend:profiles!friendships_friend_id_fkey(*)
-        `)
+        `
+        )
         .eq('user_id', userId)
         .eq('status', 'accepted');
 
@@ -61,7 +59,7 @@ export function useUserFriends(userId: string) {
 
       // Cache the result
       await userCache.set(cacheKey, data, { ttl: 60 * 60 * 1000 }); // 1 hour
-      
+
       return data;
     },
     staleTime: 5 * 60 * 1000,
@@ -71,7 +69,7 @@ export function useUserFriends(userId: string) {
 
 export function useInvalidateUserCache() {
   const queryClient = useQueryClient();
-  
+
   return {
     invalidateProfile: (userId: string) => {
       userCache.delete(CacheKeys.USER_PROFILE(userId));
@@ -88,8 +86,8 @@ export function useInvalidateUserCache() {
         CacheKeys.USER_FRIENDS(userId),
         CacheKeys.USER_FRIEND_REQUESTS(userId),
       ];
-      keysToDelete.forEach(key => userCache.delete(key));
-      
+      keysToDelete.forEach((key) => userCache.delete(key));
+
       // Invalidate React Query cache
       queryClient.invalidateQueries({ queryKey: ['user'] });
     },
@@ -98,7 +96,7 @@ export function useInvalidateUserCache() {
 
 export function useUpdateProfile() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async ({ userId, updates }: { userId: string; updates: Partial<UserProfile> }) => {
       const { data, error } = await supabase
@@ -115,7 +113,7 @@ export function useUpdateProfile() {
       // Update cache
       const cacheKey = CacheKeys.USER_PROFILE(userId);
       userCache.set(cacheKey, data, { ttl: 24 * 60 * 60 * 1000 });
-      
+
       // Update React Query cache
       queryClient.setQueryData(['user', 'profile', userId], data);
       queryClient.invalidateQueries({ queryKey: ['user', 'profile', userId] });
@@ -125,9 +123,9 @@ export function useUpdateProfile() {
 
 export function usePrefetchUsers(userIds: string[]) {
   const queryClient = useQueryClient();
-  
+
   return () => {
-    userIds.forEach(userId => {
+    userIds.forEach((userId) => {
       queryClient.prefetchQuery({
         queryKey: ['user', 'profile', userId],
         queryFn: async () => {
@@ -142,7 +140,7 @@ export function usePrefetchUsers(userIds: string[]) {
             .single();
 
           if (error) throw error;
-          
+
           await userCache.set(cacheKey, data, { ttl: 24 * 60 * 60 * 1000 });
           return data as UserProfile;
         },

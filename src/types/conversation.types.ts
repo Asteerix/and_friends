@@ -33,11 +33,11 @@ export interface Message {
   read_by?: string[];
 }
 
-export type MessageType = 
-  | 'text' 
-  | 'image' 
-  | 'video' 
-  | 'audio' 
+export type MessageType =
+  | 'text'
+  | 'image'
+  | 'video'
+  | 'audio'
   | 'voice'
   | 'location'
   | 'poll'

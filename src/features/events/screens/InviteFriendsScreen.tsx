@@ -15,7 +15,6 @@ import {
   View,
   Share,
 } from 'react-native';
-
 import { useProfile } from '@/hooks/useProfile';
 
 interface Friend {

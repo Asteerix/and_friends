@@ -27,7 +27,7 @@ export class CacheManager {
       compress: config.compress || false,
     };
     // Initialize size tracking asynchronously
-    this.initializeSizeTracking().catch(error => 
+    this.initializeSizeTracking().catch((error) =>
       console.error('Failed to initialize size tracking:', error)
     );
   }
@@ -35,7 +35,7 @@ export class CacheManager {
   private async initializeSizeTracking(): Promise<void> {
     try {
       const allKeys = await AsyncStorage.getAllKeys();
-      const keys = allKeys.filter(key => key.startsWith(this.storagePrefix + ':'));
+      const keys = allKeys.filter((key) => key.startsWith(this.storagePrefix + ':'));
       this.totalSize = 0;
       this.sizeTracker.clear();
 
@@ -84,7 +84,7 @@ export class CacheManager {
     }
 
     await AsyncStorage.setItem(`${this.storagePrefix}:${key}`, serialized);
-    
+
     // Update size tracking
     const oldSize = this.sizeTracker.get(key) || 0;
     this.sizeTracker.set(key, size);
@@ -97,7 +97,7 @@ export class CacheManager {
       if (!value) return null;
 
       const entry: CacheEntry<T> = JSON.parse(value);
-      
+
       // Check if expired
       if (entry.expiresAt && Date.now() > entry.expiresAt) {
         await this.delete(key);
@@ -140,7 +140,7 @@ export class CacheManager {
   async clear(): Promise<void> {
     try {
       const allKeys = await AsyncStorage.getAllKeys();
-      const keysToRemove = allKeys.filter(key => key.startsWith(this.storagePrefix + ':'));
+      const keysToRemove = allKeys.filter((key) => key.startsWith(this.storagePrefix + ':'));
       await AsyncStorage.multiRemove(keysToRemove);
       this.sizeTracker.clear();
       this.totalSize = 0;
@@ -152,7 +152,7 @@ export class CacheManager {
   async clearExpired(): Promise<void> {
     try {
       const allKeys = await AsyncStorage.getAllKeys();
-      const keys = allKeys.filter(key => key.startsWith(this.storagePrefix + ':'));
+      const keys = allKeys.filter((key) => key.startsWith(this.storagePrefix + ':'));
       const now = Date.now();
 
       for (const fullKey of keys) {
@@ -180,7 +180,7 @@ export class CacheManager {
     try {
       const entries: Array<{ key: string; timestamp: number; size: number }> = [];
       const allKeys = await AsyncStorage.getAllKeys();
-      const keys = allKeys.filter(key => key.startsWith(this.storagePrefix + ':'));
+      const keys = allKeys.filter((key) => key.startsWith(this.storagePrefix + ':'));
 
       // Collect all entries with their timestamps
       for (const fullKey of keys) {
@@ -242,8 +242,8 @@ export class CacheManager {
       const allKeys = await AsyncStorage.getAllKeys();
       const prefix = this.storagePrefix + ':';
       return allKeys
-        .filter(key => key.startsWith(prefix))
-        .map(key => key.substring(prefix.length));
+        .filter((key) => key.startsWith(prefix))
+        .map((key) => key.substring(prefix.length));
     } catch (error) {
       console.error('Get all keys error:', error);
       return [];

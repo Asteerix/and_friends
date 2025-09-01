@@ -17,13 +17,22 @@ import {
 } from 'react-native';
 import { create } from 'react-native-pixel-perfect';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { supabase } from '@/shared/lib/supabase/client';
 import { Alert } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { supabase } from '@/shared/lib/supabase/client';
 import { useAuthNavigation } from '@/shared/hooks/useAuthNavigation';
-import { validatePhoneNumber, checkOTPRateLimit, recordOTPRequest } from '@/shared/utils/phoneValidation';
+import {
+  validatePhoneNumber,
+  checkOTPRateLimit,
+  recordOTPRequest,
+} from '@/shared/utils/phoneValidation';
 import { checkBanStatus } from '@/shared/utils/bruteforceProtection';
 import { storeLastPhoneNumber } from '@/shared/hooks/useBanProtection';
-import { sendOTPWithRetry, validatePhoneNumber as validatePhone, showSMSTroubleshootingDialog } from '@/shared/utils/otpHelpers';
+import {
+  sendOTPWithRetry,
+  validatePhoneNumber as validatePhone,
+  showSMSTroubleshootingDialog,
+} from '@/shared/utils/otpHelpers';
 import { OTPCache } from '@/shared/utils/otpCache';
 import { NetworkRetry } from '@/shared/utils/networkRetry';
 import { useNetworkQuality } from '@/shared/hooks/useNetworkQuality';
@@ -31,7 +40,6 @@ import { NetworkStatusBanner } from '@/shared/components/NetworkStatusBanner';
 import { AdaptiveButton } from '@/shared/components/AdaptiveButton';
 import { resilientFetch } from '@/shared/utils/api/retryStrategy';
 import { OTPOfflineQueue } from '@/shared/utils/otpOfflineQueue';
-import { useTranslation } from 'react-i18next';
 
 const { height: H } = Dimensions.get('window');
 const designResolution = { width: 375, height: 812 };
@@ -79,7 +87,8 @@ const PhoneVerificationScreen: React.FC<PhoneVerificationScreenProps> = React.me
   const [isCountryModalVisible, setIsCountryModalVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState<Country>(
-    COMMON_COUNTRIES[i18n.language === 'fr' ? 1 : 0] || { // France for French, US for English
+    COMMON_COUNTRIES[i18n.language === 'fr' ? 1 : 0] || {
+      // France for French, US for English
       name: i18n.language === 'fr' ? 'France' : 'United States',
       flag: i18n.language === 'fr' ? '🇫🇷' : '🇺🇸',
       code: i18n.language === 'fr' ? 'FR' : 'US',
@@ -93,26 +102,26 @@ const PhoneVerificationScreen: React.FC<PhoneVerificationScreenProps> = React.me
     const resetUser = async () => {
       try {
         console.log('🔄 [PhoneVerification] User went back to start - signing out');
-        
+
         // Sign out to completely reset the session
         const { error } = await supabase.auth.signOut();
-        
+
         if (error) {
           console.error('❌ [PhoneVerification] Error signing out:', error);
         } else {
           console.log('✅ [PhoneVerification] User signed out successfully');
         }
-        
+
         // Clean up OTP cache
         await OTPCache.cleanup();
-        
+
         // Process any offline OTP requests if we're back online
         if (!isOffline) {
           await OTPOfflineQueue.processQueue(async (phone) => {
             const result = await sendOTPWithRetry({
               phone,
               channel: 'sms',
-              createUser: true
+              createUser: true,
             });
             if (!result.success) {
               throw new Error(result.error || 'Failed to send OTP');
@@ -140,7 +149,7 @@ const PhoneVerificationScreen: React.FC<PhoneVerificationScreenProps> = React.me
     }
 
     setIsLoading(true);
-    
+
     try {
       // Check network first
       const network = await NetworkRetry.checkNetwork();
@@ -149,26 +158,27 @@ const PhoneVerificationScreen: React.FC<PhoneVerificationScreenProps> = React.me
         await OTPOfflineQueue.enqueue(phoneNumber);
         Alert.alert(
           t('network.offline'),
-          t('auth.phoneVerification.offlineMessage', 'Your request will be processed once the connection is restored.'),
-          [
-            { text: t('common.ok') }
-          ]
+          t(
+            'auth.phoneVerification.offlineMessage',
+            'Your request will be processed once the connection is restored.'
+          ),
+          [{ text: t('common.ok') }]
         );
         setIsLoading(false);
         return;
       }
       // Validate phone number format with advanced checks
       const validation = validatePhoneNumber(phoneNumber, selectedCountry.code);
-      
+
       if (!validation.isValid) {
         Alert.alert(t('errors.invalidPhone'), validation.error || t('errors.invalidPhone'));
         setIsLoading(false);
         return;
       }
-      
+
       // Additional validation with risk assessment
       const advancedValidation = validatePhone(validation.formattedNumber!, selectedCountry.code);
-      
+
       if (advancedValidation.riskWarning) {
         const shouldContinue = await new Promise<boolean>((resolve) => {
           Alert.alert(
@@ -176,42 +186,43 @@ const PhoneVerificationScreen: React.FC<PhoneVerificationScreenProps> = React.me
             advancedValidation.riskWarning,
             [
               { text: t('common.cancel'), onPress: () => resolve(false) },
-              { text: t('common.continue'), onPress: () => resolve(true) }
+              { text: t('common.continue'), onPress: () => resolve(true) },
             ]
           );
         });
-        
+
         if (!shouldContinue) {
           setIsLoading(false);
           return;
         }
       }
-      
+
       const fullPhoneNumber = validation.formattedNumber!;
       console.log('📱 [PhoneVerification] Numéro validé:', fullPhoneNumber);
-      
+
       // Check if phone number is banned
       const banStatus = await checkBanStatus(fullPhoneNumber);
-      
+
       if (banStatus.isBanned) {
         // Store phone number for ban checking
         await storeLastPhoneNumber(fullPhoneNumber);
-        
+
         // Navigate to banned screen
         navigateNext('banned');
         setIsLoading(false);
         return;
       }
-      
+
       // Check rate limit before sending OTP
       const rateLimit = await checkOTPRateLimit(fullPhoneNumber);
-      
+
       if (!rateLimit.canRequest) {
         const secondsRemaining = rateLimit.timeRemainingSeconds || 60;
-        const displayTime = secondsRemaining > 60 
-          ? `${Math.ceil(secondsRemaining / 60)} minute${Math.ceil(secondsRemaining / 60) > 1 ? 's' : ''}`
-          : `${secondsRemaining} secondes`;
-        
+        const displayTime =
+          secondsRemaining > 60
+            ? `${Math.ceil(secondsRemaining / 60)} minute${Math.ceil(secondsRemaining / 60) > 1 ? 's' : ''}`
+            : `${secondsRemaining} secondes`;
+
         Alert.alert(
           t('auth.phoneVerification.tooManyAttempts'),
           t('auth.phoneVerification.waitBeforeRetry', { time: displayTime }),
@@ -220,44 +231,51 @@ const PhoneVerificationScreen: React.FC<PhoneVerificationScreenProps> = React.me
         setIsLoading(false);
         return;
       }
-      
+
       // Record the OTP request for rate limiting
       const recordResult = await recordOTPRequest(fullPhoneNumber);
-      
+
       if (!recordResult.success) {
         Alert.alert(t('errors.general'), recordResult.message);
         setIsLoading(false);
         return;
       }
-      
+
       // Phone format is already validated above, no need to validate again
-      
+
       // Envoyer l'OTP avec retry logic et cache
       console.log('📤 [PhoneVerification] Envoi OTP avec retry...');
       const result = await resilientFetch(
-        () => sendOTPWithRetry({
-          phone: fullPhoneNumber,
-          channel: 'sms',
-          createUser: true
-        }, {
-          maxRetries: isSlowConnection ? 5 : 3,
-          retryDelay: isSlowConnection ? 3000 : 2000
-        }),
+        () =>
+          sendOTPWithRetry(
+            {
+              phone: fullPhoneNumber,
+              channel: 'sms',
+              createUser: true,
+            },
+            {
+              maxRetries: isSlowConnection ? 5 : 3,
+              retryDelay: isSlowConnection ? 3000 : 2000,
+            }
+          ),
         {
-          showAlert: false // We handle alerts ourselves
+          showAlert: false, // We handle alerts ourselves
         }
       );
 
       if (result.cached) {
         // OTP was recently sent, skip to verification
         Alert.alert(
-          t('auth.phoneVerification.codeSent'), 
-          t('auth.phoneVerification.codeAlreadySent', 'A code has already been sent to this number. Check your SMS.'),
+          t('auth.phoneVerification.codeSent'),
+          t(
+            'auth.phoneVerification.codeAlreadySent',
+            'A code has already been sent to this number. Check your SMS.'
+          ),
           [
             {
               text: t('common.continue'),
-              onPress: () => navigateNext('code-verification', { phoneNumber: fullPhoneNumber })
-            }
+              onPress: () => navigateNext('code-verification', { phoneNumber: fullPhoneNumber }),
+            },
           ]
         );
         setIsLoading(false);
@@ -266,19 +284,25 @@ const PhoneVerificationScreen: React.FC<PhoneVerificationScreenProps> = React.me
 
       if (!result.success && !result.cached) {
         console.error('❌ [PhoneVerification] Échec envoi OTP après retries');
-        
+
         // Si c'est une erreur de quota, proposer le mode test
         if (result.error?.includes('quota') || result.error?.includes('indisponible')) {
           Alert.alert(
-            t('auth.phoneVerification.serviceUnavailable', 'Service temporarily unavailable'), 
-            t('auth.phoneVerification.serviceUnavailableMessage', 'SMS service is temporarily unavailable. What would you like to do?'),
+            t('auth.phoneVerification.serviceUnavailable', 'Service temporarily unavailable'),
+            t(
+              'auth.phoneVerification.serviceUnavailableMessage',
+              'SMS service is temporarily unavailable. What would you like to do?'
+            ),
             [
               {
                 text: t('auth.phoneVerification.testMode', 'Test Mode'),
                 onPress: () => {
                   Alert.alert(
                     t('auth.phoneVerification.testMode', 'Test Mode'),
-                    t('auth.phoneVerification.testModeInstructions', 'Use:\nNumber: +33612345678\nCode: 123456'),
+                    t(
+                      'auth.phoneVerification.testModeInstructions',
+                      'Use:\nNumber: +33612345678\nCode: 123456'
+                    ),
                     [
                       {
                         text: t('auth.phoneVerification.useTestMode', 'Use'),
@@ -287,73 +311,73 @@ const PhoneVerificationScreen: React.FC<PhoneVerificationScreenProps> = React.me
                           // Clear cache for test number
                           await OTPCache.clearCache('+33612345678');
                           navigateNext('code-verification', { phoneNumber: '+33612345678' });
-                        }
+                        },
                       },
-                      { text: t('common.cancel') }
+                      { text: t('common.cancel') },
                     ]
                   );
-                }
+                },
               },
               {
                 text: t('auth.phoneVerification.help', 'Help'),
-                onPress: showSMSTroubleshootingDialog
+                onPress: showSMSTroubleshootingDialog,
               },
-              { 
+              {
                 text: t('common.retry'),
-                onPress: () => handleContinue()
-              }
+                onPress: () => handleContinue(),
+              },
             ]
           );
         } else if (result.error?.includes('Network') || result.error?.includes('connexion')) {
-          Alert.alert(
-            t('errors.networkError'),
-            t('network.checkConnection'),
-            [
-              {
-                text: t('network.checkConnection'),
-                onPress: async () => {
-                  const connected = await NetworkRetry.waitForNetwork(5000);
-                  if (connected) {
-                    handleContinue();
-                  } else {
-                    Alert.alert(t('errors.general'), t('network.stillNoConnection', 'Still no connection'));
-                  }
+          Alert.alert(t('errors.networkError'), t('network.checkConnection'), [
+            {
+              text: t('network.checkConnection'),
+              onPress: async () => {
+                const connected = await NetworkRetry.waitForNetwork(5000);
+                if (connected) {
+                  handleContinue();
+                } else {
+                  Alert.alert(
+                    t('errors.general'),
+                    t('network.stillNoConnection', 'Still no connection')
+                  );
                 }
               },
-              { text: t('common.cancel'), style: 'cancel' }
-            ]
-          );
+            },
+            { text: t('common.cancel'), style: 'cancel' },
+          ]);
         } else {
           Alert.alert(
-            t('auth.phoneVerification.smsFailed', 'Unable to send SMS'), 
-            result.error || t('auth.phoneVerification.checkNumberAndRetry', 'Check your number and try again.'),
+            t('auth.phoneVerification.smsFailed', 'Unable to send SMS'),
+            result.error ||
+              t('auth.phoneVerification.checkNumberAndRetry', 'Check your number and try again.'),
             [
               {
                 text: t('auth.phoneVerification.help', 'Help'),
-                onPress: showSMSTroubleshootingDialog
+                onPress: showSMSTroubleshootingDialog,
               },
               {
                 text: t('common.ok'),
-                style: 'cancel'
-              }
+                style: 'cancel',
+              },
             ]
           );
         }
       } else {
         console.log('✅ [PhoneVerification] OTP envoyé avec succès!');
-        
+
         // Store phone number for ban checking
         await storeLastPhoneNumber(fullPhoneNumber);
-        
+
         // Show success message
         Alert.alert(
-          t('auth.phoneVerification.codeSent'), 
+          t('auth.phoneVerification.codeSent'),
           t('auth.phoneVerification.codeSentTo', { phoneNumber: fullPhoneNumber }),
           [
             {
               text: t('common.continue'),
-              onPress: () => navigateNext('code-verification', { phoneNumber: fullPhoneNumber })
-            }
+              onPress: () => navigateNext('code-verification', { phoneNumber: fullPhoneNumber }),
+            },
           ]
         );
       }
@@ -388,9 +412,7 @@ const PhoneVerificationScreen: React.FC<PhoneVerificationScreenProps> = React.me
               </View>
 
               <Text style={styles.title}>{t('auth.phoneVerification.title')}</Text>
-              <Text style={styles.subtitle}>
-                {t('auth.phoneVerification.subtitle')}
-              </Text>
+              <Text style={styles.subtitle}>{t('auth.phoneVerification.subtitle')}</Text>
             </View>
 
             <View style={styles.formContainer}>
@@ -439,14 +461,19 @@ const PhoneVerificationScreen: React.FC<PhoneVerificationScreenProps> = React.me
                 textStyle={styles.buttonText}
                 showRetryState={true}
               />
-              
+
               <TouchableOpacity
                 style={styles.helpButton}
                 onPress={showSMSTroubleshootingDialog}
                 accessibilityRole="button"
-                accessibilityLabel={t('auth.phoneVerification.smsHelpLabel', 'Help for receiving SMS')}
+                accessibilityLabel={t(
+                  'auth.phoneVerification.smsHelpLabel',
+                  'Help for receiving SMS'
+                )}
               >
-                <Text style={styles.helpButtonText}>{t('auth.phoneVerification.notReceivingSMS', 'Not receiving SMS?')}</Text>
+                <Text style={styles.helpButtonText}>
+                  {t('auth.phoneVerification.notReceivingSMS', 'Not receiving SMS?')}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -465,7 +492,9 @@ const PhoneVerificationScreen: React.FC<PhoneVerificationScreenProps> = React.me
             style={styles.modalContent}
           >
             <View style={styles.modalHandle} />
-            <Text style={styles.modalTitle}>{t('auth.phoneVerification.selectCountry', 'Select your country')}</Text>
+            <Text style={styles.modalTitle}>
+              {t('auth.phoneVerification.selectCountry', 'Select your country')}
+            </Text>
             <ScrollView
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.modalScrollContent}

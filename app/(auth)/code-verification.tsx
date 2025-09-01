@@ -1,1 +1,1 @@
-export { default } from '@/app/(auth)/code-verification';
+export { default } from '../../src/app/(auth)/code-verification';

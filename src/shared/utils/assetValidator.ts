@@ -1,4 +1,4 @@
-import { Asset } from 'expo-asset';
+// import { Asset } from 'expo-asset'; // Package not installed
 import * as Font from 'expo-font';
 import { Image, Platform } from 'react-native';
 import { startupLogger } from './startupLogger';
@@ -15,16 +15,17 @@ export class AssetValidator {
     const result: AssetValidationResult = {
       success: true,
       errors: [],
-      warnings: []
+      warnings: [],
     };
 
     startupLogger.log('Starting asset validation');
 
-    // Validate required images
+    // Validate required images - disabled until expo-asset is installed
+    /*
     const requiredImages = [
       require('../../../assets/icon.png'),
       require('../../../assets/splash-icon.png'),
-      require('../../../assets/adaptive-icon.png')
+      require('../../../assets/adaptive-icon.png'),
     ];
 
     for (const imageModule of requiredImages) {
@@ -39,11 +40,12 @@ export class AssetValidator {
         errorLogger.log(err, { context: 'image asset loading' });
       }
     }
+    */
 
     // Validate fonts
     const requiredFonts = {
       SpaceMono: require('../../../assets/fonts/SpaceMono-Regular.ttf'),
-      Offbeat: require('../../../assets/fonts/Offbeat.ttf')
+      Offbeat: require('../../../assets/fonts/Offbeat.ttf'),
     };
 
     for (const [fontName, fontModule] of Object.entries(requiredFonts)) {
@@ -61,14 +63,14 @@ export class AssetValidator {
     if (Platform.OS === 'ios') {
       const imagesToPreload = [
         require('../../../assets/icon.png'),
-        require('../../../assets/splash-icon.png')
+        require('../../../assets/splash-icon.png'),
       ];
 
       await Promise.all(
-        imagesToPreload.map(image => {
+        imagesToPreload.map((image) => {
           return Image.prefetch(Image.resolveAssetSource(image).uri);
         })
-      ).catch(error => {
+      ).catch((error) => {
         result.warnings.push('Failed to prefetch some images');
         errorLogger.log(error, { context: 'image prefetch' });
       });
@@ -76,7 +78,7 @@ export class AssetValidator {
 
     startupLogger.log('Asset validation complete', result.success ? 'info' : 'error', {
       errors: result.errors.length,
-      warnings: result.warnings.length
+      warnings: result.warnings.length,
     });
 
     return result;
@@ -85,16 +87,13 @@ export class AssetValidator {
   static async validateStoragePaths(): Promise<void> {
     // Validate that required directories exist
     try {
-      const { FileSystem } = await import('expo-file-system');
-      
-      const directories = [
-        FileSystem.documentDirectory,
-        FileSystem.cacheDirectory
-      ];
+      const FileSystemModule = await import('expo-file-system');
+
+      const directories = [FileSystemModule.documentDirectory, FileSystemModule.cacheDirectory];
 
       for (const dir of directories) {
         if (dir) {
-          const info = await FileSystem.getInfoAsync(dir);
+          const info = await FileSystemModule.getInfoAsync(dir);
           startupLogger.log(`Directory validated: ${dir}`, 'info', { exists: info.exists });
         }
       }

@@ -52,13 +52,13 @@ export default function CustomText({
       {children}
     </Text>
   );
-};
+}
 export function AfterHoursText(props: Omit<CustomTextProps, 'variant'>) {
   return <CustomText variant="afterHours" {...props} />;
-};
+}
 export function PlayfairText(props: Omit<CustomTextProps, 'variant'>) {
   return <CustomText variant="playfair" {...props} />;
-};
+}
 export function OffbeatText(props: Omit<CustomTextProps, 'variant'>) {
   return <CustomText variant="offbeat" {...props} />;
 }

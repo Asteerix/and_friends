@@ -23,16 +23,16 @@ export function useBanProtection() {
       try {
         // Get last used phone number
         const lastPhone = await AsyncStorage.getItem(LAST_PHONE_KEY);
-        
+
         if (lastPhone) {
           const status = await checkBanStatus(lastPhone);
           setBanStatus(status);
-          
+
           // If banned and not on banned screen, redirect
           if (status.isBanned && !segments.includes('banned')) {
             router.replace('/auth/banned');
           }
-          
+
           // If not banned and on banned screen, redirect to start
           if (!status.isBanned && segments.includes('banned')) {
             router.replace('/auth/phone-verification');
@@ -61,7 +61,7 @@ export function useBanProtection() {
   return {
     banStatus,
     isChecking,
-    isBanned: banStatus?.isBanned || false
+    isBanned: banStatus?.isBanned || false,
   };
 }
 

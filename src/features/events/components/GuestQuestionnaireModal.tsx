@@ -25,7 +25,10 @@ interface Question {
 interface GuestQuestionnaireModalProps {
   visible: boolean;
   onClose: () => void;
-  onSave: (questions: Question[], settings: { allowSkipAll: boolean; showResponsesLive: boolean }) => void;
+  onSave: (
+    questions: Question[],
+    settings: { allowSkipAll: boolean; showResponsesLive: boolean }
+  ) => void;
   initialQuestions?: Question[];
   initialSettings?: { allowSkipAll: boolean; showResponsesLive: boolean };
 }
@@ -43,225 +46,225 @@ interface QuestionSuggestion {
 // Popular question templates with event-specific suggestions
 const QUESTION_TEMPLATES: QuestionSuggestion[] = [
   // Most Used - Planning (90%+ usage)
-  { 
-    emoji: '✅', 
-    text: "Are you coming?", 
+  {
+    emoji: '✅',
+    text: 'Are you coming?',
     type: 'multiple',
-    options: ['Yes! 🎉', 'Maybe', 'Can\'t make it 😢'],
+    options: ['Yes! 🎉', 'Maybe', "Can't make it 😢"],
     popularity: 98,
-    category: 'essential'
+    category: 'essential',
   },
-  { 
-    emoji: '👥', 
-    text: "How many people are you bringing?", 
+  {
+    emoji: '👥',
+    text: 'How many people are you bringing?',
     type: 'multiple',
     options: ['Just me', '+1', '+2', '+3 or more'],
     popularity: 95,
-    category: 'essential'
+    category: 'essential',
   },
-  { 
-    emoji: '🕐', 
-    text: "What time will you arrive?", 
+  {
+    emoji: '🕐',
+    text: 'What time will you arrive?',
     type: 'multiple',
     options: ['On time', '15-30 min late', '30-60 min late', 'Fashionably late'],
     popularity: 85,
-    category: 'essential'
+    category: 'essential',
   },
-  
+
   // Food & Drinks (70-90% usage)
-  { 
-    emoji: '🥗', 
-    text: "Any dietary restrictions?", 
+  {
+    emoji: '🥗',
+    text: 'Any dietary restrictions?',
     type: 'multiple',
     options: ['None', 'Vegetarian', 'Vegan', 'Gluten-free', 'Halal', 'Kosher', 'Other'],
     popularity: 88,
-    category: 'food'
+    category: 'food',
   },
-  { 
-    emoji: '🥜', 
-    text: "Any allergies we should know about?", 
+  {
+    emoji: '🥜',
+    text: 'Any allergies we should know about?',
     type: 'short',
     popularity: 82,
-    category: 'food'
+    category: 'food',
   },
-  { 
-    emoji: '🍽️', 
-    text: "Food preferences?", 
+  {
+    emoji: '🍽️',
+    text: 'Food preferences?',
     type: 'multiple',
     options: ['I eat everything!', 'No meat', 'No dairy', 'No seafood', 'No spicy food'],
     popularity: 78,
-    category: 'food'
+    category: 'food',
   },
-  { 
-    emoji: '🥤', 
-    text: "Drink preference?", 
+  {
+    emoji: '🥤',
+    text: 'Drink preference?',
     type: 'multiple',
     options: ['Beer 🍺', 'Wine 🍷', 'Cocktails 🍹', 'Non-alcoholic', 'Everything!'],
     popularity: 75,
-    category: 'food'
+    category: 'food',
   },
-  
+
   // Logistics (50-70% usage)
-  { 
-    emoji: '🚗', 
-    text: "Do you need parking?", 
+  {
+    emoji: '🚗',
+    text: 'Do you need parking?',
     type: 'multiple',
     options: ['Yes', 'No', 'Maybe'],
     popularity: 68,
-    category: 'logistics'
+    category: 'logistics',
   },
-  { 
-    emoji: '🚕', 
-    text: "How are you getting here?", 
+  {
+    emoji: '🚕',
+    text: 'How are you getting here?',
     type: 'multiple',
     options: ['Driving 🚗', 'Uber/Taxi 🚕', 'Public transport 🚇', 'Walking 🚶', 'Need a ride! 🙏'],
     popularity: 65,
-    category: 'logistics'
+    category: 'logistics',
   },
-  { 
-    emoji: '🛏️', 
-    text: "Staying overnight?", 
+  {
+    emoji: '🛏️',
+    text: 'Staying overnight?',
     type: 'multiple',
-    options: ['Going home', 'Need a place to crash', 'Have accommodation', 'Let\'s see how it goes'],
+    options: ['Going home', 'Need a place to crash', 'Have accommodation', "Let's see how it goes"],
     popularity: 58,
-    category: 'logistics'
+    category: 'logistics',
   },
-  { 
-    emoji: '👔', 
-    text: "Dress code?", 
+  {
+    emoji: '👔',
+    text: 'Dress code?',
     type: 'host-answer',
     hostAnswer: 'Casual - come as you are!',
     popularity: 55,
-    category: 'logistics'
+    category: 'logistics',
   },
-  
+
   // Activities & Help (40-50% usage)
-  { 
-    emoji: '🎵', 
-    text: "Any song requests?", 
+  {
+    emoji: '🎵',
+    text: 'Any song requests?',
     type: 'short',
     popularity: 52,
-    category: 'activities'
+    category: 'activities',
   },
-  { 
-    emoji: '🤝', 
-    text: "Can you help out?", 
+  {
+    emoji: '🤝',
+    text: 'Can you help out?',
     type: 'multiple',
     options: ['Setup crew 💪', 'Cleanup squad 🧹', 'Both!', 'Just partying 🎉'],
     popularity: 48,
-    category: 'activities'
+    category: 'activities',
   },
-  { 
-    emoji: '🎮', 
-    text: "What are you excited for?", 
+  {
+    emoji: '🎮',
+    text: 'What are you excited for?',
     type: 'multiple',
     options: ['Dancing 💃', 'Games 🎮', 'Food 🍕', 'Drinks 🍻', 'Everything!'],
     popularity: 45,
-    category: 'activities'
+    category: 'activities',
   },
-  { 
-    emoji: '📸', 
-    text: "Photo sharing?", 
+  {
+    emoji: '📸',
+    text: 'Photo sharing?',
     type: 'multiple',
-    options: ['Love photos!', 'Prefer not', 'Ask me first', 'I\'m the photographer!'],
+    options: ['Love photos!', 'Prefer not', 'Ask me first', "I'm the photographer!"],
     popularity: 42,
-    category: 'activities'
+    category: 'activities',
   },
-  
+
   // Important Info (Host Answers) (30-40% usage)
-  { 
-    emoji: '📍', 
-    text: "Special instructions?", 
+  {
+    emoji: '📍',
+    text: 'Special instructions?',
     type: 'host-answer',
     hostAnswer: 'Ring the doorbell twice!',
     popularity: 38,
-    category: 'info'
+    category: 'info',
   },
-  { 
-    emoji: '👟', 
-    text: "House rules?", 
+  {
+    emoji: '👟',
+    text: 'House rules?',
     type: 'host-answer',
     hostAnswer: 'Shoes off at the door, make yourself at home!',
     popularity: 35,
-    category: 'info'
+    category: 'info',
   },
-  { 
-    emoji: '🅿️', 
-    text: "Parking info?", 
+  {
+    emoji: '🅿️',
+    text: 'Parking info?',
     type: 'host-answer',
     hostAnswer: 'Street parking on Main St, driveway for 2 cars',
     popularity: 32,
-    category: 'info'
+    category: 'info',
   },
-  { 
-    emoji: '🔇', 
-    text: "Quiet hours?", 
+  {
+    emoji: '🔇',
+    text: 'Quiet hours?',
     type: 'host-answer',
     hostAnswer: 'Keep it down after 11 PM - neighbors!',
     popularity: 30,
-    category: 'info'
+    category: 'info',
   },
-  
+
   // Special Occasions (20-30% usage)
-  { 
-    emoji: '🎁', 
-    text: "Gift preferences?", 
+  {
+    emoji: '🎁',
+    text: 'Gift preferences?',
     type: 'host-answer',
     hostAnswer: 'Your presence is the best gift!',
     popularity: 28,
-    category: 'special'
+    category: 'special',
   },
-  { 
-    emoji: '🎂', 
-    text: "Birthday surprise ideas?", 
+  {
+    emoji: '🎂',
+    text: 'Birthday surprise ideas?',
     type: 'short',
     popularity: 25,
-    category: 'special'
+    category: 'special',
   },
-  { 
-    emoji: '💝', 
-    text: "Bringing anything special?", 
+  {
+    emoji: '💝',
+    text: 'Bringing anything special?',
     type: 'short',
     popularity: 22,
-    category: 'special'
+    category: 'special',
   },
-  
+
   // Additional Info (10-20% usage)
-  { 
-    emoji: '💭', 
-    text: "Anything else we should know?", 
+  {
+    emoji: '💭',
+    text: 'Anything else we should know?',
     type: 'short',
     popularity: 20,
-    category: 'other'
+    category: 'other',
   },
-  { 
-    emoji: '🌟', 
-    text: "Special requirements?", 
+  {
+    emoji: '🌟',
+    text: 'Special requirements?',
     type: 'short',
     popularity: 18,
-    category: 'other'
+    category: 'other',
   },
-  { 
-    emoji: '📝', 
-    text: "Comments or questions?", 
+  {
+    emoji: '📝',
+    text: 'Comments or questions?',
     type: 'short',
     popularity: 15,
-    category: 'other'
+    category: 'other',
   },
-  { 
-    emoji: '🎯', 
-    text: "What would make this perfect for you?", 
+  {
+    emoji: '🎯',
+    text: 'What would make this perfect for you?',
     type: 'short',
     popularity: 12,
-    category: 'other'
+    category: 'other',
   },
-  { 
-    emoji: '🤔', 
-    text: "Any concerns?", 
+  {
+    emoji: '🤔',
+    text: 'Any concerns?',
     type: 'short',
     popularity: 10,
-    category: 'other'
-  }
+    category: 'other',
+  },
 ];
 
 export default function GuestQuestionnaireModal({
@@ -304,7 +307,7 @@ export default function GuestQuestionnaireModal({
       id: Date.now().toString(),
       text: customQuestionText.trim(),
       type: customType,
-      options: customType === 'multiple' ? customOptions.filter(opt => opt.trim()) : undefined,
+      options: customType === 'multiple' ? customOptions.filter((opt) => opt.trim()) : undefined,
       hostAnswer: customType === 'host-answer' ? customHostAnswer : undefined,
       required: makeRequired,
     };
@@ -324,14 +327,12 @@ export default function GuestQuestionnaireModal({
   };
 
   const removeQuestion = (id: string) => {
-    setQuestions(questions.filter(q => q.id !== id));
+    setQuestions(questions.filter((q) => q.id !== id));
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
   const toggleRequired = (id: string) => {
-    setQuestions(questions.map(q => 
-      q.id === id ? { ...q, required: !q.required } : q
-    ));
+    setQuestions(questions.map((q) => (q.id === id ? { ...q, required: !q.required } : q)));
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
@@ -360,35 +361,49 @@ export default function GuestQuestionnaireModal({
 
   const getQuestionIcon = (type: Question['type']) => {
     switch (type) {
-      case 'short': return 'text-outline';
-      case 'multiple': return 'list-outline';
-      case 'host-answer': return 'information-circle-outline';
-      default: return 'help-outline';
+      case 'short':
+        return 'text-outline';
+      case 'multiple':
+        return 'list-outline';
+      case 'host-answer':
+        return 'information-circle-outline';
+      default:
+        return 'help-outline';
     }
   };
 
   // Filter templates based on search and category
-  const filteredTemplates = QUESTION_TEMPLATES
-    .filter(template => {
-      const matchesSearch = searchQuery === '' || 
-        template.text.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        template.emoji.includes(searchQuery) ||
-        template.category.toLowerCase().includes(searchQuery.toLowerCase());
-      const notAlreadyAdded = !questions.some(q => q.text === template.text);
-      return matchesSearch && notAlreadyAdded;
-    })
-    .sort((a, b) => b.popularity - a.popularity);
-  
+  const filteredTemplates = QUESTION_TEMPLATES.filter((template) => {
+    const matchesSearch =
+      searchQuery === '' ||
+      template.text.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      template.emoji.includes(searchQuery) ||
+      template.category.toLowerCase().includes(searchQuery.toLowerCase());
+    const notAlreadyAdded = !questions.some((q) => q.text === template.text);
+    return matchesSearch && notAlreadyAdded;
+  }).sort((a, b) => b.popularity - a.popularity);
+
   // Group templates by category for better organization
-  const templatesByCategory = filteredTemplates.reduce((acc, template) => {
-    if (!acc[template.category]) {
-      acc[template.category] = [];
-    }
-    acc[template.category]!.push(template);
-    return acc;
-  }, {} as Record<string, QuestionSuggestion[]>);
-  
-  const categoryOrder = ['essential', 'food', 'logistics', 'activities', 'info', 'special', 'other'];
+  const templatesByCategory = filteredTemplates.reduce(
+    (acc, template) => {
+      if (!acc[template.category]) {
+        acc[template.category] = [];
+      }
+      acc[template.category]!.push(template);
+      return acc;
+    },
+    {} as Record<string, QuestionSuggestion[]>
+  );
+
+  const categoryOrder = [
+    'essential',
+    'food',
+    'logistics',
+    'activities',
+    'info',
+    'special',
+    'other',
+  ];
   const categoryLabels: Record<string, string> = {
     essential: '🔥 Most Popular',
     food: '🍽️ Food & Drinks',
@@ -396,10 +411,10 @@ export default function GuestQuestionnaireModal({
     activities: '🎮 Activities',
     info: '📍 Event Info',
     special: '🎁 Special',
-    other: '💭 Other'
+    other: '💭 Other',
   };
 
-  const requiredCount = questions.filter(q => q.required).length;
+  const requiredCount = questions.filter((q) => q.required).length;
 
   return (
     <BottomModal
@@ -408,7 +423,11 @@ export default function GuestQuestionnaireModal({
       title="Guest Questions"
       height={Platform.OS === 'ios' ? 700 : 750}
       onSave={handleSave}
-      saveButtonText={questions.length > 0 ? `Save ${questions.length} Question${questions.length > 1 ? 's' : ''}` : 'Skip Questions'}
+      saveButtonText={
+        questions.length > 0
+          ? `Save ${questions.length} Question${questions.length > 1 ? 's' : ''}`
+          : 'Skip Questions'
+      }
     >
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         {/* Current Questions */}
@@ -417,24 +436,18 @@ export default function GuestQuestionnaireModal({
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Your Questions</Text>
               {requiredCount > 0 && (
-                <Text style={styles.requiredCount}>
-                  {requiredCount} required
-                </Text>
+                <Text style={styles.requiredCount}>{requiredCount} required</Text>
               )}
             </View>
-            
+
             {questions.map((question) => (
               <View key={question.id} style={styles.questionCard}>
                 <View style={styles.questionContent}>
                   <View style={styles.questionHeader}>
-                    <Ionicons 
-                      name={getQuestionIcon(question.type)} 
-                      size={20} 
-                      color="#007AFF" 
-                    />
+                    <Ionicons name={getQuestionIcon(question.type)} size={20} color="#007AFF" />
                     <Text style={styles.questionText}>{question.text}</Text>
                   </View>
-                  
+
                   {question.type === 'multiple' && question.options && (
                     <View style={styles.optionsPreview}>
                       {question.options.slice(0, 3).map((opt, idx) => (
@@ -443,30 +456,36 @@ export default function GuestQuestionnaireModal({
                         </Text>
                       ))}
                       {question.options.length > 3 && (
-                        <Text style={styles.moreOptions}>
-                          +{question.options.length - 3} more
-                        </Text>
+                        <Text style={styles.moreOptions}>+{question.options.length - 3} more</Text>
                       )}
                     </View>
                   )}
-                  
+
                   {question.type === 'host-answer' && question.hostAnswer && (
                     <View style={styles.hostAnswerPreview}>
                       <Text style={styles.hostAnswerText}>→ {question.hostAnswer}</Text>
                     </View>
                   )}
                 </View>
-                
+
                 <View style={styles.questionActions}>
                   <TouchableOpacity
-                    style={[styles.requiredToggle, question.required && styles.requiredToggleActive]}
+                    style={[
+                      styles.requiredToggle,
+                      question.required && styles.requiredToggleActive,
+                    ]}
                     onPress={() => toggleRequired(question.id)}
                   >
-                    <Text style={[styles.requiredToggleText, question.required && styles.requiredToggleTextActive]}>
+                    <Text
+                      style={[
+                        styles.requiredToggleText,
+                        question.required && styles.requiredToggleTextActive,
+                      ]}
+                    >
                       {question.required ? 'Required' : 'Optional'}
                     </Text>
                   </TouchableOpacity>
-                  
+
                   <TouchableOpacity onPress={() => removeQuestion(question.id)}>
                     <Ionicons name="trash-outline" size={20} color="#FF3B30" />
                   </TouchableOpacity>
@@ -497,11 +516,11 @@ export default function GuestQuestionnaireModal({
               <Text style={styles.sectionTitle}>Popular Questions</Text>
               <Text style={styles.sectionSubtitle}>Tap to add</Text>
             </View>
-            
-            {categoryOrder.map(category => {
+
+            {categoryOrder.map((category) => {
               const templates = templatesByCategory[category];
               if (!templates || templates.length === 0) return null;
-              
+
               return (
                 <View key={category} style={styles.categorySection}>
                   <Text style={styles.categoryTitle}>{categoryLabels[category]}</Text>
@@ -517,15 +536,17 @@ export default function GuestQuestionnaireModal({
                           <View style={styles.templateTextContent}>
                             <Text style={styles.templateText}>{template.text}</Text>
                             <View style={styles.templateMeta}>
-                              <Ionicons 
-                                name={getQuestionIcon(template.type)} 
-                                size={14} 
-                                color="#999" 
+                              <Ionicons
+                                name={getQuestionIcon(template.type)}
+                                size={14}
+                                color="#999"
                               />
                               <Text style={styles.templateType}>
-                                {template.type === 'short' ? 'Text' : 
-                                 template.type === 'multiple' ? 'Multiple choice' : 
-                                 'You answer'}
+                                {template.type === 'short'
+                                  ? 'Text'
+                                  : template.type === 'multiple'
+                                    ? 'Multiple choice'
+                                    : 'You answer'}
                               </Text>
                               <Text style={styles.popularityBadge}>
                                 {template.popularity}% use this
@@ -579,31 +600,67 @@ export default function GuestQuestionnaireModal({
               <Text style={styles.answerTypeTitle}>Answer Type</Text>
               <View style={styles.answerTypes}>
                 <TouchableOpacity
-                  style={[styles.answerTypeButton, customType === 'short' && styles.answerTypeActive]}
+                  style={[
+                    styles.answerTypeButton,
+                    customType === 'short' && styles.answerTypeActive,
+                  ]}
                   onPress={() => setCustomType('short')}
                 >
-                  <Ionicons name="text-outline" size={20} color={customType === 'short' ? '#007AFF' : '#666'} />
-                  <Text style={[styles.answerTypeLabel, customType === 'short' && styles.answerTypeLabelActive]}>
+                  <Ionicons
+                    name="text-outline"
+                    size={20}
+                    color={customType === 'short' ? '#007AFF' : '#666'}
+                  />
+                  <Text
+                    style={[
+                      styles.answerTypeLabel,
+                      customType === 'short' && styles.answerTypeLabelActive,
+                    ]}
+                  >
                     Text
                   </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={[styles.answerTypeButton, customType === 'multiple' && styles.answerTypeActive]}
+                  style={[
+                    styles.answerTypeButton,
+                    customType === 'multiple' && styles.answerTypeActive,
+                  ]}
                   onPress={() => setCustomType('multiple')}
                 >
-                  <Ionicons name="list-outline" size={20} color={customType === 'multiple' ? '#007AFF' : '#666'} />
-                  <Text style={[styles.answerTypeLabel, customType === 'multiple' && styles.answerTypeLabelActive]}>
+                  <Ionicons
+                    name="list-outline"
+                    size={20}
+                    color={customType === 'multiple' ? '#007AFF' : '#666'}
+                  />
+                  <Text
+                    style={[
+                      styles.answerTypeLabel,
+                      customType === 'multiple' && styles.answerTypeLabelActive,
+                    ]}
+                  >
                     Multiple
                   </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={[styles.answerTypeButton, customType === 'host-answer' && styles.answerTypeActive]}
+                  style={[
+                    styles.answerTypeButton,
+                    customType === 'host-answer' && styles.answerTypeActive,
+                  ]}
                   onPress={() => setCustomType('host-answer')}
                 >
-                  <Ionicons name="information-circle-outline" size={20} color={customType === 'host-answer' ? '#007AFF' : '#666'} />
-                  <Text style={[styles.answerTypeLabel, customType === 'host-answer' && styles.answerTypeLabelActive]}>
+                  <Ionicons
+                    name="information-circle-outline"
+                    size={20}
+                    color={customType === 'host-answer' ? '#007AFF' : '#666'}
+                  />
+                  <Text
+                    style={[
+                      styles.answerTypeLabel,
+                      customType === 'host-answer' && styles.answerTypeLabelActive,
+                    ]}
+                  >
                     You Answer
                   </Text>
                 </TouchableOpacity>
@@ -672,11 +729,19 @@ export default function GuestQuestionnaireModal({
 
             {/* Add Button */}
             <TouchableOpacity
-              style={[styles.addCustomButton, !customQuestionText.trim() && styles.addCustomButtonDisabled]}
+              style={[
+                styles.addCustomButton,
+                !customQuestionText.trim() && styles.addCustomButtonDisabled,
+              ]}
               onPress={handleAddCustomQuestion}
               disabled={!customQuestionText.trim()}
             >
-              <Text style={[styles.addCustomButtonText, !customQuestionText.trim() && styles.addCustomButtonTextDisabled]}>
+              <Text
+                style={[
+                  styles.addCustomButtonText,
+                  !customQuestionText.trim() && styles.addCustomButtonTextDisabled,
+                ]}
+              >
                 Add Question
               </Text>
             </TouchableOpacity>
@@ -686,7 +751,7 @@ export default function GuestQuestionnaireModal({
         {/* Settings Section */}
         <View style={styles.settingsSection}>
           <Text style={styles.settingsSectionTitle}>Settings</Text>
-          
+
           <View style={styles.settingRow}>
             <View style={styles.settingContent}>
               <Text style={styles.settingTitle}>Allow "Skip All"</Text>

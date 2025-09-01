@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { supabase } from '@/shared/lib/supabase/client';
+import { supabase } from '../lib/supabase/client';
 
 const PENDING_REQUESTS_KEY = 'pending_friend_requests';
 
@@ -24,11 +24,11 @@ export const pendingFriendRequestsManager = {
   async addPendingRequests(userIds: string[]): Promise<void> {
     try {
       const existing = await this.getPendingRequests();
-      const newRequests: PendingRequest[] = userIds.map(userId => ({
+      const newRequests: PendingRequest[] = userIds.map((userId) => ({
         user_id: userId,
         timestamp: Date.now(),
       }));
-      
+
       const allRequests = [...existing, ...newRequests];
       await AsyncStorage.setItem(PENDING_REQUESTS_KEY, JSON.stringify(allRequests));
     } catch (error) {
@@ -51,13 +51,11 @@ export const pendingFriendRequestsManager = {
       for (const request of pending) {
         try {
           // Send friend request using Supabase
-          const { error } = await supabase
-            .from('friendships')
-            .insert({
-              user_id: request.user_id,
-              friend_id: currentUserId,
-              status: 'pending',
-            });
+          const { error } = await supabase.from('friendships').insert({
+            user_id: request.user_id,
+            friend_id: currentUserId,
+            status: 'pending',
+          });
 
           if (!error) {
             sent++;
@@ -74,7 +72,7 @@ export const pendingFriendRequestsManager = {
 
       // Remove processed requests
       if (processed.length > 0) {
-        const remaining = pending.filter(r => !processed.includes(r.user_id));
+        const remaining = pending.filter((r) => !processed.includes(r.user_id));
         await AsyncStorage.setItem(PENDING_REQUESTS_KEY, JSON.stringify(remaining));
       }
 

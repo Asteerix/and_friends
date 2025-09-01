@@ -11,7 +11,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
-
 import { useNetworkStore } from '@/shared/stores/networkStore';
 import { useNetworkQuality } from '@/shared/hooks/useNetworkQuality';
 import { useAdaptiveRequest } from '@/shared/hooks/useAdaptiveRequest';
@@ -31,19 +30,19 @@ import { supabase } from '@/shared/lib/supabase/client';
 export function NetworkDemoScreen() {
   const router = useRouter();
   const { isConnected, connectionQuality, networkType } = useNetworkStore();
-  const { 
-    quality, 
-    metrics, 
-    isTestingQuality, 
+  const {
+    quality,
+    metrics,
+    isTestingQuality,
     testQuality,
     isSlowConnection,
     isOffline,
-    networkType
+    networkType,
   } = useNetworkQuality();
-  
+
   const [cacheSize, setCacheSize] = useState<number>(0);
   const [testResults, setTestResults] = useState<string[]>([]);
-  
+
   // Adaptive request example
   const { execute, loading, error, progress, retry } = useAdaptiveRequest({
     baseTimeout: 10000,
@@ -60,13 +59,10 @@ export function NetworkDemoScreen() {
   // Test adaptive request
   const testAdaptiveRequest = async () => {
     const result = await execute(async () => {
-      const { data } = await supabase
-        .from('profiles')
-        .select('*')
-        .limit(5);
+      const { data } = await supabase.from('profiles').select('*').limit(5);
       return data;
     });
-    
+
     if (result) {
       Alert.alert('Success', `Fetched ${result.length} profiles`);
     }
@@ -74,8 +70,8 @@ export function NetworkDemoScreen() {
 
   // Test network retry
   const testNetworkRetry = async () => {
-    setTestResults(prev => [...prev, 'Starting network retry test...']);
-    
+    setTestResults((prev) => [...prev, 'Starting network retry test...']);
+
     const result = await NetworkRetry.withRetry(
       async () => {
         // Simulate a flaky API call
@@ -87,12 +83,12 @@ export function NetworkDemoScreen() {
       {
         maxRetries: 3,
         onRetry: (attempt, error) => {
-          setTestResults(prev => [...prev, `Retry attempt ${attempt}: ${error.message}`]);
-        }
+          setTestResults((prev) => [...prev, `Retry attempt ${attempt}: ${error.message}`]);
+        },
       }
     );
-    
-    setTestResults(prev => [...prev, `Test completed: ${JSON.stringify(result)}`]);
+
+    setTestResults((prev) => [...prev, `Test completed: ${JSON.stringify(result)}`]);
   };
 
   // Clean cache
@@ -139,8 +135,8 @@ export function NetworkDemoScreen() {
                 <StatusRow label="Jitter" value={`${metrics.jitter.toFixed(1)}ms`} />
               </>
             )}
-            <TouchableOpacity 
-              style={styles.button} 
+            <TouchableOpacity
+              style={styles.button}
               onPress={testQuality}
               disabled={isTestingQuality}
             >
@@ -166,18 +162,15 @@ export function NetworkDemoScreen() {
               </View>
             )}
             {error && <Text style={styles.errorText}>{error}</Text>}
-            <TouchableOpacity 
-              style={styles.button} 
+            <TouchableOpacity
+              style={styles.button}
               onPress={testAdaptiveRequest}
               disabled={loading}
             >
               <Text style={styles.buttonText}>Test Adaptive Request</Text>
             </TouchableOpacity>
             {error && (
-              <TouchableOpacity 
-                style={[styles.button, styles.retryButton]} 
-                onPress={retry}
-              >
+              <TouchableOpacity style={[styles.button, styles.retryButton]} onPress={retry}>
                 <Text style={styles.buttonText}>Retry</Text>
               </TouchableOpacity>
             )}
@@ -188,16 +181,15 @@ export function NetworkDemoScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>🔁 Network Retry</Text>
           <View style={styles.statusCard}>
-            <TouchableOpacity 
-              style={styles.button} 
-              onPress={testNetworkRetry}
-            >
+            <TouchableOpacity style={styles.button} onPress={testNetworkRetry}>
               <Text style={styles.buttonText}>Test Network Retry</Text>
             </TouchableOpacity>
             {testResults.length > 0 && (
               <View style={styles.logContainer}>
                 {testResults.map((result, index) => (
-                  <Text key={index} style={styles.logText}>{result}</Text>
+                  <Text key={index} style={styles.logText}>
+                    {result}
+                  </Text>
                 ))}
               </View>
             )}
@@ -209,10 +201,7 @@ export function NetworkDemoScreen() {
           <Text style={styles.sectionTitle}>💾 Cache Management</Text>
           <View style={styles.statusCard}>
             <StatusRow label="Cache Size" value={`${(cacheSize / 1024).toFixed(2)} KB`} />
-            <TouchableOpacity 
-              style={styles.button} 
-              onPress={handleCleanCache}
-            >
+            <TouchableOpacity style={styles.button} onPress={handleCleanCache}>
               <Text style={styles.buttonText}>Clean Expired Cache</Text>
             </TouchableOpacity>
           </View>

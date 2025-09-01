@@ -23,7 +23,7 @@ export async function getDeviceId(): Promise<string> {
       Device.osName || 'unknown',
       Device.osVersion || 'unknown',
       Date.now().toString(),
-      Math.random().toString()
+      Math.random().toString(),
     ].join('-');
 
     // Create a hash of device info for privacy
@@ -35,7 +35,7 @@ export async function getDeviceId(): Promise<string> {
 
     // Store the device ID
     await AsyncStorage.setItem(DEVICE_ID_KEY, deviceId);
-    
+
     return deviceId;
   } catch (error) {
     console.error('Error getting device ID:', error);

@@ -1,11 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import {
-  Image,
-  ImageProps,
-  ActivityIndicator,
-  View,
-  StyleSheet,
-} from 'react-native';
+import { Image, ImageProps, ActivityIndicator, View, StyleSheet } from 'react-native';
 import { imageCacheManager } from '@/shared/utils/cache/imageCache';
 
 interface CachedImageProps extends Omit<ImageProps, 'source'> {
@@ -48,7 +42,7 @@ export const CachedImage: React.FC<CachedImageProps> = ({
 
         // Try to get cached image
         const cachedPath = await imageCacheManager.getCachedImage(uri);
-        
+
         if (cachedPath && isMounted) {
           setSource(cachedPath);
           setLoading(false);
@@ -59,7 +53,7 @@ export const CachedImage: React.FC<CachedImageProps> = ({
 
         // Download and cache the image
         const localPath = await imageCacheManager.cacheImage(uri);
-        
+
         if (isMounted) {
           setSource(localPath);
           setLoading(false);

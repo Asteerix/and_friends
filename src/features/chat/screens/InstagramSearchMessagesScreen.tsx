@@ -38,7 +38,7 @@ export default function InstagramSearchMessagesScreen() {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [chatInfo, setChatInfo] = useState<any>(null);
-  
+
   const currentUserId = session?.user?.id;
 
   useEffect(() => {
@@ -79,7 +79,8 @@ export default function InstagramSearchMessagesScreen() {
     try {
       const { data, error } = await supabase
         .from('messages')
-        .select(`
+        .select(
+          `
           id,
           content,
           created_at,
@@ -88,7 +89,8 @@ export default function InstagramSearchMessagesScreen() {
             full_name,
             avatar_url
           )
-        `)
+        `
+        )
         .eq('chat_id', chatId)
         .ilike('content', `%${searchQuery}%`)
         .order('created_at', { ascending: false })
@@ -113,12 +115,9 @@ export default function InstagramSearchMessagesScreen() {
   const renderSearchResult = ({ item }: { item: SearchResult }) => {
     const isOwnMessage = item.user_id === currentUserId;
     const messageDate = new Date(item.created_at);
-    
+
     return (
-      <TouchableOpacity 
-        style={styles.resultItem}
-        onPress={() => handleResultPress(item)}
-      >
+      <TouchableOpacity style={styles.resultItem} onPress={() => handleResultPress(item)}>
         <View style={styles.resultHeader}>
           <Text style={styles.senderName}>
             {isOwnMessage ? 'Vous' : item.sender?.full_name || 'Utilisateur'}
@@ -127,18 +126,21 @@ export default function InstagramSearchMessagesScreen() {
             {format(messageDate, 'dd MMM yyyy', { locale: fr })}
           </Text>
         </View>
-        
+
         <Text style={styles.resultContent} numberOfLines={2}>
           {item.content}
         </Text>
-        
+
         {searchQuery && (
           <View style={styles.highlightContainer}>
             {item.content.split(new RegExp(`(${searchQuery})`, 'gi')).map((part, index) => (
-              <Text key={index} style={[
-                styles.resultContent,
-                part.toLowerCase() === searchQuery.toLowerCase() && styles.highlight
-              ]}>
+              <Text
+                key={index}
+                style={[
+                  styles.resultContent,
+                  part.toLowerCase() === searchQuery.toLowerCase() && styles.highlight,
+                ]}
+              >
                 {part}
               </Text>
             ))}
@@ -153,16 +155,12 @@ export default function InstagramSearchMessagesScreen() {
       {searchQuery.length < 2 ? (
         <>
           <Ionicons name="search-outline" size={48} color="#ccc" />
-          <Text style={styles.emptyText}>
-            Tapez au moins 2 caractères pour rechercher
-          </Text>
+          <Text style={styles.emptyText}>Tapez au moins 2 caractères pour rechercher</Text>
         </>
       ) : (
         <>
           <Ionicons name="search-outline" size={48} color="#ccc" />
-          <Text style={styles.emptyText}>
-            Aucun message trouvé pour "{searchQuery}"
-          </Text>
+          <Text style={styles.emptyText}>Aucun message trouvé pour "{searchQuery}"</Text>
         </>
       )}
     </View>
@@ -170,7 +168,7 @@ export default function InstagramSearchMessagesScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
@@ -179,7 +177,7 @@ export default function InstagramSearchMessagesScreen() {
           <TouchableOpacity onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={28} color="#000" />
           </TouchableOpacity>
-          
+
           <View style={styles.searchContainer}>
             <Ionicons name="search" size={20} color="#999" />
             <TextInput
@@ -218,7 +216,9 @@ export default function InstagramSearchMessagesScreen() {
             data={results}
             renderItem={renderSearchResult}
             keyExtractor={(item) => item.id}
-            contentContainerStyle={results.length === 0 ? styles.emptyContainer : styles.resultsList}
+            contentContainerStyle={
+              results.length === 0 ? styles.emptyContainer : styles.resultsList
+            }
             ListEmptyComponent={<EmptyState />}
             ItemSeparatorComponent={() => <View style={styles.separator} />}
           />

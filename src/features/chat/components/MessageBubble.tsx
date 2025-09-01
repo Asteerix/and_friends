@@ -1,4 +1,3 @@
-
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -6,15 +5,7 @@ import { VideoView, useVideoPlayer } from 'expo-video';
 import { useAudioPlayer } from 'expo-audio';
 import { router } from 'expo-router';
 import React from 'react';
-import {
-  Dimensions,
-  Image,
-  Pressable,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-
+import { Dimensions, Image, Pressable, Text, TouchableOpacity, View } from 'react-native';
 import { Message } from '@/hooks/useMessages';
 
 interface MessageBubbleProps {
@@ -30,9 +21,14 @@ export default function MessageBubble({ message, isOwnMessage, onLongPress }: Me
   const [isPlaying, setIsPlaying] = React.useState(false);
   const [currentAudioUrl, setCurrentAudioUrl] = React.useState<string>('');
   const audioPlayer = useAudioPlayer(currentAudioUrl ? { uri: currentAudioUrl } : undefined);
-  const videoPlayer = useVideoPlayer(message.message_type === 'video' && message.metadata?.video_url ? message.metadata.video_url : '', (player) => {
-    player.loop = false;
-  });
+  const videoPlayer = useVideoPlayer(
+    message.message_type === 'video' && message.metadata?.video_url
+      ? message.metadata.video_url
+      : '',
+    (player) => {
+      player.loop = false;
+    }
+  );
 
   React.useEffect(() => {
     return () => {
@@ -48,7 +44,7 @@ export default function MessageBubble({ message, isOwnMessage, onLongPress }: Me
       setCurrentAudioUrl(url);
       setIsPlaying(true);
       audioPlayer.play();
-      
+
       // Monitor playback completion
       const checkInterval = setInterval(() => {
         if (audioPlayer.currentTime >= audioPlayer.duration && audioPlayer.duration > 0) {
@@ -63,173 +59,192 @@ export default function MessageBubble({ message, isOwnMessage, onLongPress }: Me
 
   const renderContent = () => {
     switch (message.message_type) {
-    case 'text':
-      return (
-        <Text style={{
-          color: isOwnMessage ? '#fff' : '#000',
-          fontSize: 16,
-          lineHeight: 20,
-        }}>
-          {message.content}
-        </Text>
-      );
-
-    case 'image':
-      return (
-        <TouchableOpacity
-          onPress={() => {
-            // TODO: Open image viewer
-          }}
-        >
-          <Image
-            source={{ uri: message.metadata?.image_url }}
+      case 'text':
+        return (
+          <Text
             style={{
-              width: MAX_BUBBLE_WIDTH,
-              height: 200,
-              borderRadius: 12,
-            }}
-            resizeMode="cover"
-          />
-        </TouchableOpacity>
-      );
-
-    case 'video':
-      return (
-        <View style={{ width: MAX_BUBBLE_WIDTH }}>
-          <VideoView
-            style={{
-              width: '100%',
-              height: 200,
-              borderRadius: 12,
-              backgroundColor: '#000',
-            }}
-            player={videoPlayer}
-            allowsFullscreen
-            allowsPictureInPicture
-          />
-        </View>
-      );
-
-    case 'voice':
-    case 'audio':
-      return (
-        <TouchableOpacity
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            padding: 8,
-          }}
-          onPress={() => {
-            const url = message.metadata?.voice_url || message.metadata?.audio_url;
-            if (url) playAudio(url);
-          }}
-        >
-          <Ionicons
-            name={isPlaying ? 'pause-circle' : 'play-circle'}
-            size={32}
-            color={isOwnMessage ? '#fff' : '#000'}
-          />
-          <View style={{
-            flex: 1,
-            height: 2,
-            backgroundColor: isOwnMessage ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.1)',
-            marginLeft: 8,
-            borderRadius: 1,
-          }} />
-          {message.metadata?.duration && (
-            <Text style={{
-              color: isOwnMessage ? '#fff' : '#666',
-              fontSize: 12,
-              marginLeft: 8,
-            }}>
-              {Math.floor(message.metadata.duration / 60)}:{(message.metadata.duration % 60).toString().padStart(2, '0')}
-            </Text>
-          )}
-        </TouchableOpacity>
-      );
-
-    case 'location':
-      return (
-        <TouchableOpacity
-          onPress={() => {
-            // TODO: Open map view
-          }}
-        >
-          <View style={{
-            width: MAX_BUBBLE_WIDTH,
-            height: 150,
-            backgroundColor: isOwnMessage ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
-            borderRadius: 12,
-            justifyContent: 'center',
-            alignItems: 'center',
-          }}>
-            <Ionicons name="location" size={32} color={isOwnMessage ? '#fff' : '#000'} />
-            <Text style={{
               color: isOwnMessage ? '#fff' : '#000',
-              marginTop: 8,
-              fontSize: 14,
-            }}>
-              {message.metadata?.location?.address || 'Position partagée'}
-            </Text>
-          </View>
-        </TouchableOpacity>
-      );
-
-    case 'event_share':
-      return (
-        <TouchableOpacity
-          onPress={() => {
-            if (message.metadata?.event_id) {
-              void router.push(`/screens/event-details?id=${message.metadata.event_id}`);
-            }
-          }}
-          style={{
-            backgroundColor: isOwnMessage ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
-            padding: 12,
-            borderRadius: 12,
-          }}
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Ionicons name="calendar" size={24} color={isOwnMessage ? '#fff' : '#000'} />
-            <Text style={{
-              color: isOwnMessage ? '#fff' : '#000',
-              fontSize: 14,
-              marginLeft: 8,
-              fontWeight: '600',
-            }}>
-                Événement partagé
-            </Text>
-          </View>
-        </TouchableOpacity>
-      );
-
-    case 'story_reply':
-      return (
-        <View>
-          <View style={{
-            backgroundColor: isOwnMessage ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
-            padding: 8,
-            borderRadius: 8,
-            marginBottom: 8,
-          }}>
-            <Text style={{
-              color: isOwnMessage ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.5)',
-              fontSize: 12,
-            }}>
-                Réponse à une story
-            </Text>
-          </View>
-          <Text style={{
-            color: isOwnMessage ? '#fff' : '#000',
-            fontSize: 16,
-          }}>
+              fontSize: 16,
+              lineHeight: 20,
+            }}
+          >
             {message.content}
           </Text>
-        </View>
-      );
+        );
 
-    default:
-      return null;
+      case 'image':
+        return (
+          <TouchableOpacity
+            onPress={() => {
+              // TODO: Open image viewer
+            }}
+          >
+            <Image
+              source={{ uri: message.metadata?.image_url }}
+              style={{
+                width: MAX_BUBBLE_WIDTH,
+                height: 200,
+                borderRadius: 12,
+              }}
+              resizeMode="cover"
+            />
+          </TouchableOpacity>
+        );
+
+      case 'video':
+        return (
+          <View style={{ width: MAX_BUBBLE_WIDTH }}>
+            <VideoView
+              style={{
+                width: '100%',
+                height: 200,
+                borderRadius: 12,
+                backgroundColor: '#000',
+              }}
+              player={videoPlayer}
+              allowsFullscreen
+              allowsPictureInPicture
+            />
+          </View>
+        );
+
+      case 'voice':
+      case 'audio':
+        return (
+          <TouchableOpacity
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              padding: 8,
+            }}
+            onPress={() => {
+              const url = message.metadata?.voice_url || message.metadata?.audio_url;
+              if (url) playAudio(url);
+            }}
+          >
+            <Ionicons
+              name={isPlaying ? 'pause-circle' : 'play-circle'}
+              size={32}
+              color={isOwnMessage ? '#fff' : '#000'}
+            />
+            <View
+              style={{
+                flex: 1,
+                height: 2,
+                backgroundColor: isOwnMessage ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.1)',
+                marginLeft: 8,
+                borderRadius: 1,
+              }}
+            />
+            {message.metadata?.duration && (
+              <Text
+                style={{
+                  color: isOwnMessage ? '#fff' : '#666',
+                  fontSize: 12,
+                  marginLeft: 8,
+                }}
+              >
+                {Math.floor(message.metadata.duration / 60)}:
+                {(message.metadata.duration % 60).toString().padStart(2, '0')}
+              </Text>
+            )}
+          </TouchableOpacity>
+        );
+
+      case 'location':
+        return (
+          <TouchableOpacity
+            onPress={() => {
+              // TODO: Open map view
+            }}
+          >
+            <View
+              style={{
+                width: MAX_BUBBLE_WIDTH,
+                height: 150,
+                backgroundColor: isOwnMessage ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                borderRadius: 12,
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}
+            >
+              <Ionicons name="location" size={32} color={isOwnMessage ? '#fff' : '#000'} />
+              <Text
+                style={{
+                  color: isOwnMessage ? '#fff' : '#000',
+                  marginTop: 8,
+                  fontSize: 14,
+                }}
+              >
+                {message.metadata?.location?.address || 'Position partagée'}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        );
+
+      case 'event_share':
+        return (
+          <TouchableOpacity
+            onPress={() => {
+              if (message.metadata?.event_id) {
+                void router.push(`/screens/event-details?id=${message.metadata.event_id}`);
+              }
+            }}
+            style={{
+              backgroundColor: isOwnMessage ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+              padding: 12,
+              borderRadius: 12,
+            }}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name="calendar" size={24} color={isOwnMessage ? '#fff' : '#000'} />
+              <Text
+                style={{
+                  color: isOwnMessage ? '#fff' : '#000',
+                  fontSize: 14,
+                  marginLeft: 8,
+                  fontWeight: '600',
+                }}
+              >
+                Événement partagé
+              </Text>
+            </View>
+          </TouchableOpacity>
+        );
+
+      case 'story_reply':
+        return (
+          <View>
+            <View
+              style={{
+                backgroundColor: isOwnMessage ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                padding: 8,
+                borderRadius: 8,
+                marginBottom: 8,
+              }}
+            >
+              <Text
+                style={{
+                  color: isOwnMessage ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.5)',
+                  fontSize: 12,
+                }}
+              >
+                Réponse à une story
+              </Text>
+            </View>
+            <Text
+              style={{
+                color: isOwnMessage ? '#fff' : '#000',
+                fontSize: 16,
+              }}
+            >
+              {message.content}
+            </Text>
+          </View>
+        );
+
+      default:
+        return null;
     }
   };
 
@@ -243,35 +258,43 @@ export default function MessageBubble({ message, isOwnMessage, onLongPress }: Me
         marginHorizontal: 16,
       }}
     >
-      <View style={{
-        backgroundColor: isOwnMessage ? '#007AFF' : '#E9E9EB',
-        borderRadius: 16,
-        padding: message.message_type === 'text' ? 12 : 4,
-        minWidth: 60,
-      }}>
+      <View
+        style={{
+          backgroundColor: isOwnMessage ? '#007AFF' : '#E9E9EB',
+          borderRadius: 16,
+          padding: message.message_type === 'text' ? 12 : 4,
+          minWidth: 60,
+        }}
+      >
         {renderContent()}
-        
-        <View style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          marginTop: 4,
-          paddingHorizontal: message.message_type !== 'text' ? 8 : 0,
-        }}>
-          <Text style={{
-            color: isOwnMessage ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.5)',
-            fontSize: 11,
-          }}>
-            {formatDistanceToNow(new Date(message.created_at || Date.now()), { 
+
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            marginTop: 4,
+            paddingHorizontal: message.message_type !== 'text' ? 8 : 0,
+          }}
+        >
+          <Text
+            style={{
+              color: isOwnMessage ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.5)',
+              fontSize: 11,
+            }}
+          >
+            {formatDistanceToNow(new Date(message.created_at || Date.now()), {
               addSuffix: true,
               locale: fr,
             })}
           </Text>
           {message.is_edited && (
-            <Text style={{
-              color: isOwnMessage ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.5)',
-              fontSize: 11,
-              marginLeft: 4,
-            }}>
+            <Text
+              style={{
+                color: isOwnMessage ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.5)',
+                fontSize: 11,
+                marginLeft: 4,
+              }}
+            >
               (modifié)
             </Text>
           )}

@@ -1,12 +1,11 @@
 import React from 'react';
 import { Platform, StyleSheet, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-
 import SearchIcon from '@/assets/svg/search.svg';
 
 export default function SearchBar() {
   const { t } = useTranslation();
-  
+
   return (
     <View style={styles.container}>
       <SearchIcon width={20} height={20} style={styles.icon} />

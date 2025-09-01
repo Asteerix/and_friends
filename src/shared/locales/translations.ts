@@ -1,4 +1,3 @@
-
 // Type-safe translations for the app
 export interface Translations {
   // Common
@@ -23,7 +22,7 @@ export interface Translations {
   ok: string;
   yes: string;
   no: string;
-  
+
   // Auth screens
   phone_verification_title: string;
   phone_placeholder: string;
@@ -35,7 +34,7 @@ export interface Translations {
   error_resending_otp: string;
   otp_resent_success: string;
   resend_code_link: string;
-  
+
   // Onboarding
   name_input_title: string;
   name_input_subtitle: string;
@@ -47,45 +46,45 @@ export interface Translations {
   error_username_required: string;
   error_username_invalid: string;
   error_username_taken: string;
-  
+
   age_input_title: string;
   age_input_subtitle: string;
   hide_from_profile: string;
-  
+
   avatar_pick_title: string;
   avatar_pick_subtitle: string;
   avatar_pick_snap: string;
   avatar_pick_gallery: string;
-  
+
   contacts_permission_title: string;
   contacts_permission_subtitle: string;
   allow_contacts: string;
-  
+
   location_permission_title: string;
   location_permission_subtitle: string;
   allow_location: string;
-  
+
   path_input_title: string;
   path_input_subtitle: string;
   path_label: string;
-  
+
   jam_picker_title: string;
   jam_picker_subtitle: string;
   jam_picker_placeholder: string;
-  
+
   restaurant_picker_title: string;
   restaurant_picker_subtitle: string;
   restaurant_picker_placeholder: string;
   restaurant_picker_no_results: string;
   restaurant_picker_unavailable: string;
-  
+
   hobby_picker_title: string;
   hobby_picker_subtitle: string;
   hobby_picker_add: string;
   hobby_picker_new: string;
   hobby_picker_placeholder: string;
   hobby_picker_max: string;
-  
+
   // Home screen
   home_title: string;
   home_greeting_morning: string;
@@ -99,7 +98,7 @@ export interface Translations {
   home_view_all: string;
   home_no_events: string;
   home_search_placeholder: string;
-  
+
   // Events
   event_create_title: string;
   event_title_placeholder: string;
@@ -127,7 +126,7 @@ export interface Translations {
   event_details_location: string;
   event_invite_friends: string;
   event_edit_cover: string;
-  
+
   // Chat
   chat_title: string;
   chat_no_messages: string;
@@ -140,7 +139,7 @@ export interface Translations {
   chat_typing: string;
   chat_delivered: string;
   chat_read: string;
-  
+
   // Profile
   profile_title: string;
   profile_edit: string;
@@ -156,7 +155,7 @@ export interface Translations {
   profile_age: string;
   profile_location: string;
   profile_joined: string;
-  
+
   // Settings
   settings_title: string;
   settings_account: string;
@@ -173,7 +172,7 @@ export interface Translations {
   settings_privacy_policy: string;
   settings_delete_account: string;
   settings_delete_account_confirm: string;
-  
+
   // Notifications
   notifications_title: string;
   notifications_all: string;
@@ -185,7 +184,7 @@ export interface Translations {
   notifications_new_message: string;
   notifications_friend_request: string;
   notifications_event_update: string;
-  
+
   // Calendar
   calendar_title: string;
   calendar_today: string;
@@ -193,7 +192,7 @@ export interface Translations {
   calendar_month: string;
   calendar_no_events: string;
   calendar_add_event: string;
-  
+
   // Map
   map_title: string;
   map_nearby_events: string;
@@ -201,7 +200,7 @@ export interface Translations {
   map_list_view: string;
   map_ar_view: string;
   map_permission_denied: string;
-  
+
   // Stories/Memories
   memories_title: string;
   memories_create: string;
@@ -213,7 +212,7 @@ export interface Translations {
   memories_share: string;
   memories_delete: string;
   memories_delete_confirm: string;
-  
+
   // Errors
   error_network: string;
   error_server: string;
@@ -234,7 +233,7 @@ export interface Translations {
   error_location_disabled: string;
   error_camera_denied: string;
   error_microphone_denied: string;
-  
+
   // Success messages
   success_profile_updated: string;
   success_event_created: string;
@@ -246,7 +245,7 @@ export interface Translations {
   success_settings_saved: string;
   success_photo_uploaded: string;
   success_story_posted: string;
-  
+
   // Time
   time_now: string;
   time_min_ago: string;
@@ -259,7 +258,7 @@ export interface Translations {
   time_weeks_ago: string;
   time_month_ago: string;
   time_months_ago: string;
-  
+
   // Days
   day_monday: string;
   day_tuesday: string;
@@ -268,7 +267,7 @@ export interface Translations {
   day_friday: string;
   day_saturday: string;
   day_sunday: string;
-  
+
   // Months
   month_january: string;
   month_february: string;
@@ -282,7 +281,7 @@ export interface Translations {
   month_october: string;
   month_november: string;
   month_december: string;
-  
+
   // Categories
   category_all: string;
   category_party: string;
@@ -295,13 +294,13 @@ export interface Translations {
   category_gaming: string;
   category_movie: string;
   category_other: string;
-  
+
   // RSVP
   rsvp_going: string;
   rsvp_maybe: string;
   rsvp_not_going: string;
   rsvp_update_success: string;
-  
+
   // Polls
   poll_create: string;
   poll_question_placeholder: string;
@@ -312,13 +311,13 @@ export interface Translations {
   poll_ends_in: string;
   poll_ended: string;
   poll_results: string;
-  
+
   // Voice messages
   voice_recording: string;
   voice_tap_to_play: string;
   voice_playing: string;
   voice_paused: string;
-  
+
   // Misc
   and_more: string;
   see_more: string;
@@ -336,37 +335,37 @@ export interface Translations {
   pending: string;
   accepted: string;
   declined: string;
-  
+
   // Placeholders
   placeholder_search: string;
   placeholder_write_message: string;
   placeholder_add_comment: string;
   placeholder_whats_happening: string;
-  
+
   // Empty states
   empty_events: string;
   empty_messages: string;
   empty_notifications: string;
   empty_friends: string;
   empty_search: string;
-  
+
   // Loading states
   loading_events: string;
   loading_messages: string;
   loading_profile: string;
   loading_map: string;
-  
+
   // Refresh
   pull_to_refresh: string;
   refreshing: string;
-  
+
   // Confirmation dialogs
   confirm_delete_event: string;
   confirm_leave_event: string;
   confirm_block_user: string;
   confirm_logout: string;
   confirm_discard_changes: string;
-};
+}
 export const translations: { en: Translations; fr: Translations } = {
   en: require('./en-extended.json'),
   fr: require('./fr-extended.json'),

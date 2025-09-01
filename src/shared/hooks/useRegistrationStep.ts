@@ -11,12 +11,12 @@ export function useRegistrationStep(step: string) {
     const updateStep = async () => {
       try {
         console.log(`📝 [useRegistrationStep] Updating registration step to: ${step}`);
-        
+
         const { error } = await supabase
           .from('profiles')
-          .update({ 
+          .update({
             current_registration_step: step,
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
           })
           .eq('id', session.user.id);
 

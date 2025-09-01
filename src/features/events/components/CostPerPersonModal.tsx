@@ -32,50 +32,50 @@ interface CostPerPersonModalProps {
 
 // Currency mapping based on country
 const CURRENCY_BY_COUNTRY: { [key: string]: string } = {
-  'US': 'USD',
-  'GB': 'GBP',
-  'FR': 'EUR',
-  'DE': 'EUR',
-  'IT': 'EUR',
-  'ES': 'EUR',
-  'NL': 'EUR',
-  'BE': 'EUR',
-  'AT': 'EUR',
-  'IE': 'EUR',
-  'PT': 'EUR',
-  'FI': 'EUR',
-  'GR': 'EUR',
-  'CA': 'CAD',
-  'AU': 'AUD',
-  'JP': 'JPY',
-  'CN': 'CNY',
-  'IN': 'INR',
-  'BR': 'BRL',
-  'MX': 'MXN',
-  'CH': 'CHF',
-  'SE': 'SEK',
-  'NO': 'NOK',
-  'DK': 'DKK',
-  'KR': 'KRW',
-  'SG': 'SGD',
-  'HK': 'HKD',
-  'NZ': 'NZD',
-  'TH': 'THB',
-  'ID': 'IDR',
-  'MY': 'MYR',
-  'PH': 'PHP',
-  'VN': 'VND',
-  'RU': 'RUB',
-  'TR': 'TRY',
-  'ZA': 'ZAR',
-  'AE': 'AED',
-  'SA': 'SAR',
-  'IL': 'ILS',
-  'EG': 'EGP',
-  'PL': 'PLN',
-  'CZ': 'CZK',
-  'HU': 'HUF',
-  'RO': 'RON',
+  US: 'USD',
+  GB: 'GBP',
+  FR: 'EUR',
+  DE: 'EUR',
+  IT: 'EUR',
+  ES: 'EUR',
+  NL: 'EUR',
+  BE: 'EUR',
+  AT: 'EUR',
+  IE: 'EUR',
+  PT: 'EUR',
+  FI: 'EUR',
+  GR: 'EUR',
+  CA: 'CAD',
+  AU: 'AUD',
+  JP: 'JPY',
+  CN: 'CNY',
+  IN: 'INR',
+  BR: 'BRL',
+  MX: 'MXN',
+  CH: 'CHF',
+  SE: 'SEK',
+  NO: 'NOK',
+  DK: 'DKK',
+  KR: 'KRW',
+  SG: 'SGD',
+  HK: 'HKD',
+  NZ: 'NZD',
+  TH: 'THB',
+  ID: 'IDR',
+  MY: 'MYR',
+  PH: 'PHP',
+  VN: 'VND',
+  RU: 'RUB',
+  TR: 'TRY',
+  ZA: 'ZAR',
+  AE: 'AED',
+  SA: 'SAR',
+  IL: 'ILS',
+  EG: 'EGP',
+  PL: 'PLN',
+  CZ: 'CZK',
+  HU: 'HUF',
+  RO: 'RON',
 };
 
 // Currencies ordered by popularity
@@ -133,7 +133,7 @@ const COST_EXAMPLES = [
   { label: '🎂 Birthday', description: 'Birthday party' },
   { label: '🍕 Food', description: 'Food & snacks' },
   { label: '🎬 Movie', description: 'Movie tickets' },
-  
+
   // Activities
   { label: '🎳 Bowling', description: 'Bowling' },
   { label: '🎤 Karaoke', description: 'Karaoke night' },
@@ -143,7 +143,7 @@ const COST_EXAMPLES = [
   { label: '🏎️ Go-Kart', description: 'Go-karting' },
   { label: '🎨 Paint & Sip', description: 'Paint and sip' },
   { label: '⛸️ Ice Skating', description: 'Ice skating' },
-  
+
   // Food & Drinks
   { label: '🥂 Champagne', description: 'Champagne toast' },
   { label: '🍷 Wine', description: 'Wine tasting' },
@@ -153,7 +153,7 @@ const COST_EXAMPLES = [
   { label: '🍱 Lunch', description: 'Lunch' },
   { label: '🍰 Dessert', description: 'Cake & desserts' },
   { label: '🍜 Street Food', description: 'Street food tour' },
-  
+
   // Entertainment
   { label: '🎭 Theater', description: 'Theater show' },
   { label: '🎵 Concert', description: 'Concert tickets' },
@@ -163,7 +163,7 @@ const COST_EXAMPLES = [
   { label: '🏛️ Tour', description: 'Guided tour' },
   { label: '🎪 Circus', description: 'Circus show' },
   { label: '🎭 Comedy', description: 'Comedy show' },
-  
+
   // Party & Nightlife
   { label: '🍾 Bottle Service', description: 'Bottle service' },
   { label: '💃 Club', description: 'Club entry' },
@@ -173,7 +173,7 @@ const COST_EXAMPLES = [
   { label: '📸 Photo Booth', description: 'Photo booth' },
   { label: '🎊 VIP Table', description: 'VIP table' },
   { label: '🍻 Bar Tab', description: 'Bar tab' },
-  
+
   // Sports & Outdoor
   { label: '⚽ Sports Game', description: 'Sports tickets' },
   { label: '🏖️ Beach', description: 'Beach day' },
@@ -183,7 +183,7 @@ const COST_EXAMPLES = [
   { label: '🎿 Ski Pass', description: 'Ski pass' },
   { label: '🏊 Pool', description: 'Pool party' },
   { label: '🔥 BBQ', description: 'BBQ supplies' },
-  
+
   // Special
   { label: '💐 Flowers', description: 'Flowers' },
   { label: '🎁 Gift', description: 'Group gift' },
@@ -214,10 +214,10 @@ export default function CostPerPersonModal({
       const countryCode = getCountryISOCode(profile.location);
       const userCurrency = CURRENCY_BY_COUNTRY[countryCode] || 'USD';
       setSelectedCurrency(userCurrency);
-      
+
       // Reorder currencies to put user's currency first
       const reorderedCurrencies = [...ALL_CURRENCIES];
-      const userCurrencyIndex = reorderedCurrencies.findIndex(c => c.code === userCurrency);
+      const userCurrencyIndex = reorderedCurrencies.findIndex((c) => c.code === userCurrency);
       if (userCurrencyIndex > 0) {
         const userCurrencyObj = reorderedCurrencies.splice(userCurrencyIndex, 1)[0];
         if (userCurrencyObj) {
@@ -232,65 +232,65 @@ export default function CostPerPersonModal({
 
   const getCountryISOCode = (location: string) => {
     if (!location) return 'US';
-    
+
     const countryMappings: { [key: string]: string } = {
-      'USA': 'US',
+      USA: 'US',
       'United States': 'US',
       'United States of America': 'US',
-      'UK': 'GB',
+      UK: 'GB',
       'United Kingdom': 'GB',
-      'England': 'GB',
-      'Scotland': 'GB',
-      'Wales': 'GB',
+      England: 'GB',
+      Scotland: 'GB',
+      Wales: 'GB',
       'Northern Ireland': 'GB',
-      'Canada': 'CA',
-      'Australia': 'AU',
-      'France': 'FR',
-      'Germany': 'DE',
-      'Italy': 'IT',
-      'Spain': 'ES',
-      'Netherlands': 'NL',
-      'Belgium': 'BE',
-      'Austria': 'AT',
-      'Ireland': 'IE',
-      'Portugal': 'PT',
-      'Finland': 'FI',
-      'Greece': 'GR',
-      'Japan': 'JP',
-      'China': 'CN',
-      'India': 'IN',
-      'Brazil': 'BR',
-      'Mexico': 'MX',
-      'Switzerland': 'CH',
-      'Sweden': 'SE',
-      'Norway': 'NO',
-      'Denmark': 'DK',
+      Canada: 'CA',
+      Australia: 'AU',
+      France: 'FR',
+      Germany: 'DE',
+      Italy: 'IT',
+      Spain: 'ES',
+      Netherlands: 'NL',
+      Belgium: 'BE',
+      Austria: 'AT',
+      Ireland: 'IE',
+      Portugal: 'PT',
+      Finland: 'FI',
+      Greece: 'GR',
+      Japan: 'JP',
+      China: 'CN',
+      India: 'IN',
+      Brazil: 'BR',
+      Mexico: 'MX',
+      Switzerland: 'CH',
+      Sweden: 'SE',
+      Norway: 'NO',
+      Denmark: 'DK',
       'South Korea': 'KR',
-      'Korea': 'KR',
-      'Singapore': 'SG',
+      Korea: 'KR',
+      Singapore: 'SG',
       'Hong Kong': 'HK',
       'New Zealand': 'NZ',
-      'Thailand': 'TH',
-      'Indonesia': 'ID',
-      'Malaysia': 'MY',
-      'Philippines': 'PH',
-      'Vietnam': 'VN',
-      'Russia': 'RU',
-      'Turkey': 'TR',
+      Thailand: 'TH',
+      Indonesia: 'ID',
+      Malaysia: 'MY',
+      Philippines: 'PH',
+      Vietnam: 'VN',
+      Russia: 'RU',
+      Turkey: 'TR',
       'South Africa': 'ZA',
-      'UAE': 'AE',
+      UAE: 'AE',
       'United Arab Emirates': 'AE',
       'Saudi Arabia': 'SA',
-      'Israel': 'IL',
-      'Egypt': 'EG',
-      'Poland': 'PL',
+      Israel: 'IL',
+      Egypt: 'EG',
+      Poland: 'PL',
       'Czech Republic': 'CZ',
-      'Hungary': 'HU',
-      'Romania': 'RO',
+      Hungary: 'HU',
+      Romania: 'RO',
     };
-    
+
     const parts = location.split(',');
-    
+
     // Try last part first (usually country in "City, Country" format)
     if (parts.length > 1) {
       const lastPart = parts[parts.length - 1]?.trim() || '';
@@ -301,13 +301,13 @@ export default function CostPerPersonModal({
         return lastPart.toUpperCase();
       }
     }
-    
+
     // Try first part
     const firstPart = parts[0]?.trim() || '';
     if (countryMappings[firstPart]) {
       return countryMappings[firstPart];
     }
-    
+
     return 'US';
   };
 
@@ -354,12 +354,12 @@ export default function CostPerPersonModal({
   };
 
   const removeCost = (costId: string) => {
-    setCosts(costs.filter(cost => cost.id !== costId));
+    setCosts(costs.filter((cost) => cost.id !== costId));
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
   const getCurrencySymbol = (code: string) => {
-    const currency = currencies.find(c => c.code === code);
+    const currency = currencies.find((c) => c.code === code);
     return currency?.symbol || code;
   };
 
@@ -367,7 +367,7 @@ export default function CostPerPersonModal({
     return costs.reduce((total, cost) => total + parseFloat(cost.amount || '0'), 0);
   };
 
-  const selectExample = (example: typeof COST_EXAMPLES[0]) => {
+  const selectExample = (example: (typeof COST_EXAMPLES)[0]) => {
     setDescription(example.description);
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
@@ -390,12 +390,12 @@ export default function CostPerPersonModal({
             Add costs that guests need to pay (entry fees, dinner, activities, etc.)
           </Text>
         </View>
-        
+
         {/* Currency Selector */}
         <View style={styles.currencySection}>
           <Text style={styles.sectionLabel}>Currency</Text>
-          <ScrollView 
-            horizontal 
+          <ScrollView
+            horizontal
             showsHorizontalScrollIndicator={false}
             style={styles.currencyScroll}
           >
@@ -405,24 +405,28 @@ export default function CostPerPersonModal({
                 style={[
                   styles.currencyOption,
                   selectedCurrency === currency.code && styles.currencySelected,
-                  index === 0 && styles.firstCurrency
+                  index === 0 && styles.firstCurrency,
                 ]}
                 onPress={() => {
                   setSelectedCurrency(currency.code);
-                  setCosts(costs.map(c => ({ ...c, currency: currency.code })));
+                  setCosts(costs.map((c) => ({ ...c, currency: currency.code })));
                   void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 }}
               >
-                <Text style={[
-                  styles.currencySymbol,
-                  selectedCurrency === currency.code && styles.currencySymbolSelected
-                ]}>
+                <Text
+                  style={[
+                    styles.currencySymbol,
+                    selectedCurrency === currency.code && styles.currencySymbolSelected,
+                  ]}
+                >
                   {currency.symbol}
                 </Text>
-                <Text style={[
-                  styles.currencyCode,
-                  selectedCurrency === currency.code && styles.currencyCodeSelected
-                ]}>
+                <Text
+                  style={[
+                    styles.currencyCode,
+                    selectedCurrency === currency.code && styles.currencyCodeSelected,
+                  ]}
+                >
                   {currency.code}
                 </Text>
               </TouchableOpacity>
@@ -432,7 +436,9 @@ export default function CostPerPersonModal({
 
         {/* Amount Input */}
         <View style={styles.amountSection}>
-          <Text style={styles.sectionLabel}>Cost Amount <Text style={styles.required}>*</Text></Text>
+          <Text style={styles.sectionLabel}>
+            Cost Amount <Text style={styles.required}>*</Text>
+          </Text>
           <View style={styles.amountInputContainer}>
             <Text style={styles.currencyPrefix}>{getCurrencySymbol(selectedCurrency)}</Text>
             <TextInput
@@ -448,7 +454,9 @@ export default function CostPerPersonModal({
 
         {/* Description Input */}
         <View style={styles.descriptionSection}>
-          <Text style={styles.sectionLabel}>Cost Description <Text style={styles.required}>*</Text></Text>
+          <Text style={styles.sectionLabel}>
+            Cost Description <Text style={styles.required}>*</Text>
+          </Text>
           <TextInput
             style={styles.descriptionInput}
             value={description}
@@ -457,11 +465,11 @@ export default function CostPerPersonModal({
             placeholderTextColor="#C7C7CC"
             maxLength={50}
           />
-          
+
           {/* Examples */}
           <Text style={styles.examplesLabel}>Quick select:</Text>
-          <ScrollView 
-            horizontal 
+          <ScrollView
+            horizontal
             showsHorizontalScrollIndicator={false}
             style={styles.examplesScroll}
           >
@@ -478,10 +486,11 @@ export default function CostPerPersonModal({
         </View>
 
         {/* Add Button */}
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[
-            styles.addButton, 
-            (!amount || parseFloat(amount) === 0 || !description.trim()) && styles.addButtonDisabled
+            styles.addButton,
+            (!amount || parseFloat(amount) === 0 || !description.trim()) &&
+              styles.addButtonDisabled,
           ]}
           onPress={addCost}
           disabled={!amount || parseFloat(amount) === 0 || !description.trim()}
@@ -499,7 +508,8 @@ export default function CostPerPersonModal({
                 <View style={styles.costItemLeft}>
                   <Text style={styles.costDescription}>{cost.description}</Text>
                   <Text style={styles.costAmount}>
-                    {getCurrencySymbol(cost.currency)}{cost.amount}
+                    {getCurrencySymbol(cost.currency)}
+                    {cost.amount}
                   </Text>
                 </View>
                 <TouchableOpacity onPress={() => removeCost(cost.id)}>
@@ -507,12 +517,13 @@ export default function CostPerPersonModal({
                 </TouchableOpacity>
               </View>
             ))}
-            
+
             {/* Total */}
             <View style={styles.totalContainer}>
               <Text style={styles.totalLabel}>Total per person</Text>
               <Text style={styles.totalAmount}>
-                {getCurrencySymbol(selectedCurrency)}{getTotalAmount().toFixed(2)}
+                {getCurrencySymbol(selectedCurrency)}
+                {getTotalAmount().toFixed(2)}
               </Text>
             </View>
           </View>
@@ -531,7 +542,8 @@ export default function CostPerPersonModal({
         <View style={styles.infoBox}>
           <Ionicons name="information-circle-outline" size={20} color="#8E8E93" />
           <Text style={styles.infoText}>
-            Guests will see the total cost when they RSVP. You can add multiple costs for different aspects of your event.
+            Guests will see the total cost when they RSVP. You can add multiple costs for different
+            aspects of your event.
           </Text>
         </View>
       </View>

@@ -86,7 +86,6 @@ export function useUserProfile(userId: string | null | undefined) {
       )
       .subscribe();
 
-
     return () => {
       if (subscription) {
         void supabase.removeChannel(subscription);

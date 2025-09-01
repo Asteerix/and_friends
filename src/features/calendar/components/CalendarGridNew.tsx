@@ -1,11 +1,5 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Dimensions,
-} from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 interface CalendarEvent {
@@ -34,7 +28,7 @@ export default function CalendarGridNew({
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
     const firstDay = new Date(year, month, 1);
-    
+
     // Get the first day of the week (Sunday = 0)
     const startDate = new Date(firstDay);
     const dayOfWeek = firstDay.getDay();
@@ -86,9 +80,9 @@ export default function CalendarGridNew({
         >
           <Ionicons name="chevron-back" size={20} color="#8E8E93" />
         </TouchableOpacity>
-        
+
         <Text style={styles.monthText}>{monthYearText}</Text>
-        
+
         <TouchableOpacity
           style={styles.navButton}
           onPress={() => onMonthChange('next')}
@@ -112,18 +106,15 @@ export default function CalendarGridNew({
         {calendarDays.map((date, index) => {
           const isInCurrentMonth = isCurrentMonth(date);
           const hasEventOnDate = hasEvent(date);
-          const isSelected = 
+          const isSelected =
             selectedDate.getDate() === date.getDate() &&
             selectedDate.getMonth() === date.getMonth() &&
             selectedDate.getFullYear() === date.getFullYear();
-          
+
           return (
             <TouchableOpacity
               key={index}
-              style={[
-                styles.dayCell,
-                isSelected && styles.selectedDayCell,
-              ]}
+              style={[styles.dayCell, isSelected && styles.selectedDayCell]}
               onPress={() => onDateSelect(date)}
               activeOpacity={0.7}
             >
@@ -136,9 +127,7 @@ export default function CalendarGridNew({
               >
                 {date.getDate()}
               </Text>
-              {hasEventOnDate && isInCurrentMonth && (
-                <View style={styles.eventDot} />
-              )}
+              {hasEventOnDate && isInCurrentMonth && <View style={styles.eventDot} />}
             </TouchableOpacity>
           );
         })}

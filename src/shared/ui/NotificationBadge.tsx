@@ -6,7 +6,7 @@ interface NotificationBadgeProps {
   size?: 'small' | 'medium' | 'large';
   position?: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left';
   animate?: boolean;
-};
+}
 export default function NotificationBadge({
   count,
   size = 'small',

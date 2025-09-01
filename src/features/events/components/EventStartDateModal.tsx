@@ -62,24 +62,23 @@ interface PickerColumnProps {
   placeholder: string;
 }
 
-const PickerColumn: React.FC<PickerColumnProps> = ({ data, selectedValue, onSelect, placeholder }) => {
+const PickerColumn: React.FC<PickerColumnProps> = ({
+  data,
+  selectedValue,
+  onSelect,
+  placeholder,
+}) => {
   const [showList, setShowList] = useState(false);
 
   return (
     <View style={styles.pickerColumn}>
-      <Pressable
-        style={styles.pickerBox}
-        onPress={() => setShowList(!showList)}
-      >
-        <Text style={[
-          styles.pickerText,
-          !selectedValue && styles.pickerPlaceholder
-        ]}>
+      <Pressable style={styles.pickerBox} onPress={() => setShowList(!showList)}>
+        <Text style={[styles.pickerText, !selectedValue && styles.pickerPlaceholder]}>
           {selectedValue || placeholder}
         </Text>
         <Text style={styles.chevron}>⌄</Text>
       </Pressable>
-      
+
       {showList && (
         <Modal
           transparent
@@ -105,15 +104,14 @@ const PickerColumn: React.FC<PickerColumnProps> = ({ data, selectedValue, onSele
                     setShowList(false);
                     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   }}
-                  style={[
-                    styles.pickerItem,
-                    selectedValue === item && styles.pickerItemSelected
-                  ]}
+                  style={[styles.pickerItem, selectedValue === item && styles.pickerItemSelected]}
                 >
-                  <Text style={[
-                    styles.pickerItemText,
-                    selectedValue === item && styles.pickerItemTextSelected
-                  ]}>
+                  <Text
+                    style={[
+                      styles.pickerItemText,
+                      selectedValue === item && styles.pickerItemTextSelected,
+                    ]}
+                  >
                     {item}
                   </Text>
                 </Pressable>
@@ -145,17 +143,17 @@ export default function EventStartDateModal({
   useEffect(() => {
     if (visible) {
       const now = new Date();
-      const minimumDate = new Date(now.getTime() + (24 * 60 * 60 * 1000));
-      
+      const minimumDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
       let dateToUse = currentDate || minimumDate;
       let timeToUse = currentTime || minimumDate;
-      
+
       // Ensure the date is not in the past
       if (dateToUse < minimumDate) {
         dateToUse = minimumDate;
         timeToUse = minimumDate;
       }
-      
+
       setYear(String(dateToUse.getFullYear()));
       setMonth(MONTHS[dateToUse.getMonth()] || null);
       setDay(String(dateToUse.getDate()));
@@ -180,13 +178,13 @@ export default function EventStartDateModal({
     );
 
     const now = new Date();
-    const minimumDate = new Date(now.getTime() + (24 * 60 * 60 * 1000)); // 24 hours from now
-    
+    const minimumDate = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours from now
+
     if (selectedDate < now) {
       setDateError('Event date cannot be in the past');
       return false;
     }
-    
+
     if (selectedDate < minimumDate) {
       const hoursUntil = Math.ceil((selectedDate.getTime() - now.getTime()) / (1000 * 60 * 60));
       setDateError(`Event must be at least 24 hours from now (currently ${hoursUntil} hours)`);
@@ -210,12 +208,8 @@ export default function EventStartDateModal({
 
     if (year && month && day && hour && minute) {
       const monthIndex = MONTHS.indexOf(month);
-      
-      const eventDate = new Date(
-        parseInt(year),
-        monthIndex,
-        parseInt(day)
-      );
+
+      const eventDate = new Date(parseInt(year), monthIndex, parseInt(day));
       const eventTime = new Date(
         parseInt(year),
         monthIndex,
@@ -223,7 +217,7 @@ export default function EventStartDateModal({
         parseInt(hour),
         parseInt(minute)
       );
-      
+
       onSelect(eventDate, eventTime);
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       onClose();
@@ -259,7 +253,7 @@ export default function EventStartDateModal({
         <Pressable style={styles.backdrop} onPress={onClose} />
         <View style={[styles.modalContent, { paddingBottom: insets.bottom || 20 }]}>
           <View style={styles.handle} />
-          
+
           <View style={styles.header}>
             <Text style={styles.title}>When does it start?</Text>
             <Text style={styles.subtitle}>Select the start date and time</Text>
@@ -281,12 +275,7 @@ export default function EventStartDateModal({
                   onSelect={setMonth}
                   placeholder="Month"
                 />
-                <PickerColumn
-                  data={DAYS}
-                  selectedValue={day}
-                  onSelect={setDay}
-                  placeholder="Day"
-                />
+                <PickerColumn data={DAYS} selectedValue={day} onSelect={setDay} placeholder="Day" />
                 <PickerColumn
                   data={YEARS}
                   selectedValue={year}
@@ -314,7 +303,7 @@ export default function EventStartDateModal({
                 />
               </View>
             </View>
-            
+
             {/* Validation info */}
             <View style={styles.validationInfo}>
               <Ionicons name="information-circle-outline" size={16} color="#666" />
@@ -322,10 +311,8 @@ export default function EventStartDateModal({
                 Event must be at least 24 hours in the future
               </Text>
             </View>
-            
-            {dateError && (
-              <Text style={styles.errorText}>{dateError}</Text>
-            )}
+
+            {dateError && <Text style={styles.errorText}>{dateError}</Text>}
           </ScrollView>
 
           <View style={styles.footer}>

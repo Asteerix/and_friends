@@ -13,9 +13,9 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { ChatService } from '@/features/chats/services/chatService';
 import { useSession } from '@/shared/providers/SessionContext';
-import * as Haptics from 'expo-haptics';
 import { supabase } from '@/shared/lib/supabase/client';
 
 interface UserItem {
@@ -52,9 +52,9 @@ export default function AddParticipantsScreen() {
 
   const loadExistingParticipants = async () => {
     if (!chatId) return;
-    
+
     const { data } = await ChatService.getChatParticipants(chatId);
-    setExistingParticipants(data.map(p => p.user_id));
+    setExistingParticipants(data.map((p) => p.user_id));
   };
 
   const loadFriends = async () => {
@@ -67,13 +67,13 @@ export default function AddParticipantsScreen() {
         .limit(50);
 
       if (error) throw error;
-      
+
       // Mark existing participants
-      const usersWithStatus = (data || []).map(user => ({
+      const usersWithStatus = (data || []).map((user) => ({
         ...user,
         isParticipant: existingParticipants.includes(user.id),
       }));
-      
+
       setUsers(usersWithStatus);
     } catch (error) {
       console.error('Error loading friends:', error);
@@ -84,25 +84,25 @@ export default function AddParticipantsScreen() {
   const searchUsers = async () => {
     setLoading(true);
     const { data } = await ChatService.searchUsers(searchQuery);
-    
+
     // Mark existing participants and filter out current user
     const usersWithStatus = data
-      .filter(u => u.id !== session?.user?.id)
-      .map(user => ({
+      .filter((u) => u.id !== session?.user?.id)
+      .map((user) => ({
         ...user,
         isParticipant: existingParticipants.includes(user.id),
       }));
-    
+
     setUsers(usersWithStatus);
     setLoading(false);
   };
 
   const toggleUserSelection = (userId: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    
-    setSelectedUsers(prev => {
+
+    setSelectedUsers((prev) => {
       if (prev.includes(userId)) {
-        return prev.filter(id => id !== userId);
+        return prev.filter((id) => id !== userId);
       }
       return [...prev, userId];
     });
@@ -130,9 +130,9 @@ export default function AddParticipantsScreen() {
       }
     } catch (error) {
       console.error('Error adding participants:', error);
-      Alert.alert('Erreur', 'Impossible d\'ajouter les participants');
+      Alert.alert('Erreur', "Impossible d'ajouter les participants");
     }
-    
+
     setAdding(false);
   };
 
@@ -141,7 +141,7 @@ export default function AddParticipantsScreen() {
     const isSelected = selectedUsers.includes(item.id);
 
     return (
-      <TouchableOpacity 
+      <TouchableOpacity
         style={[styles.userItem, isDisabled && styles.userItemDisabled]}
         onPress={() => !isDisabled && toggleUserSelection(item.id)}
         disabled={isDisabled}
@@ -151,9 +151,7 @@ export default function AddParticipantsScreen() {
             <Image source={{ uri: item.avatar_url }} style={styles.avatar} />
           ) : (
             <View style={[styles.avatar, styles.defaultAvatar]}>
-              <Text style={styles.avatarText}>
-                {item.full_name.charAt(0).toUpperCase()}
-              </Text>
+              <Text style={styles.avatarText}>{item.full_name.charAt(0).toUpperCase()}</Text>
             </View>
           )}
           <View style={styles.userDetails}>
@@ -165,9 +163,7 @@ export default function AddParticipantsScreen() {
                 @{item.username}
               </Text>
             )}
-            {isDisabled && (
-              <Text style={styles.participantLabel}>Déjà dans le groupe</Text>
-            )}
+            {isDisabled && <Text style={styles.participantLabel}>Déjà dans le groupe</Text>}
           </View>
         </View>
         {!isDisabled && (
@@ -190,10 +186,12 @@ export default function AddParticipantsScreen() {
           onPress={handleAddParticipants}
           disabled={adding || selectedUsers.length === 0}
         >
-          <Text style={[
-            styles.addButton,
-            (adding || selectedUsers.length === 0) && styles.addButtonDisabled
-          ]}>
+          <Text
+            style={[
+              styles.addButton,
+              (adding || selectedUsers.length === 0) && styles.addButtonDisabled,
+            ]}
+          >
             {adding ? 'Ajout...' : 'Ajouter'}
           </Text>
         </TouchableOpacity>
@@ -213,7 +211,8 @@ export default function AddParticipantsScreen() {
       {selectedUsers.length > 0 && (
         <View style={styles.selectedContainer}>
           <Text style={styles.selectedTitle}>
-            {selectedUsers.length} utilisateur{selectedUsers.length > 1 ? 's' : ''} sélectionné{selectedUsers.length > 1 ? 's' : ''}
+            {selectedUsers.length} utilisateur{selectedUsers.length > 1 ? 's' : ''} sélectionné
+            {selectedUsers.length > 1 ? 's' : ''}
           </Text>
         </View>
       )}

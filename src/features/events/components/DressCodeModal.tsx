@@ -1,13 +1,5 @@
 import React, { useState } from 'react';
-import {
-  Modal,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-  TextInput,
-  ScrollView,
-} from 'react-native';
+import { Modal, Pressable, StyleSheet, Text, View, TextInput, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,17 +12,62 @@ interface DressCodeModalProps {
 }
 
 const PRESET_DRESS_CODES = [
-  { id: '1', title: 'Casual', description: 'Come as you are - jeans, t-shirt, sneakers welcome', icon: '👕' },
-  { id: '2', title: 'Smart Casual', description: 'Nice jeans or chinos, shirt or blouse, no sneakers', icon: '👔' },
-  { id: '3', title: 'Business Casual', description: 'Dress pants/skirt, button-down shirt, dress shoes', icon: '💼' },
-  { id: '4', title: 'Cocktail Attire', description: 'Cocktail dress or suit, elegant but not formal', icon: '🍸' },
-  { id: '5', title: 'Black Tie Optional', description: 'Tuxedo encouraged but dark suit acceptable', icon: '🎩' },
-  { id: '6', title: 'Black Tie', description: 'Tuxedo for men, evening gown for women', icon: '🤵' },
+  {
+    id: '1',
+    title: 'Casual',
+    description: 'Come as you are - jeans, t-shirt, sneakers welcome',
+    icon: '👕',
+  },
+  {
+    id: '2',
+    title: 'Smart Casual',
+    description: 'Nice jeans or chinos, shirt or blouse, no sneakers',
+    icon: '👔',
+  },
+  {
+    id: '3',
+    title: 'Business Casual',
+    description: 'Dress pants/skirt, button-down shirt, dress shoes',
+    icon: '💼',
+  },
+  {
+    id: '4',
+    title: 'Cocktail Attire',
+    description: 'Cocktail dress or suit, elegant but not formal',
+    icon: '🍸',
+  },
+  {
+    id: '5',
+    title: 'Black Tie Optional',
+    description: 'Tuxedo encouraged but dark suit acceptable',
+    icon: '🎩',
+  },
+  {
+    id: '6',
+    title: 'Black Tie',
+    description: 'Tuxedo for men, evening gown for women',
+    icon: '🤵',
+  },
   { id: '7', title: 'White Attire', description: 'All white clothing requested', icon: '⚪' },
-  { id: '8', title: 'Theme Party', description: 'Specific costume or theme (specify in custom)', icon: '🎭' },
+  {
+    id: '8',
+    title: 'Theme Party',
+    description: 'Specific costume or theme (specify in custom)',
+    icon: '🎭',
+  },
   { id: '9', title: 'Beach/Pool', description: 'Swimwear, cover-ups, sandals', icon: '🏖️' },
-  { id: '10', title: 'Athletic/Sporty', description: 'Sportswear, sneakers, athleisure', icon: '🏃' },
-  { id: '11', title: 'Festival', description: 'Comfortable, expressive, weather-appropriate', icon: '🎪' },
+  {
+    id: '10',
+    title: 'Athletic/Sporty',
+    description: 'Sportswear, sneakers, athleisure',
+    icon: '🏃',
+  },
+  {
+    id: '11',
+    title: 'Festival',
+    description: 'Comfortable, expressive, weather-appropriate',
+    icon: '🎪',
+  },
   { id: '12', title: 'All Black', description: 'Black clothing only', icon: '⚫' },
 ];
 
@@ -48,7 +85,7 @@ export default function DressCodeModal({
   // Initialize with existing dress code
   React.useEffect(() => {
     if (visible && initialDressCode) {
-      const preset = PRESET_DRESS_CODES.find(code => code.title === initialDressCode);
+      const preset = PRESET_DRESS_CODES.find((code) => code.title === initialDressCode);
       if (preset) {
         setSelectedPreset(preset.id);
         setUseCustom(false);
@@ -67,14 +104,14 @@ export default function DressCodeModal({
 
   const handleSave = () => {
     let dressCode: string | null = null;
-    
+
     if (useCustom && customDressCode.trim()) {
       dressCode = customDressCode.trim();
     } else if (selectedPreset) {
-      const preset = PRESET_DRESS_CODES.find(code => code.id === selectedPreset);
+      const preset = PRESET_DRESS_CODES.find((code) => code.id === selectedPreset);
       dressCode = preset?.title || null;
     }
-    
+
     onSave(dressCode);
     onClose();
   };
@@ -104,7 +141,7 @@ export default function DressCodeModal({
         <Pressable style={styles.backdrop} onPress={onClose} />
         <View style={[styles.modalContent, { paddingBottom: insets.bottom || 20 }]}>
           <View style={styles.handle} />
-          
+
           <View style={styles.header}>
             <Text style={styles.title}>Dress Code</Text>
             <Text style={styles.subtitle}>Let guests know what to wear</Text>
@@ -119,16 +156,18 @@ export default function DressCodeModal({
                   key={code.id}
                   style={[
                     styles.presetItem,
-                    selectedPreset === code.id && !useCustom && styles.presetItemSelected
+                    selectedPreset === code.id && !useCustom && styles.presetItemSelected,
                   ]}
                   onPress={() => handleSelectPreset(code.id)}
                 >
                   <Text style={styles.presetIcon}>{code.icon}</Text>
                   <View style={styles.presetContent}>
-                    <Text style={[
-                      styles.presetTitle,
-                      selectedPreset === code.id && !useCustom && styles.presetTitleSelected
-                    ]}>
+                    <Text
+                      style={[
+                        styles.presetTitle,
+                        selectedPreset === code.id && !useCustom && styles.presetTitleSelected,
+                      ]}
+                    >
                       {code.title}
                     </Text>
                     <Text style={styles.presetDescription}>{code.description}</Text>
@@ -180,7 +219,9 @@ export default function DressCodeModal({
             <Pressable
               style={[
                 styles.saveButton,
-                (!selectedPreset && (!useCustom || !customDressCode.trim())) && styles.saveButtonDisabled
+                !selectedPreset &&
+                  (!useCustom || !customDressCode.trim()) &&
+                  styles.saveButtonDisabled,
               ]}
               onPress={handleSave}
               disabled={!selectedPreset && (!useCustom || !customDressCode.trim())}

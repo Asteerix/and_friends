@@ -12,22 +12,22 @@ export const useSafeNavigation = () => {
     return false;
   }, [router]);
 
-  const safeNavigate = useCallback((
-    path: string,
-    options?: { replace?: boolean }
-  ) => {
-    try {
-      if (options?.replace) {
-        router.replace(path);
-      } else {
-        router.push(path);
+  const safeNavigate = useCallback(
+    (path: string, options?: { replace?: boolean }) => {
+      try {
+        if (options?.replace) {
+          router.replace(path);
+        } else {
+          router.push(path);
+        }
+        return true;
+      } catch (error) {
+        console.error('Navigation error:', error);
+        return false;
       }
-      return true;
-    } catch (error) {
-      console.error('Navigation error:', error);
-      return false;
-    }
-  }, [router]);
+    },
+    [router]
+  );
 
   return {
     safeGoBack,

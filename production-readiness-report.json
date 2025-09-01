@@ -1,0 +1,157 @@
+{
+  "timestamp": "2025-08-24T10:49:15.163Z",
+  "summary": {
+    "totalChecks": 24,
+    "passed": 20,
+    "warnings": 3,
+    "failures": 1,
+    "score": 90
+  },
+  "results": [
+    {
+      "category": "Package Configuration",
+      "name": "Version",
+      "status": "pass",
+      "message": "Version: 1.0.0"
+    },
+    {
+      "category": "Package Configuration",
+      "name": "Script: test",
+      "status": "pass",
+      "message": "✓ test script found"
+    },
+    {
+      "category": "Package Configuration",
+      "name": "Script: check:types",
+      "status": "pass",
+      "message": "✓ check:types script found"
+    },
+    {
+      "category": "Package Configuration",
+      "name": "Script: check:lint",
+      "status": "pass",
+      "message": "✓ check:lint script found"
+    },
+    {
+      "category": "Package Configuration",
+      "name": "App Config",
+      "status": "pass",
+      "message": "App configuration found"
+    },
+    {
+      "category": "TypeScript",
+      "name": "Compilation",
+      "status": "warn",
+      "message": "0 TypeScript errors found",
+      "fix": "Run \"pnpm check:types\" and fix errors"
+    },
+    {
+      "category": "Code Quality",
+      "name": "ESLint",
+      "status": "fail",
+      "message": "1 ESLint errors found"
+    },
+    {
+      "category": "Dependencies",
+      "name": "Package: react",
+      "status": "pass",
+      "message": "✓ react installed"
+    },
+    {
+      "category": "Dependencies",
+      "name": "Package: react-native",
+      "status": "pass",
+      "message": "✓ react-native installed"
+    },
+    {
+      "category": "Dependencies",
+      "name": "Package: expo",
+      "status": "pass",
+      "message": "✓ expo installed"
+    },
+    {
+      "category": "Dependencies",
+      "name": "Package: @supabase/supabase-js",
+      "status": "pass",
+      "message": "✓ @supabase/supabase-js installed"
+    },
+    {
+      "category": "Dependencies",
+      "name": "Package: typescript",
+      "status": "pass",
+      "message": "✓ typescript installed"
+    },
+    {
+      "category": "Assets",
+      "name": "icon.png",
+      "status": "pass",
+      "message": "✓ assets/images/icon.png found"
+    },
+    {
+      "category": "Assets",
+      "name": "splash.png",
+      "status": "pass",
+      "message": "✓ assets/images/splash.png found"
+    },
+    {
+      "category": "Assets",
+      "name": "Assets Directory",
+      "status": "pass",
+      "message": "Assets directory exists"
+    },
+    {
+      "category": "Configuration",
+      "name": "App Name",
+      "status": "pass",
+      "message": "App name: & friends"
+    },
+    {
+      "category": "Configuration",
+      "name": "App Slug",
+      "status": "pass",
+      "message": "App slug: andfriends"
+    },
+    {
+      "category": "Configuration",
+      "name": "iOS Bundle ID",
+      "status": "pass",
+      "message": "Bundle ID: com.asteerix.andfriends"
+    },
+    {
+      "category": "Security",
+      "name": "Environment Variables",
+      "status": "pass",
+      "message": "Environment configuration found"
+    },
+    {
+      "category": "Performance",
+      "name": "Dependencies Count",
+      "status": "warn",
+      "message": "109 dependencies (high)"
+    },
+    {
+      "category": "Testing",
+      "name": "Test Files",
+      "status": "pass",
+      "message": "Test files found"
+    },
+    {
+      "category": "Testing",
+      "name": "Test Execution",
+      "status": "warn",
+      "message": "Some tests may be failing"
+    },
+    {
+      "category": "Supabase Security",
+      "name": "Supabase Setup",
+      "status": "pass",
+      "message": "Supabase configuration found"
+    },
+    {
+      "category": "Supabase Security",
+      "name": "Database Migrations",
+      "status": "pass",
+      "message": "Migration files found"
+    }
+  ]
+}

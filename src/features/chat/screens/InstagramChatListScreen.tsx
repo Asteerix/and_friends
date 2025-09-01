@@ -17,12 +17,12 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { useMessagesAdvanced } from '@/hooks/useMessagesAdvanced';
-import { useSession } from '@/shared/providers/SessionContext';
-import { usePresence } from '@/hooks/usePresence';
 import * as Haptics from 'expo-haptics';
 import Swipeable from 'react-native-gesture-handler/Swipeable';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { useMessagesAdvanced } from '@/hooks/useMessagesAdvanced';
+import { useSession } from '@/shared/providers/SessionContext';
+import { usePresence } from '@/hooks/usePresence';
 
 interface ChatItemProps {
   chat: any;
@@ -35,18 +35,18 @@ interface ChatItemProps {
   isPinned: boolean;
 }
 
-const ChatItem: React.FC<ChatItemProps> = ({ 
-  chat, 
-  currentUserId, 
-  onPress, 
+const ChatItem: React.FC<ChatItemProps> = ({
+  chat,
+  currentUserId,
+  onPress,
   onPin,
   onArchive,
   onDelete,
   isOnline,
-  isPinned
+  isPinned,
 }) => {
   const swipeableRef = useRef<Swipeable>(null);
-  
+
   const getOtherParticipant = () => {
     if (!chat.is_group && chat.participants) {
       return chat.participants.find((p: any) => p.user_id !== currentUserId);
@@ -55,29 +55,29 @@ const ChatItem: React.FC<ChatItemProps> = ({
   };
 
   const otherParticipant = getOtherParticipant();
-  const displayName = chat.is_group 
+  const displayName = chat.is_group
     ? chat.name || 'Groupe'
     : otherParticipant?.profiles?.full_name || 'Utilisateur';
 
   const avatarUrl = !chat.is_group && otherParticipant?.profiles?.avatar_url;
-  
+
   const formatMessageTime = (date: string) => {
     const messageDate = new Date(date);
     const now = new Date();
     const isToday = messageDate.toDateString() === now.toDateString();
-    
+
     if (isToday) {
       return format(messageDate, 'HH:mm');
     }
-    
+
     const diffInDays = Math.floor((now.getTime() - messageDate.getTime()) / (1000 * 60 * 60 * 24));
     if (diffInDays === 1) return 'Hier';
     if (diffInDays < 7) return format(messageDate, 'EEEE', { locale: fr });
-    
+
     return format(messageDate, 'dd/MM/yyyy');
   };
 
-  const lastMessageTime = chat.lastMessage?.created_at 
+  const lastMessageTime = chat.lastMessage?.created_at
     ? formatMessageTime(chat.lastMessage.created_at)
     : '';
 
@@ -87,19 +87,19 @@ const ChatItem: React.FC<ChatItemProps> = ({
   const renderRightActions = () => {
     return (
       <View style={styles.rightActionsContainer}>
-        <TouchableOpacity 
-          style={[styles.actionButton, styles.pinButton]} 
+        <TouchableOpacity
+          style={[styles.actionButton, styles.pinButton]}
           onPress={() => {
             onPin();
             swipeableRef.current?.close();
           }}
         >
-          <Ionicons name={isPinned ? "pin" : "pin-outline"} size={24} color="#fff" />
+          <Ionicons name={isPinned ? 'pin' : 'pin-outline'} size={24} color="#fff" />
           <Text style={styles.actionText}>{isPinned ? 'Désépingler' : 'Épingler'}</Text>
         </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={[styles.actionButton, styles.archiveButton]} 
+
+        <TouchableOpacity
+          style={[styles.actionButton, styles.archiveButton]}
           onPress={() => {
             onArchive();
             swipeableRef.current?.close();
@@ -114,8 +114,8 @@ const ChatItem: React.FC<ChatItemProps> = ({
 
   const renderLeftActions = () => {
     return (
-      <TouchableOpacity 
-        style={[styles.actionButton, styles.deleteButton]} 
+      <TouchableOpacity
+        style={[styles.actionButton, styles.deleteButton]}
         onPress={() => {
           onDelete();
           swipeableRef.current?.close();
@@ -146,14 +146,10 @@ const ChatItem: React.FC<ChatItemProps> = ({
             <Image source={{ uri: avatarUrl }} style={styles.avatar} />
           ) : (
             <View style={[styles.avatar, styles.defaultAvatar]}>
-              <Text style={styles.avatarText}>
-                {displayName.charAt(0).toUpperCase()}
-              </Text>
+              <Text style={styles.avatarText}>{displayName.charAt(0).toUpperCase()}</Text>
             </View>
           )}
-          {isOnline && !chat.is_group && (
-            <View style={styles.onlineIndicator} />
-          )}
+          {isOnline && !chat.is_group && <View style={styles.onlineIndicator} />}
           {isPinned && (
             <View style={styles.pinnedIndicator}>
               <Ionicons name="pin" size={12} color="#000" />
@@ -167,27 +163,28 @@ const ChatItem: React.FC<ChatItemProps> = ({
               {displayName}
             </Text>
             <View style={styles.rightInfo}>
-              <Text style={[styles.chatTime, !isRead && styles.unreadTime]}>
-                {lastMessageTime}
-              </Text>
+              <Text style={[styles.chatTime, !isRead && styles.unreadTime]}>{lastMessageTime}</Text>
               {chat.lastMessage?.user_id === currentUserId && (
-                <Ionicons 
-                  name={chat.lastMessage?.read_by?.length > 1 ? "checkmark-done" : "checkmark"} 
-                  size={16} 
-                  color={chat.lastMessage?.read_by?.length > 1 ? "#3797F0" : "#999"} 
+                <Ionicons
+                  name={chat.lastMessage?.read_by?.length > 1 ? 'checkmark-done' : 'checkmark'}
+                  size={16}
+                  color={chat.lastMessage?.read_by?.length > 1 ? '#3797F0' : '#999'}
                   style={styles.readStatus}
                 />
               )}
             </View>
           </View>
-          
+
           <View style={styles.chatFooter}>
             <Text style={[styles.lastMessage, !isRead && styles.unreadMessage]} numberOfLines={1}>
               {chat.lastMessage?.user_id === currentUserId && 'Vous : '}
-              {chat.lastMessage?.message_type === 'image' ? '📷 Photo' :
-               chat.lastMessage?.message_type === 'audio' ? '🎵 Message vocal' :
-               chat.lastMessage?.message_type === 'story_reply' ? '📸 A répondu à votre story' :
-               chat.lastMessage?.content || 'Tapez un message...'}
+              {chat.lastMessage?.message_type === 'image'
+                ? '📷 Photo'
+                : chat.lastMessage?.message_type === 'audio'
+                  ? '🎵 Message vocal'
+                  : chat.lastMessage?.message_type === 'story_reply'
+                    ? '📸 A répondu à votre story'
+                    : chat.lastMessage?.content || 'Tapez un message...'}
             </Text>
             {unreadCount > 0 && (
               <View style={styles.unreadBadge}>
@@ -211,20 +208,18 @@ export default function InstagramChatListScreen() {
   const [showSearch, setShowSearch] = useState(false);
   const [pinnedChats, setPinnedChats] = useState<string[]>([]);
 
-  const filteredChats = chats.filter(chat => {
+  const filteredChats = chats.filter((chat) => {
     if (!searchQuery) return true;
-    
+
     const query = searchQuery.toLowerCase();
     const chatName = chat.name?.toLowerCase() || '';
-    
+
     if (!chat.is_group && chat.participants) {
-      const otherParticipant = chat.participants.find(
-        (p: any) => p.user_id !== session?.user?.id
-      );
+      const otherParticipant = chat.participants.find((p: any) => p.user_id !== session?.user?.id);
       const participantName = otherParticipant?.profiles?.full_name?.toLowerCase() || '';
       return chatName.includes(query) || participantName.includes(query);
     }
-    
+
     return chatName.includes(query);
   });
 
@@ -232,10 +227,10 @@ export default function InstagramChatListScreen() {
   const sortedChats = [...filteredChats].sort((a, b) => {
     const aIsPinned = pinnedChats.includes(a.id);
     const bIsPinned = pinnedChats.includes(b.id);
-    
+
     if (aIsPinned && !bIsPinned) return -1;
     if (!aIsPinned && bIsPinned) return 1;
-    
+
     const aTime = a.lastMessage?.created_at || a.created_at;
     const bTime = b.lastMessage?.created_at || b.created_at;
     return new Date(bTime).getTime() - new Date(aTime).getTime();
@@ -258,9 +253,9 @@ export default function InstagramChatListScreen() {
   };
 
   const togglePin = (chatId: string) => {
-    setPinnedChats(prev => {
+    setPinnedChats((prev) => {
       if (prev.includes(chatId)) {
-        return prev.filter(id => id !== chatId);
+        return prev.filter((id) => id !== chatId);
       }
       return [...prev, chatId];
     });
@@ -278,10 +273,9 @@ export default function InstagramChatListScreen() {
   };
 
   const renderChat = ({ item }: { item: any }) => {
-    const otherParticipant = !item.is_group && item.participants?.find(
-      (p: any) => p.user_id !== session?.user?.id
-    );
-    
+    const otherParticipant =
+      !item.is_group && item.participants?.find((p: any) => p.user_id !== session?.user?.id);
+
     return (
       <ChatItem
         chat={item}
@@ -300,9 +294,7 @@ export default function InstagramChatListScreen() {
     <View style={styles.emptyState}>
       <Ionicons name="chatbubble-ellipses-outline" size={64} color="#ccc" />
       <Text style={styles.emptyTitle}>Votre boîte de réception</Text>
-      <Text style={styles.emptySubtitle}>
-        Envoyez des messages privés à un ami ou un groupe
-      </Text>
+      <Text style={styles.emptySubtitle}>Envoyez des messages privés à un ami ou un groupe</Text>
       <TouchableOpacity style={styles.emptyButton} onPress={handleNewChat}>
         <Text style={styles.emptyButtonText}>Envoyer un message</Text>
       </TouchableOpacity>
@@ -316,14 +308,16 @@ export default function InstagramChatListScreen() {
           <TouchableOpacity onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={28} color="#000" />
           </TouchableOpacity>
-          
+
           <View style={styles.headerCenter}>
-            <Text style={styles.headerTitle}>{session?.user?.user_metadata?.full_name || 'Messages'}</Text>
+            <Text style={styles.headerTitle}>
+              {session?.user?.user_metadata?.full_name || 'Messages'}
+            </Text>
             <TouchableOpacity style={styles.headerDropdown}>
               <Ionicons name="chevron-down" size={16} color="#000" />
             </TouchableOpacity>
           </View>
-          
+
           <View style={styles.headerActions}>
             <TouchableOpacity onPress={() => router.push('/screens/video-call')}>
               <Ionicons name="videocam-outline" size={28} color="#000" />
@@ -358,10 +352,7 @@ export default function InstagramChatListScreen() {
           </View>
         )}
 
-        <TouchableOpacity 
-          style={styles.searchBar} 
-          onPress={() => setShowSearch(true)}
-        >
+        <TouchableOpacity style={styles.searchBar} onPress={() => setShowSearch(true)}>
           <Ionicons name="search" size={20} color="#999" />
           <Text style={styles.searchPlaceholder}>Rechercher</Text>
         </TouchableOpacity>
@@ -378,11 +369,7 @@ export default function InstagramChatListScreen() {
             contentContainerStyle={filteredChats.length === 0 ? styles.emptyContainer : undefined}
             ListEmptyComponent={<EmptyState />}
             refreshControl={
-              <RefreshControl 
-                refreshing={refreshing} 
-                onRefresh={handleRefresh}
-                tintColor="#000"
-              />
+              <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#000" />
             }
           />
         )}

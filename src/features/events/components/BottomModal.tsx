@@ -70,30 +70,21 @@ export default function BottomModal({
     });
   };
 
-
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="none"
-      onRequestClose={handleClose}
-    >
+    <Modal visible={visible} transparent animationType="none" onRequestClose={handleClose}>
       <View style={styles.modalOverlay}>
         <TouchableWithoutFeedback onPress={handleClose}>
           <View style={StyleSheet.absoluteFillObject} />
         </TouchableWithoutFeedback>
         <Animated.View
-          style={[
-            styles.modalContent,
-            { height, transform: [{ translateY: slideAnim }] },
-          ]}
+          style={[styles.modalContent, { height, transform: [{ translateY: slideAnim }] }]}
         >
           <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={{ flex: 1 }}
           >
             <View style={styles.handle} />
-            
+
             <View style={styles.header}>
               <Text style={styles.title}>{title}</Text>
               {showCloseButton && (
@@ -104,7 +95,7 @@ export default function BottomModal({
             </View>
 
             {scrollable ? (
-              <ScrollView 
+              <ScrollView
                 style={{ flex: 1 }}
                 contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 20 }}
                 showsVerticalScrollIndicator={true}
@@ -114,19 +105,19 @@ export default function BottomModal({
                 {children}
               </ScrollView>
             ) : (
-              <View style={styles.content}>
-                {children}
-              </View>
+              <View style={styles.content}>{children}</View>
             )}
 
             {onSave && (
               <View style={styles.footer}>
-                <TouchableOpacity 
-                  style={[styles.saveButton, saveDisabled && styles.saveButtonDisabled]} 
+                <TouchableOpacity
+                  style={[styles.saveButton, saveDisabled && styles.saveButtonDisabled]}
                   onPress={onSave}
                   disabled={saveDisabled}
                 >
-                  <Text style={[styles.saveButtonText, saveDisabled && styles.saveButtonTextDisabled]}>
+                  <Text
+                    style={[styles.saveButtonText, saveDisabled && styles.saveButtonTextDisabled]}
+                  >
                     {saveButtonText}
                   </Text>
                 </TouchableOpacity>

@@ -37,41 +37,41 @@ interface AccessibilityModalProps {
 }
 
 const ACCESSIBILITY_OPTIONS = [
-  { 
-    id: 'wheelchairAccessible', 
-    label: 'Wheelchair Accessible', 
+  {
+    id: 'wheelchairAccessible',
+    label: 'Wheelchair Accessible',
     icon: 'accessibility-outline',
-    description: 'Venue has ramps and wide doorways'
+    description: 'Venue has ramps and wide doorways',
   },
-  { 
-    id: 'elevatorAvailable', 
-    label: 'Elevator Available', 
+  {
+    id: 'elevatorAvailable',
+    label: 'Elevator Available',
     icon: 'arrow-up-outline',
-    description: 'For multi-level venues'
+    description: 'For multi-level venues',
   },
-  { 
-    id: 'accessibleParking', 
-    label: 'Accessible Parking', 
+  {
+    id: 'accessibleParking',
+    label: 'Accessible Parking',
     icon: 'car-outline',
-    description: 'Designated accessible parking spots'
+    description: 'Designated accessible parking spots',
   },
-  { 
-    id: 'accessibleRestrooms', 
-    label: 'Accessible Restrooms', 
+  {
+    id: 'accessibleRestrooms',
+    label: 'Accessible Restrooms',
     icon: 'man-outline',
-    description: 'Wheelchair accessible facilities'
+    description: 'Wheelchair accessible facilities',
   },
-  { 
-    id: 'signLanguageInterpreter', 
-    label: 'Sign Language Available', 
+  {
+    id: 'signLanguageInterpreter',
+    label: 'Sign Language Available',
     icon: 'hand-left-outline',
-    description: 'Interpreter will be present'
+    description: 'Interpreter will be present',
   },
-  { 
-    id: 'brailleAvailable', 
-    label: 'Braille Materials', 
+  {
+    id: 'brailleAvailable',
+    label: 'Braille Materials',
     icon: 'document-text-outline',
-    description: 'Braille menus or programs available'
+    description: 'Braille menus or programs available',
   },
 ];
 
@@ -90,14 +90,12 @@ export default function AccessibilityModal({
     signLanguageInterpreter: initialAccessibility?.signLanguageInterpreter ?? false,
     brailleAvailable: initialAccessibility?.brailleAvailable ?? false,
   });
-  const [additionalInfo, setAdditionalInfo] = useState(
-    initialAccessibility?.additionalInfo || ''
-  );
+  const [additionalInfo, setAdditionalInfo] = useState(initialAccessibility?.additionalInfo || '');
 
   const handleToggle = (optionId: string) => {
-    setAccessibility(prev => ({
+    setAccessibility((prev) => ({
       ...prev,
-      [optionId]: !prev[optionId as keyof typeof prev]
+      [optionId]: !prev[optionId as keyof typeof prev],
     }));
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
@@ -124,7 +122,7 @@ export default function AccessibilityModal({
     onClose();
   };
 
-  const activeCount = Object.values(accessibility).filter(v => v).length;
+  const activeCount = Object.values(accessibility).filter((v) => v).length;
 
   return (
     <Modal
@@ -138,12 +136,10 @@ export default function AccessibilityModal({
         <Pressable style={styles.backdrop} onPress={onClose} />
         <View style={[styles.modalContent, { paddingBottom: insets.bottom || 20 }]}>
           <View style={styles.handle} />
-          
+
           <View style={styles.header}>
             <Text style={styles.title}>Accessibility Features</Text>
-            <Text style={styles.subtitle}>
-              Help everyone feel welcome at your event
-            </Text>
+            <Text style={styles.subtitle}>Help everyone feel welcome at your event</Text>
           </View>
 
           <ScrollView showsVerticalScrollIndicator={false}>
@@ -151,14 +147,21 @@ export default function AccessibilityModal({
               {ACCESSIBILITY_OPTIONS.map((option) => (
                 <View key={option.id} style={styles.optionCard}>
                   <View style={styles.optionContent}>
-                    <View style={[
-                      styles.iconContainer,
-                      accessibility[option.id as keyof typeof accessibility] && styles.iconContainerActive
-                    ]}>
-                      <Ionicons 
-                        name={option.icon as any} 
-                        size={24} 
-                        color={accessibility[option.id as keyof typeof accessibility] ? '#007AFF' : '#666'} 
+                    <View
+                      style={[
+                        styles.iconContainer,
+                        accessibility[option.id as keyof typeof accessibility] &&
+                          styles.iconContainerActive,
+                      ]}
+                    >
+                      <Ionicons
+                        name={option.icon as any}
+                        size={24}
+                        color={
+                          accessibility[option.id as keyof typeof accessibility]
+                            ? '#007AFF'
+                            : '#666'
+                        }
                       />
                     </View>
                     <View style={styles.optionTextContainer}>
@@ -206,7 +209,8 @@ export default function AccessibilityModal({
             <View style={styles.tipCard}>
               <Ionicons name="heart-outline" size={20} color="#007AFF" />
               <Text style={styles.tipText}>
-                Consider reaching out to attendees who may need accommodations to ensure their needs are met
+                Consider reaching out to attendees who may need accommodations to ensure their needs
+                are met
               </Text>
             </View>
           </ScrollView>

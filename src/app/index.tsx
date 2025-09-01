@@ -1,15 +1,15 @@
 import { useEffect } from 'react';
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
-import { Redirect, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { startupLogger } from '@/shared/utils/startupLogger';
 import { errorLogger } from '@/shared/utils/errorLogger';
 
 export default function Index() {
   const router = useRouter();
-  
+
   useEffect(() => {
     startupLogger.log('App index loaded, redirecting to splash');
-    
+
     // Add a small delay to ensure everything is loaded
     const timer = setTimeout(() => {
       try {
@@ -19,10 +19,10 @@ export default function Index() {
         // Fallback to Redirect component
       }
     }, 100);
-    
+
     return () => clearTimeout(timer);
   }, [router]);
-  
+
   // Show loading state briefly
   return (
     <View style={styles.container}>
@@ -37,11 +37,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff'
+    backgroundColor: '#fff',
   },
   text: {
     marginTop: 20,
     fontSize: 16,
-    color: '#666'
-  }
+    color: '#666',
+  },
 });

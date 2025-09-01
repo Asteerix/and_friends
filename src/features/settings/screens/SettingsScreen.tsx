@@ -15,7 +15,6 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
 import { useProfile } from '@/hooks/useProfile';
 import { supabase } from '@/shared/lib/supabase/client';
 import { useSession } from '@/shared/providers/SessionContext';
@@ -43,20 +42,20 @@ export default function SettingsScreen() {
   const router = useRouter();
   const { profile, updateProfile } = useProfile();
   const { session } = useSession();
-  
+
   // Notification settings
   const [eventInvites, setEventInvites] = useState(true);
   const [friendRequests, setFriendRequests] = useState(false);
   const [eventReminders, setEventReminders] = useState(true);
-  
+
   // Privacy settings
   const [whoCanInvite, setWhoCanInvite] = useState<string>('Public');
   const [hideFromSearch, setHideFromSearch] = useState(false);
-  
+
   // Track changes
   const [hasChanges, setHasChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  
+
   // Store initial values for discard
   const [initialSettings, setInitialSettings] = useState<Settings | null>(null);
 
@@ -76,7 +75,7 @@ export default function SettingsScreen() {
         // Fall back to profile settings
         applySettings(profile.settings);
       }
-      
+
       // Store initial settings for discard functionality
       const currentSettings = {
         notifications: {
@@ -110,11 +109,12 @@ export default function SettingsScreen() {
     { label: 'No One', value: 'no_one' },
   ];
 
-  const handleToggle = (setter: React.Dispatch<React.SetStateAction<boolean>>) => (value: boolean) => {
-    setter(value);
-    setHasChanges(true);
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  };
+  const handleToggle =
+    (setter: React.Dispatch<React.SetStateAction<boolean>>) => (value: boolean) => {
+      setter(value);
+      setHasChanges(true);
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    };
 
   const handlePrivacyChange = (option: string) => {
     setWhoCanInvite(option);
@@ -124,7 +124,7 @@ export default function SettingsScreen() {
 
   const handleSaveChanges = async () => {
     if (!profile?.id || isSaving) return;
-    
+
     setIsSaving(true);
     try {
       const updatedSettings: Settings = {
@@ -138,10 +138,10 @@ export default function SettingsScreen() {
           hide_from_search: hideFromSearch,
         },
       };
-      
+
       // Save to local storage
       await AsyncStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(updatedSettings));
-      
+
       // Save to Supabase
       const { error } = await supabase
         .from('profiles')
@@ -152,13 +152,13 @@ export default function SettingsScreen() {
         .eq('id', profile.id);
 
       if (error) throw error;
-      
+
       // Update local profile state
       await updateProfile({ settings: updatedSettings });
-      
+
       // Update initial settings
       setInitialSettings(updatedSettings);
-      
+
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setHasChanges(false);
       Alert.alert('Success', 'Settings saved successfully');
@@ -187,25 +187,24 @@ export default function SettingsScreen() {
     const email = 'support@andfriends.app';
     const subject = 'Bug Report';
     const body = `\n\n\n---\nApp Version: 1.0.0\nPlatform: ${Platform.OS}\nUser ID: ${profile?.id || 'Unknown'}`;
-    
+
     const url = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    
+
     const canOpen = await Linking.canOpenURL(url);
     if (canOpen) {
       await Linking.openURL(url);
     } else {
       // If email client not available, show alternative
-      Alert.alert(
-        'Report a Bug',
-        'Please send your bug report to support@andfriends.app',
-        [
-          { text: 'Copy Email', onPress: () => {
+      Alert.alert('Report a Bug', 'Please send your bug report to support@andfriends.app', [
+        {
+          text: 'Copy Email',
+          onPress: () => {
             // In a real app, you'd use Clipboard API here
             Alert.alert('Email copied!');
-          }},
-          { text: 'OK' }
-        ]
-      );
+          },
+        },
+        { text: 'OK' },
+      ]);
     }
   };
 
@@ -213,23 +212,22 @@ export default function SettingsScreen() {
     const email = 'feedback@andfriends.app';
     const subject = 'App Feedback';
     const body = `\n\n\n---\nApp Version: 1.0.0\nPlatform: ${Platform.OS}\nUser: ${profile?.full_name || 'Unknown'}`;
-    
+
     const url = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    
+
     const canOpen = await Linking.canOpenURL(url);
     if (canOpen) {
       await Linking.openURL(url);
     } else {
-      Alert.alert(
-        'Send Feedback',
-        'Please send your feedback to feedback@andfriends.app',
-        [
-          { text: 'Copy Email', onPress: () => {
+      Alert.alert('Send Feedback', 'Please send your feedback to feedback@andfriends.app', [
+        {
+          text: 'Copy Email',
+          onPress: () => {
             Alert.alert('Email copied!');
-          }},
-          { text: 'OK' }
-        ]
-      );
+          },
+        },
+        { text: 'OK' },
+      ]);
     }
   };
 
@@ -244,76 +242,54 @@ export default function SettingsScreen() {
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
-            Alert.alert(
-              'Final Confirmation',
-              'Type "DELETE" to confirm account deletion',
-              [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                  text: 'Proceed',
-                  style: 'destructive',
-                  onPress: async () => {
-                    try {
-                      if (!profile?.id) return;
-                      
-                      // Delete all user data in order
-                      // 1. Delete stories
-                      await supabase
-                        .from('stories')
-                        .delete()
-                        .eq('user_id', profile.id);
-                      
-                      // 2. Delete messages
-                      await supabase
-                        .from('messages')
-                        .delete()
-                        .eq('sender_id', profile.id);
-                      
-                      // 3. Delete event participants
-                      await supabase
-                        .from('event_participants')
-                        .delete()
-                        .eq('user_id', profile.id);
-                      
-                      // 4. Delete events created by user
-                      await supabase
-                        .from('events')
-                        .delete()
-                        .eq('creator_id', profile.id);
-                      
-                      // 5. Delete friendships
-                      await supabase
-                        .from('friendships')
-                        .delete()
-                        .or(`user_id.eq.${profile.id},friend_id.eq.${profile.id}`);
-                      
-                      // 6. Delete notifications
-                      await supabase
-                        .from('notifications')
-                        .delete()
-                        .eq('user_id', profile.id);
-                      
-                      // 7. Clear local storage
-                      await AsyncStorage.clear();
-                      
-                      // 8. Delete profile
-                      await supabase
-                        .from('profiles')
-                        .delete()
-                        .eq('id', profile.id);
-                      
-                      // 9. Sign out
-                      await supabase.auth.signOut();
-                      
-                      Alert.alert('Account Deleted', 'Your account has been permanently deleted.');
-                    } catch (error) {
-                      console.error('Error deleting account:', error);
-                      Alert.alert('Error', 'Failed to delete account. Please contact support.');
-                    }
-                  },
+            Alert.alert('Final Confirmation', 'Type "DELETE" to confirm account deletion', [
+              { text: 'Cancel', style: 'cancel' },
+              {
+                text: 'Proceed',
+                style: 'destructive',
+                onPress: async () => {
+                  try {
+                    if (!profile?.id) return;
+
+                    // Delete all user data in order
+                    // 1. Delete stories
+                    await supabase.from('stories').delete().eq('user_id', profile.id);
+
+                    // 2. Delete messages
+                    await supabase.from('messages').delete().eq('sender_id', profile.id);
+
+                    // 3. Delete event participants
+                    await supabase.from('event_participants').delete().eq('user_id', profile.id);
+
+                    // 4. Delete events created by user
+                    await supabase.from('events').delete().eq('creator_id', profile.id);
+
+                    // 5. Delete friendships
+                    await supabase
+                      .from('friendships')
+                      .delete()
+                      .or(`user_id.eq.${profile.id},friend_id.eq.${profile.id}`);
+
+                    // 6. Delete notifications
+                    await supabase.from('notifications').delete().eq('user_id', profile.id);
+
+                    // 7. Clear local storage
+                    await AsyncStorage.clear();
+
+                    // 8. Delete profile
+                    await supabase.from('profiles').delete().eq('id', profile.id);
+
+                    // 9. Sign out
+                    await supabase.auth.signOut();
+
+                    Alert.alert('Account Deleted', 'Your account has been permanently deleted.');
+                  } catch (error) {
+                    console.error('Error deleting account:', error);
+                    Alert.alert('Error', 'Failed to delete account. Please contact support.');
+                  }
                 },
-              ],
-            );
+              },
+            ]);
           },
         },
       ]
@@ -337,14 +313,17 @@ export default function SettingsScreen() {
           <TouchableOpacity style={styles.iconButton} onPress={() => router.push('/screens/chat')}>
             <Ionicons name="chatbubble-outline" size={22} color="#000" />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.iconButton} onPress={() => router.push('/screens/notifications')}>
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={() => router.push('/screens/notifications')}
+          >
             <Ionicons name="notifications-outline" size={22} color="#000" />
           </TouchableOpacity>
         </View>
       </View>
 
-      <ScrollView 
-        style={styles.content} 
+      <ScrollView
+        style={styles.content}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.contentContainer}
       >
@@ -357,7 +336,7 @@ export default function SettingsScreen() {
             <Text style={styles.sectionTitle}>Notifications</Text>
           </View>
           <Text style={styles.sectionSubtitle}>Stay in the loop, or keep it quiet.</Text>
-          
+
           <View style={styles.sectionContent}>
             <View style={styles.settingItem}>
               <Text style={styles.settingLabel}>Event invites</Text>
@@ -370,9 +349,9 @@ export default function SettingsScreen() {
                 style={styles.switch}
               />
             </View>
-            
+
             <View style={styles.settingDivider} />
-            
+
             <View style={styles.settingItem}>
               <Text style={styles.settingLabel}>Friend requests</Text>
               <Switch
@@ -384,9 +363,9 @@ export default function SettingsScreen() {
                 style={styles.switch}
               />
             </View>
-            
+
             <View style={styles.settingDivider} />
-            
+
             <View style={styles.settingItem}>
               <Text style={styles.settingLabel}>Event reminders</Text>
               <Switch
@@ -410,7 +389,7 @@ export default function SettingsScreen() {
             <Text style={styles.sectionTitle}>Privacy</Text>
           </View>
           <Text style={styles.sectionSubtitle}>You decide who sees and invites you.</Text>
-          
+
           <View style={styles.sectionContent}>
             <View style={styles.privacyItem}>
               <Text style={styles.privacyLabel}>Who can invite me to events?</Text>
@@ -437,9 +416,9 @@ export default function SettingsScreen() {
                 ))}
               </View>
             </View>
-            
+
             <View style={styles.settingDivider} />
-            
+
             <View style={styles.settingItem}>
               <Text style={styles.settingLabel}>Hide my profile from search</Text>
               <Switch
@@ -463,19 +442,17 @@ export default function SettingsScreen() {
             <Text style={styles.sectionTitle}>Account</Text>
           </View>
           <Text style={styles.sectionSubtitle}>Manage your login and personal info.</Text>
-          
+
           <View style={styles.sectionContent}>
             <View style={styles.accountItem}>
               <Text style={styles.settingLabel}>Phone number</Text>
-              <Text style={styles.phoneNumber}>
-                {formatPhoneNumber(session?.user?.phone)}
-              </Text>
+              <Text style={styles.phoneNumber}>{formatPhoneNumber(session?.user?.phone)}</Text>
             </View>
-            
+
             <View style={styles.settingDivider} />
-            
-            <TouchableOpacity 
-              style={styles.accountItem} 
+
+            <TouchableOpacity
+              style={styles.accountItem}
               onPress={handleDeleteAccount}
               activeOpacity={0.7}
             >
@@ -494,23 +471,35 @@ export default function SettingsScreen() {
             <Text style={styles.sectionTitle}>Support</Text>
           </View>
           <Text style={styles.sectionSubtitle}>Questions? Glitches? We're all ears.</Text>
-          
+
           <View style={styles.sectionContent}>
-            <TouchableOpacity style={styles.supportItem} activeOpacity={0.7} onPress={handleHelpFAQ}>
+            <TouchableOpacity
+              style={styles.supportItem}
+              activeOpacity={0.7}
+              onPress={handleHelpFAQ}
+            >
               <Text style={styles.settingLabel}>Help & FAQ</Text>
               <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />
             </TouchableOpacity>
-            
+
             <View style={styles.settingDivider} />
-            
-            <TouchableOpacity style={styles.supportItem} activeOpacity={0.7} onPress={handleReportBug}>
+
+            <TouchableOpacity
+              style={styles.supportItem}
+              activeOpacity={0.7}
+              onPress={handleReportBug}
+            >
               <Text style={styles.settingLabel}>Report a bug</Text>
               <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />
             </TouchableOpacity>
-            
+
             <View style={styles.settingDivider} />
-            
-            <TouchableOpacity style={styles.supportItem} activeOpacity={0.7} onPress={handleSendFeedback}>
+
+            <TouchableOpacity
+              style={styles.supportItem}
+              activeOpacity={0.7}
+              onPress={handleSendFeedback}
+            >
               <Text style={styles.settingLabel}>Send feedback</Text>
               <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />
             </TouchableOpacity>
@@ -519,20 +508,15 @@ export default function SettingsScreen() {
 
         {/* Action Buttons */}
         <View style={styles.actionButtons}>
-          <TouchableOpacity 
-            style={[
-              styles.saveButton, 
-              (!hasChanges || isSaving) && styles.saveButtonDisabled
-            ]} 
+          <TouchableOpacity
+            style={[styles.saveButton, (!hasChanges || isSaving) && styles.saveButtonDisabled]}
             onPress={handleSaveChanges}
             disabled={!hasChanges || isSaving}
             activeOpacity={0.8}
           >
-            <Text style={styles.saveButtonText}>
-              {isSaving ? 'Saving...' : 'Save Changes'}
-            </Text>
+            <Text style={styles.saveButtonText}>{isSaving ? 'Saving...' : 'Save Changes'}</Text>
           </TouchableOpacity>
-          
+
           {hasChanges && (
             <TouchableOpacity onPress={handleDiscardChanges} activeOpacity={0.7}>
               <Text style={styles.discardText}>Discard Changes</Text>

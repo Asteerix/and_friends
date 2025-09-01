@@ -58,7 +58,9 @@ class RealtimeMonitor {
     this.metrics.subscriptionCount--;
     const channel = this.metrics.channels.get(channelName);
     if (channel) {
-      this.log(`Subscription unregistered: ${channelName} (lifetime: ${this.getLifetime(channel.createdAt)})`);
+      this.log(
+        `Subscription unregistered: ${channelName} (lifetime: ${this.getLifetime(channel.createdAt)})`
+      );
       this.metrics.channels.delete(channelName);
     }
   }
@@ -129,7 +131,9 @@ class RealtimeMonitor {
         `    Messages: ${channel.messagesReceived}`,
         `    Errors: ${channel.errors}`,
         `    Lifetime: ${this.getLifetime(channel.createdAt)}`,
-        channel.lastMessageAt ? `    Last Message: ${this.getTimeSince(channel.lastMessageAt)} ago` : ''
+        channel.lastMessageAt
+          ? `    Last Message: ${this.getTimeSince(channel.lastMessageAt)} ago`
+          : ''
       );
     });
 

@@ -13,7 +13,7 @@ export default function OnlineStatus({ userId, size = 'medium' }: OnlineStatusPr
   useEffect(() => {
     // Subscribe to presence changes
     const channel = supabase.channel(`presence:${userId}`);
-    
+
     channel
       .on('presence', { event: 'sync' }, () => {
         const state = channel.presenceState();

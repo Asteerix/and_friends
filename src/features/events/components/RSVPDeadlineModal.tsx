@@ -25,7 +25,6 @@ interface RSVPDeadlineModalProps {
   initialDeadline?: Date | null;
 }
 
-
 const REMINDER_TIMINGS = [
   { value: '24h', label: '24 hours before', description: 'Last minute reminder' },
   { value: '48h', label: '48 hours before', description: 'Weekend planning' },
@@ -74,24 +73,23 @@ interface PickerColumnProps {
   placeholder: string;
 }
 
-const PickerColumn: React.FC<PickerColumnProps> = ({ data, selectedValue, onSelect, placeholder }) => {
+const PickerColumn: React.FC<PickerColumnProps> = ({
+  data,
+  selectedValue,
+  onSelect,
+  placeholder,
+}) => {
   const [showList, setShowList] = useState(false);
 
   return (
     <View style={pickerStyles.pickerColumn}>
-      <Pressable
-        style={pickerStyles.pickerBox}
-        onPress={() => setShowList(!showList)}
-      >
-        <Text style={[
-          pickerStyles.pickerText,
-          !selectedValue && pickerStyles.pickerPlaceholder
-        ]}>
+      <Pressable style={pickerStyles.pickerBox} onPress={() => setShowList(!showList)}>
+        <Text style={[pickerStyles.pickerText, !selectedValue && pickerStyles.pickerPlaceholder]}>
           {selectedValue || placeholder}
         </Text>
         <Text style={pickerStyles.chevron}>⌄</Text>
       </Pressable>
-      
+
       {showList && (
         <Modal
           transparent
@@ -119,13 +117,15 @@ const PickerColumn: React.FC<PickerColumnProps> = ({ data, selectedValue, onSele
                   }}
                   style={[
                     pickerStyles.pickerItem,
-                    selectedValue === item && pickerStyles.pickerItemSelected
+                    selectedValue === item && pickerStyles.pickerItemSelected,
                   ]}
                 >
-                  <Text style={[
-                    pickerStyles.pickerItemText,
-                    selectedValue === item && pickerStyles.pickerItemTextSelected
-                  ]}>
+                  <Text
+                    style={[
+                      pickerStyles.pickerItemText,
+                      selectedValue === item && pickerStyles.pickerItemTextSelected,
+                    ]}
+                  >
                     {item}
                   </Text>
                 </Pressable>
@@ -155,15 +155,15 @@ export default function RSVPDeadlineModal({
 
   useEffect(() => {
     const now = new Date();
-    const minimumDate = new Date(now.getTime() + (3 * 60 * 60 * 1000));
-    
+    const minimumDate = new Date(now.getTime() + 3 * 60 * 60 * 1000);
+
     // Round up to next hour
     const roundedMinimum = new Date(minimumDate);
     roundedMinimum.setMinutes(0, 0, 0);
     if (minimumDate.getMinutes() > 0 || minimumDate.getSeconds() > 0) {
       roundedMinimum.setHours(roundedMinimum.getHours() + 1);
     }
-    
+
     if (initialDeadline && initialDeadline > roundedMinimum) {
       setSelectedDate(initialDeadline);
       setDeadlineEnabled(true);
@@ -171,7 +171,7 @@ export default function RSVPDeadlineModal({
       // Default to 1 hour before event
       const defaultDeadline = new Date(eventDate);
       defaultDeadline.setHours(defaultDeadline.getHours() - 1);
-      
+
       // Ensure the default deadline is not in the past
       if (defaultDeadline < roundedMinimum) {
         setSelectedDate(roundedMinimum);
@@ -186,29 +186,31 @@ export default function RSVPDeadlineModal({
 
   const validateDate = (date: Date): boolean => {
     setErrors({});
-    
+
     const now = new Date();
-    const minimumDeadline = new Date(now.getTime() + (3 * 60 * 60 * 1000)); // 3 hours from now
-    
+    const minimumDeadline = new Date(now.getTime() + 3 * 60 * 60 * 1000); // 3 hours from now
+
     // Check if date is in the past
     if (date < now) {
       setErrors({ date: 'RSVP deadline cannot be in the past' });
       return false;
     }
-    
+
     // Check if deadline is too soon (less than 24 hours from now)
     if (date < minimumDeadline) {
       const hoursUntil = Math.ceil((date.getTime() - now.getTime()) / (1000 * 60 * 60));
-      setErrors({ date: `RSVP deadline must be at least 3 hours from now (currently ${hoursUntil} hours)` });
+      setErrors({
+        date: `RSVP deadline must be at least 3 hours from now (currently ${hoursUntil} hours)`,
+      });
       return false;
     }
-    
+
     // Check if date is after event date
     if (eventDate && date >= eventDate) {
       setErrors({ date: 'RSVP deadline must be before the event' });
       return false;
     }
-    
+
     // Warning if deadline is too close to event
     if (eventDate) {
       const daysBefore = Math.ceil((eventDate.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
@@ -218,13 +220,13 @@ export default function RSVPDeadlineModal({
           'Setting RSVP deadline less than 48 hours before event may not give guests enough time to respond.',
           [
             { text: 'Change Date', style: 'cancel' },
-            { text: 'Continue Anyway', onPress: () => handleSaveConfirmed() }
+            { text: 'Continue Anyway', onPress: () => handleSaveConfirmed() },
           ]
         );
         return false;
       }
     }
-    
+
     return true;
   };
 
@@ -256,13 +258,13 @@ export default function RSVPDeadlineModal({
         parseInt(hour),
         parseInt(minute)
       );
-      
+
       // Validate the date before confirming
       if (!validateDate(newDate)) {
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         return;
       }
-      
+
       setSelectedDate(newDate);
       setErrors({});
       setShowCustomDatePicker(false);
@@ -283,7 +285,6 @@ export default function RSVPDeadlineModal({
     if (!month || !day || !year || !hour || !minute) return 'Select date & time';
     return `${month} ${day}, ${year} at ${hour}:${minute}`;
   };
-
 
   const handleSave = () => {
     if (deadlineEnabled && !validateDate(selectedDate)) {
@@ -322,7 +323,6 @@ export default function RSVPDeadlineModal({
     return days;
   };
 
-
   return (
     <BottomModal
       visible={visible}
@@ -330,7 +330,7 @@ export default function RSVPDeadlineModal({
       title="RSVP Deadline"
       height={Platform.OS === 'ios' ? 600 : 650}
       onSave={handleSave}
-      saveButtonText={deadlineEnabled ? "Save Deadline" : "Save Settings"}
+      saveButtonText={deadlineEnabled ? 'Save Deadline' : 'Save Settings'}
     >
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         <View style={styles.deadlineToggleCard}>
@@ -338,9 +338,7 @@ export default function RSVPDeadlineModal({
             <Ionicons name="calendar-outline" size={24} color="#666" />
             <View style={styles.toggleTextContainer}>
               <Text style={styles.toggleTitle}>Set RSVP Deadline</Text>
-              <Text style={styles.toggleSubtitle}>
-                Guests must respond by this date
-              </Text>
+              <Text style={styles.toggleSubtitle}>Guests must respond by this date</Text>
             </View>
           </View>
           <Switch
@@ -365,19 +363,17 @@ export default function RSVPDeadlineModal({
                 <Ionicons name="calendar" size={24} color="#007AFF" />
                 <Text style={styles.currentSelectionTitle}>Selected Deadline</Text>
               </View>
-              <Text style={styles.currentSelectionDate}>
-                {formatDate(selectedDate)}
-              </Text>
-              <Text style={styles.currentSelectionTime}>
-                {formatTime(selectedDate)}
-              </Text>
+              <Text style={styles.currentSelectionDate}>{formatDate(selectedDate)}</Text>
+              <Text style={styles.currentSelectionTime}>{formatTime(selectedDate)}</Text>
               {eventDate && (
                 <Text style={styles.currentSelectionInfo}>
                   {(() => {
-                    const hoursBeforeEvent = Math.ceil((eventDate.getTime() - selectedDate.getTime()) / (1000 * 60 * 60));
+                    const hoursBeforeEvent = Math.ceil(
+                      (eventDate.getTime() - selectedDate.getTime()) / (1000 * 60 * 60)
+                    );
                     const daysBeforeEvent = Math.floor(hoursBeforeEvent / 24);
                     const remainingHours = hoursBeforeEvent % 24;
-                    
+
                     if (daysBeforeEvent === 0) {
                       return `${hoursBeforeEvent} hour${hoursBeforeEvent !== 1 ? 's' : ''} before your event`;
                     } else if (remainingHours === 0) {
@@ -418,9 +414,8 @@ export default function RSVPDeadlineModal({
                     {getDaysUntilEvent() && getDaysUntilEvent()! <= 7
                       ? 'Your event is coming soon! Consider a shorter RSVP deadline.'
                       : getDaysUntilEvent() && getDaysUntilEvent()! > 30
-                      ? 'For events far in advance, 2-3 weeks notice works well.'
-                      : '1-2 weeks before the event gives guests enough time to plan.'
-                    }
+                        ? 'For events far in advance, 2-3 weeks notice works well.'
+                        : '1-2 weeks before the event gives guests enough time to plan.'}
                   </Text>
                 </View>
               </View>
@@ -433,9 +428,7 @@ export default function RSVPDeadlineModal({
                   <Ionicons name="notifications-outline" size={24} color="#666" />
                   <View style={styles.reminderTextContainer}>
                     <Text style={styles.reminderTitle}>Send Reminders</Text>
-                    <Text style={styles.reminderSubtitle}>
-                      Notify guests who haven't responded
-                    </Text>
+                    <Text style={styles.reminderSubtitle}>Notify guests who haven't responded</Text>
                   </View>
                 </View>
                 <Switch
@@ -455,7 +448,8 @@ export default function RSVPDeadlineModal({
                       key={timing.value}
                       style={[
                         styles.reminderTimingOption,
-                        selectedReminderTiming === timing.value && styles.reminderTimingOptionSelected
+                        selectedReminderTiming === timing.value &&
+                          styles.reminderTimingOptionSelected,
                       ]}
                       onPress={() => {
                         setSelectedReminderTiming(timing.value);
@@ -463,20 +457,23 @@ export default function RSVPDeadlineModal({
                       }}
                     >
                       <View style={styles.reminderTimingContent}>
-                        <Text style={[
-                          styles.reminderTimingLabel,
-                          selectedReminderTiming === timing.value && styles.reminderTimingLabelSelected
-                        ]}>
+                        <Text
+                          style={[
+                            styles.reminderTimingLabel,
+                            selectedReminderTiming === timing.value &&
+                              styles.reminderTimingLabelSelected,
+                          ]}
+                        >
                           {timing.label}
                         </Text>
-                        <Text style={styles.reminderTimingDescription}>
-                          {timing.description}
-                        </Text>
+                        <Text style={styles.reminderTimingDescription}>{timing.description}</Text>
                       </View>
-                      <View style={[
-                        styles.radioButton,
-                        selectedReminderTiming === timing.value && styles.radioButtonSelected
-                      ]}>
+                      <View
+                        style={[
+                          styles.radioButton,
+                          selectedReminderTiming === timing.value && styles.radioButtonSelected,
+                        ]}
+                      >
                         {selectedReminderTiming === timing.value && (
                           <View style={styles.radioButtonInner} />
                         )}
@@ -499,15 +496,16 @@ export default function RSVPDeadlineModal({
             onRequestClose={() => setShowCustomDatePicker(false)}
           >
             <View style={pickerStyles.modalContainer}>
-              <Pressable style={pickerStyles.backdrop} onPress={() => setShowCustomDatePicker(false)} />
+              <Pressable
+                style={pickerStyles.backdrop}
+                onPress={() => setShowCustomDatePicker(false)}
+              />
               <View style={pickerStyles.modalContent}>
                 <View style={pickerStyles.handle} />
-                
+
                 <View style={pickerStyles.header}>
                   <Text style={pickerStyles.title}>Select RSVP Deadline</Text>
-                  <Text style={pickerStyles.subtitle}>
-                    Must be at least 3 hours from now
-                  </Text>
+                  <Text style={pickerStyles.subtitle}>Must be at least 3 hours from now</Text>
                 </View>
 
                 <ScrollView showsVerticalScrollIndicator={false}>
@@ -515,7 +513,7 @@ export default function RSVPDeadlineModal({
                     <Ionicons name="calendar-outline" size={20} color={COLORS.primary} />
                     <Text style={pickerStyles.dateTimeText}>{formatSelectedDateTime()}</Text>
                   </View>
-                  
+
                   {/* Error Display in Picker */}
                   {errors.date && (
                     <View style={pickerStyles.errorContainer}>
@@ -547,7 +545,7 @@ export default function RSVPDeadlineModal({
                       />
                     </View>
                   </View>
-                  
+
                   {/* Date validation info */}
                   {eventDate && (
                     <View style={pickerStyles.validationInfo}>
@@ -585,7 +583,8 @@ export default function RSVPDeadlineModal({
                   <Pressable
                     style={[
                       pickerStyles.confirmButton,
-                      (!month || !day || !year || !hour || !minute) && pickerStyles.confirmButtonDisabled
+                      (!month || !day || !year || !hour || !minute) &&
+                        pickerStyles.confirmButtonDisabled,
                     ]}
                     onPress={handleDateTimeConfirm}
                     disabled={!month || !day || !year || !hour || !minute}

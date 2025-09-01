@@ -1,7 +1,7 @@
 import NetInfo from '@react-native-community/netinfo';
-import { supabase } from '@/shared/lib/supabase/client';
 import { generalCache, userCache, eventCache } from './cacheManager';
 import { CacheKeys } from './cacheKeys';
+import { supabase } from '@/shared/lib/supabase/client';
 
 interface SyncOperation {
   type: 'create' | 'update' | 'delete';
@@ -34,7 +34,7 @@ class OfflineSyncManager {
   }
 
   private async loadQueueFromStorage() {
-    const queue = generalCache.get<SyncOperation[]>('offline-sync-queue');
+    const queue = await generalCache.get<SyncOperation[]>('offline-sync-queue');
     if (queue) {
       this.syncQueue = queue;
     }
@@ -73,6 +73,7 @@ class OfflineSyncManager {
 
       for (let i = 0; i < operations.length; i++) {
         const op = operations[i];
+        if (!op) continue;
         try {
           await this.executeSyncOperation(op);
           successfulOps.push(i);
@@ -83,9 +84,7 @@ class OfflineSyncManager {
       }
 
       // Remove successful operations from queue
-      this.syncQueue = this.syncQueue.filter(
-        (_, index) => !successfulOps.includes(index)
-      );
+      this.syncQueue = this.syncQueue.filter((_, index) => !successfulOps.includes(index));
       await this.saveQueueToStorage();
 
       // Notify listeners
@@ -103,33 +102,27 @@ class OfflineSyncManager {
       case 'create':
         await supabase.from(operation.table).insert(operation.data);
         break;
-      
+
       case 'update':
         if (!operation.id) throw new Error('Update operation requires an ID');
-        await supabase
-          .from(operation.table)
-          .update(operation.data)
-          .eq('id', operation.id);
+        await supabase.from(operation.table).update(operation.data).eq('id', operation.id);
         break;
-      
+
       case 'delete':
         if (!operation.id) throw new Error('Delete operation requires an ID');
-        await supabase
-          .from(operation.table)
-          .delete()
-          .eq('id', operation.id);
+        await supabase.from(operation.table).delete().eq('id', operation.id);
         break;
     }
   }
 
   private async refreshCaches() {
     // Clear potentially stale data
-    const tables = new Set(this.syncQueue.map(op => op.table));
-    
+    const tables = new Set(this.syncQueue.map((op) => op.table));
+
     if (tables.has('profiles')) {
       userCache.clear();
     }
-    
+
     if (tables.has('events') || tables.has('event_participants')) {
       eventCache.clear();
     }
@@ -141,7 +134,7 @@ class OfflineSyncManager {
   }
 
   private notifyListeners() {
-    this.listeners.forEach(listener => listener());
+    this.listeners.forEach((listener) => listener());
   }
 
   getQueueStatus() {
@@ -188,11 +181,7 @@ export const offlineOperations = {
     const event = { ...eventData, id: tempId };
 
     // Add to cache
-    await eventCache.set(
-      CacheKeys.EVENT_DETAILS(tempId),
-      event,
-      { ttl: 30 * 60 * 1000 }
-    );
+    await eventCache.set(CacheKeys.EVENT_DETAILS(tempId), event, { ttl: 30 * 60 * 1000 });
 
     // Queue for sync
     await offlineSyncManager.addToQueue({
@@ -207,15 +196,15 @@ export const offlineOperations = {
   rsvpEvent: async (eventId: string, userId: string, status: string) => {
     // Update cache
     const eventKey = CacheKeys.EVENT_PARTICIPANTS(eventId);
-    const participants = eventCache.get<any[]>(eventKey) || [];
-    
-    const existingIndex = participants.findIndex(p => p.user_id === userId);
+    const participants = (await eventCache.get<any[]>(eventKey)) || [];
+
+    const existingIndex = participants.findIndex((p) => p.user_id === userId);
     if (existingIndex >= 0) {
       participants[existingIndex].status = status;
     } else {
       participants.push({ user_id: userId, event_id: eventId, status });
     }
-    
+
     await eventCache.set(eventKey, participants, { ttl: 10 * 60 * 1000 });
 
     // Queue for sync

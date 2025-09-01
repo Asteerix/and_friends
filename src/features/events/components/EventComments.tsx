@@ -5,7 +5,6 @@ import React from 'react';
 import { useState } from 'react';
 import { View, Text, TouchableOpacity, Image, TextInput } from 'react-native';
 import { Alert, FlatList, KeyboardAvoidingView, Platform } from 'react-native';
-
 import { EventComment, useEventInteractions } from '@/hooks/useEventInteractions';
 import { useSession } from '@/shared/providers/SessionContext';
 

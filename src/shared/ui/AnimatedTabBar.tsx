@@ -5,7 +5,6 @@ import React from 'react';
 import { Animated, Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-
 const { width: screenWidth } = Dimensions.get('window');
 
 export interface TabItem {
@@ -19,21 +18,15 @@ interface AnimatedTabBarProps {
   tabs: TabItem[];
   activeTab: string;
   onTabPress: (tabName: string) => void;
-};
-export default function AnimatedTabBar({
-  tabs,
-  activeTab,
-  onTabPress,
-}: AnimatedTabBarProps) {
+}
+export default function AnimatedTabBar({ tabs, activeTab, onTabPress }: AnimatedTabBarProps) {
   const insets = useSafeAreaInsets();
   const [tabPositions, setTabPositions] = React.useState<number[]>([]);
   const animatedIndicator = React.useRef(new Animated.Value(0)).current;
-  const scaleAnims = React.useRef(
-    tabs.map(() => new Animated.Value(1))
-  ).current;
+  const scaleAnims = React.useRef(tabs.map(() => new Animated.Value(1))).current;
 
   React.useEffect(() => {
-    const activeIndex = tabs.findIndex(tab => tab.name === activeTab);
+    const activeIndex = tabs.findIndex((tab) => tab.name === activeTab);
     if (activeIndex !== -1 && tabPositions[activeIndex] !== undefined) {
       Animated.spring(animatedIndicator, {
         toValue: tabPositions[activeIndex],
@@ -46,7 +39,7 @@ export default function AnimatedTabBar({
 
   const handleTabPress = (tab: TabItem, index: number) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    
+
     // Animate scale
     if (scaleAnims[index]) {
       Animated.sequence([
@@ -71,7 +64,7 @@ export default function AnimatedTabBar({
   return (
     <View style={[styles.container, { paddingBottom: insets.bottom }]}>
       <BlurView intensity={100} style={StyleSheet.absoluteFillObject} />
-      
+
       {/* Animated indicator */}
       <Animated.View
         style={[
@@ -86,7 +79,7 @@ export default function AnimatedTabBar({
       <View style={styles.tabsContainer}>
         {tabs.map((tab, index) => {
           const isActive = tab.name === activeTab;
-          
+
           return (
             <TouchableOpacity
               key={tab.name}
@@ -114,18 +107,11 @@ export default function AnimatedTabBar({
                   />
                   {tab.badge && tab.badge > 0 && (
                     <View style={styles.badge}>
-                      <Text style={styles.badgeText}>
-                        {tab.badge > 99 ? '99+' : tab.badge}
-                      </Text>
+                      <Text style={styles.badgeText}>{tab.badge > 99 ? '99+' : tab.badge}</Text>
                     </View>
                   )}
                 </View>
-                <Text
-                  style={[
-                    styles.label,
-                    { color: isActive ? '#fff' : '#666' },
-                  ]}
-                >
+                <Text style={[styles.label, { color: isActive ? '#fff' : '#666' }]}>
                   {tab.label}
                 </Text>
               </Animated.View>

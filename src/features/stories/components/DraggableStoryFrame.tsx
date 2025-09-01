@@ -23,9 +23,9 @@ interface DraggableStoryFrameProps {
   isDraggable?: boolean;
 }
 
-export const DraggableStoryFrame: React.FC<DraggableStoryFrameProps> = ({ 
-  uri, 
-  caption, 
+export const DraggableStoryFrame: React.FC<DraggableStoryFrameProps> = ({
+  uri,
+  caption,
   aspectRatio,
   captionPosition = screenHeight * 0.5,
   onCaptionPositionChange,
@@ -54,22 +54,22 @@ export const DraggableStoryFrame: React.FC<DraggableStoryFrameProps> = ({
       onPanResponderMove: (_, gestureState) => {
         // Calculate new position with constraints
         const newPosition = currentPosition + gestureState.dy;
-        
+
         // Limites ajustées en fonction de la hauteur du caption
         // Le haut du caption ne peut pas dépasser 20% de l'écran
         const minY = screenHeight * 0.2;
         // Le bas du caption ne peut pas dépasser 80% de l'écran
         const maxY = screenHeight * 0.8 - estimatedCaptionHeight;
-        
+
         const constrainedPosition = Math.max(minY, Math.min(maxY, newPosition));
-        
+
         // Set the pan value to the constrained position
         pan.setValue(constrainedPosition);
       },
       onPanResponderRelease: () => {
         // @ts-ignore
         const finalPosition = pan._value;
-        
+
         setCurrentPosition(finalPosition);
         onCaptionPositionChange?.(finalPosition);
         setIsDragging(false);
@@ -87,20 +87,16 @@ export const DraggableStoryFrame: React.FC<DraggableStoryFrameProps> = ({
     <View style={styles.container}>
       {/* Blurred Background - only if aspect ratio doesn't match */}
       {needsBlur && (
-        <Image 
-          source={{ uri }} 
-          style={styles.blurredBackground} 
+        <Image
+          source={{ uri }}
+          style={styles.blurredBackground}
           blurRadius={Platform.OS === 'ios' ? 50 : 25}
         />
       )}
-      
+
       {/* Main Image */}
       <View style={styles.imageContainer}>
-        <Image 
-          source={{ uri }} 
-          style={styles.image}
-          resizeMode="contain"
-        />
+        <Image source={{ uri }} style={styles.image} resizeMode="contain" />
       </View>
 
       {/* Top Gradient */}
@@ -116,7 +112,7 @@ export const DraggableStoryFrame: React.FC<DraggableStoryFrameProps> = ({
         style={styles.bottomGradient}
         pointerEvents="none"
       />
-      
+
       {/* Draggable Caption */}
       {caption && caption.trim().length > 0 && (
         <Animated.View
@@ -129,23 +125,18 @@ export const DraggableStoryFrame: React.FC<DraggableStoryFrameProps> = ({
           ]}
           {...(isDraggable ? panResponder.panHandlers : {})}
         >
-          <View 
+          <View
             style={[
               styles.captionBackground,
               isDragging && styles.captionDragging,
-              isDraggable && styles.captionDraggable
+              isDraggable && styles.captionDraggable,
             ]}
             onLayout={(event) => {
               const { height } = event.nativeEvent.layout;
               setCaptionHeight(height);
             }}
           >
-            <CustomText 
-              size="lg" 
-              color="#FFF" 
-              style={styles.captionText}
-              numberOfLines={3}
-            >
+            <CustomText size="lg" color="#FFF" style={styles.captionText} numberOfLines={3}>
               {caption}
             </CustomText>
           </View>

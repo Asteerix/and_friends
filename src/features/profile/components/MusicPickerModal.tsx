@@ -122,19 +122,19 @@ export default function MusicPickerModal({
   useEffect(() => {
     const fetchTracks = async () => {
       const searchTerm = debouncedQuery.trim() || 'top songs 2024';
-      
+
       const url = `https://itunes.apple.com/search?term=${encodeURIComponent(
         searchTerm
       )}&entity=song&limit=20&country=US`;
 
       setIsSearching(true);
       setSearchError(null);
-      
+
       try {
         const resp = await fetch(url);
         if (!resp.ok) throw new Error(`iTunes API request failed with status ${resp.status}`);
         const json = await resp.json();
-        
+
         if (json.results && Array.isArray(json.results)) {
           const result: Song[] = json.results.map((r: any) => ({
             id: r.trackId.toString(),
@@ -155,7 +155,7 @@ export default function MusicPickerModal({
         setIsSearching(false);
       }
     };
-    
+
     if (visible) {
       fetchTracks();
     }
@@ -181,7 +181,7 @@ export default function MusicPickerModal({
   const renderItem = ({ item }: { item: Song }) => {
     const isSelected = item.id === selectedTrack?.id;
     const isPlaying = item.id === playingId;
-    
+
     return (
       <Pressable
         onPress={() => handleSelectTrack(item)}
@@ -232,7 +232,7 @@ export default function MusicPickerModal({
           keyboardVerticalOffset={0}
         >
           <View style={styles.handle} />
-          
+
           <View style={styles.header}>
             <Text style={styles.title}>What's your jam?</Text>
             <Text style={styles.subtitle}>Pick a song that represents you</Text>
@@ -372,7 +372,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   listStyle: { flex: 1 },
-  listContentContainer: { 
+  listContentContainer: {
     paddingTop: 4,
     paddingBottom: 20,
     flexGrow: 1,

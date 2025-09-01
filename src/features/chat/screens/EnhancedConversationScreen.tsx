@@ -18,13 +18,13 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import * as Haptics from 'expo-haptics';
 import { useMessagesAdvanced } from '@/hooks/useMessagesAdvanced';
 import { ChatService } from '@/features/chats/services/chatService';
 import { useSession } from '@/shared/providers/SessionContext';
 import InputBar from '@/features/chat/components/InputBar';
 import BubbleLeft from '@/features/chat/components/BubbleLeft';
 import BubbleRight from '@/features/chat/components/BubbleRight';
-import * as Haptics from 'expo-haptics';
 
 interface Participant {
   user_id: string;
@@ -51,7 +51,7 @@ export default function EnhancedConversationScreen() {
   const flatListRef = useRef<FlatList>(null);
 
   const currentUserId = session?.user?.id;
-  const isAdmin = participants.find(p => p.user_id === currentUserId)?.is_admin || false;
+  const isAdmin = participants.find((p) => p.user_id === currentUserId)?.is_admin || false;
 
   useEffect(() => {
     if (chatId) {
@@ -62,7 +62,7 @@ export default function EnhancedConversationScreen() {
 
   useEffect(() => {
     // Find current chat info from chats list
-    const chat = chats.find(c => c.id === chatId);
+    const chat = chats.find((c) => c.id === chatId);
     if (chat) {
       setChatInfo(chat);
     }
@@ -91,12 +91,12 @@ export default function EnhancedConversationScreen() {
   };
 
   const handleRemoveParticipant = async (userId: string) => {
-    const participant = participants.find(p => p.user_id === userId);
+    const participant = participants.find((p) => p.user_id === userId);
     const isRemovingSelf = userId === currentUserId;
-    
+
     Alert.alert(
       isRemovingSelf ? 'Quitter le groupe' : 'Retirer du groupe',
-      isRemovingSelf 
+      isRemovingSelf
         ? 'Êtes-vous sûr de vouloir quitter ce groupe ?'
         : `Êtes-vous sûr de vouloir retirer ${participant?.profiles.full_name} du groupe ?`,
       [
@@ -109,7 +109,7 @@ export default function EnhancedConversationScreen() {
               chat_id: chatId!,
               user_id: userId,
             });
-            
+
             if (result.success) {
               if (isRemovingSelf) {
                 router.replace('/screens/chat');
@@ -127,7 +127,7 @@ export default function EnhancedConversationScreen() {
 
   const handleUpdateGroupName = async () => {
     if (!newGroupName.trim()) return;
-    
+
     const result = await ChatService.updateChat(chatId!, { name: newGroupName });
     if (result.success) {
       setEditingName(false);
@@ -141,7 +141,7 @@ export default function EnhancedConversationScreen() {
     if (chatInfo?.is_group) {
       return chatInfo.name || 'Groupe sans nom';
     }
-    const otherParticipant = participants.find(p => p.user_id !== currentUserId);
+    const otherParticipant = participants.find((p) => p.user_id !== currentUserId);
     return otherParticipant?.profiles.full_name || 'Conversation';
   };
 
@@ -156,7 +156,7 @@ export default function EnhancedConversationScreen() {
 
     const isOwnMessage = item.user_id === currentUserId;
     const Component = isOwnMessage ? BubbleRight : BubbleLeft;
-    
+
     return (
       <Component
         message={item.content}
@@ -170,13 +170,13 @@ export default function EnhancedConversationScreen() {
 
   const ParticipantItem = ({ participant }: { participant: Participant }) => {
     const canRemove = isAdmin || participant.user_id === currentUserId;
-    
+
     return (
       <View style={styles.participantItem}>
         {participant.profiles.avatar_url ? (
-          <Image 
-            source={{ uri: participant.profiles.avatar_url }} 
-            style={styles.participantAvatar} 
+          <Image
+            source={{ uri: participant.profiles.avatar_url }}
+            style={styles.participantAvatar}
           />
         ) : (
           <View style={[styles.participantAvatar, styles.defaultAvatar]}>
@@ -185,7 +185,7 @@ export default function EnhancedConversationScreen() {
             </Text>
           </View>
         )}
-        
+
         <View style={styles.participantInfo}>
           <Text style={styles.participantName}>
             {participant.profiles.full_name}
@@ -195,16 +195,16 @@ export default function EnhancedConversationScreen() {
             <Text style={styles.participantUsername}>@{participant.profiles.username}</Text>
           )}
         </View>
-        
+
         {canRemove && (
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={() => handleRemoveParticipant(participant.user_id)}
             style={styles.removeButton}
           >
-            <Ionicons 
-              name={participant.user_id === currentUserId ? "exit-outline" : "close-circle"} 
-              size={24} 
-              color="#FF3B30" 
+            <Ionicons
+              name={participant.user_id === currentUserId ? 'exit-outline' : 'close-circle'}
+              size={24}
+              color="#FF3B30"
             />
           </TouchableOpacity>
         )}
@@ -218,8 +218,8 @@ export default function EnhancedConversationScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={styles.headerCenter}
           onPress={() => chatInfo?.is_group && setShowParticipants(true)}
         >
@@ -228,7 +228,7 @@ export default function EnhancedConversationScreen() {
             <Text style={styles.headerSubtitle}>{participants.length} membres</Text>
           )}
         </TouchableOpacity>
-        
+
         <TouchableOpacity onPress={() => setShowParticipants(true)}>
           <Ionicons name="information-circle-outline" size={24} color="#000" />
         </TouchableOpacity>
@@ -254,7 +254,7 @@ export default function EnhancedConversationScreen() {
             onContentSizeChange={() => flatListRef.current?.scrollToEnd()}
           />
         )}
-        
+
         <InputBar onSendMessage={handleSendMessage} />
       </KeyboardAvoidingView>
 
@@ -277,7 +277,7 @@ export default function EnhancedConversationScreen() {
           {chatInfo?.is_group && isAdmin && (
             <View style={styles.groupSettings}>
               <Text style={styles.sectionTitle}>Paramètres du groupe</Text>
-              
+
               <View style={styles.settingItem}>
                 <Text style={styles.settingLabel}>Nom du groupe</Text>
                 {editingName ? (
@@ -297,7 +297,7 @@ export default function EnhancedConversationScreen() {
                     </TouchableOpacity>
                   </View>
                 ) : (
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.nameContainer}
                     onPress={() => {
                       setNewGroupName(chatInfo.name || '');
@@ -314,9 +314,7 @@ export default function EnhancedConversationScreen() {
 
           <View style={styles.participantsSection}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>
-                Participants ({participants.length})
-              </Text>
+              <Text style={styles.sectionTitle}>Participants ({participants.length})</Text>
               {chatInfo?.is_group && isAdmin && (
                 <TouchableOpacity onPress={handleAddParticipants}>
                   <Ionicons name="person-add" size={20} color="#007AFF" />

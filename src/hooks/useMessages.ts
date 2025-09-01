@@ -1,6 +1,5 @@
 import type { PostgrestError } from '@supabase/supabase-js';
 import { useState, useEffect } from 'react';
-
 import { supabase } from '@/shared/lib/supabase/client';
 import { useSession } from '@/shared/providers/SessionContext';
 

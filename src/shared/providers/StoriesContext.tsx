@@ -1,4 +1,13 @@
-import React, { createContext, useContext, ReactNode, useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import React, {
+  createContext,
+  useContext,
+  ReactNode,
+  useState,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+} from 'react';
 import type { PostgrestError, RealtimeChannel } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/shared/lib/supabase/client';
@@ -64,11 +73,13 @@ export function StoriesProvider({ children }: { children: ReactNode }) {
       if (cached) {
         const { stories: cachedStories, timestamp }: StoriesCache = JSON.parse(cached);
         const now = Date.now();
-        
+
         // Check if cache is still valid
         if (now - timestamp < CACHE_DURATION) {
           // Filter out expired stories
-          const validStories = cachedStories.filter(story => new Date(story.expires_at) > new Date());
+          const validStories = cachedStories.filter(
+            (story) => new Date(story.expires_at) > new Date()
+          );
           if (validStories.length > 0 && isMountedRef.current) {
             setStories(validStories);
             return true;
@@ -95,86 +106,91 @@ export function StoriesProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Fetch stories with pagination
-  const fetchStories = useCallback(async (forceRefresh = false) => {
-    if (!session?.user?.id || fetchingRef.current) return;
-    
-    fetchingRef.current = true;
-    setLoading(true);
-    setError(null);
+  const fetchStories = useCallback(
+    async (forceRefresh = false) => {
+      if (!session?.user?.id || fetchingRef.current) return;
 
-    try {
-      // Try to load from cache first if not forcing refresh
-      if (!forceRefresh && currentPage === 0) {
-        const cacheLoaded = await loadCachedStories();
-        if (cacheLoaded) {
-          setLoading(false);
-          fetchingRef.current = false;
-          return;
+      fetchingRef.current = true;
+      setLoading(true);
+      setError(null);
+
+      try {
+        // Try to load from cache first if not forcing refresh
+        if (!forceRefresh && currentPage === 0) {
+          const cacheLoaded = await loadCachedStories();
+          if (cacheLoaded) {
+            setLoading(false);
+            fetchingRef.current = false;
+            return;
+          }
         }
-      }
 
-      const from = currentPage * PAGE_SIZE;
-      const to = from + PAGE_SIZE - 1;
+        const from = currentPage * PAGE_SIZE;
+        const to = from + PAGE_SIZE - 1;
 
-      const { data: storiesData, error: storiesError } = await supabase
-        .from('stories')
-        .select(`
+        const { data: storiesData, error: storiesError } = await supabase
+          .from('stories')
+          .select(
+            `
           *,
           user:profiles!stories_user_id_fkey (
             full_name,
             avatar_url
           )
-        `)
-        .gt('expires_at', new Date().toISOString())
-        .order('created_at', { ascending: false })
-        .range(from, to);
+        `
+          )
+          .gt('expires_at', new Date().toISOString())
+          .order('created_at', { ascending: false })
+          .range(from, to);
 
-      if (storiesError) {
+        if (storiesError) {
+          if (isMountedRef.current) {
+            setError(storiesError);
+          }
+          return;
+        }
+
+        const formattedStories = (storiesData || []).map((story: any) => ({
+          ...story,
+          user: story.user
+            ? {
+                full_name: story.user.full_name,
+                avatar_url: story.user.avatar_url,
+              }
+            : undefined,
+          viewed_by: story.views?.includes(session.user.id) ? [session.user.id] : [],
+          views: story.views || [],
+        }));
+
         if (isMountedRef.current) {
-          setError(storiesError);
-        }
-        return;
-      }
+          if (forceRefresh || currentPage === 0) {
+            setStories(formattedStories);
+            await saveToCache(formattedStories);
+          } else {
+            setStories((prev) => [...prev, ...formattedStories]);
+          }
 
-      const formattedStories = (storiesData || []).map((story: any) => ({
-        ...story,
-        user: story.user
-          ? {
-              full_name: story.user.full_name,
-              avatar_url: story.user.avatar_url,
-            }
-          : undefined,
-        viewed_by: story.views?.includes(session.user.id) ? [session.user.id] : [],
-        views: story.views || [],
-      }));
-
-      if (isMountedRef.current) {
-        if (forceRefresh || currentPage === 0) {
-          setStories(formattedStories);
-          await saveToCache(formattedStories);
-        } else {
-          setStories(prev => [...prev, ...formattedStories]);
+          setHasMore(formattedStories.length === PAGE_SIZE);
         }
-        
-        setHasMore(formattedStories.length === PAGE_SIZE);
+      } catch (err) {
+        console.error('Error fetching stories:', err);
+        if (isMountedRef.current) {
+          setError(err as PostgrestError);
+        }
+      } finally {
+        if (isMountedRef.current) {
+          setLoading(false);
+          fetchingRef.current = false;
+        }
       }
-    } catch (err) {
-      console.error('Error fetching stories:', err);
-      if (isMountedRef.current) {
-        setError(err as PostgrestError);
-      }
-    } finally {
-      if (isMountedRef.current) {
-        setLoading(false);
-        fetchingRef.current = false;
-      }
-    }
-  }, [session?.user?.id, currentPage, loadCachedStories, saveToCache]);
+    },
+    [session?.user?.id, currentPage, loadCachedStories, saveToCache]
+  );
 
   // Fetch more stories (pagination)
   const fetchMoreStories = useCallback(async () => {
     if (!hasMore || loading) return;
-    setCurrentPage(prev => prev + 1);
+    setCurrentPage((prev) => prev + 1);
   }, [hasMore, loading]);
 
   // Refresh stories (reset and fetch)
@@ -185,167 +201,180 @@ export function StoriesProvider({ children }: { children: ReactNode }) {
   }, [fetchStories]);
 
   // Create story
-  const createStory = useCallback(async (storyData: {
-    image_url?: string;
-    media_url?: string;
-    media_type?: 'image' | 'video';
-    text?: string;
-    caption?: string;
-    caption_position?: number;
-    text_position?: { x: number; y: number };
-    stickers?: unknown[];
-  }) => {
-    if (!session?.user?.id) {
-      return { error: { message: 'Not authenticated' } };
-    }
-
-    // Check story limit
-    const twentyFourHoursAgo = new Date();
-    twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
-
-    const { count, error: countError } = await supabase
-      .from('stories')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', session.user.id)
-      .gte('created_at', twentyFourHoursAgo.toISOString());
-
-    if (countError) {
-      return { error: countError };
-    }
-
-    if (count && count >= 50) {
-      return {
-        error: { 
-          message: 'Vous avez atteint la limite de 50 stories par 24 heures. Veuillez réessayer plus tard.',
-          code: 'STORY_LIMIT_REACHED'
-        },
-      };
-    }
-
-    const expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + 24);
-
-    const storyType = storyData.media_type === 'video' ? 'video' : 'photo';
-
-    const storyPayload: any = {
-      user_id: session.user.id,
-      media_url: storyData.image_url || storyData.media_url,
-      type: storyType,
-      caption: storyData.text || storyData.caption || null,
-      expires_at: expiresAt.toISOString(),
-      stickers: storyData.stickers || [],
-    };
-
-    if (storyData.caption_position !== undefined) {
-      storyPayload.caption_position = storyData.caption_position;
-    }
-
-    const { data, error } = await supabase
-      .from('stories')
-      .insert([storyPayload])
-      .select()
-      .single();
-
-    if (error) {
-      return { data: null, error };
-    }
-
-    // Refresh stories after creation
-    await refreshStories();
-    
-    return { data, error };
-  }, [session?.user?.id, refreshStories]);
-
-  // View story
-  const viewStory = useCallback(async (storyId: string) => {
-    if (!session?.user?.id) return;
-
-    try {
-      const { error } = await supabase.rpc('add_story_view', {
-        p_story_id: storyId,
-        p_viewer_id: session.user.id
-      });
-
-      if (error) {
-        console.error('Error marking story as viewed:', error);
-        return;
+  const createStory = useCallback(
+    async (storyData: {
+      image_url?: string;
+      media_url?: string;
+      media_type?: 'image' | 'video';
+      text?: string;
+      caption?: string;
+      caption_position?: number;
+      text_position?: { x: number; y: number };
+      stickers?: unknown[];
+    }) => {
+      if (!session?.user?.id) {
+        return { error: { message: 'Not authenticated' } };
       }
-      
-      // Update local state
-      if (isMountedRef.current) {
-        setStories((prev) => prev.map((story) => {
-          if (story.id === storyId) {
-            return {
-              ...story,
-              viewed_by: [...(story.viewed_by || []), session.user.id],
-              views: [...(story.views || []), session.user.id]
-            };
-          }
-          return story;
-        }));
-      }
-    } catch (error) {
-      console.error('Error in viewStory:', error);
-    }
-  }, [session?.user?.id]);
 
-  // Delete story
-  const deleteStory = useCallback(async (storyId: string) => {
-    try {
-      // Get story details
-      const { data: story, error: fetchError } = await supabase
+      // Check story limit
+      const twentyFourHoursAgo = new Date();
+      twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
+
+      const { count, error: countError } = await supabase
         .from('stories')
-        .select('media_url')
-        .eq('id', storyId)
-        .eq('user_id', session?.user?.id)
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', session.user.id)
+        .gte('created_at', twentyFourHoursAgo.toISOString());
+
+      if (countError) {
+        return { error: countError };
+      }
+
+      if (count && count >= 50) {
+        return {
+          error: {
+            message:
+              'Vous avez atteint la limite de 50 stories par 24 heures. Veuillez réessayer plus tard.',
+            code: 'STORY_LIMIT_REACHED',
+          },
+        };
+      }
+
+      const expiresAt = new Date();
+      expiresAt.setHours(expiresAt.getHours() + 24);
+
+      const storyType = storyData.media_type === 'video' ? 'video' : 'photo';
+
+      const storyPayload: any = {
+        user_id: session.user.id,
+        media_url: storyData.image_url || storyData.media_url,
+        type: storyType,
+        caption: storyData.text || storyData.caption || null,
+        expires_at: expiresAt.toISOString(),
+        stickers: storyData.stickers || [],
+      };
+
+      if (storyData.caption_position !== undefined) {
+        storyPayload.caption_position = storyData.caption_position;
+      }
+
+      const { data, error } = await supabase
+        .from('stories')
+        .insert([storyPayload])
+        .select()
         .single();
 
-      if (fetchError) {
-        return { error: fetchError };
+      if (error) {
+        return { data: null, error };
       }
 
-      // Delete from storage
-      if (story?.media_url) {
-        const url = new URL(story.media_url);
-        const pathParts = url.pathname.split('/');
-        const bucketIndex = pathParts.indexOf('stories');
-        
-        if (bucketIndex !== -1 && bucketIndex < pathParts.length - 1) {
-          const filePath = pathParts.slice(bucketIndex + 1).join('/');
-          
-          const { error: storageError } = await supabase.storage
-            .from('stories')
-            .remove([filePath]);
-          
-          if (storageError) {
-            console.error('Error deleting file from storage:', storageError);
+      // Refresh stories after creation
+      await refreshStories();
+
+      return { data, error };
+    },
+    [session?.user?.id, refreshStories]
+  );
+
+  // View story
+  const viewStory = useCallback(
+    async (storyId: string) => {
+      if (!session?.user?.id) return;
+
+      try {
+        const { error } = await supabase.rpc('add_story_view', {
+          p_story_id: storyId,
+          p_viewer_id: session.user.id,
+        });
+
+        if (error) {
+          console.error('Error marking story as viewed:', error);
+          return;
+        }
+
+        // Update local state
+        if (isMountedRef.current) {
+          setStories((prev) =>
+            prev.map((story) => {
+              if (story.id === storyId) {
+                return {
+                  ...story,
+                  viewed_by: [...(story.viewed_by || []), session.user.id],
+                  views: [...(story.views || []), session.user.id],
+                };
+              }
+              return story;
+            })
+          );
+        }
+      } catch (error) {
+        console.error('Error in viewStory:', error);
+      }
+    },
+    [session?.user?.id]
+  );
+
+  // Delete story
+  const deleteStory = useCallback(
+    async (storyId: string) => {
+      try {
+        // Get story details
+        const { data: story, error: fetchError } = await supabase
+          .from('stories')
+          .select('media_url')
+          .eq('id', storyId)
+          .eq('user_id', session?.user?.id)
+          .single();
+
+        if (fetchError) {
+          return { error: fetchError };
+        }
+
+        // Delete from storage
+        if (story?.media_url) {
+          const url = new URL(story.media_url);
+          const pathParts = url.pathname.split('/');
+          const bucketIndex = pathParts.indexOf('stories');
+
+          if (bucketIndex !== -1 && bucketIndex < pathParts.length - 1) {
+            const filePath = pathParts.slice(bucketIndex + 1).join('/');
+
+            const { error: storageError } = await supabase.storage
+              .from('stories')
+              .remove([filePath]);
+
+            if (storageError) {
+              console.error('Error deleting file from storage:', storageError);
+            }
           }
         }
-      }
 
-      // Delete the story record
-      const { error } = await supabase
-        .from('stories')
-        .delete()
-        .eq('id', storyId)
-        .eq('user_id', session?.user?.id);
+        // Delete the story record
+        const { error } = await supabase
+          .from('stories')
+          .delete()
+          .eq('id', storyId)
+          .eq('user_id', session?.user?.id);
 
-      if (!error && isMountedRef.current) {
-        setStories((prev) => prev.filter((s) => s.id !== storyId));
+        if (!error && isMountedRef.current) {
+          setStories((prev) => prev.filter((s) => s.id !== storyId));
+        }
+
+        return { error };
+      } catch (error) {
+        return { error: error as PostgrestError };
       }
-      
-      return { error };
-    } catch (error) {
-      return { error: error as PostgrestError };
-    }
-  }, [session?.user?.id]);
+    },
+    [session?.user?.id]
+  );
 
   // Get stories by user
   const getStoriesByUser = useCallback(async (userId: string) => {
     try {
       const { data, error } = await supabase
         .from('stories')
-        .select(`
+        .select(
+          `
           *,
           user:profiles!user_id (
             id,
@@ -353,7 +382,8 @@ export function StoriesProvider({ children }: { children: ReactNode }) {
             full_name,
             avatar_url
           )
-        `)
+        `
+        )
         .eq('user_id', userId)
         .gt('expires_at', new Date().toISOString())
         .order('created_at', { ascending: true });
@@ -407,14 +437,14 @@ export function StoriesProvider({ children }: { children: ReactNode }) {
         },
         (payload) => {
           if (!isMountedRef.current) return;
-          
+
           if (payload.eventType === 'INSERT') {
             // Only refresh if it's not our own story (already handled by createStory)
             if (payload.new.user_id !== session.user.id) {
               refreshStories();
             }
           } else if (payload.eventType === 'DELETE') {
-            setStories(prev => prev.filter(s => s.id !== payload.old.id));
+            setStories((prev) => prev.filter((s) => s.id !== payload.old.id));
           } else if (payload.eventType === 'UPDATE') {
             fetchStories(true);
           }
@@ -435,7 +465,7 @@ export function StoriesProvider({ children }: { children: ReactNode }) {
           }
         }
       });
-    
+
     channelRef.current = channel;
 
     // Set up interval to remove expired stories
@@ -484,14 +514,23 @@ export function StoriesProvider({ children }: { children: ReactNode }) {
       getStoriesByUser,
       refreshStories,
     }),
-    [stories, loading, error, currentPage, hasMore, fetchStories, fetchMoreStories, createStory, viewStory, deleteStory, getStoriesByUser, refreshStories]
+    [
+      stories,
+      loading,
+      error,
+      currentPage,
+      hasMore,
+      fetchStories,
+      fetchMoreStories,
+      createStory,
+      viewStory,
+      deleteStory,
+      getStoriesByUser,
+      refreshStories,
+    ]
   );
 
-  return (
-    <StoriesContext.Provider value={contextValue}>
-      {children}
-    </StoriesContext.Provider>
-  );
+  return <StoriesContext.Provider value={contextValue}>{children}</StoriesContext.Provider>;
 }
 
 export function useStories() {

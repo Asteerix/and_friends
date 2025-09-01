@@ -21,10 +21,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-
+import { VideoView, useVideoPlayer } from 'expo-video';
 import { useMemories } from '@/shared/providers/MemoriesProvider';
 import { useSession } from '@/shared/providers/SessionContext';
-import { VideoView, useVideoPlayer } from 'expo-video';
 import { useResponsive } from '@/shared/hooks/useResponsive';
 import { supabase } from '@/shared/lib/supabase/client';
 import ReportModal from '@/features/reports/components/ReportModal';
@@ -87,8 +86,8 @@ export default function MemoriesScreen() {
   const router = useRouter();
   const { session } = useSession();
   const responsive = useResponsive();
-  const { 
-    stories, 
+  const {
+    stories,
     replies,
     loading,
     fetchStories: fetchAllMemories,
@@ -114,12 +113,14 @@ export default function MemoriesScreen() {
   useEffect(() => {
     // Only set memories once when stories are loaded
     if (memories.length === 0 && stories.length > 0) {
-      setMemories(stories.map(s => ({
-        ...s,
-        liked_by_me: s.is_liked,
-        saved_by_me: s.is_saved,
-        replies: []
-      })));
+      setMemories(
+        stories.map((s) => ({
+          ...s,
+          liked_by_me: s.is_liked,
+          saved_by_me: s.is_saved,
+          replies: [],
+        }))
+      );
     }
   }, [stories.length]); // Only depend on length to avoid re-renders
 
@@ -138,7 +139,7 @@ export default function MemoriesScreen() {
       fetchReplies(memories[currentIndex].id);
     }
   }, [currentIndex, fetchReplies]);
-  
+
   useEffect(() => {
     // Update local replies when global replies change
     setLocalReplies(replies);
@@ -151,22 +152,28 @@ export default function MemoriesScreen() {
 
   const handleLike = async () => {
     if (!session?.user) return;
-    
+
     const currentMemory = memories[currentIndex];
     if (!currentMemory) return;
 
     // Haptic feedback
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    
+
     const wasLiked = currentMemory.liked_by_me;
-    
+
     // Update local state optimistically FIRST
-    setMemories(prev => prev.map(m => 
-      m.id === currentMemory.id 
-        ? { ...m, liked_by_me: !wasLiked, likes_count: wasLiked ? (m.likes_count - 1) : (m.likes_count + 1) } 
-        : m
-    ));
-    
+    setMemories((prev) =>
+      prev.map((m) =>
+        m.id === currentMemory.id
+          ? {
+              ...m,
+              liked_by_me: !wasLiked,
+              likes_count: wasLiked ? m.likes_count - 1 : m.likes_count + 1,
+            }
+          : m
+      )
+    );
+
     // Then update database in background without waiting
     try {
       if (wasLiked) {
@@ -178,27 +185,27 @@ export default function MemoriesScreen() {
           .eq('user_id', session.user.id);
       } else {
         // Like
-        await supabase
-          .from('story_likes')
-          .insert({
-            story_id: currentMemory.id,
-            user_id: session.user.id,
-          });
+        await supabase.from('story_likes').insert({
+          story_id: currentMemory.id,
+          user_id: session.user.id,
+        });
       }
     } catch (error) {
       console.error('Error toggling like:', error);
       // Revert on error
-      setMemories(prev => prev.map(m => 
-        m.id === currentMemory.id 
-          ? { ...m, liked_by_me: wasLiked, likes_count: currentMemory.likes_count } 
-          : m
-      ));
+      setMemories((prev) =>
+        prev.map((m) =>
+          m.id === currentMemory.id
+            ? { ...m, liked_by_me: wasLiked, likes_count: currentMemory.likes_count }
+            : m
+        )
+      );
     }
   };
 
   const handleComment = async () => {
     if (!comment.trim() || !session?.user) return;
-    
+
     const currentMemory = memories[currentIndex];
     if (!currentMemory) return;
 
@@ -216,26 +223,26 @@ export default function MemoriesScreen() {
         id: session.user.id,
         username: session.user.user_metadata?.username || 'Unknown',
         avatar_url: session.user.user_metadata?.avatar_url || '',
-        full_name: session.user.user_metadata?.full_name || ''
+        full_name: session.user.user_metadata?.full_name || '',
       },
-      is_liked: false
+      is_liked: false,
     };
 
     // Add to local state immediately
     if (replyingTo) {
       // Add as child reply
-      setLocalReplies(prev => {
+      setLocalReplies((prev) => {
         const updateReplies = (replies: Reply[]): Reply[] => {
-          return replies.map(r => {
+          return replies.map((r) => {
             if (r.id === replyingTo.id) {
               return {
                 ...r,
-                child_replies: [...(r.child_replies || []), newReply]
+                child_replies: [...(r.child_replies || []), newReply],
               };
             } else if (r.child_replies) {
               return {
                 ...r,
-                child_replies: updateReplies(r.child_replies)
+                child_replies: updateReplies(r.child_replies),
               };
             }
             return r;
@@ -245,15 +252,15 @@ export default function MemoriesScreen() {
       });
     } else {
       // Add as root reply
-      setLocalReplies(prev => [...prev, newReply]);
+      setLocalReplies((prev) => [...prev, newReply]);
     }
 
     // Update comment count
-    setMemories(prev => prev.map(m => 
-      m.id === currentMemory.id 
-        ? { ...m, replies_count: (m.replies_count || 0) + 1 } 
-        : m
-    ));
+    setMemories((prev) =>
+      prev.map((m) =>
+        m.id === currentMemory.id ? { ...m, replies_count: (m.replies_count || 0) + 1 } : m
+      )
+    );
 
     setComment('');
     setReplyingTo(null);
@@ -267,18 +274,18 @@ export default function MemoriesScreen() {
       console.error('Error adding comment:', error);
       // Remove optimistic update on error
       if (replyingTo) {
-        setLocalReplies(prev => {
+        setLocalReplies((prev) => {
           const removeReply = (replies: Reply[]): Reply[] => {
-            return replies.map(r => {
+            return replies.map((r) => {
               if (r.id === replyingTo.id && r.child_replies) {
                 return {
                   ...r,
-                  child_replies: r.child_replies.filter(c => c.id !== newReply.id)
+                  child_replies: r.child_replies.filter((c) => c.id !== newReply.id),
                 };
               } else if (r.child_replies) {
                 return {
                   ...r,
-                  child_replies: removeReply(r.child_replies)
+                  child_replies: removeReply(r.child_replies),
                 };
               }
               return r;
@@ -287,14 +294,16 @@ export default function MemoriesScreen() {
           return removeReply(prev);
         });
       } else {
-        setLocalReplies(prev => prev.filter(r => r.id !== newReply.id));
+        setLocalReplies((prev) => prev.filter((r) => r.id !== newReply.id));
       }
       // Revert comment count
-      setMemories(prev => prev.map(m => 
-        m.id === currentMemory.id 
-          ? { ...m, replies_count: Math.max(0, (m.replies_count || 0) - 1) } 
-          : m
-      ));
+      setMemories((prev) =>
+        prev.map((m) =>
+          m.id === currentMemory.id
+            ? { ...m, replies_count: Math.max(0, (m.replies_count || 0) - 1) }
+            : m
+        )
+      );
     }
   };
 
@@ -308,12 +317,12 @@ export default function MemoriesScreen() {
       // Create a shareable link with the story/memory ID
       const baseUrl = process.env.EXPO_PUBLIC_APP_URL || 'https://andfriends.app';
       const shareUrl = `${baseUrl}/story/${currentMemory.id}`;
-      
+
       // Create the share message
       const shareMessage = Platform.select({
         ios: `Check out this memory by @${currentMemory.user?.username || 'Unknown'}${currentMemory.caption ? `: ${currentMemory.caption}` : ''}\n\n${shareUrl}`,
         android: `Check out this memory by @${currentMemory.user?.username || 'Unknown'}${currentMemory.caption ? `: ${currentMemory.caption}` : ''}\n\n${shareUrl}`,
-        default: `Check out this memory by @${currentMemory.user?.username || 'Unknown'}${currentMemory.caption ? `: ${currentMemory.caption}` : ''}\n\n${shareUrl}`
+        default: `Check out this memory by @${currentMemory.user?.username || 'Unknown'}${currentMemory.caption ? `: ${currentMemory.caption}` : ''}\n\n${shareUrl}`,
       });
 
       const shareOptions = {
@@ -323,16 +332,14 @@ export default function MemoriesScreen() {
       };
 
       const result = await Share.share(shareOptions);
-      
+
       if (result.action === Share.sharedAction) {
         // Track share event
-        await supabase
-          .from('story_shares')
-          .insert({
-            story_id: currentMemory.id,
-            user_id: session?.user?.id,
-            shared_at: new Date().toISOString(),
-          });
+        await supabase.from('story_shares').insert({
+          story_id: currentMemory.id,
+          user_id: session?.user?.id,
+          shared_at: new Date().toISOString(),
+        });
       }
     } catch (error) {
       console.error('Error sharing:', error);
@@ -341,22 +348,20 @@ export default function MemoriesScreen() {
 
   const handleSave = async () => {
     if (!session?.user) return;
-    
+
     const currentMemory = memories[currentIndex];
     if (!currentMemory) return;
 
     // Haptic feedback
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    
+
     const wasSaved = currentMemory.saved_by_me;
-    
+
     // Update local state optimistically FIRST
-    setMemories(prev => prev.map(m => 
-      m.id === currentMemory.id 
-        ? { ...m, saved_by_me: !wasSaved } 
-        : m
-    ));
-    
+    setMemories((prev) =>
+      prev.map((m) => (m.id === currentMemory.id ? { ...m, saved_by_me: !wasSaved } : m))
+    );
+
     // Then update database in background without waiting
     try {
       if (wasSaved) {
@@ -368,21 +373,17 @@ export default function MemoriesScreen() {
           .eq('user_id', session.user.id);
       } else {
         // Save
-        await supabase
-          .from('story_saves')
-          .insert({
-            story_id: currentMemory.id,
-            user_id: session.user.id,
-          });
+        await supabase.from('story_saves').insert({
+          story_id: currentMemory.id,
+          user_id: session.user.id,
+        });
       }
     } catch (error) {
       console.error('Error toggling save:', error);
       // Revert on error
-      setMemories(prev => prev.map(m => 
-        m.id === currentMemory.id 
-          ? { ...m, saved_by_me: wasSaved } 
-          : m
-      ));
+      setMemories((prev) =>
+        prev.map((m) => (m.id === currentMemory.id ? { ...m, saved_by_me: wasSaved } : m))
+      );
     }
   };
 
@@ -396,24 +397,20 @@ export default function MemoriesScreen() {
   const handleDeleteComment = async (replyId: string) => {
     if (!session?.user) return;
 
-    Alert.alert(
-      'Delete Comment',
-      'Are you sure you want to delete this comment?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await deleteReply(replyId);
-            } catch (error) {
-              console.error('Error deleting comment:', error);
-            }
+    Alert.alert('Delete Comment', 'Are you sure you want to delete this comment?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await deleteReply(replyId);
+          } catch (error) {
+            console.error('Error deleting comment:', error);
           }
-        }
-      ]
-    );
+        },
+      },
+    ]);
   };
 
   const handleShowLikes = async () => {
@@ -423,7 +420,8 @@ export default function MemoriesScreen() {
     try {
       const { data: likes } = await supabase
         .from('story_likes')
-        .select(`
+        .select(
+          `
           user_id,
           created_at,
           user:profiles!story_likes_user_id_fkey (
@@ -432,7 +430,8 @@ export default function MemoriesScreen() {
             full_name,
             avatar_url
           )
-        `)
+        `
+        )
         .eq('story_id', currentMemory.id)
         .order('created_at', { ascending: false });
 
@@ -451,7 +450,7 @@ export default function MemoriesScreen() {
   const handleReport = () => {
     const currentMemory = memories[currentIndex];
     if (!currentMemory) return;
-    
+
     setShowReportModal(true);
     setShowOptions(false);
   };
@@ -465,15 +464,18 @@ export default function MemoriesScreen() {
       `Are you sure you want to block @${currentMemory.user?.username || 'Unknown'}?`,
       [
         { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Block', 
+        {
+          text: 'Block',
           style: 'destructive',
           onPress: async () => {
             // TODO: Implement block functionality
-            Alert.alert('Blocked', `You have blocked @${currentMemory.user?.username || 'Unknown'}`);
+            Alert.alert(
+              'Blocked',
+              `You have blocked @${currentMemory.user?.username || 'Unknown'}`
+            );
             setShowOptions(false);
-          }
-        }
+          },
+        },
       ]
     );
   };
@@ -482,49 +484,41 @@ export default function MemoriesScreen() {
     const currentMemory = memories[currentIndex];
     if (!currentMemory || !session?.user || currentMemory.user_id !== session.user.id) return;
 
-    Alert.alert(
-      'Delete Memory',
-      'Are you sure you want to delete this memory?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await supabase
-                .from('stories')
-                .delete()
-                .eq('id', currentMemory.id);
-              
-              setShowOptions(false);
-              await fetchAllMemories();
-              
-              if (memories.length === 1) {
-                router.back();
-              }
-            } catch (error) {
-              console.error('Error deleting memory:', error);
-              Alert.alert('Error', 'Failed to delete memory. Please try again.');
+    Alert.alert('Delete Memory', 'Are you sure you want to delete this memory?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await supabase.from('stories').delete().eq('id', currentMemory.id);
+
+            setShowOptions(false);
+            await fetchAllMemories();
+
+            if (memories.length === 1) {
+              router.back();
             }
+          } catch (error) {
+            console.error('Error deleting memory:', error);
+            Alert.alert('Error', 'Failed to delete memory. Please try again.');
           }
-        }
-      ]
-    );
+        },
+      },
+    ]);
   };
 
   const formatCommentTime = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
     const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-    
+
     if (diffInMinutes < 1) return 'just now';
     if (diffInMinutes < 60) return `${diffInMinutes}m`;
     if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h`;
     if (diffInMinutes < 10080) return `${Math.floor(diffInMinutes / 1440)}d`;
     return `${Math.floor(diffInMinutes / 10080)}w`;
   };
-
 
   const formatViewCount = (count: number) => {
     if (count >= 1000000) {
@@ -535,38 +529,29 @@ export default function MemoriesScreen() {
     return count.toString();
   };
 
+  // Separate component for video memories to handle video player creation
+  const VideoMemoryView = React.memo(({ mediaUrl, style }: { mediaUrl: string; style: any }) => {
+    const player = useVideoPlayer(mediaUrl, (player) => {
+      player.loop = true;
+      player.play();
+    });
+
+    return <VideoView style={style} player={player} allowsFullscreen allowsPictureInPicture />;
+  });
+
   const renderMemory = ({ item }: { item: Story }) => {
-    
     return (
       <View style={[styles.memoryContainer, { height: responsive.height }]}>
         {/* Background Image/Video */}
         {item.media_type === 'video' ? (
-          <VideoView
-            style={styles.memoryMedia}
-            player={useVideoPlayer(item.media_url, (player) => {
-              player.loop = true;
-              player.play();
-            })}
-            allowsFullscreen
-            allowsPictureInPicture
-          />
+          <VideoMemoryView mediaUrl={item.media_url} style={styles.memoryMedia} />
         ) : (
-          <Image
-            source={{ uri: item.media_url }}
-            style={styles.memoryMedia}
-            resizeMode="cover"
-          />
+          <Image source={{ uri: item.media_url }} style={styles.memoryMedia} resizeMode="cover" />
         )}
 
         {/* Gradient Overlays */}
-        <LinearGradient
-          colors={['rgba(0,0,0,0.3)', 'transparent']}
-          style={styles.topGradient}
-        />
-        <LinearGradient
-          colors={['transparent', 'rgba(0,0,0,0.4)']}
-          style={styles.bottomGradient}
-        />
+        <LinearGradient colors={['rgba(0,0,0,0.3)', 'transparent']} style={styles.topGradient} />
+        <LinearGradient colors={['transparent', 'rgba(0,0,0,0.4)']} style={styles.bottomGradient} />
 
         {/* Header */}
         <SafeAreaView style={styles.header}>
@@ -579,28 +564,25 @@ export default function MemoriesScreen() {
           </TouchableOpacity>
         </SafeAreaView>
 
-
         {/* Right Side Actions */}
         <View style={styles.rightActions}>
           <View style={styles.actionContainer}>
             <TouchableOpacity onPress={handleLike} style={styles.actionButton}>
-              <Ionicons 
-                name={item.liked_by_me ? "heart" : "heart-outline"} 
-                size={32} 
-                color={item.liked_by_me ? "#FF4458" : "#FFF"} 
+              <Ionicons
+                name={item.liked_by_me ? 'heart' : 'heart-outline'}
+                size={32}
+                color={item.liked_by_me ? '#FF4458' : '#FFF'}
               />
             </TouchableOpacity>
             {item.likes_count > 0 && (
               <TouchableOpacity onPress={handleShowLikes} style={styles.actionCountButton}>
-                <Text style={styles.actionText}>
-                  {item.likes_count}
-                </Text>
+                <Text style={styles.actionText}>{item.likes_count}</Text>
               </TouchableOpacity>
             )}
           </View>
 
           <View style={styles.actionContainer}>
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={async () => {
                 setShowComments(true);
                 setLoadingComments(true);
@@ -609,13 +591,13 @@ export default function MemoriesScreen() {
                   await fetchReplies(currentMemory.id);
                 }
                 setLoadingComments(false);
-              }} 
+              }}
               style={styles.actionButton}
             >
               <Ionicons name="chatbubble-outline" size={30} color="#FFF" />
             </TouchableOpacity>
             {item.replies_count > 0 && (
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={async () => {
                   setShowComments(true);
                   setLoadingComments(true);
@@ -624,7 +606,7 @@ export default function MemoriesScreen() {
                     await fetchReplies(currentMemory.id);
                   }
                   setLoadingComments(false);
-                }} 
+                }}
                 style={styles.actionCountButton}
               >
                 <Text style={styles.actionText}>{item.replies_count}</Text>
@@ -637,30 +619,27 @@ export default function MemoriesScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity onPress={handleSave} style={styles.actionButton}>
-            <Ionicons 
-              name={item.saved_by_me ? "bookmark" : "bookmark-outline"} 
-              size={30} 
-              color={item.saved_by_me ? "#FFD700" : "#FFF"} 
+            <Ionicons
+              name={item.saved_by_me ? 'bookmark' : 'bookmark-outline'}
+              size={30}
+              color={item.saved_by_me ? '#FFD700' : '#FFF'}
             />
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={styles.actionButton}
-            onPress={() => setShowOptions(true)}
-          >
+          <TouchableOpacity style={styles.actionButton} onPress={() => setShowOptions(true)}>
             <Ionicons name="ellipsis-vertical" size={30} color="#FFF" />
           </TouchableOpacity>
         </View>
 
         {/* Bottom Info */}
         <View style={styles.bottomInfo}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.userInfo}
             onPress={() => router.push(`/screens/profile/${item.user?.id}`)}
           >
             <Image
-              source={{ 
-                uri: item.user?.avatar_url || 'https://via.placeholder.com/40' 
+              source={{
+                uri: item.user?.avatar_url || 'https://via.placeholder.com/40',
               }}
               style={styles.userAvatar}
             />
@@ -721,8 +700,8 @@ export default function MemoriesScreen() {
             }}
           >
             <Image
-              source={{ 
-                uri: reply.user?.avatar_url || 'https://via.placeholder.com/32' 
+              source={{
+                uri: reply.user?.avatar_url || 'https://via.placeholder.com/32',
               }}
               style={styles.commentAvatar}
             />
@@ -730,26 +709,24 @@ export default function MemoriesScreen() {
           <View style={styles.commentContent}>
             <View style={styles.commentHeader}>
               <Text style={styles.commentUsername}>{reply.user?.username || 'Unknown'}</Text>
-              <Text style={styles.commentTime}>
-                {formatCommentTime(reply.created_at)}
-              </Text>
+              <Text style={styles.commentTime}>{formatCommentTime(reply.created_at)}</Text>
             </View>
             <Text style={styles.commentText}>{reply.text}</Text>
             <View style={styles.commentActions}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.commentActionButton}
                 onPress={() => setReplyingTo(reply)}
               >
                 <Text style={styles.commentActionText}>Reply</Text>
               </TouchableOpacity>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.commentActionButton}
                 onPress={() => handleLikeComment(reply)}
               >
-                <Ionicons 
-                  name={reply.is_liked ? "heart" : "heart-outline"} 
-                  size={14} 
-                  color={reply.is_liked ? "#FF4458" : "#666"} 
+                <Ionicons
+                  name={reply.is_liked ? 'heart' : 'heart-outline'}
+                  size={14}
+                  color={reply.is_liked ? '#FF4458' : '#666'}
                 />
                 {reply.likes_count > 0 && (
                   <Text style={styles.commentLikeCount}>{reply.likes_count}</Text>
@@ -783,12 +760,12 @@ export default function MemoriesScreen() {
           <Text style={styles.emptyHeaderTitle}>Memories</Text>
           <View style={{ width: 44 }} />
         </View>
-        
+
         {/* Empty content */}
         <View style={styles.emptyContent}>
           <Text style={styles.emptyEmoji}>📷</Text>
           <Text style={styles.emptyText}>Aucune memories pour l'instant</Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.refreshButton}
             onPress={() => {
               fetchAllMemories();
@@ -819,10 +796,7 @@ export default function MemoriesScreen() {
 
       {/* Likes Modal */}
       {showLikes && (
-        <Pressable 
-          style={styles.modalOverlay} 
-          onPress={() => setShowLikes(false)}
-        >
+        <Pressable style={styles.modalOverlay} onPress={() => setShowLikes(false)}>
           <Pressable style={styles.likesModal} onPress={(e) => e.stopPropagation()}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Likes</Text>
@@ -832,8 +806,8 @@ export default function MemoriesScreen() {
             </View>
             <ScrollView style={styles.likesList}>
               {likedUsers.map((like) => (
-                <TouchableOpacity 
-                  key={like.user_id} 
+                <TouchableOpacity
+                  key={like.user_id}
                   style={styles.likeItem}
                   onPress={() => {
                     setShowLikes(false);
@@ -841,8 +815,8 @@ export default function MemoriesScreen() {
                   }}
                 >
                   <Image
-                    source={{ 
-                      uri: like.user?.avatar_url || 'https://via.placeholder.com/40' 
+                    source={{
+                      uri: like.user?.avatar_url || 'https://via.placeholder.com/40',
                     }}
                     style={styles.likeAvatar}
                   />
@@ -859,10 +833,7 @@ export default function MemoriesScreen() {
 
       {/* Options Modal */}
       {showOptions && memories[currentIndex] && (
-        <Pressable 
-          style={styles.modalOverlay} 
-          onPress={() => setShowOptions(false)}
-        >
+        <Pressable style={styles.modalOverlay} onPress={() => setShowOptions(false)}>
           <View style={styles.optionsModal}>
             {memories[currentIndex].user_id === session?.user?.id ? (
               <TouchableOpacity style={styles.optionItem} onPress={handleDeleteMemory}>
@@ -877,11 +848,19 @@ export default function MemoriesScreen() {
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.optionItem} onPress={handleBlockUser}>
                   <Ionicons name="ban-outline" size={24} color="#333" />
-                  <Text style={styles.optionText}>Block @{memories[currentIndex].user?.username || 'Unknown'}</Text>
+                  <Text style={styles.optionText}>
+                    Block @{memories[currentIndex].user?.username || 'Unknown'}
+                  </Text>
                 </TouchableOpacity>
               </>
             )}
-            <TouchableOpacity style={[styles.optionItem, { borderTopWidth: 1, borderTopColor: '#E5E5E5', marginTop: 8 }]} onPress={() => setShowOptions(false)}>
+            <TouchableOpacity
+              style={[
+                styles.optionItem,
+                { borderTopWidth: 1, borderTopColor: '#E5E5E5', marginTop: 8 },
+              ]}
+              onPress={() => setShowOptions(false)}
+            >
               <Text style={styles.optionText}>Cancel</Text>
             </TouchableOpacity>
           </View>
@@ -890,16 +869,13 @@ export default function MemoriesScreen() {
 
       {/* Comments Modal */}
       {showComments && (
-        <KeyboardAvoidingView 
+        <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.commentsModal}
         >
-          <Pressable 
-            style={styles.commentsOverlay} 
-            onPress={() => setShowComments(false)} 
-          />
+          <Pressable style={styles.commentsOverlay} onPress={() => setShowComments(false)} />
           <View style={[styles.commentsContainer, { height: responsive.height * 0.85 }]}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={{ alignItems: 'center', paddingVertical: 8 }}
               onPress={() => setShowComments(false)}
             >
@@ -908,10 +884,7 @@ export default function MemoriesScreen() {
             <View style={styles.commentsHeader}>
               <View style={{ width: 42 }} />
               <Text style={styles.commentsTitle}>Comments</Text>
-              <TouchableOpacity 
-                onPress={() => setShowComments(false)}
-                style={{ padding: 4 }}
-              >
+              <TouchableOpacity onPress={() => setShowComments(false)} style={{ padding: 4 }}>
                 <Ionicons name="close-circle" size={28} color="#333" />
               </TouchableOpacity>
             </View>
@@ -925,8 +898,12 @@ export default function MemoriesScreen() {
               ) : localReplies.length === 0 ? (
                 <View style={{ padding: 60, alignItems: 'center' }}>
                   <Ionicons name="chatbubble-outline" size={48} color="#CCC" />
-                  <Text style={{ marginTop: 12, fontSize: 16, color: '#666' }}>No comments yet</Text>
-                  <Text style={{ marginTop: 4, fontSize: 14, color: '#999' }}>Be the first to comment!</Text>
+                  <Text style={{ marginTop: 12, fontSize: 16, color: '#666' }}>
+                    No comments yet
+                  </Text>
+                  <Text style={{ marginTop: 4, fontSize: 14, color: '#999' }}>
+                    Be the first to comment!
+                  </Text>
                 </View>
               ) : (
                 localReplies.map((reply) => renderReply(reply))
@@ -947,30 +924,26 @@ export default function MemoriesScreen() {
             <View style={styles.commentInputContainer}>
               <TextInput
                 style={styles.commentInput}
-                placeholder={replyingTo ? "Write a reply..." : "Add a comment..."}
+                placeholder={replyingTo ? 'Write a reply...' : 'Add a comment...'}
                 value={comment}
                 onChangeText={setComment}
                 multiline
               />
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={handleComment}
                 disabled={!comment.trim()}
                 style={[
                   styles.sendButton,
-                  { backgroundColor: comment.trim() ? '#007AFF' : '#E5E5E5' }
+                  { backgroundColor: comment.trim() ? '#007AFF' : '#E5E5E5' },
                 ]}
               >
-                <Ionicons 
-                  name="send" 
-                  size={20} 
-                  color={comment.trim() ? "#FFF" : "#999"} 
-                />
+                <Ionicons name="send" size={20} color={comment.trim() ? '#FFF' : '#999'} />
               </TouchableOpacity>
             </View>
           </View>
         </KeyboardAvoidingView>
       )}
-      
+
       {showReportModal && memories[currentIndex] && (
         <ReportModal
           visible={showReportModal}

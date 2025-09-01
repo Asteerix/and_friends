@@ -3,15 +3,13 @@ import { View, Text, StyleSheet } from 'react-native';
 
 interface NotificationBadgeProps {
   count: number;
-};
+}
 export default function NotificationBadge({ count }: NotificationBadgeProps) {
   if (count === 0) return null;
 
   return (
     <View style={styles.badge}>
-      <Text style={styles.count}>
-        {count > 99 ? '99+' : count.toString()}
-      </Text>
+      <Text style={styles.count}>{count > 99 ? '99+' : count.toString()}</Text>
     </View>
   );
 }

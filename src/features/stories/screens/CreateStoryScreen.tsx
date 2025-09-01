@@ -21,11 +21,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-
+import { DraggableStoryFrame } from '../components';
 import { useStories } from '@/shared/providers/StoriesContext';
 import { useDirectUpload } from '@/shared/hooks/useDirectUpload';
 import CustomText from '@/shared/ui/CustomText';
-import { DraggableStoryFrame } from '../components';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -62,11 +61,11 @@ export default function CreateStoryScreen() {
       const cameraPermission = await Camera.requestCameraPermissionsAsync();
       const audioPermission = await Camera.requestMicrophonePermissionsAsync();
       const mediaLibraryPermission = await MediaLibrary.requestPermissionsAsync();
-      
+
       setHasPermission(
-        cameraPermission.status === 'granted' && 
-        audioPermission.status === 'granted' &&
-        mediaLibraryPermission.status === 'granted'
+        cameraPermission.status === 'granted' &&
+          audioPermission.status === 'granted' &&
+          mediaLibraryPermission.status === 'granted'
       );
     })();
   }, []);
@@ -85,57 +84,56 @@ export default function CreateStoryScreen() {
           console.error('[CreateStoryScreen] No photo URI returned');
           return;
         }
-        
+
         console.log('[CreateStoryScreen] Photo captured:', {
           uri: photo.uri.substring(0, 50) + '...',
           width: photo.width,
           height: photo.height,
         });
-        
-        
+
         // Sauvegarder l'image dans un répertoire temporaire pour s'assurer qu'elle est bien écrite
         const tempDir = `${FileSystem.documentDirectory}temp/`;
         await FileSystem.makeDirectoryAsync(tempDir, { intermediates: true }).catch(() => {});
-        
+
         const tempFileName = `temp_${Date.now()}.jpg`;
         const tempUri = `${tempDir}${tempFileName}`;
-        
+
         // Copier l'image capturée vers le répertoire temporaire
         await FileSystem.copyAsync({
           from: photo.uri,
-          to: tempUri
+          to: tempUri,
         });
-        
+
         console.log('[CreateStoryScreen] Image copied to temp:', tempUri);
-        
+
         // Vérifier que le fichier existe et n'est pas vide
         const fileInfo = await FileSystem.getInfoAsync(tempUri);
         console.log('[CreateStoryScreen] Temp file info:', fileInfo);
-        
+
         if (!fileInfo.exists || fileInfo.size === 0) {
-          console.error('[CreateStoryScreen] Temp file is empty or doesn\'t exist');
+          console.error("[CreateStoryScreen] Temp file is empty or doesn't exist");
           return;
         }
-        
+
         // Manipuler l'image depuis le fichier temporaire avec compression plus agressive
         const imageInfo = await ImageManipulator.manipulateAsync(
           tempUri,
           [{ resize: { width: 1080 } }], // Redimensionner à 1080px de large (format Instagram)
           { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG } // Compression plus forte
         );
-        
+
         console.log('[CreateStoryScreen] Image processed:', {
           uri: imageInfo.uri.substring(0, 50) + '...',
           width: imageInfo.width,
           height: imageInfo.height,
         });
-        
+
         // Vérifier que l'image est valide
         if (!imageInfo.uri || imageInfo.width === 0 || imageInfo.height === 0) {
           console.error('[CreateStoryScreen] Invalid image data');
           return;
         }
-        
+
         setSelectedMedia({
           uri: imageInfo.uri, // Use the processed image URI instead of the original
           type: 'image',
@@ -153,7 +151,7 @@ export default function CreateStoryScreen() {
     if (cameraRef.current && !isRecording) {
       try {
         setIsRecording(true);
-        
+
         // Start progress animation (max 15 seconds)
         Animated.timing(recordingProgress, {
           toValue: 1,
@@ -164,7 +162,7 @@ export default function CreateStoryScreen() {
         const video = await cameraRef.current.recordAsync({
           maxDuration: 15,
         });
-        
+
         if (video?.uri) {
           setSelectedMedia({
             uri: video.uri,
@@ -203,7 +201,7 @@ export default function CreateStoryScreen() {
     if (!result.canceled && result.assets[0]) {
       const asset = result.assets[0];
       const mediaType = asset.type === 'video' ? 'video' : 'image';
-      
+
       setSelectedMedia({
         uri: asset.uri,
         type: mediaType,
@@ -231,34 +229,29 @@ export default function CreateStoryScreen() {
       captionLength: caption.length,
       mediaUri: selectedMedia.uri.substring(0, 50) + '...',
     });
-    
+
     // Démarrer l'upload direct
     try {
       setIsProcessing(true);
-      
-      let uploadUri = selectedMedia.uri;
-      
+
+      const uploadUri = selectedMedia.uri;
+
       // For now, just upload the original image
       // TODO: Implement proper story composition with ImageManipulator
       console.log('[CreateStoryScreen] Using original image for upload');
-      
-      const { publicUrl } = await uploadFile(
-        uploadUri,
-        'stories',
-        undefined,
-        {
-          onProgress: (progress) => {
-            console.log(`[CreateStoryScreen] Upload progress: ${progress}%`);
-          },
-          onError: (error) => {
-            console.error('[CreateStoryScreen] Upload failed:', error);
-            setIsProcessing(false);
-          },
-        }
-      );
+
+      const { publicUrl } = await uploadFile(uploadUri, 'stories', undefined, {
+        onProgress: (progress) => {
+          console.log(`[CreateStoryScreen] Upload progress: ${progress}%`);
+        },
+        onError: (error) => {
+          console.error('[CreateStoryScreen] Upload failed:', error);
+          setIsProcessing(false);
+        },
+      });
 
       console.log('[CreateStoryScreen] Upload completed, creating story:', publicUrl);
-      
+
       // Créer la story avec l'URL publique
       const result = await createStory({
         media_url: publicUrl,
@@ -269,22 +262,19 @@ export default function CreateStoryScreen() {
 
       if (result?.error) {
         console.error('[CreateStoryScreen] Story creation failed:', result.error);
-        
+
         // Check if it's the story limit error
-        const errorMessage = result.error.code === 'STORY_LIMIT_REACHED' 
-          ? result.error.message 
-          : 'La story a été uploadée mais n\'a pas pu être créée. Veuillez réessayer.';
-        
-        Alert.alert(
-          'Erreur',
-          errorMessage,
-          [{ text: 'OK' }]
-        );
+        const errorMessage =
+          result.error.code === 'STORY_LIMIT_REACHED'
+            ? result.error.message
+            : "La story a été uploadée mais n'a pas pu être créée. Veuillez réessayer.";
+
+        Alert.alert('Erreur', errorMessage, [{ text: 'OK' }]);
         setIsProcessing(false);
       } else {
         console.log('[CreateStoryScreen] Story created successfully!');
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        
+
         // Nettoyer les fichiers temporaires
         try {
           const tempDir = `${FileSystem.documentDirectory}temp/`;
@@ -293,19 +283,16 @@ export default function CreateStoryScreen() {
         } catch (cleanupError) {
           console.error('[CreateStoryScreen] Error cleaning up temp files:', cleanupError);
         }
-        
+
         // Fermer l'écran après la création réussie
         router.back();
       }
-      
     } catch (error) {
       setIsProcessing(false);
       console.error('[CreateStoryScreen] Error creating upload task:', error);
-      Alert.alert(
-        'Erreur',
-        'Impossible de démarrer l\'upload. Veuillez réessayer.',
-        [{ text: 'OK' }]
-      );
+      Alert.alert('Erreur', "Impossible de démarrer l'upload. Veuillez réessayer.", [
+        { text: 'OK' },
+      ]);
     }
   };
 
@@ -348,11 +335,10 @@ export default function CreateStoryScreen() {
   }
 
   if (selectedMedia) {
-
     return (
       <View style={styles.container}>
         {/* Draggable Story Frame Component */}
-        <DraggableStoryFrame 
+        <DraggableStoryFrame
           uri={selectedMedia.uri}
           caption={caption}
           type={selectedMedia.type}
@@ -366,7 +352,7 @@ export default function CreateStoryScreen() {
         {!hideUIForCapture && (
           <SafeAreaView style={styles.headerSafeArea}>
             <View style={styles.header}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={() => {
                   setSelectedMedia(null);
                   setCaption('');
@@ -376,18 +362,15 @@ export default function CreateStoryScreen() {
               >
                 <Ionicons name="arrow-back" size={28} color="#FFF" />
               </TouchableOpacity>
-              
+
               <View style={styles.headerRight}>
                 {/* Add stickers button */}
                 <TouchableOpacity style={[styles.headerButton, { marginRight: 12 }]}>
                   <Ionicons name="happy-outline" size={24} color="#FFF" />
                 </TouchableOpacity>
-                
+
                 {/* Add text button */}
-                <TouchableOpacity 
-                  style={styles.headerButton}
-                  onPress={() => setShowCaption(true)}
-                >
+                <TouchableOpacity style={styles.headerButton} onPress={() => setShowCaption(true)}>
                   <Ionicons name="text-outline" size={24} color="#FFF" />
                 </TouchableOpacity>
               </View>
@@ -397,71 +380,76 @@ export default function CreateStoryScreen() {
 
         {/* Bottom Controls */}
         {!hideUIForCapture && (
-          <KeyboardAvoidingView 
+          <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={styles.bottomContainer}
           >
-          <View>
-            {showCaption ? (
-              <View style={styles.captionInputContainer}>
-                <TextInput
-                  style={styles.captionInput}
-                  placeholder="Write a caption..."
-                  placeholderTextColor="rgba(255,255,255,0.6)"
-                  value={caption}
-                  onChangeText={setCaption}
-                  multiline
-                  numberOfLines={3}
-                  maxLength={80}
-                  autoFocus
-                  textAlignVertical="center"
-                />
-                <TouchableOpacity 
-                  onPress={() => setShowCaption(false)}
-                  style={styles.captionDoneButton}
-                >
-                  <CustomText size="md" color="#FFF" weight="bold">
-                    Done
-                  </CustomText>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <View style={styles.bottomControls}>
-                <TouchableOpacity 
-                  onPress={() => setShowCaption(true)}
-                  style={styles.addCaptionButton}
-                >
-                  <Ionicons name="text" size={20} color="#FFF" />
-                  <CustomText size="sm" color="#FFF" style={{ marginLeft: 8 }}>
-                    Add caption
-                  </CustomText>
-                </TouchableOpacity>
-                
-                <TouchableOpacity 
-                  onPress={handlePost} 
-                  style={[styles.shareButton, isProcessing && styles.shareButtonDisabled]}
-                  disabled={isProcessing}
-                >
-                  {isProcessing ? (
-                    <>
-                      <ActivityIndicator size="small" color="#000" />
-                      <CustomText size="md" color="#000" weight="bold" style={{ marginLeft: 8 }}>
-                        Publication...
-                      </CustomText>
-                    </>
-                  ) : (
-                    <>
-                      <CustomText size="md" color="#000" weight="bold">
-                        Share to Story
-                      </CustomText>
-                      <Ionicons name="arrow-forward" size={20} color="#000" style={{ marginLeft: 8 }} />
-                    </>
-                  )}
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
-        </KeyboardAvoidingView>
+            <View>
+              {showCaption ? (
+                <View style={styles.captionInputContainer}>
+                  <TextInput
+                    style={styles.captionInput}
+                    placeholder="Write a caption..."
+                    placeholderTextColor="rgba(255,255,255,0.6)"
+                    value={caption}
+                    onChangeText={setCaption}
+                    multiline
+                    numberOfLines={3}
+                    maxLength={80}
+                    autoFocus
+                    textAlignVertical="center"
+                  />
+                  <TouchableOpacity
+                    onPress={() => setShowCaption(false)}
+                    style={styles.captionDoneButton}
+                  >
+                    <CustomText size="md" color="#FFF" weight="bold">
+                      Done
+                    </CustomText>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View style={styles.bottomControls}>
+                  <TouchableOpacity
+                    onPress={() => setShowCaption(true)}
+                    style={styles.addCaptionButton}
+                  >
+                    <Ionicons name="text" size={20} color="#FFF" />
+                    <CustomText size="sm" color="#FFF" style={{ marginLeft: 8 }}>
+                      Add caption
+                    </CustomText>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={handlePost}
+                    style={[styles.shareButton, isProcessing && styles.shareButtonDisabled]}
+                    disabled={isProcessing}
+                  >
+                    {isProcessing ? (
+                      <>
+                        <ActivityIndicator size="small" color="#000" />
+                        <CustomText size="md" color="#000" weight="bold" style={{ marginLeft: 8 }}>
+                          Publication...
+                        </CustomText>
+                      </>
+                    ) : (
+                      <>
+                        <CustomText size="md" color="#000" weight="bold">
+                          Share to Story
+                        </CustomText>
+                        <Ionicons
+                          name="arrow-forward"
+                          size={20}
+                          color="#000"
+                          style={{ marginLeft: 8 }}
+                        />
+                      </>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          </KeyboardAvoidingView>
         )}
 
         {isProcessing && (
@@ -479,19 +467,16 @@ export default function CreateStoryScreen() {
   return (
     <View style={styles.container}>
       <CameraView style={styles.camera} facing={type} ref={cameraRef} />
-      
+
       {/* Camera Overlays */}
-      <LinearGradient
-        colors={['rgba(0,0,0,0.4)', 'transparent']}
-        style={styles.topGradient}
-      />
-      
+      <LinearGradient colors={['rgba(0,0,0,0.4)', 'transparent']} style={styles.topGradient} />
+
       <SafeAreaView style={styles.cameraControls}>
         <View style={styles.cameraHeader}>
           <TouchableOpacity onPress={() => router.back()} style={styles.closeButton}>
             <Ionicons name="close" size={32} color="#FFF" />
           </TouchableOpacity>
-          
+
           <TouchableOpacity onPress={handleFlipCamera} style={styles.flipButton}>
             <Ionicons name="camera-reverse-outline" size={28} color="#FFF" />
           </TouchableOpacity>
@@ -508,9 +493,7 @@ export default function CreateStoryScreen() {
             onPressOut={handleStopRecording}
             delayLongPress={200}
           >
-            <Animated.View
-              style={[styles.captureButton, { transform: [{ scale: scaleAnim }] }]}
-            >
+            <Animated.View style={[styles.captureButton, { transform: [{ scale: scaleAnim }] }]}>
               {isRecording && (
                 <Animated.View
                   style={[
@@ -541,10 +524,7 @@ export default function CreateStoryScreen() {
         )}
       </SafeAreaView>
 
-      <LinearGradient
-        colors={['transparent', 'rgba(0,0,0,0.4)']}
-        style={styles.bottomGradient}
-      />
+      <LinearGradient colors={['transparent', 'rgba(0,0,0,0.4)']} style={styles.bottomGradient} />
     </View>
   );
 }

@@ -13,13 +13,10 @@ export const CachedImageExample: React.FC = () => {
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.title}>Cached Image Examples</Text>
-      
+
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Basic Usage</Text>
-        <CachedImage
-          uri="https://picsum.photos/200/200"
-          style={styles.image}
-        />
+        <CachedImage uri="https://picsum.photos/200/200" style={styles.image} />
       </View>
 
       <View style={styles.section}>
@@ -44,12 +41,7 @@ export const CachedImageExample: React.FC = () => {
         <Text style={styles.sectionTitle}>Grid Layout</Text>
         <View style={styles.grid}>
           {imageUrls.map((url, index) => (
-            <CachedImage
-              key={index}
-              uri={url}
-              style={styles.gridImage}
-              priority="high"
-            />
+            <CachedImage key={index} uri={url} style={styles.gridImage} priority="high" />
           ))}
         </View>
       </View>

@@ -15,7 +15,6 @@ import {
 } from 'react-native';
 import { create } from 'react-native-pixel-perfect';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
 import { supabase } from '@/shared/lib/supabase/client';
 import { getDeviceLanguage, t } from '@/shared/locales';
 import { useOnboardingStatus } from '@/hooks/useOnboardingStatus';
@@ -68,7 +67,6 @@ const DEFAULT_HOBBIES = [
   'Scuba Diving',
   'Gardening',
 ];
-
 
 // ---------------------------------------------------------------------------
 // Component
@@ -234,7 +232,6 @@ const HobbyPickerScreen: React.FC = React.memo(() => {
       navigateNext('loading');
     }
   };
-
 
   const isLoading = isSaving || isFetchingInitialData;
 

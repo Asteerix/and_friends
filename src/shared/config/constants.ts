@@ -1,21 +1,20 @@
-
 export const APP_CONFIG = {
   name: '& friends',
   version: '1.0.0',
   bundleId: 'com.andfriends.app',
-  
+
   // API Configuration
   api: {
     baseUrl: process.env.EXPO_PUBLIC_API_URL || '',
     timeout: 30000,
   },
-  
+
   // Supabase Configuration
   supabase: {
     url: process.env.EXPO_PUBLIC_SUPABASE_URL || '',
     anonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '',
   },
-  
+
   // Storage Buckets
   storage: {
     avatars: 'avatars',
@@ -24,7 +23,7 @@ export const APP_CONFIG = {
     stories: 'stories',
     messages: 'messages',
   },
-  
+
   // Event Configuration
   events: {
     maxTitleLength: 100,
@@ -40,7 +39,7 @@ export const APP_CONFIG = {
       { id: 'social', name: 'Social', icon: 'people', color: '#45B7D1' },
     ],
   },
-  
+
   // Story Configuration
   stories: {
     duration: 24, // hours
@@ -48,7 +47,7 @@ export const APP_CONFIG = {
     maxTextLength: 200,
     maxStickers: 10,
   },
-  
+
   // Chat Configuration
   chat: {
     maxMessageLength: 1000,
@@ -56,7 +55,7 @@ export const APP_CONFIG = {
     pollDuration: 24, // hours
     typingTimeout: 3000, // milliseconds
   },
-  
+
   // User Configuration
   user: {
     minAge: 13,
@@ -67,7 +66,7 @@ export const APP_CONFIG = {
     usernameMinLength: 3,
     usernameMaxLength: 20,
   },
-  
+
   // Map Configuration
   map: {
     defaultRegion: {
@@ -79,7 +78,7 @@ export const APP_CONFIG = {
     searchRadius: 50, // miles
     clusterRadius: 50, // pixels
   },
-  
+
   // Notification Configuration
   notifications: {
     reminderTime: 60, // minutes before event
@@ -90,7 +89,7 @@ export const APP_CONFIG = {
       social: 'social-updates',
     },
   },
-  
+
   // Theme Configuration
   theme: {
     colors: {
@@ -114,7 +113,7 @@ export const APP_CONFIG = {
       display: 'PlayfairDisplay-Bold',
     },
   },
-  
+
   // External Services
   services: {
     googlePlaces: {
@@ -127,7 +126,7 @@ export const APP_CONFIG = {
       dsn: process.env.EXPO_PUBLIC_SENTRY_DSN || '',
     },
   },
-  
+
   // App Store Configuration
   appStore: {
     ios: {
@@ -138,7 +137,7 @@ export const APP_CONFIG = {
       packageName: 'com.andfriends.app',
     },
   },
-  
+
   // Social Links
   social: {
     website: 'https://andfriends.app',
@@ -146,7 +145,7 @@ export const APP_CONFIG = {
     twitter: 'https://twitter.com/andfriendsapp',
     support: 'support@andfriends.app',
   },
-  
+
   // Legal
   legal: {
     termsUrl: 'https://andfriends.app/terms',

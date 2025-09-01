@@ -3,7 +3,6 @@ import { useRouter } from 'expo-router';
 import React, { useRef, useEffect } from 'react';
 import { View, Image, StyleSheet, TouchableOpacity, Text, Animated } from 'react-native';
 import * as Haptics from 'expo-haptics';
-
 import { useSession } from '@/shared/providers/SessionContext';
 
 type Props = {
@@ -17,12 +16,21 @@ type Props = {
   isViewed?: boolean;
 };
 
-export default function MemoryItem({ imageUri, avatarUri, type, username, userId, isOwn, hasActiveStory = true, isViewed = false }: Props) {
+export default function MemoryItem({
+  imageUri,
+  avatarUri,
+  type,
+  username,
+  userId,
+  isOwn,
+  hasActiveStory = true,
+  isViewed = false,
+}: Props) {
   const router = useRouter();
   const { session } = useSession();
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const borderAnim = useRef(new Animated.Value(0)).current;
-  
+
   useEffect(() => {
     if (hasActiveStory && !isViewed) {
       Animated.loop(
@@ -63,14 +71,14 @@ export default function MemoryItem({ imageUri, avatarUri, type, username, userId
       void router.push(`/screens/story-viewer?userId=${session.user.id}`);
     }
   };
-  
+
   const handlePressIn = () => {
     Animated.spring(scaleAnim, {
       toValue: 0.95,
       useNativeDriver: true,
     }).start();
   };
-  
+
   const handlePressOut = () => {
     Animated.spring(scaleAnim, {
       toValue: 1,
@@ -82,91 +90,77 @@ export default function MemoryItem({ imageUri, avatarUri, type, username, userId
 
   if (type === 'add') {
     return (
-      <TouchableOpacity 
-        onPress={handleAddStory} 
+      <TouchableOpacity
+        onPress={handleAddStory}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
-        activeOpacity={0.9} 
+        activeOpacity={0.9}
         style={styles.container}
       >
         <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-        <View 
-          style={[
-            styles.storyImageContainer,
-            hasActiveStory && styles.hasStoryContainer
-          ]}
-        >
-          {hasActiveStory && !isViewed && (
-            <View style={styles.activeStoryBorder} />
-          )}
-          <Image source={{ uri: imageUri }} style={styles.storyImage} />
-          <LinearGradient
-            colors={['transparent', 'rgba(0,0,0,0.7)']}
-            style={styles.gradient}
-          />
-          <View style={styles.addTextContainer}>
-            <Text style={styles.addMemoryText}>Add Memory</Text>
-          </View>
-          <View style={styles.addButtonContainer}>
-            <View style={styles.addCircle}>
-              <Text style={styles.plusSign}>+</Text>
+          <View style={[styles.storyImageContainer, hasActiveStory && styles.hasStoryContainer]}>
+            {hasActiveStory && !isViewed && <View style={styles.activeStoryBorder} />}
+            <Image source={{ uri: imageUri }} style={styles.storyImage} />
+            <LinearGradient colors={['transparent', 'rgba(0,0,0,0.7)']} style={styles.gradient} />
+            <View style={styles.addTextContainer}>
+              <Text style={styles.addMemoryText}>Add Memory</Text>
+            </View>
+            <View style={styles.addButtonContainer}>
+              <View style={styles.addCircle}>
+                <Text style={styles.plusSign}>+</Text>
+              </View>
             </View>
           </View>
-        </View>
         </Animated.View>
       </TouchableOpacity>
     );
   }
 
   return (
-    <TouchableOpacity 
-      style={styles.container} 
-      onPress={handleViewStory} 
+    <TouchableOpacity
+      style={styles.container}
+      onPress={handleViewStory}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
       activeOpacity={0.9}
     >
       <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-      <View 
-        style={[
-          styles.storyImageContainer,
-          !hasActiveStory && styles.noActiveStory,
-          isViewed && styles.viewedStory
-        ]}
-      >
-        {hasActiveStory && !isViewed && (
-          <Animated.View 
-            style={[
-              styles.activeStoryBorder,
-              {
-                opacity: borderAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0.7, 1],
-                }),
-              },
-            ]} 
-          />
-        )}
-        <Image 
-          source={{ uri: imageUri || avatarUri }} 
+        <View
           style={[
-            styles.storyImage,
-            (!hasActiveStory || isViewed) && styles.fadedImage
-          ]} 
-        />
-        <LinearGradient
-          colors={['transparent', 'rgba(0,0,0,0.7)']}
-          style={styles.gradient}
-        />
-        <View style={styles.usernameContainer}>
-          <Text style={styles.storyUsername} numberOfLines={1}>{username || '@user'}</Text>
-        </View>
-        {!hasActiveStory && (
-          <View style={styles.noStoryOverlay}>
-            <Text style={styles.noStoryText}>No active story</Text>
+            styles.storyImageContainer,
+            !hasActiveStory && styles.noActiveStory,
+            isViewed && styles.viewedStory,
+          ]}
+        >
+          {hasActiveStory && !isViewed && (
+            <Animated.View
+              style={[
+                styles.activeStoryBorder,
+                {
+                  opacity: borderAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.7, 1],
+                  }),
+                },
+              ]}
+            />
+          )}
+          <Image
+            source={{ uri: imageUri || avatarUri }}
+            style={[styles.storyImage, (!hasActiveStory || isViewed) && styles.fadedImage]}
+          />
+          <LinearGradient colors={['transparent', 'rgba(0,0,0,0.7)']} style={styles.gradient} />
+          <View style={styles.usernameContainer}>
+            <Text style={styles.storyUsername} numberOfLines={1}>
+              {username || '@user'}
+            </Text>
           </View>
-        )}
-      </View>
+          {!hasActiveStory && (
+            <View style={styles.noStoryOverlay}>
+              <Text style={styles.noStoryText}>No active story</Text>
+            </View>
+          )}
+        </View>
       </Animated.View>
     </TouchableOpacity>
   );

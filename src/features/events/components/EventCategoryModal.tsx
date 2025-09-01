@@ -22,23 +22,103 @@ interface EventCategoryModalProps {
 
 const EVENT_CATEGORIES = [
   // Primary categories from eventTemplates.ts
-  { id: 'nightlife', label: 'Nightlife & Clubs', icon: '🌃', description: 'Clubs, bars, DJ sets, late night events' },
-  { id: 'apartment', label: 'Apartment & Home', icon: '🏠', description: 'House parties, game nights, gatherings' },
-  { id: 'outdoor', label: 'Outdoor', icon: '🏕️', description: 'Beach, BBQ, camping, festivals, parks' },
-  { id: 'activities', label: 'Activities', icon: '🎯', description: 'Sports, games, bowling, mini golf' },
-  { id: 'cultural', label: 'Cultural', icon: '🎭', description: 'Art, music, theater, museums, concerts' },
-  { id: 'meetup', label: 'Meetups', icon: '🤝', description: 'Networking, book clubs, social groups' },
-  { id: 'casual', label: 'Casual', icon: '☕', description: 'Coffee, brunch, happy hour, shopping' },
-  { id: 'dining', label: 'Dining', icon: '🍽️', description: 'Dinner parties, wine tasting, cooking' },
-  { id: 'entertainment', label: 'Entertainment', icon: '🎬', description: 'Movies, comedy shows, theme parks' },
-  { id: 'party', label: 'Parties & Celebrations', icon: '🎉', description: 'Birthdays, surprises, showers' },
-  { id: 'wedding', label: 'Weddings', icon: '💒', description: 'Ceremonies, receptions, engagements' },
-  { id: 'seasonal', label: 'Seasonal', icon: '🎄', description: 'Holiday events, New Year, Halloween' },
-  { id: 'sports', label: 'Sports & Games', icon: '⚽', description: 'Watch parties, tournaments, matches' },
-  { id: 'corporate', label: 'Corporate', icon: '🏢', description: 'Conferences, team building, launches' },
-  { id: 'travel', label: 'Travel & Adventures', icon: '✈️', description: 'Trips, tours, weekend getaways' },
-  { id: 'wellness', label: 'Wellness & Health', icon: '🧘', description: 'Yoga, fitness, meditation, retreats' },
-  
+  {
+    id: 'nightlife',
+    label: 'Nightlife & Clubs',
+    icon: '🌃',
+    description: 'Clubs, bars, DJ sets, late night events',
+  },
+  {
+    id: 'apartment',
+    label: 'Apartment & Home',
+    icon: '🏠',
+    description: 'House parties, game nights, gatherings',
+  },
+  {
+    id: 'outdoor',
+    label: 'Outdoor',
+    icon: '🏕️',
+    description: 'Beach, BBQ, camping, festivals, parks',
+  },
+  {
+    id: 'activities',
+    label: 'Activities',
+    icon: '🎯',
+    description: 'Sports, games, bowling, mini golf',
+  },
+  {
+    id: 'cultural',
+    label: 'Cultural',
+    icon: '🎭',
+    description: 'Art, music, theater, museums, concerts',
+  },
+  {
+    id: 'meetup',
+    label: 'Meetups',
+    icon: '🤝',
+    description: 'Networking, book clubs, social groups',
+  },
+  {
+    id: 'casual',
+    label: 'Casual',
+    icon: '☕',
+    description: 'Coffee, brunch, happy hour, shopping',
+  },
+  {
+    id: 'dining',
+    label: 'Dining',
+    icon: '🍽️',
+    description: 'Dinner parties, wine tasting, cooking',
+  },
+  {
+    id: 'entertainment',
+    label: 'Entertainment',
+    icon: '🎬',
+    description: 'Movies, comedy shows, theme parks',
+  },
+  {
+    id: 'party',
+    label: 'Parties & Celebrations',
+    icon: '🎉',
+    description: 'Birthdays, surprises, showers',
+  },
+  {
+    id: 'wedding',
+    label: 'Weddings',
+    icon: '💒',
+    description: 'Ceremonies, receptions, engagements',
+  },
+  {
+    id: 'seasonal',
+    label: 'Seasonal',
+    icon: '🎄',
+    description: 'Holiday events, New Year, Halloween',
+  },
+  {
+    id: 'sports',
+    label: 'Sports & Games',
+    icon: '⚽',
+    description: 'Watch parties, tournaments, matches',
+  },
+  {
+    id: 'corporate',
+    label: 'Corporate',
+    icon: '🏢',
+    description: 'Conferences, team building, launches',
+  },
+  {
+    id: 'travel',
+    label: 'Travel & Adventures',
+    icon: '✈️',
+    description: 'Trips, tours, weekend getaways',
+  },
+  {
+    id: 'wellness',
+    label: 'Wellness & Health',
+    icon: '🧘',
+    description: 'Yoga, fitness, meditation, retreats',
+  },
+
   // Additional categories from HomeScreen
   { id: 'music', label: 'Music', icon: '🎵', description: 'Concerts, live bands, music festivals' },
   { id: 'arts', label: 'Arts', icon: '🎨', description: 'Art exhibitions, creative workshops' },
@@ -46,11 +126,11 @@ const EVENT_CATEGORIES = [
   { id: 'gaming', label: 'Gaming', icon: '🎮', description: 'Video games, esports, LAN parties' },
 ];
 
-export default function EventCategoryModal({ 
-  visible, 
-  onClose, 
-  onSave, 
-  initialCategory = '' 
+export default function EventCategoryModal({
+  visible,
+  onClose,
+  onSave,
+  initialCategory = '',
 }: EventCategoryModalProps) {
   const insets = useSafeAreaInsets();
   const [selectedCategory, setSelectedCategory] = useState(initialCategory);
@@ -118,20 +198,11 @@ export default function EventCategoryModal({
         <Pressable style={styles.backdrop} onPress={onClose} />
         <View style={[styles.modalContent, { paddingBottom: insets.bottom || 20 }]}>
           <View style={styles.handle} />
-          
-          <Animated.View 
-            style={[
-              styles.header,
-              { transform: [{ translateX: shakeAnimation }] }
-            ]}
-          >
+
+          <Animated.View style={[styles.header, { transform: [{ translateX: shakeAnimation }] }]}>
             <Text style={styles.title}>Event Category</Text>
-            <Text style={styles.subtitle}>
-              Choose the category that best describes your event
-            </Text>
-            {!selectedCategory && (
-              <Text style={styles.requiredText}>* Required field</Text>
-            )}
+            <Text style={styles.subtitle}>Choose the category that best describes your event</Text>
+            {!selectedCategory && <Text style={styles.requiredText}>* Required field</Text>}
           </Animated.View>
 
           <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
@@ -141,21 +212,21 @@ export default function EventCategoryModal({
                   key={category.id}
                   style={[
                     styles.categoryCard,
-                    selectedCategory === category.id && styles.categoryCardActive
+                    selectedCategory === category.id && styles.categoryCardActive,
                   ]}
                   onPress={() => handleSelectCategory(category.id)}
                 >
                   <Text style={styles.categoryIcon}>{category.icon}</Text>
                   <View style={styles.categoryTextContainer}>
-                    <Text style={[
-                      styles.categoryLabel,
-                      selectedCategory === category.id && styles.categoryLabelActive
-                    ]}>
+                    <Text
+                      style={[
+                        styles.categoryLabel,
+                        selectedCategory === category.id && styles.categoryLabelActive,
+                      ]}
+                    >
                       {category.label}
                     </Text>
-                    <Text style={styles.categoryDescription}>
-                      {category.description}
-                    </Text>
+                    <Text style={styles.categoryDescription}>{category.description}</Text>
                   </View>
                   {selectedCategory === category.id && (
                     <Ionicons name="checkmark-circle" size={24} color="#007AFF" />
@@ -169,11 +240,13 @@ export default function EventCategoryModal({
             <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
               <Text style={styles.cancelButtonText}>Cancel</Text>
             </TouchableOpacity>
-            <TouchableOpacity 
-              style={[styles.saveButton, !selectedCategory && styles.saveButtonDisabled]} 
+            <TouchableOpacity
+              style={[styles.saveButton, !selectedCategory && styles.saveButtonDisabled]}
               onPress={handleSave}
             >
-              <Text style={[styles.saveButtonText, !selectedCategory && styles.saveButtonTextDisabled]}>
+              <Text
+                style={[styles.saveButtonText, !selectedCategory && styles.saveButtonTextDisabled]}
+              >
                 {selectedCategory ? 'Save' : 'Select a category'}
               </Text>
             </TouchableOpacity>

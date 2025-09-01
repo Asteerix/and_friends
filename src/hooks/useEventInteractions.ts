@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-
 import { useRealtimeSubscription } from '../shared/hooks/useRealtimeSubscription';
 import { supabase } from '../shared/lib/supabase/client';
 import { useSession } from '../shared/providers/SessionContext';
@@ -240,23 +239,19 @@ export function useEventInteractions(eventId: string) {
   const addComment = async (content: string, parentId?: string) => {
     if (!session?.user) return;
 
-    try {
-      const { data, error: insertError } = await supabase
-        .from('event_comments')
-        .insert({
-          event_id: eventId,
-          user_id: session.user.id,
-          content,
-          parent_id: parentId,
-        })
-        .select()
-        .single();
+    const { data, error: insertError } = await supabase
+      .from('event_comments')
+      .insert({
+        event_id: eventId,
+        user_id: session.user.id,
+        content,
+        parent_id: parentId,
+      })
+      .select()
+      .single();
 
-      if (insertError) throw insertError;
-      return data;
-    } catch (err) {
-      throw err;
-    }
+    if (insertError) throw insertError;
+    return data;
   };
 
   const editComment = async (commentId: string, content: string) => {

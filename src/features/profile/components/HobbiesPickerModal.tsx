@@ -80,14 +80,14 @@ export default function HobbiesPickerModal({
     if (visible) {
       setSelectedHobbies(currentHobbies);
       // Extract custom hobbies from current selection
-      const custom = currentHobbies.filter(h => !DEFAULT_HOBBIES.includes(h));
+      const custom = currentHobbies.filter((h) => !DEFAULT_HOBBIES.includes(h));
       setCustomHobbies(custom);
     }
   }, [visible, currentHobbies]);
 
   const toggleHobby = (hobby: string) => {
     if (selectedHobbies.includes(hobby)) {
-      setSelectedHobbies(selectedHobbies.filter(h => h !== hobby));
+      setSelectedHobbies(selectedHobbies.filter((h) => h !== hobby));
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     } else if (selectedHobbies.length < maxHobbies) {
       setSelectedHobbies([...selectedHobbies, hobby]);
@@ -98,17 +98,17 @@ export default function HobbiesPickerModal({
   const addCustomHobby = () => {
     const trimmed = customHobby.trim();
     if (!trimmed) return;
-    
+
     if (selectedHobbies.length >= maxHobbies) {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       return;
     }
-    
+
     if (selectedHobbies.includes(trimmed)) {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       return;
     }
-    
+
     setSelectedHobbies([...selectedHobbies, trimmed]);
     if (!DEFAULT_HOBBIES.includes(trimmed) && !customHobbies.includes(trimmed)) {
       setCustomHobbies([...customHobbies, trimmed]);
@@ -148,7 +148,7 @@ export default function HobbiesPickerModal({
           keyboardVerticalOffset={0}
         >
           <View style={styles.handle} />
-          
+
           <View style={styles.header}>
             <Text style={styles.title}>Talk to Me About</Text>
             <Text style={styles.subtitle}>
@@ -165,7 +165,7 @@ export default function HobbiesPickerModal({
               {allHobbies.map((hobby) => {
                 const isSelected = selectedHobbies.includes(hobby);
                 const isDisabled = !isSelected && selectedHobbies.length >= maxHobbies;
-                
+
                 return (
                   <Pressable
                     key={hobby}
@@ -189,7 +189,7 @@ export default function HobbiesPickerModal({
                   </Pressable>
                 );
               })}
-              
+
               {selectedHobbies.length < maxHobbies && (
                 <Pressable
                   style={[styles.hobbyChip, styles.addChip]}
@@ -225,7 +225,7 @@ export default function HobbiesPickerModal({
                   <Pressable
                     style={[
                       styles.customAddButton,
-                      !customHobby.trim() && styles.customAddButtonDisabled
+                      !customHobby.trim() && styles.customAddButtonDisabled,
                     ]}
                     onPress={addCustomHobby}
                     disabled={!customHobby.trim()}

@@ -3,9 +3,9 @@
 
 import { useState, useEffect } from 'react';
 import type { PostgrestError } from '@supabase/supabase-js';
+import type { UserProfile } from './useProfile';
 import { supabase } from '@/shared/lib/supabase/client';
 import { useSession } from '@/shared/providers/SessionContext';
-import type { UserProfile } from './useProfile';
 
 // This provides a fallback implementation when ProfileProvider is not available
 export function useProfileCompat() {
@@ -69,15 +69,12 @@ export function useProfileCompat() {
 
   const updateProfile = async (updates: Partial<UserProfile>) => {
     // Minimal implementation for compatibility
-    const { error } = await supabase
-      .from('profiles')
-      .update(updates)
-      .eq('id', session?.user?.id);
-    
+    const { error } = await supabase.from('profiles').update(updates).eq('id', session?.user?.id);
+
     if (!error) {
       await fetchProfile();
     }
-    
+
     return { data: profile, error };
   };
 
@@ -93,8 +90,52 @@ export function useProfileCompat() {
     error,
     fetchProfile,
     updateProfile,
-    uploadAvatar: async () => ({ data: null, error: { message: 'Not implemented' } }),
-    uploadCover: async () => ({ data: null, error: { message: 'Not implemented' } }),
+    uploadAvatar: async (file: File | Blob, userId: string) => {
+      try {
+        const fileExt = file instanceof File ? file.name.split('.').pop() : 'jpg';
+        const fileName = `${userId}/avatar.${fileExt}`;
+
+        const { data, error } = await supabase.storage
+          .from('avatars')
+          .upload(fileName, file, { upsert: true });
+
+        if (error) return { data: null, error };
+
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from('avatars').getPublicUrl(fileName);
+
+        // Update profile with new avatar URL
+        await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', userId);
+
+        return { data: { publicUrl }, error: null };
+      } catch (error: any) {
+        return { data: null, error: { message: error.message } };
+      }
+    },
+    uploadCover: async (file: File | Blob, userId: string) => {
+      try {
+        const fileExt = file instanceof File ? file.name.split('.').pop() : 'jpg';
+        const fileName = `${userId}/cover.${fileExt}`;
+
+        const { data, error } = await supabase.storage
+          .from('covers')
+          .upload(fileName, file, { upsert: true });
+
+        if (error) return { data: null, error };
+
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from('covers').getPublicUrl(fileName);
+
+        // Update profile with new cover URL
+        await supabase.from('profiles').update({ cover_url: publicUrl }).eq('id', userId);
+
+        return { data: { publicUrl }, error: null };
+      } catch (error: any) {
+        return { data: null, error: { message: error.message } };
+      }
+    },
     getProfileStats: async () => null,
   };
 }

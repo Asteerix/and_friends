@@ -20,7 +20,7 @@ interface EventStore {
   claimItem: (eventId: string, itemLabel: string, user: string) => void;
   guests: Record<string, Guest[]>;
   setGuests: (eventId: string, guests: Guest[]) => void;
-};
+}
 export const useEventStore = create<EventStore>((set) => ({
   rsvp: {},
   setRSVP: (eventId, status) =>

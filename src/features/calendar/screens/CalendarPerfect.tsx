@@ -15,9 +15,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import UnderlineDecoration from '@/features/home/components/UnderlineDecoration.svg';
 import { create } from 'react-native-pixel-perfect';
-
+import UnderlineDecoration from '@/features/home/components/UnderlineDecoration.svg';
 import { useEventsAdvanced } from '@/hooks/useEventsAdvanced';
 import { useSession } from '@/shared/providers/SessionContext';
 import { supabase } from '@/shared/lib/supabase/client';
@@ -81,7 +80,7 @@ export default function CalendarPerfect() {
 
   const [activeTab, setActiveTab] = useState<'today' | 'calendar'>('today');
   const [searchQuery, setSearchQuery] = useState('');
-  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
+  const [, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [backgroundImage, setBackgroundImage] = useState(getTimeBasedBackground());
@@ -145,12 +144,13 @@ export default function CalendarPerfect() {
         return;
       }
 
-      const eventIds = participations.map(p => p.event_id);
+      const eventIds = participations.map((p) => p.event_id);
 
       // Then fetch all events with those IDs
       const { data: events, error: eventsError } = await supabase
         .from('events')
-        .select(`
+        .select(
+          `
           id,
           title,
           date,
@@ -164,7 +164,8 @@ export default function CalendarPerfect() {
           event_category,
           category,
           extra_data
-        `)
+        `
+        )
         .in('id', eventIds);
 
       if (eventsError) {
@@ -184,13 +185,15 @@ export default function CalendarPerfect() {
           // Get participant avatars
           const { data: participants } = await supabase
             .from('event_participants')
-            .select(`
+            .select(
+              `
               profiles:user_id (
                 id,
                 avatar_url,
                 full_name
               )
-            `)
+            `
+            )
             .eq('event_id', event.id)
             .limit(4);
 
@@ -207,11 +210,14 @@ export default function CalendarPerfect() {
             event_category: event.event_category || event.category,
             category: event.category,
             extra_data: event.extra_data,
-            participants: participants?.map((p: any) => ({
-              id: p.profiles?.id,
-              avatar_url: p.profiles?.avatar_url,
-              name: p.profiles?.full_name,
-            })).filter(p => p.id) || [],
+            participants:
+              participants
+                ?.map((p: any) => ({
+                  id: p.profiles?.id,
+                  avatar_url: p.profiles?.avatar_url,
+                  name: p.profiles?.full_name,
+                }))
+                .filter((p) => p.id) || [],
             participants_count: count || 0,
           };
         })
@@ -544,10 +550,10 @@ export default function CalendarPerfect() {
             {/* Selected Date Events */}
             <View style={styles.eventsSection}>
               <Text style={styles.sectionTitle}>
-                {selectedDate.toLocaleDateString('en-US', { 
-                  weekday: 'long', 
-                  month: 'long', 
-                  day: 'numeric' 
+                {selectedDate.toLocaleDateString('en-US', {
+                  weekday: 'long',
+                  month: 'long',
+                  day: 'numeric',
                 })}
               </Text>
               <View style={styles.sectionUnderline} />

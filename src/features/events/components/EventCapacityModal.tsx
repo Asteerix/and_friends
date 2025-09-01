@@ -16,12 +16,12 @@ import * as Haptics from 'expo-haptics';
 interface EventCapacityModalProps {
   visible: boolean;
   onClose: () => void;
-  onSave: (capacity: { 
+  onSave: (capacity: {
     maxAttendees?: number;
     waitlistEnabled?: boolean;
     autoApprove?: boolean;
   }) => void;
-  initialCapacity?: { 
+  initialCapacity?: {
     maxAttendees?: number;
     waitlistEnabled?: boolean;
     autoApprove?: boolean;
@@ -37,18 +37,12 @@ export default function EventCapacityModal({
   initialCapacity,
 }: EventCapacityModalProps) {
   const insets = useSafeAreaInsets();
-  const [maxAttendees, setMaxAttendees] = useState(
-    initialCapacity?.maxAttendees?.toString() || ''
-  );
+  const [maxAttendees, setMaxAttendees] = useState(initialCapacity?.maxAttendees?.toString() || '');
   const [hasLimit, setHasLimit] = useState(
     initialCapacity?.maxAttendees !== undefined && initialCapacity?.maxAttendees !== null
   );
-  const [waitlistEnabled, setWaitlistEnabled] = useState(
-    initialCapacity?.waitlistEnabled || false
-  );
-  const [autoApprove, setAutoApprove] = useState(
-    initialCapacity?.autoApprove ?? true
-  );
+  const [waitlistEnabled, setWaitlistEnabled] = useState(initialCapacity?.waitlistEnabled || false);
+  const [autoApprove, setAutoApprove] = useState(initialCapacity?.autoApprove ?? true);
 
   const handlePresetSelect = (capacity: number) => {
     setMaxAttendees(capacity.toString());
@@ -58,7 +52,8 @@ export default function EventCapacityModal({
 
   const handleSave = () => {
     const capacity = {
-      maxAttendees: hasLimit && maxAttendees ? parseInt(maxAttendees) : (hasLimit === false ? 0 : undefined),
+      maxAttendees:
+        hasLimit && maxAttendees ? parseInt(maxAttendees) : hasLimit === false ? 0 : undefined,
       waitlistEnabled: hasLimit ? waitlistEnabled : false,
       autoApprove,
     };
@@ -88,12 +83,10 @@ export default function EventCapacityModal({
         <Pressable style={styles.backdrop} onPress={onClose} />
         <View style={[styles.modalContent, { paddingBottom: insets.bottom || 20 }]}>
           <View style={styles.handle} />
-          
+
           <View style={styles.header}>
             <Text style={styles.title}>Event Capacity</Text>
-            <Text style={styles.subtitle}>
-              Set guest limits and approval settings
-            </Text>
+            <Text style={styles.subtitle}>Set guest limits and approval settings</Text>
           </View>
 
           <ScrollView showsVerticalScrollIndicator={false}>
@@ -147,10 +140,13 @@ export default function EventCapacityModal({
                           ]}
                           onPress={() => handlePresetSelect(capacity)}
                         >
-                          <Text style={[
-                            styles.presetButtonText,
-                            maxAttendees === capacity.toString() && styles.presetButtonTextSelected,
-                          ]}>
+                          <Text
+                            style={[
+                              styles.presetButtonText,
+                              maxAttendees === capacity.toString() &&
+                                styles.presetButtonTextSelected,
+                            ]}
+                          >
                             {capacity}
                           </Text>
                         </Pressable>
@@ -184,7 +180,7 @@ export default function EventCapacityModal({
 
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Approval Settings</Text>
-              
+
               <View style={styles.optionRow}>
                 <View style={styles.optionLeft}>
                   <Ionicons name="checkmark-circle-outline" size={20} color="#666" />
@@ -231,9 +227,7 @@ export default function EventCapacityModal({
                 )}
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>Approval:</Text>
-                  <Text style={styles.summaryValue}>
-                    {autoApprove ? 'Automatic' : 'Manual'}
-                  </Text>
+                  <Text style={styles.summaryValue}>{autoApprove ? 'Automatic' : 'Manual'}</Text>
                 </View>
               </View>
             )}

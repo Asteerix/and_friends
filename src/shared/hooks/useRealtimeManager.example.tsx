@@ -9,50 +9,46 @@ export function MessagesWithRealtime({ chatId }: { chatId: string }) {
   const [messages, setMessages] = useState<any[]>([]);
 
   const { isConnected, subscribe } = useRealtimeManager();
-  
+
   useEffect(() => {
     const cleanup = subscribe(`messages:${chatId}`, {
       table: 'messages',
       filter: `chat_id=eq.${chatId}`,
-      
+
       onInsert: (payload: any) => {
         console.log('New message:', payload.new);
-        setMessages(prev => [...prev, payload.new]);
+        setMessages((prev) => [...prev, payload.new]);
       },
-      
+
       onUpdate: (payload) => {
-        setMessages(prev => 
-          prev.map(msg => msg.id === payload.new.id ? payload.new : msg)
-        );
+        setMessages((prev) => prev.map((msg) => (msg.id === payload.new.id ? payload.new : msg)));
       },
-      
+
       onDelete: (payload) => {
-        setMessages(prev => prev.filter(msg => msg.id !== (payload.old as any).id));
+        setMessages((prev) => prev.filter((msg) => msg.id !== (payload.old as any).id));
       },
     });
-    
+
     return cleanup;
   }, [chatId, subscribe]);
 
   return (
     <View>
       <View style={{ padding: 10, backgroundColor: isConnected ? 'green' : 'red' }}>
-        <Text style={{ color: 'white' }}>
-          {isConnected ? 'Connected' : 'Disconnected'}
-        </Text>
+        <Text style={{ color: 'white' }}>{isConnected ? 'Connected' : 'Disconnected'}</Text>
         {/* Status */}
       </View>
-      
+
       <FlatList
         data={messages}
-        keyExtractor={item => item.id}
+        keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <View style={{ padding: 10 }}>
             <Text>{item.content}</Text>
           </View>
         )}
       />
-      
+
       {/* Connection controls */}
     </View>
   );
@@ -68,8 +64,8 @@ export function DashboardWithMultipleRealtime() {
   // const [messages, setMessages] = useState<any[]>([]);
 
   // Example usage with multiple subscriptions - implement useMultipleSubscriptions if needed
-  const connectionStates = {} as any; 
-  
+  const connectionStates = {} as any;
+
   // Commented out example usage:
   // const connectionStates = useMultipleSubscriptions([
   //   {
@@ -108,7 +104,7 @@ export function DashboardWithMultipleRealtime() {
           </Text>
         ))}
       </View>
-      
+
       {/* Reste du dashboard */}
     </View>
   );
@@ -121,63 +117,66 @@ export function useOptimizedMessages(chatId: string) {
   const [messages, setMessages] = useState<any[]>([]);
   const [typing, setTyping] = useState<string[]>([]);
 
+  // Define callbacks at component level to comply with rules of hooks
+  const onInsertMessage = useCallback((payload: any) => {
+    setMessages((prev) => {
+      // Éviter les doublons
+      if (prev.some((m) => m.id === payload.new.id)) {
+        return prev;
+      }
+      return [...prev, payload.new];
+    });
+  }, []);
+
+  const onUpdateMessage = useCallback((payload: any) => {
+    setMessages((prev) => prev.map((msg) => (msg.id === payload.new.id ? payload.new : msg)));
+  }, []);
+
+  const onDeleteMessage = useCallback((payload: any) => {
+    setMessages((prev) => prev.filter((msg) => msg.id !== payload.old.id));
+  }, []);
+
+  const onChangeTyping = useCallback((payload: any) => {
+    if (payload.eventType === 'INSERT') {
+      setTyping((prev) => [...prev, payload.new.user_id]);
+    } else if (payload.eventType === 'DELETE') {
+      setTyping((prev) => prev.filter((id) => id !== payload.old.user_id));
+    }
+  }, []);
+
   // Messages realtime
   const messagesRealtime = useRealtimeManager() as any;
-  
+
   useEffect(() => {
     const cleanup = messagesRealtime.subscribe(`chat-messages:${chatId}`, {
-    table: 'messages',
-    filter: `chat_id=eq.${chatId}`,
-    
-    onInsert: useCallback((payload: any) => {
-      setMessages(prev => {
-        // Éviter les doublons
-        if (prev.some(m => m.id === payload.new.id)) {
-          return prev;
-        }
-        return [...prev, payload.new];
-      });
-    }, []),
-    
-    onUpdate: useCallback((payload: any) => {
-      setMessages(prev => 
-        prev.map(msg => msg.id === payload.new.id ? payload.new : msg)
-      );
-    }, []),
-    
-    onDelete: useCallback((payload: any) => {
-      setMessages(prev => prev.filter(msg => msg.id !== payload.old.id));
-    }, []),
+      table: 'messages',
+      filter: `chat_id=eq.${chatId}`,
+      onInsert: onInsertMessage,
+      onUpdate: onUpdateMessage,
+      onDelete: onDeleteMessage,
     });
-    
+
     return cleanup;
-  }, [chatId, messagesRealtime]);
+  }, [chatId, messagesRealtime, onInsertMessage, onUpdateMessage, onDeleteMessage]);
 
   // Typing indicators realtime
   const typingRealtime = useRealtimeManager() as any;
-  
+
   useEffect(() => {
     const cleanup = typingRealtime.subscribe(`chat-typing:${chatId}`, {
-    table: 'typing_indicators',
-    filter: `chat_id=eq.${chatId}`,
-    
-    onChange: useCallback((payload: any) => {
-      if (payload.eventType === 'INSERT') {
-        setTyping(prev => [...prev, payload.new.user_id]);
-      } else if (payload.eventType === 'DELETE') {
-        setTyping(prev => prev.filter(id => id !== payload.old.user_id));
-      }
-    }, []),
+      table: 'typing_indicators',
+      filter: `chat_id=eq.${chatId}`,
+      onChange: onChangeTyping,
     });
-    
+
     return cleanup;
-  }, [chatId, typingRealtime]);
+  }, [chatId, typingRealtime, onChangeTyping]);
 
   // Nettoyer les vieux messages (pagination)
   useEffect(() => {
     const MAX_MESSAGES = 100;
     if (messages.length > MAX_MESSAGES) {
-      setMessages(prev => prev.slice(-MAX_MESSAGES));
+      setMessages((prev) => prev.slice(-MAX_MESSAGES));
     }
   }, [messages.length]);
 
@@ -208,8 +207,8 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // const monitorConnection = useCallback((_channel: string, isConnected: boolean) => {
   //   setGlobalStats(prev => ({
   //     ...prev,
-  //     activeConnections: isConnected 
-  //       ? prev.activeConnections + 1 
+  //     activeConnections: isConnected
+  //       ? prev.activeConnections + 1
   //       : Math.max(0, prev.activeConnections - 1),
   //   }));
   // }, []);
@@ -221,9 +220,7 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   return (
     // <RealtimeContext.Provider value={contextValue}>
-    <View>
-      {children}
-    </View>
+    <View>{children}</View>
     // </RealtimeContext.Provider>
   );
 };

@@ -2,8 +2,8 @@ import React from 'react';
 import { View, StyleSheet, TouchableOpacity, Modal } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
-import CustomText from '@/shared/ui/CustomText';
 import * as Haptics from 'expo-haptics';
+import CustomText from '@/shared/ui/CustomText';
 
 interface StoryErrorProps {
   isVisible: boolean;
@@ -39,32 +39,26 @@ export const StoryError: React.FC<StoryErrorProps> = ({
           <View style={styles.iconContainer}>
             <Ionicons name="alert-circle" size={48} color="#FF4081" />
           </View>
-          
+
           <CustomText size="xl" weight="bold" style={styles.title}>
             {title}
           </CustomText>
-          
+
           <CustomText size="md" color="#666" style={styles.message}>
             {message}
           </CustomText>
-          
+
           <View style={styles.buttons}>
             {onRetry && (
-              <TouchableOpacity 
-                style={[styles.button, styles.retryButton]} 
-                onPress={handleRetry}
-              >
+              <TouchableOpacity style={[styles.button, styles.retryButton]} onPress={handleRetry}>
                 <Ionicons name="refresh" size={20} color="#FFF" />
                 <CustomText size="md" color="#FFF" weight="bold" style={styles.buttonText}>
                   Réessayer
                 </CustomText>
               </TouchableOpacity>
             )}
-            
-            <TouchableOpacity 
-              style={[styles.button, styles.dismissButton]} 
-              onPress={handleDismiss}
-            >
+
+            <TouchableOpacity style={[styles.button, styles.dismissButton]} onPress={handleDismiss}>
               <CustomText size="md" color="#666" weight="bold">
                 {onRetry ? 'Annuler' : 'OK'}
               </CustomText>

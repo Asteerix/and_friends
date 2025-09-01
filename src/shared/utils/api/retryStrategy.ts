@@ -1,5 +1,5 @@
-import { NetworkRetry } from '../networkRetry';
 import { Alert } from 'react-native';
+import { NetworkRetry } from '../networkRetry';
 
 interface ResilientFetchOptions {
   maxRetries?: number;
@@ -29,7 +29,7 @@ export async function resilientFetch<T>(
     showAlert = true,
     alertTitle = 'Erreur de connexion',
     alertMessage = 'Vérifiez votre connexion internet et réessayez.',
-    onRetry
+    onRetry,
   } = options;
 
   try {
@@ -39,23 +39,20 @@ export async function resilientFetch<T>(
       maxDelay,
       backoffFactor,
       timeout,
-      onRetry
+      onRetry,
     });
 
     return result;
   } catch (error: any) {
     // Si on doit afficher une alerte
     if (showAlert) {
-      const isNetworkError = error.message?.includes('Network') || 
-                           error.message?.includes('fetch') ||
-                           error.message?.includes('timeout');
+      const isNetworkError =
+        error.message?.includes('Network') ||
+        error.message?.includes('fetch') ||
+        error.message?.includes('timeout');
 
       if (isNetworkError) {
-        Alert.alert(
-          alertTitle,
-          alertMessage,
-          [{ text: 'OK' }]
-        );
+        Alert.alert(alertTitle, alertMessage, [{ text: 'OK' }]);
       }
     }
 

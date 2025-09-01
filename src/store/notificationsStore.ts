@@ -7,7 +7,7 @@ interface NotificationsState {
   unread: unknown[];
   markAllRead: () => void;
   markRead: (id: string) => void;
-};
+}
 export const useNotificationsStore = create<NotificationsState>((set) => ({
   notifications: [],
   unread: [],

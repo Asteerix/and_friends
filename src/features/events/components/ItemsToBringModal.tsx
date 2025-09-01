@@ -12,8 +12,8 @@ import {
   Switch,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import BottomModal from './BottomModal';
 import { v4 as uuidv4 } from 'uuid';
+import BottomModal from './BottomModal';
 
 type ItemType = 'required' | 'suggested' | 'open';
 
@@ -46,20 +46,20 @@ const ITEM_TYPE_CONFIG = {
     label: 'Required',
     color: '#FF3B30',
     icon: 'alert-circle',
-    description: 'Guests must bring this'
+    description: 'Guests must bring this',
   },
   suggested: {
     label: 'Suggested',
     color: '#FF9500',
     icon: 'bulb-outline',
-    description: 'Nice to have'
+    description: 'Nice to have',
   },
   open: {
     label: 'Open',
     color: '#34C759',
     icon: 'add-circle-outline',
-    description: 'Guest can choose'
-  }
+    description: 'Guest can choose',
+  },
 };
 
 const QUICK_ADD_SUGGESTIONS = [
@@ -70,17 +70,17 @@ const QUICK_ADD_SUGGESTIONS = [
   { label: '🍕 Pizza', description: 'Pizza', category: 'food' },
   { label: '🧊 Ice', description: 'Ice bags', category: 'food' },
   { label: '🍷 Wine', description: 'Wine', category: 'food' },
-  
+
   // Essential Supplies
   { label: '🥤 Cups', description: 'Plastic cups', category: 'supplies' },
   { label: '🍽️ Plates', description: 'Paper plates', category: 'supplies' },
   { label: '🧻 Napkins', description: 'Napkins', category: 'supplies' },
   { label: '🗑️ Trash bags', description: 'Garbage bags', category: 'supplies' },
-  
+
   // Popular Entertainment
   { label: '🔊 Speakers', description: 'Bluetooth speaker', category: 'entertainment' },
   { label: '🎵 Playlist', description: 'Music playlist', category: 'entertainment' },
-  
+
   // Common Items
   { label: '🧊 Cooler', description: 'Cooler box', category: 'supplies' },
   { label: '🎂 Cake', description: 'Birthday cake', category: 'food' },
@@ -88,32 +88,32 @@ const QUICK_ADD_SUGGESTIONS = [
   { label: '🍴 Utensils', description: 'Forks & knives', category: 'supplies' },
   { label: '🪑 Chairs', description: 'Folding chairs', category: 'outdoor' },
   { label: '🎮 Games', description: 'Board games', category: 'entertainment' },
-  
+
   // BBQ Specific
   { label: '🍔 Burgers', description: 'Burgers & buns', category: 'food' },
   { label: '🌭 Hot dogs', description: 'Hot dogs', category: 'food' },
   { label: '🔥 Charcoal', description: 'BBQ charcoal', category: 'outdoor' },
   { label: '🥩 Meat', description: 'BBQ meat', category: 'outdoor' },
-  
-  // Outdoor Essentials  
+
+  // Outdoor Essentials
   { label: '🧴 Sunscreen', description: 'Sunscreen', category: 'outdoor' },
   { label: '🦟 Bug spray', description: 'Insect repellent', category: 'outdoor' },
-  
+
   // Party Decorations
   { label: '🎈 Balloons', description: 'Decorations', category: 'supplies' },
   { label: '🕯️ Candles', description: 'Birthday candles', category: 'supplies' },
-  
+
   // Sports & Activities
   { label: '🏐 Volleyball', description: 'Volleyball', category: 'entertainment' },
   { label: '⚽ Soccer ball', description: 'Soccer ball', category: 'entertainment' },
   { label: '🃏 Cards', description: 'Playing cards', category: 'entertainment' },
-  
+
   // Practical Items
   { label: '🩹 First aid', description: 'First aid kit', category: 'safety' },
   { label: '🔌 Extension', description: 'Extension cords', category: 'safety' },
   { label: '🧹 Cleaning', description: 'Cleaning supplies', category: 'safety' },
   { label: '🧻 Toilet paper', description: 'Extra TP', category: 'safety' },
-  
+
   // Less Common
   { label: '📸 Camera', description: 'Camera/Polaroid', category: 'entertainment' },
   { label: '🥖 Bread', description: 'Bread', category: 'food' },
@@ -122,7 +122,7 @@ const QUICK_ADD_SUGGESTIONS = [
   { label: '🛏️ Blankets', description: 'Blankets', category: 'safety' },
   { label: '⛱️ Umbrella', description: 'Sun umbrella', category: 'outdoor' },
   { label: '💡 Flashlight', description: 'Flashlights', category: 'safety' },
-  
+
   // Least Common
   { label: '🎤 Karaoke', description: 'Karaoke setup', category: 'entertainment' },
   { label: '🧯 Lighter', description: 'Lighter fluid', category: 'outdoor' },
@@ -137,91 +137,91 @@ const ASSIGNEE_SUGGESTIONS = [
   'Volunteers',
   'First 5 guests',
   'Everyone',
-  
+
   // Common Groups
   'Guys',
   'Girls',
   'Drivers',
   'Co-hosts',
   'Couples',
-  
+
   // Practical
   'TBD',
   'Me',
   'Optional',
   'Non-drinkers',
   'Early arrivals',
-  
+
   // Popular Roles
   'Birthday person',
   'Organizers',
   'Best friends',
   'Roommates',
   'Adults',
-  
+
   // Teams & Groups
   'Team A',
   'Team B',
   'Group 1',
   'Group 2',
   'First 10 guests',
-  
+
   // Event Specific (Medium)
   'Coworkers',
   'Parents',
   'Singles',
   'Neighbors',
   'Us',
-  
+
   // Skills Based
   'DD (Designated Driver)',
   'Chefs',
   'Musicians',
   'Photographers',
   'Bartenders',
-  
+
   // Less Common
   'Locals',
   'Out-of-towners',
   '21+',
   'Kids',
   'Guest of honor',
-  
+
   // Specific Events
   'Graduates',
   'Wedding party',
   'Groomsmen',
   'Bridesmaids',
   'Alumni',
-  
+
   // Time Based
   'Last to arrive',
   'Weekend crew',
   'Early birds',
   'Night owls',
   'Morning shift',
-  
+
   // Teams (Less Common)
   'Red team',
   'Blue team',
   'Table 1',
   'Table 2',
   'Classmates',
-  
+
   // Transportation
   'Uber riders',
   'Carpoolers',
   'Walking distance',
   'Evening shift',
   'Teammates',
-  
+
   // Specialized
   'DJs',
   'Gamers',
   'Athletes',
   'Club members',
   'VIPs',
-  
+
   // Fun/Rare
   'Newbies',
   'Veterans',
@@ -251,7 +251,7 @@ export default function ItemsToBringModal({
     showQuantities: true,
   });
   const [showSuggestions, setShowSuggestions] = useState(true);
-  
+
   // Reset state when modal opens with new data
   React.useEffect(() => {
     if (visible && initialItems) {
@@ -278,42 +278,36 @@ export default function ItemsToBringModal({
     }
   };
 
-  const selectSuggestion = (suggestion: typeof QUICK_ADD_SUGGESTIONS[0]) => {
+  const selectSuggestion = (suggestion: (typeof QUICK_ADD_SUGGESTIONS)[0]) => {
     setNewItemName(suggestion.description);
   };
 
   const removeItem = (id: string) => {
-    setItems(items.filter(item => item.id !== id));
+    setItems(items.filter((item) => item.id !== id));
   };
 
   const updateAssignee = (id: string, assignee: string) => {
-    setItems(items.map(item => 
-      item.id === id ? { ...item, assignee } : item
-    ));
+    setItems(items.map((item) => (item.id === id ? { ...item, assignee } : item)));
   };
 
   const updateQuantity = (id: string, quantity: string) => {
-    setItems(items.map(item => 
-      item.id === id ? { ...item, quantity } : item
-    ));
+    setItems(items.map((item) => (item.id === id ? { ...item, quantity } : item)));
   };
 
   const toggleQuantityField = (id: string) => {
-    setItems(items.map(item => 
-      item.id === id ? { ...item, showQuantity: !item.showQuantity } : item
-    ));
+    setItems(
+      items.map((item) => (item.id === id ? { ...item, showQuantity: !item.showQuantity } : item))
+    );
   };
 
   const toggleAssigneeField = (id: string) => {
-    setItems(items.map(item => 
-      item.id === id ? { ...item, showAssignee: !item.showAssignee } : item
-    ));
+    setItems(
+      items.map((item) => (item.id === id ? { ...item, showAssignee: !item.showAssignee } : item))
+    );
   };
 
   const updateItemType = (id: string, type: ItemType) => {
-    setItems(items.map(item => 
-      item.id === id ? { ...item, type } : item
-    ));
+    setItems(items.map((item) => (item.id === id ? { ...item, type } : item)));
   };
 
   const handleSave = () => {
@@ -332,13 +326,13 @@ export default function ItemsToBringModal({
 
   const renderItem = ({ item }: { item: Item }) => {
     const typeConfig = ITEM_TYPE_CONFIG[item.type || 'suggested'];
-    
+
     return (
       <View style={[styles.itemCard, { borderLeftColor: typeConfig.color }]}>
         <View style={styles.itemHeader}>
           <View style={styles.itemTitleSection}>
             <Text style={styles.itemName}>{item.name}</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.typeBadge, { backgroundColor: typeConfig.color + '20' }]}
               onPress={() => {
                 const types: ItemType[] = ['required', 'suggested', 'open'];
@@ -347,62 +341,64 @@ export default function ItemsToBringModal({
                 updateItemType(item.id, nextType as ItemType);
               }}
             >
-              <Ionicons 
-                name={typeConfig.icon as any} 
-                size={14} 
-                color={typeConfig.color} 
-              />
+              <Ionicons name={typeConfig.icon as any} size={14} color={typeConfig.color} />
               <Text style={[styles.typeBadgeText, { color: typeConfig.color }]}>
                 {typeConfig.label}
               </Text>
             </TouchableOpacity>
           </View>
           <View style={styles.itemActions}>
-            <TouchableOpacity 
-              onPress={() => toggleAssigneeField(item.id)} 
+            <TouchableOpacity
+              onPress={() => toggleAssigneeField(item.id)}
               style={styles.assigneeToggle}
             >
-              <Ionicons 
-                name={item.showAssignee ? "person" : "person-outline"} 
-                size={20} 
-                color="#007AFF" 
+              <Ionicons
+                name={item.showAssignee ? 'person' : 'person-outline'}
+                size={20}
+                color="#007AFF"
               />
             </TouchableOpacity>
             {settings.showQuantities && (
-              <TouchableOpacity 
-                onPress={() => toggleQuantityField(item.id)} 
+              <TouchableOpacity
+                onPress={() => toggleQuantityField(item.id)}
                 style={styles.quantityToggle}
               >
-                <Ionicons 
-                  name={item.showQuantity ? "pricetag" : "pricetag-outline"} 
-                  size={20} 
-                  color="#007AFF" 
+                <Ionicons
+                  name={item.showQuantity ? 'pricetag' : 'pricetag-outline'}
+                  size={20}
+                  color="#007AFF"
                 />
               </TouchableOpacity>
             )}
-            <TouchableOpacity 
-              onPress={() => removeItem(item.id)} 
-              style={styles.deleteButton}
-            >
+            <TouchableOpacity onPress={() => removeItem(item.id)} style={styles.deleteButton}>
               <Ionicons name="trash-outline" size={20} color="#FF3B30" />
             </TouchableOpacity>
           </View>
         </View>
-        
+
         {(item.showAssignee || item.showQuantity) && (
           <View style={styles.itemDetails}>
             {item.showAssignee && (
-              <View style={[styles.assigneeContainer, !item.showQuantity && styles.assigneeContainerFull]}>
+              <View
+                style={[
+                  styles.assigneeContainer,
+                  !item.showQuantity && styles.assigneeContainerFull,
+                ]}
+              >
                 <TextInput
                   style={styles.assigneeInput}
                   value={item.assignee}
                   onChangeText={(text) => updateAssignee(item.id, text)}
-                  placeholder={settings.requireSignup ? "Assigned to... (optional)" : "Who's bringing this? (optional)"}
+                  placeholder={
+                    settings.requireSignup
+                      ? 'Assigned to... (optional)'
+                      : "Who's bringing this? (optional)"
+                  }
                   placeholderTextColor="#999"
                 />
                 {item.assignee === '' && (
-                  <ScrollView 
-                    horizontal 
+                  <ScrollView
+                    horizontal
                     showsHorizontalScrollIndicator={false}
                     style={styles.assigneeSuggestionsScroll}
                     contentContainerStyle={styles.assigneeSuggestionsContent}
@@ -420,7 +416,7 @@ export default function ItemsToBringModal({
                 )}
               </View>
             )}
-            
+
             {item.showQuantity && settings.showQuantities && (
               <TextInput
                 style={styles.quantityInput}
@@ -446,7 +442,7 @@ export default function ItemsToBringModal({
       onSave={handleSave}
       saveButtonText="Save Settings"
     >
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
@@ -454,53 +450,43 @@ export default function ItemsToBringModal({
           {/* Settings Section */}
           <View style={styles.settingsSection}>
             <Text style={styles.sectionTitle}>Settings</Text>
-            
+
             <View style={styles.settingRow}>
               <View style={styles.settingInfo}>
                 <Text style={styles.settingLabel}>Allow guest suggestions</Text>
-                <Text style={styles.settingDescription}>
-                  Guests can propose items to bring
-                </Text>
+                <Text style={styles.settingDescription}>Guests can propose items to bring</Text>
               </View>
               <Switch
                 value={settings.allowGuestSuggestions}
-                onValueChange={(value) => 
-                  setSettings({...settings, allowGuestSuggestions: value})
+                onValueChange={(value) =>
+                  setSettings({ ...settings, allowGuestSuggestions: value })
                 }
                 trackColor={{ false: '#E5E5EA', true: '#007AFF' }}
                 thumbColor="#FFF"
               />
             </View>
-            
+
             <View style={styles.settingRow}>
               <View style={styles.settingInfo}>
                 <Text style={styles.settingLabel}>Require sign-up</Text>
-                <Text style={styles.settingDescription}>
-                  Guests must claim items before event
-                </Text>
+                <Text style={styles.settingDescription}>Guests must claim items before event</Text>
               </View>
               <Switch
                 value={settings.requireSignup}
-                onValueChange={(value) => 
-                  setSettings({...settings, requireSignup: value})
-                }
+                onValueChange={(value) => setSettings({ ...settings, requireSignup: value })}
                 trackColor={{ false: '#E5E5EA', true: '#007AFF' }}
                 thumbColor="#FFF"
               />
             </View>
-            
+
             <View style={styles.settingRow}>
               <View style={styles.settingInfo}>
                 <Text style={styles.settingLabel}>Show quantities</Text>
-                <Text style={styles.settingDescription}>
-                  Enable quantity fields for items
-                </Text>
+                <Text style={styles.settingDescription}>Enable quantity fields for items</Text>
               </View>
               <Switch
                 value={settings.showQuantities}
-                onValueChange={(value) => 
-                  setSettings({...settings, showQuantities: value})
-                }
+                onValueChange={(value) => setSettings({ ...settings, showQuantities: value })}
                 trackColor={{ false: '#E5E5EA', true: '#007AFF' }}
                 thumbColor="#FFF"
               />
@@ -510,7 +496,7 @@ export default function ItemsToBringModal({
           {/* Add Item Section */}
           <View style={styles.addItemSection}>
             <Text style={styles.sectionTitle}>Add Items</Text>
-            
+
             {/* Type Selector */}
             <View style={styles.typeSelector}>
               {(Object.keys(ITEM_TYPE_CONFIG) as ItemType[]).map((type) => {
@@ -521,26 +507,28 @@ export default function ItemsToBringModal({
                     style={[
                       styles.typeOption,
                       selectedType === type && styles.typeOptionActive,
-                      { borderColor: selectedType === type ? config.color : '#E5E5E5' }
+                      { borderColor: selectedType === type ? config.color : '#E5E5E5' },
                     ]}
                     onPress={() => setSelectedType(type)}
                   >
-                    <Ionicons 
-                      name={config.icon as any} 
-                      size={18} 
-                      color={selectedType === type ? config.color : '#8E8E93'} 
+                    <Ionicons
+                      name={config.icon as any}
+                      size={18}
+                      color={selectedType === type ? config.color : '#8E8E93'}
                     />
-                    <Text style={[
-                      styles.typeOptionText,
-                      selectedType === type && { color: config.color }
-                    ]}>
+                    <Text
+                      style={[
+                        styles.typeOptionText,
+                        selectedType === type && { color: config.color },
+                      ]}
+                    >
                       {config.label}
                     </Text>
                   </TouchableOpacity>
                 );
               })}
             </View>
-            
+
             <View style={styles.addItemContainer}>
               <TextInput
                 style={styles.addItemInput}
@@ -552,19 +540,15 @@ export default function ItemsToBringModal({
                 returnKeyType="done"
                 autoCapitalize="sentences"
               />
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[styles.addButton, !newItemName.trim() && styles.addButtonDisabled]}
                 onPress={() => addItem()}
                 disabled={!newItemName.trim()}
               >
-                <Ionicons 
-                  name="add" 
-                  size={24} 
-                  color="#FFF" 
-                />
+                <Ionicons name="add" size={24} color="#FFF" />
               </TouchableOpacity>
             </View>
-            
+
             {/* Quick Add Suggestions */}
             {showSuggestions && (
               <View style={styles.suggestionsContainer}>
@@ -574,8 +558,8 @@ export default function ItemsToBringModal({
                     <Ionicons name="close" size={20} color="#8E8E93" />
                   </TouchableOpacity>
                 </View>
-                <ScrollView 
-                  horizontal 
+                <ScrollView
+                  horizontal
                   showsHorizontalScrollIndicator={false}
                   style={styles.suggestionsScroll}
                   contentContainerStyle={styles.suggestionsContent}
@@ -602,18 +586,20 @@ export default function ItemsToBringModal({
                 <View style={styles.legendRow}>
                   {(Object.keys(ITEM_TYPE_CONFIG) as ItemType[]).map((type) => {
                     const config = ITEM_TYPE_CONFIG[type];
-                    const count = items.filter(item => item.type === type).length;
+                    const count = items.filter((item) => item.type === type).length;
                     if (count === 0) return null;
                     return (
                       <View key={type} style={styles.legendItem}>
                         <View style={[styles.legendDot, { backgroundColor: config.color }]} />
-                        <Text style={styles.legendText}>{count} {config.label.toLowerCase()}</Text>
+                        <Text style={styles.legendText}>
+                          {count} {config.label.toLowerCase()}
+                        </Text>
                       </View>
                     );
                   })}
                 </View>
               </View>
-              
+
               <FlatList
                 data={items}
                 renderItem={renderItem}
@@ -623,7 +609,7 @@ export default function ItemsToBringModal({
               />
             </View>
           )}
-          
+
           {items.length === 0 && (
             <View style={styles.emptyState}>
               <Ionicons name="basket-outline" size={48} color="#C7C7CC" />

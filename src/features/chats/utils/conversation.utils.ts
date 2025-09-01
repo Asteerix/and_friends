@@ -6,7 +6,7 @@ import type { Chat, Message, UserProfile } from '@/types/conversation.types';
 // Formatage des dates pour les messages
 export const formatMessageTime = (date: string | Date): string => {
   const messageDate = new Date(date);
-  
+
   if (isToday(messageDate)) {
     return format(messageDate, 'HH:mm');
   } else if (isYesterday(messageDate)) {
@@ -19,7 +19,7 @@ export const formatMessageTime = (date: string | Date): string => {
 // Formatage pour la liste des chats
 export const formatLastMessageTime = (date: string | Date): string => {
   const messageDate = new Date(date);
-  
+
   if (isToday(messageDate)) {
     return format(messageDate, 'HH:mm');
   } else if (isYesterday(messageDate)) {
@@ -39,13 +39,13 @@ export const getChatDisplayName = (
   if (chat.name) {
     return chat.name;
   }
-  
+
   // Pour les chats privés, afficher le nom de l'autre participant
   if (!chat.is_group && participants && participants.length > 0) {
-    const otherParticipant = participants.find(p => p.id !== currentUserId);
+    const otherParticipant = participants.find((p) => p.id !== currentUserId);
     return otherParticipant?.full_name || otherParticipant?.username || 'Utilisateur';
   }
-  
+
   return 'Conversation';
 };
 
@@ -57,10 +57,10 @@ export const getChatAvatar = (
 ): string | null => {
   // Pour les chats privés, utiliser l'avatar de l'autre participant
   if (!chat.is_group && participants && participants.length > 0) {
-    const otherParticipant = participants.find(p => p.id !== currentUserId);
+    const otherParticipant = participants.find((p) => p.id !== currentUserId);
     return otherParticipant?.avatar_url || null;
   }
-  
+
   return null;
 };
 
@@ -94,21 +94,21 @@ export const validateChatName = (name: string): { isValid: boolean; error?: stri
   if (!name || name.trim().length === 0) {
     return { isValid: false, error: 'Le nom est requis' };
   }
-  
+
   if (name.length > CONVERSATION_CONSTANTS.MAX_CHAT_NAME_LENGTH) {
-    return { 
-      isValid: false, 
-      error: `Le nom ne peut pas dépasser ${CONVERSATION_CONSTANTS.MAX_CHAT_NAME_LENGTH} caractères` 
+    return {
+      isValid: false,
+      error: `Le nom ne peut pas dépasser ${CONVERSATION_CONSTANTS.MAX_CHAT_NAME_LENGTH} caractères`,
     };
   }
-  
+
   if (!CONVERSATION_CONSTANTS.VALIDATION.CHAT_NAME_REGEX.test(name)) {
-    return { 
-      isValid: false, 
-      error: 'Le nom contient des caractères non autorisés' 
+    return {
+      isValid: false,
+      error: 'Le nom contient des caractères non autorisés',
     };
   }
-  
+
   return { isValid: true };
 };
 
@@ -121,15 +121,15 @@ export const validateMessageContent = (
     if (!content || content.trim().length === 0) {
       return { isValid: false, error: 'Le message ne peut pas être vide' };
     }
-    
+
     if (content.length > CONVERSATION_CONSTANTS.MAX_MESSAGE_LENGTH) {
-      return { 
-        isValid: false, 
-        error: `Le message ne peut pas dépasser ${CONVERSATION_CONSTANTS.MAX_MESSAGE_LENGTH} caractères` 
+      return {
+        isValid: false,
+        error: `Le message ne peut pas dépasser ${CONVERSATION_CONSTANTS.MAX_MESSAGE_LENGTH} caractères`,
       };
     }
   }
-  
+
   return { isValid: true };
 };
 
@@ -143,20 +143,20 @@ export const isUserChatAdmin = (
   if (chat.created_by === userId) {
     return true;
   }
-  
+
   // Vérifier dans la liste des participants
-  const participant = participants?.find(p => p.user_id === userId);
+  const participant = participants?.find((p) => p.user_id === userId);
   return participant?.is_admin || false;
 };
 
 // Grouper les messages par date
 export const groupMessagesByDate = (messages: Message[]): Record<string, Message[]> => {
   const groups: Record<string, Message[]> = {};
-  
-  messages.forEach(message => {
+
+  messages.forEach((message) => {
     const date = new Date(message.created_at);
     let key: string;
-    
+
     if (isToday(date)) {
       key = "Aujourd'hui";
     } else if (isYesterday(date)) {
@@ -164,13 +164,13 @@ export const groupMessagesByDate = (messages: Message[]): Record<string, Message
     } else {
       key = format(date, 'dd MMMM yyyy', { locale: fr });
     }
-    
+
     if (!groups[key]) {
       groups[key] = [];
     }
     groups[key].push(message);
   });
-  
+
   return groups;
 };
 
@@ -183,11 +183,11 @@ export const getChatColor = (chat: Chat): string => {
     }
     return CONVERSATION_CONSTANTS.COLORS.EVENT_ACTIVE;
   }
-  
+
   if (chat.is_group) {
     return CONVERSATION_CONSTANTS.COLORS.GROUP;
   }
-  
+
   return CONVERSATION_CONSTANTS.COLORS.PRIVATE;
 };
 
@@ -199,19 +199,16 @@ export const countUnreadMessages = (
 ): number => {
   if (!lastReadMessageId) {
     // Si pas de dernier message lu, tous les messages des autres sont non lus
-    return messages.filter(m => m.user_id !== currentUserId).length;
+    return messages.filter((m) => m.user_id !== currentUserId).length;
   }
-  
-  const lastReadIndex = messages.findIndex(m => m.id === lastReadMessageId);
+
+  const lastReadIndex = messages.findIndex((m) => m.id === lastReadMessageId);
   if (lastReadIndex === -1) {
     return 0;
   }
-  
+
   // Compter les messages après le dernier lu qui ne sont pas de l'utilisateur
-  return messages
-    .slice(lastReadIndex + 1)
-    .filter(m => m.user_id !== currentUserId)
-    .length;
+  return messages.slice(lastReadIndex + 1).filter((m) => m.user_id !== currentUserId).length;
 };
 
 // Filtrer les chats par recherche
@@ -223,24 +220,25 @@ export const filterChatsBySearch = (
   if (!searchTerm || searchTerm.trim().length === 0) {
     return chats;
   }
-  
+
   const normalizedSearch = searchTerm.toLowerCase().trim();
-  
-  return chats.filter(chat => {
+
+  return chats.filter((chat) => {
     // Recherche dans le nom du chat
     if (chat.name?.toLowerCase().includes(normalizedSearch)) {
       return true;
     }
-    
+
     // Recherche dans les noms des participants pour les chats privés
     if (!chat.is_group) {
       const chatParticipants = participants?.get(chat.id);
-      return chatParticipants?.some(p => 
-        p.full_name?.toLowerCase().includes(normalizedSearch) ||
-        p.username?.toLowerCase().includes(normalizedSearch)
+      return chatParticipants?.some(
+        (p) =>
+          p.full_name?.toLowerCase().includes(normalizedSearch) ||
+          p.username?.toLowerCase().includes(normalizedSearch)
       );
     }
-    
+
     return false;
   });
 };

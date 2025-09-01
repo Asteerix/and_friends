@@ -24,11 +24,7 @@ interface PlaylistModalProps {
   onSave: (playlist: Song[], spotifyLink?: string) => void;
 }
 
-export default function PlaylistModal({
-  visible,
-  onClose,
-  onSave,
-}: PlaylistModalProps) {
+export default function PlaylistModal({ visible, onClose, onSave }: PlaylistModalProps) {
   const [songs, setSongs] = useState<Song[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [spotifyLink, setSpotifyLink] = useState('');
@@ -36,10 +32,30 @@ export default function PlaylistModal({
 
   // Demo songs for search results
   const demoSongs: Song[] = [
-    { id: '1', title: 'Flowers', artist: 'Miley Cyrus', albumArt: 'https://i.pravatar.cc/150?img=10' },
-    { id: '2', title: 'As It Was', artist: 'Harry Styles', albumArt: 'https://i.pravatar.cc/150?img=11' },
-    { id: '3', title: 'Anti-Hero', artist: 'Taylor Swift', albumArt: 'https://i.pravatar.cc/150?img=12' },
-    { id: '4', title: 'Unholy', artist: 'Sam Smith & Kim Petras', albumArt: 'https://i.pravatar.cc/150?img=13' },
+    {
+      id: '1',
+      title: 'Flowers',
+      artist: 'Miley Cyrus',
+      albumArt: 'https://i.pravatar.cc/150?img=10',
+    },
+    {
+      id: '2',
+      title: 'As It Was',
+      artist: 'Harry Styles',
+      albumArt: 'https://i.pravatar.cc/150?img=11',
+    },
+    {
+      id: '3',
+      title: 'Anti-Hero',
+      artist: 'Taylor Swift',
+      albumArt: 'https://i.pravatar.cc/150?img=12',
+    },
+    {
+      id: '4',
+      title: 'Unholy',
+      artist: 'Sam Smith & Kim Petras',
+      albumArt: 'https://i.pravatar.cc/150?img=13',
+    },
   ];
 
   const [searchResults, setSearchResults] = useState<Song[]>([]);
@@ -48,9 +64,10 @@ export default function PlaylistModal({
     setSearchQuery(query);
     if (query.trim()) {
       // Simulate search results
-      const results = demoSongs.filter(song => 
-        song.title.toLowerCase().includes(query.toLowerCase()) ||
-        song.artist.toLowerCase().includes(query.toLowerCase())
+      const results = demoSongs.filter(
+        (song) =>
+          song.title.toLowerCase().includes(query.toLowerCase()) ||
+          song.artist.toLowerCase().includes(query.toLowerCase())
       );
       setSearchResults(results);
     } else {
@@ -59,7 +76,7 @@ export default function PlaylistModal({
   };
 
   const addSong = (song: Song) => {
-    if (!songs.find(s => s.id === song.id)) {
+    if (!songs.find((s) => s.id === song.id)) {
       setSongs([...songs, song]);
     }
     setSearchQuery('');
@@ -67,7 +84,7 @@ export default function PlaylistModal({
   };
 
   const removeSong = (id: string) => {
-    setSongs(songs.filter(song => song.id !== id));
+    setSongs(songs.filter((song) => song.id !== id));
   };
 
   const handleSave = () => {
@@ -89,7 +106,11 @@ export default function PlaylistModal({
       title="🎵 Event Playlist"
       height={700}
       onSave={handleSave}
-      saveButtonText={songs.length > 0 || spotifyLink ? `Save Playlist${songs.length > 0 ? ` (${songs.length} songs)` : ''}` : 'Save'}
+      saveButtonText={
+        songs.length > 0 || spotifyLink
+          ? `Save Playlist${songs.length > 0 ? ` (${songs.length} songs)` : ''}`
+          : 'Save'
+      }
       saveDisabled={songs.length === 0 && !spotifyLink}
     >
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>

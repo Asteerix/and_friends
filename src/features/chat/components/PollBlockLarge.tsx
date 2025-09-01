@@ -1,7 +1,6 @@
 import React from 'react';
 import { Animated, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-
 import { Poll } from '@/hooks/usePollStore';
 
 interface Props {

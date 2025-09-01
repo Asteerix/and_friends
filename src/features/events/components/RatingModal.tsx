@@ -31,7 +31,7 @@ interface RatingModalProps {
   onSuccess?: () => void;
 }
 
-const DEFAULT_AVATAR = require('../../../assets/default_avatar.png');
+const DEFAULT_AVATAR = require('@/assets/default_avatar.png');
 
 export default function RatingModal({
   visible,
@@ -55,7 +55,7 @@ export default function RatingModal({
     setLoading(true);
     try {
       const success = await upsertRating(user.id, rating, comment || undefined, eventId);
-      
+
       if (success) {
         Alert.alert(
           'Rating Submitted',
@@ -90,7 +90,7 @@ export default function RatingModal({
     <Modal visible={visible} transparent animationType="fade">
       <BlurView intensity={100} style={styles.backdrop}>
         <TouchableOpacity style={styles.backdropTouch} activeOpacity={1} onPress={onClose} />
-        
+
         <View style={styles.modalContainer}>
           {/* Header */}
           <View style={styles.header}>
@@ -149,7 +149,7 @@ export default function RatingModal({
                 <Text style={styles.resetButtonText}>Reset</Text>
               </TouchableOpacity>
             )}
-            
+
             <TouchableOpacity
               style={[styles.submitButton, rating === 0 && styles.submitButtonDisabled]}
               onPress={handleSubmit}

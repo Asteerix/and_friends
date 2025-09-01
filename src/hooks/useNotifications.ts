@@ -1,6 +1,5 @@
 import type { PostgrestError } from '@supabase/supabase-js';
 import { useEffect, useState } from 'react';
-
 import { supabase } from '@/shared/lib/supabase/client';
 import { useSession } from '@/shared/providers/SessionContext';
 
@@ -156,18 +155,18 @@ export function useNotifications() {
         },
         (payload) => {
           console.log('🔔 [useNotifications] Realtime update received:', payload.eventType);
-          
+
           if (payload.eventType === 'INSERT' && payload.new) {
             // Add new notification at the beginning
             setNotifications((prev) => [payload.new as Notification, ...prev]);
           } else if (payload.eventType === 'UPDATE' && payload.new) {
-            setNotifications((prev) => 
-              prev.map((notif) => 
-                notif.id === payload.new.id ? payload.new as Notification : notif
+            setNotifications((prev) =>
+              prev.map((notif) =>
+                notif.id === payload.new.id ? (payload.new as Notification) : notif
               )
             );
           } else if (payload.eventType === 'DELETE' && payload.old) {
-            setNotifications((prev) => 
+            setNotifications((prev) =>
               prev.filter((notif) => notif.id !== (payload.old as any).id)
             );
           }

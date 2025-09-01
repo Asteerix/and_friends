@@ -11,6 +11,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { create } from 'react-native-pixel-perfect';
+import EmptyState from '../components/EmptyState';
+import NotificationItem from '../components/NotificationItem';
 import SearchIcon from '@/assets/svg/search.svg';
 import ChatButtonIcon from '@/assets/svg/chat-button.svg';
 import NotificationButtonIcon from '@/assets/svg/notification-button.svg';
@@ -19,8 +21,6 @@ import LongUnderlineDecoration from '@/features/home/components/LongUnderlineDec
 import NotificationBadge from '@/features/notifications/components/NotificationBadge';
 import { useNotifications } from '@/shared/providers/NotificationProvider';
 import type { Notification } from '@/hooks/useNotifications';
-import EmptyState from '../components/EmptyState';
-import NotificationItem from '../components/NotificationItem';
 
 const designResolution = { width: 375, height: 812 };
 const perfectSize = create(designResolution);
@@ -75,7 +75,7 @@ const SearchBar: React.FC = React.memo(() => (
 const NotificationsScreen: React.FC = React.memo(() => {
   const [activeTab, setActiveTab] = useState<string>('all');
   const { notifications, loading, markAsRead, unreadCount } = useNotifications();
-  const unreadNotifications = notifications.filter(n => !n.read);
+  const unreadNotifications = notifications.filter((n) => !n.read);
   const router = useRouter();
 
   const filteredData = useMemo(() => {
@@ -93,7 +93,7 @@ const NotificationsScreen: React.FC = React.memo(() => {
     if (!notification.read) {
       await markAsRead(notification.id);
     }
-    
+
     // Navigate based on notification type
     switch (notification.type) {
       case 'event_invite':
@@ -105,13 +105,13 @@ const NotificationsScreen: React.FC = React.memo(() => {
           void router.push(`/screens/event-details?eventId=${notification.related_event_id}`);
         }
         break;
-        
+
       case 'new_message':
         if (notification.related_chat_id) {
           void router.push(`/screens/conversation?chatId=${notification.related_chat_id}`);
         }
         break;
-        
+
       case 'friend_request':
       case 'friend_accepted':
       case 'new_rating':
@@ -119,7 +119,7 @@ const NotificationsScreen: React.FC = React.memo(() => {
           void router.push(`/screens/person-card?userId=${notification.related_user_id}`);
         }
         break;
-        
+
       case 'story_like':
       case 'story_comment':
         // Navigate to memories/stories screen
@@ -129,7 +129,7 @@ const NotificationsScreen: React.FC = React.memo(() => {
           void router.push('/memories');
         }
         break;
-        
+
       default:
         // Stay on notifications screen
         break;

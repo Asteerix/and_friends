@@ -15,13 +15,13 @@ const LONG_UNDERLINE_TITLES = [
   'All Events',
   'Based on Your Interests',
   'Your Friends Are Going To',
-  'Events You Are Going To'
+  'Events You Are Going To',
 ];
 
 export default function SectionHeader({ title, onViewAll }: Props) {
   const { t } = useTranslation();
   const useLongUnderline = LONG_UNDERLINE_TITLES.includes(title) || title.length > 20;
-  
+
   return (
     <View style={styles.wrapper}>
       <View style={styles.header}>
@@ -33,18 +33,14 @@ export default function SectionHeader({ title, onViewAll }: Props) {
         )}
       </View>
       {useLongUnderline ? (
-        <LongUnderlineDecoration 
-          width={screenWidth - 40} 
-          height={8} 
+        <LongUnderlineDecoration
+          width={screenWidth - 40}
+          height={8}
           style={styles.longDivider}
           preserveAspectRatio="none"
         />
       ) : (
-        <UnderlineDecoration 
-          width={56} 
-          height={4} 
-          style={styles.divider}
-        />
+        <UnderlineDecoration width={56} height={4} style={styles.divider} />
       )}
     </View>
   );

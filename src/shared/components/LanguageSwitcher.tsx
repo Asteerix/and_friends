@@ -43,7 +43,7 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
 }) => {
   const { i18n, t } = useTranslation();
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const currentLanguage = LANGUAGES.find(lang => lang.code === i18n.language) || LANGUAGES[0];
+  const currentLanguage = LANGUAGES.find((lang) => lang.code === i18n.language) || LANGUAGES[0];
 
   const changeLanguage = async (languageCode: string) => {
     try {
@@ -63,9 +63,7 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
         accessibilityLabel={t('settings.preferences.language')}
       >
         <Text style={[styles.flag, textStyle]}>{currentLanguage.flag}</Text>
-        {showLabel && (
-          <Text style={[styles.languageName, textStyle]}>{currentLanguage.name}</Text>
-        )}
+        {showLabel && <Text style={[styles.languageName, textStyle]}>{currentLanguage.name}</Text>}
         <Text style={[styles.chevron, textStyle]}>▼</Text>
       </TouchableOpacity>
 
@@ -82,7 +80,7 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
           >
             <View style={styles.modalHandle} />
             <Text style={styles.modalTitle}>{t('settings.preferences.language')}</Text>
-            
+
             {LANGUAGES.map((language) => (
               <Pressable
                 key={language.code}

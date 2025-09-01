@@ -16,7 +16,6 @@ import 'react-native-get-random-values'; // Pour uuid
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { v4 as uuidv4 } from 'uuid';
-
 import { supabase } from '@/shared/lib/supabase/client';
 import { getDeviceLanguage, t } from '@/shared/locales';
 import ScreenLayout from '@/shared/ui/ScreenLayout';

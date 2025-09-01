@@ -1,7 +1,7 @@
 import { Alert, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
-import * as Application from 'expo-application';
+// import * as Application from 'expo-application'; // Package not installed
 import * as Device from 'expo-device';
 import { errorLogger } from './errorLogger';
 
@@ -35,13 +35,14 @@ class TestFlightLogger {
     try {
       if (Platform.OS === 'ios') {
         // Check if running in TestFlight
-        const bundleId = Application.applicationId;
+        // const bundleId = Application.applicationId; // Package not available
+        const bundleId = Constants.expoConfig?.slug || 'unknown';
         const isStoreReceipt = await this.hasStoreReceipt();
         const isDebug = __DEV__;
-        
+
         // TestFlight has a store receipt but is not in production
-        this.isTestFlight = !isDebug && isStoreReceipt && !Constants.isDevice;
-        
+        this.isTestFlight = !isDebug && isStoreReceipt && Constants.isDevice;
+
         this.log('TestFlight detection', 'info', {
           bundleId,
           isStoreReceipt,
@@ -50,7 +51,7 @@ class TestFlightLogger {
           isTestFlight: this.isTestFlight,
           appStoreUrl: Constants.expoConfig?.ios?.appStoreUrl,
           nativeApplicationVersion: Constants.nativeApplicationVersion,
-          nativeBuildVersion: Constants.nativeBuildVersion
+          nativeBuildVersion: Constants.nativeBuildVersion,
         });
       }
     } catch (error) {
@@ -61,7 +62,7 @@ class TestFlightLogger {
   private async hasStoreReceipt(): Promise<boolean> {
     try {
       // In TestFlight, there's a receipt file
-      const { FileSystem } = await import('expo-file-system');
+      const FileSystem = await import('expo-file-system');
       const receiptPath = `${FileSystem.bundleDirectory}/_MASReceipt/receipt`;
       const info = await FileSystem.getInfoAsync(receiptPath);
       return info.exists;
@@ -94,11 +95,11 @@ class TestFlightLogger {
       timestamp: new Date().toISOString(),
       level,
       message,
-      context
+      context,
     };
 
     this.logs.push(log);
-    
+
     // Keep logs under limit
     if (this.logs.length > this.MAX_LOGS) {
       this.logs = this.logs.slice(-this.MAX_LOGS);
@@ -132,27 +133,27 @@ class TestFlightLogger {
       modelName: Device.modelName,
       osName: Device.osName,
       osVersion: Device.osVersion,
-      totalMemory: Device.totalMemory
+      totalMemory: Device.totalMemory,
     };
 
     const appInfo = {
       version: Constants.expoConfig?.version,
       nativeApplicationVersion: Constants.nativeApplicationVersion,
       nativeBuildVersion: Constants.nativeBuildVersion,
-      isTestFlight: this.isTestFlight
+      isTestFlight: this.isTestFlight,
     };
 
-    const recentErrors = this.logs.filter(log => log.level === 'error').slice(-5);
+    const recentErrors = this.logs.filter((log) => log.level === 'error').slice(-5);
 
     Alert.alert(
       'Debug Information',
       `App: ${JSON.stringify(appInfo, null, 2)}\n\n` +
-      `Device: ${JSON.stringify(deviceInfo, null, 2)}\n\n` +
-      `Recent Errors: ${recentErrors.length}`,
+        `Device: ${JSON.stringify(deviceInfo, null, 2)}\n\n` +
+        `Recent Errors: ${recentErrors.length}`,
       [
         { text: 'Show Logs', onPress: () => this.showLogs() },
         { text: 'Clear Logs', onPress: () => this.clearLogs() },
-        { text: 'Close', style: 'cancel' }
+        { text: 'Close', style: 'cancel' },
       ]
     );
   }
@@ -160,14 +161,10 @@ class TestFlightLogger {
   async showLogs() {
     const recentLogs = this.logs.slice(-20);
     const logText = recentLogs
-      .map(log => `[${log.level.toUpperCase()}] ${log.timestamp}\n${log.message}`)
+      .map((log) => `[${log.level.toUpperCase()}] ${log.timestamp}\n${log.message}`)
       .join('\n\n');
 
-    Alert.alert(
-      'Recent Logs',
-      logText || 'No logs available',
-      [{ text: 'OK' }]
-    );
+    Alert.alert('Recent Logs', logText || 'No logs available', [{ text: 'OK' }]);
   }
 
   async clearLogs() {

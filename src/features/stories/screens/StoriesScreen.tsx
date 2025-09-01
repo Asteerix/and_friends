@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Animated,
@@ -20,7 +20,6 @@ import {
   GestureResponderEvent,
   PanResponderGestureState,
 } from 'react-native';
-
 import { useStories } from '../hooks/useStories';
 import { Story, StorySticker } from '../types';
 
@@ -46,6 +45,14 @@ export default function StoriesScreen() {
 
   const currentUser = userStories[currentUserIndex];
   const currentStory = currentUser?.stories[currentStoryIndex];
+
+  // Always create a video player (hooks must be called consistently)
+  const videoPlayer = useVideoPlayer(currentStory?.mediaUrl || '', (player) => {
+    if (currentStory?.type === 'video') {
+      player.loop = false;
+      player.play();
+    }
+  });
 
   useEffect(() => {
     if (!currentStory || isPaused) return;
@@ -149,10 +156,7 @@ export default function StoriesScreen() {
         ) : (
           <VideoView
             style={styles.media}
-            player={useVideoPlayer(currentStory.mediaUrl, (player) => {
-              player.loop = false;
-              player.play();
-            })}
+            player={videoPlayer}
             allowsFullscreen
             allowsPictureInPicture
           />

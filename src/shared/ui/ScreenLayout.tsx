@@ -4,7 +4,6 @@ import { Platform, Pressable, StyleSheet, Text, View, StatusBar } from 'react-na
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { rs, rf } from '@/shared/utils/responsive';
 
-
 export interface ScreenLayoutProps {
   title?: string;
   subtitle?: string;
@@ -74,10 +73,7 @@ const ScreenLayout: React.FC<ScreenLayoutProps> = ({
                 router.back();
               }
             }}
-            style={({ pressed }) => [
-              styles.backButton,
-              { opacity: pressed ? 0.5 : 1 }
-            ]}
+            style={({ pressed }) => [styles.backButton, { opacity: pressed ? 0.5 : 1 }]}
           >
             <Text style={styles.backArrow}>←</Text>
           </Pressable>
@@ -86,9 +82,7 @@ const ScreenLayout: React.FC<ScreenLayoutProps> = ({
         )}
         <View style={styles.progressContainer}>
           <View style={styles.progressTrack}>
-            <View
-              style={[styles.progressFill, { width: `${progress * 100}%` }]}
-            />
+            <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
           </View>
         </View>
         <View style={styles.backButton} />
@@ -132,12 +126,7 @@ const ScreenLayout: React.FC<ScreenLayoutProps> = ({
             { opacity: pressed ? 0.6 : 1 },
             // Positionner en dessous du bouton Continue, ou en bas si pas de bouton Continue
             {
-              bottom:
-                insets.bottom > 0
-                  ? insets.bottom
-                  : Platform.OS === 'ios'
-                    ? rs(12)
-                    : rs(20),
+              bottom: insets.bottom > 0 ? insets.bottom : Platform.OS === 'ios' ? rs(12) : rs(20),
             },
           ]}
         >

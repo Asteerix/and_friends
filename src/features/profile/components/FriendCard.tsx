@@ -1,4 +1,3 @@
-
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -55,16 +54,12 @@ export default function FriendCard({
     }
   };
 
-  const isOnline = friend.last_seen && 
-    new Date(friend.last_seen) > new Date(Date.now() - 5 * 60 * 1000);
+  const isOnline =
+    friend.last_seen && new Date(friend.last_seen) > new Date(Date.now() - 5 * 60 * 1000);
 
   return (
     <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-      <TouchableOpacity
-        onPress={handlePress}
-        style={styles.container}
-        activeOpacity={0.7}
-      >
+      <TouchableOpacity onPress={handlePress} style={styles.container} activeOpacity={0.7}>
         <View style={styles.content}>
           {/* Avatar */}
           <View style={styles.avatarContainer}>
@@ -75,16 +70,11 @@ export default function FriendCard({
                 onError={() => setImageError(true)}
               />
             ) : (
-              <LinearGradient
-                colors={['#667eea', '#764ba2']}
-                style={styles.avatar}
-              >
-                <Text style={styles.avatarText}>
-                  {friend.full_name.charAt(0).toUpperCase()}
-                </Text>
+              <LinearGradient colors={['#667eea', '#764ba2']} style={styles.avatar}>
+                <Text style={styles.avatarText}>{friend.full_name.charAt(0).toUpperCase()}</Text>
               </LinearGradient>
             )}
-            
+
             {isOnline && <View style={styles.onlineIndicator} />}
           </View>
 
@@ -112,14 +102,16 @@ export default function FriendCard({
                 <View style={styles.metaItem}>
                   <Ionicons name="people-outline" size={12} color="#666" />
                   <Text style={styles.metaText}>
-                    {friend.mutual_friends_count} ami{friend.mutual_friends_count > 1 ? 's' : ''} en commun
+                    {friend.mutual_friends_count} ami{friend.mutual_friends_count > 1 ? 's' : ''} en
+                    commun
                   </Text>
                 </View>
               )}
 
               {friend.last_seen && !isOnline && (
                 <Text style={styles.lastSeen}>
-                  Vu {formatDistanceToNow(new Date(friend.last_seen), {
+                  Vu{' '}
+                  {formatDistanceToNow(new Date(friend.last_seen), {
                     addSuffix: true,
                     locale: fr,
                   })}
@@ -132,21 +124,15 @@ export default function FriendCard({
           {showActions && (
             <View style={styles.actions}>
               {onMessage && (
-                <TouchableOpacity
-                  onPress={onMessage}
-                  style={styles.actionButton}
-                >
+                <TouchableOpacity onPress={onMessage} style={styles.actionButton}>
                   <BlurView intensity={80} style={styles.actionButtonContent}>
                     <Ionicons name="chatbubble-outline" size={18} color="#fff" />
                   </BlurView>
                 </TouchableOpacity>
               )}
-              
+
               {onRemove && (
-                <TouchableOpacity
-                  onPress={onRemove}
-                  style={styles.actionButton}
-                >
+                <TouchableOpacity onPress={onRemove} style={styles.actionButton}>
                   <BlurView intensity={80} style={styles.actionButtonContent}>
                     <Ionicons name="person-remove-outline" size={18} color="#ff4444" />
                   </BlurView>

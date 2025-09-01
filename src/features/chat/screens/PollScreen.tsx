@@ -1,26 +1,35 @@
 import * as Haptics from 'expo-haptics';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import React, { useState, useEffect } from 'react';
-import { Animated, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  Animated,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-
 import { usePollStore, PollOption } from '@/hooks/usePollStore';
 import CustomText, { AfterHoursText } from '@/shared/ui/CustomText';
 
 export default function PollScreen() {
   const router = useRouter();
-  
+
   const params = useLocalSearchParams<{ chatId?: string; mode?: string; pollId?: string }>();
   const { chatId = '', mode = 'create', pollId } = params;
-  
+
   const [question, setQuestion] = useState('');
   const [options, setOptions] = useState<string[]>(['', '']);
   const [selectedOptions, setSelectedOptions] = useState<Set<string>>(new Set());
-  const [animatedValues] = useState(() => 
-    Array(10).fill(0).map(() => new Animated.Value(0))
+  const [animatedValues] = useState(() =>
+    Array(10)
+      .fill(0)
+      .map(() => new Animated.Value(0))
   );
-  
+
   const { createPoll, vote, getPoll } = usePollStore();
   const existingPoll = mode === 'vote' && pollId ? getPoll(pollId) : null;
 
@@ -67,11 +76,11 @@ export default function PollScreen() {
   };
 
   const handleCreatePoll = async () => {
-    if (!question.trim() || options.filter(o => o.trim()).length < 2) {
+    if (!question.trim() || options.filter((o) => o.trim()).length < 2) {
       return;
     }
 
-    const filteredOptions = options.filter(o => o.trim());
+    const filteredOptions = options.filter((o) => o.trim());
 
     await createPoll({
       question,
@@ -96,7 +105,7 @@ export default function PollScreen() {
       newSelection.clear(); // Always clear for single choice polls
       newSelection.add(optionId);
     }
-    
+
     setSelectedOptions(newSelection);
     vote(existingPoll.id, optionId);
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -122,7 +131,7 @@ export default function PollScreen() {
             {existingPoll.options.map((option, index) => {
               // const percentage = getVotePercentage(option);
               const isSelected = selectedOptions.has(option.id);
-              
+
               return (
                 <TouchableOpacity
                   key={option.id}
@@ -138,7 +147,7 @@ export default function PollScreen() {
                       {option.votes} {option.votes === 1 ? 'vote' : 'votes'}
                     </CustomText>
                   </View>
-                  
+
                   <Animated.View
                     style={[
                       styles.voteBar,
@@ -198,7 +207,7 @@ export default function PollScreen() {
             <CustomText size="sm" color="#666" style={styles.sectionLabel}>
               OPTIONS
             </CustomText>
-            
+
             {options.map((option, index) => (
               <View key={index} style={styles.optionInputContainer}>
                 <TextInput
@@ -214,18 +223,19 @@ export default function PollScreen() {
                     onPress={() => handleRemoveOption(index)}
                     style={styles.removeButton}
                   >
-                    <CustomText size="lg" color="#FF3B30">−</CustomText>
+                    <CustomText size="lg" color="#FF3B30">
+                      −
+                    </CustomText>
                   </TouchableOpacity>
                 )}
               </View>
             ))}
 
             {options.length < 5 && (
-              <TouchableOpacity
-                style={styles.addOptionButton}
-                onPress={handleAddOption}
-              >
-                <CustomText size="md" color="#007AFF">+ Add option</CustomText>
+              <TouchableOpacity style={styles.addOptionButton} onPress={handleAddOption}>
+                <CustomText size="md" color="#007AFF">
+                  + Add option
+                </CustomText>
               </TouchableOpacity>
             )}
           </View>

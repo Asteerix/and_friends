@@ -32,17 +32,14 @@ export class MessageCacheService {
     try {
       // Garder seulement les derniers messages pour économiser l'espace
       const messagesToCache = messages.slice(-this.MAX_MESSAGES_PER_CHAT);
-      
+
       const cacheEntry: CacheEntry<Message[]> = {
         data: messagesToCache,
         timestamp: Date.now(),
         expiresAt: Date.now() + this.DEFAULT_TTL,
       };
 
-      await AsyncStorage.setItem(
-        this.getMessagesKey(chatId),
-        JSON.stringify(cacheEntry)
-      );
+      await AsyncStorage.setItem(this.getMessagesKey(chatId), JSON.stringify(cacheEntry));
     } catch (error) {
       console.error('Erreur lors de la mise en cache des messages:', error);
     }
@@ -55,7 +52,7 @@ export class MessageCacheService {
       if (!cached) return null;
 
       const cacheEntry: CacheEntry<Message[]> = JSON.parse(cached);
-      
+
       // Vérifier si le cache a expiré
       if (Date.now() > cacheEntry.expiresAt) {
         await this.invalidateMessages(chatId);
@@ -79,17 +76,21 @@ export class MessageCacheService {
       const updatedMessages = [...cached, message].slice(-this.MAX_MESSAGES_PER_CHAT);
       await this.cacheMessages(chatId, updatedMessages);
     } catch (error) {
-      console.error('Erreur lors de l\'ajout du message au cache:', error);
+      console.error("Erreur lors de l'ajout du message au cache:", error);
     }
   }
 
   // Mettre à jour un message dans le cache
-  static async updateCachedMessage(chatId: string, messageId: string, updates: Partial<Message>): Promise<void> {
+  static async updateCachedMessage(
+    chatId: string,
+    messageId: string,
+    updates: Partial<Message>
+  ): Promise<void> {
     try {
       const cached = await this.getCachedMessages(chatId);
       if (!cached) return;
 
-      const updatedMessages = cached.map(msg =>
+      const updatedMessages = cached.map((msg) =>
         msg.id === messageId ? { ...msg, ...updates } : msg
       );
 
@@ -104,7 +105,7 @@ export class MessageCacheService {
     try {
       await AsyncStorage.removeItem(this.getMessagesKey(chatId));
     } catch (error) {
-      console.error('Erreur lors de l\'invalidation du cache:', error);
+      console.error("Erreur lors de l'invalidation du cache:", error);
     }
   }
 
@@ -117,10 +118,7 @@ export class MessageCacheService {
         expiresAt: Date.now() + this.DEFAULT_TTL,
       };
 
-      await AsyncStorage.setItem(
-        this.getChatsListKey(),
-        JSON.stringify(cacheEntry)
-      );
+      await AsyncStorage.setItem(this.getChatsListKey(), JSON.stringify(cacheEntry));
     } catch (error) {
       console.error('Erreur lors de la mise en cache des chats:', error);
     }
@@ -133,7 +131,7 @@ export class MessageCacheService {
       if (!cached) return null;
 
       const cacheEntry: CacheEntry<Chat[]> = JSON.parse(cached);
-      
+
       if (Date.now() > cacheEntry.expiresAt) {
         await AsyncStorage.removeItem(this.getChatsListKey());
         return null;
@@ -155,10 +153,7 @@ export class MessageCacheService {
         expiresAt: Date.now() + this.DEFAULT_TTL,
       };
 
-      await AsyncStorage.setItem(
-        this.getChatKey(chat.id),
-        JSON.stringify(cacheEntry)
-      );
+      await AsyncStorage.setItem(this.getChatKey(chat.id), JSON.stringify(cacheEntry));
     } catch (error) {
       console.error('Erreur lors de la mise en cache du chat:', error);
     }
@@ -171,7 +166,7 @@ export class MessageCacheService {
       if (!cached) return null;
 
       const cacheEntry: CacheEntry<Chat> = JSON.parse(cached);
-      
+
       if (Date.now() > cacheEntry.expiresAt) {
         await AsyncStorage.removeItem(this.getChatKey(chatId));
         return null;
@@ -188,7 +183,7 @@ export class MessageCacheService {
   static async clearAllCache(): Promise<void> {
     try {
       const keys = await AsyncStorage.getAllKeys();
-      const cacheKeys = keys.filter(key => key.startsWith(this.CACHE_PREFIX));
+      const cacheKeys = keys.filter((key) => key.startsWith(this.CACHE_PREFIX));
       await AsyncStorage.multiRemove(cacheKeys);
     } catch (error) {
       console.error('Erreur lors du nettoyage du cache:', error);
@@ -199,8 +194,8 @@ export class MessageCacheService {
   static async getCacheSize(): Promise<number> {
     try {
       const keys = await AsyncStorage.getAllKeys();
-      const cacheKeys = keys.filter(key => key.startsWith(this.CACHE_PREFIX));
-      
+      const cacheKeys = keys.filter((key) => key.startsWith(this.CACHE_PREFIX));
+
       let totalSize = 0;
       for (const key of cacheKeys) {
         const value = await AsyncStorage.getItem(key);
@@ -208,7 +203,7 @@ export class MessageCacheService {
           totalSize += value.length;
         }
       }
-      
+
       return totalSize;
     } catch (error) {
       console.error('Erreur lors du calcul de la taille du cache:', error);
@@ -220,8 +215,8 @@ export class MessageCacheService {
   static async cleanExpiredEntries(): Promise<void> {
     try {
       const keys = await AsyncStorage.getAllKeys();
-      const cacheKeys = keys.filter(key => key.startsWith(this.CACHE_PREFIX));
-      
+      const cacheKeys = keys.filter((key) => key.startsWith(this.CACHE_PREFIX));
+
       for (const key of cacheKeys) {
         const value = await AsyncStorage.getItem(key);
         if (value) {
@@ -246,7 +241,7 @@ export class MessageCacheService {
     try {
       // Limiter à 10 chats maximum pour éviter de surcharger
       const chatsToPreload = chatIds.slice(0, 10);
-      
+
       for (const chatId of chatsToPreload) {
         const cached = await this.getCachedMessages(chatId);
         if (!cached || cached.length === 0) {

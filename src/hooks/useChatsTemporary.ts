@@ -34,14 +34,14 @@ export const useChatsTemporary = () => {
           created_at: new Date().toISOString(),
         },
         unreadCount: 0,
-      }
+      },
     ]);
 
     // Show informative alert once
     const timer = setTimeout(() => {
       Alert.alert(
         'Maintenance en cours',
-        'Les conversations sont temporairement indisponibles en raison d\'une maintenance de sécurité. Nous travaillons à résoudre le problème.',
+        "Les conversations sont temporairement indisponibles en raison d'une maintenance de sécurité. Nous travaillons à résoudre le problème.",
         [{ text: 'Compris' }]
       );
     }, 1000);

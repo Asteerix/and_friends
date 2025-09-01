@@ -1,8 +1,6 @@
 import * as Haptics from 'expo-haptics';
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { AccessibilityInfo } from 'react-native';
-
-
 import { supabase } from '@/shared/lib/supabase/client';
 import { t } from '@/shared/locales';
 
@@ -12,7 +10,7 @@ interface UseOtpVerificationProps {
   countryCode: string; // Ajouté pour contexte, pourrait être utile
   onSuccess: () => void;
   lang: 'fr' | 'en';
-};
+}
 export function useOtpVerification({
   phone, // Changé de email à phone
   callingCode, // Ajouté
@@ -51,16 +49,12 @@ export function useOtpVerification({
       const codeToVerify = typeof inputCode === 'string' ? inputCode : code;
       if (codeToVerify.length !== 6) return;
       if (alreadyVerifiedRef.current) {
-        console.log(
-          '[OTP] verifyOtp invoked but alreadyVerifiedRef=true, skipping.'
-        );
+        console.log('[OTP] verifyOtp invoked but alreadyVerifiedRef=true, skipping.');
         return;
       }
       // --- AJOUT POUR TEST: code magique 262879 ---
       if (codeToVerify === '262879') {
-        await Haptics.notificationAsync(
-          Haptics.NotificationFeedbackType.Success
-        );
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         setError(false);
         setErrorMessage('');
         onSuccess();
@@ -87,12 +81,11 @@ export function useOtpVerification({
 
       try {
         // Utilisation de verifyOtp pour la v2 de supabase-js
-        const { data, error: verificationError } =
-          await supabase.auth.verifyOtp({
-            phone: fullPhoneNumberForVerification, // Utiliser le numéro de téléphone complet
-            token: codeToVerify,
-            type: 'sms', // Spécifier le type SMS
-          });
+        const { data, error: verificationError } = await supabase.auth.verifyOtp({
+          phone: fullPhoneNumberForVerification, // Utiliser le numéro de téléphone complet
+          token: codeToVerify,
+          type: 'sms', // Spécifier le type SMS
+        });
 
         console.log(
           '[useOtpVerification] Supabase verifyOtp response. Data:',
@@ -102,9 +95,7 @@ export function useOtpVerification({
         );
 
         if (verificationError) {
-          await Haptics.notificationAsync(
-            Haptics.NotificationFeedbackType.Error
-          );
+          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
           setError(true);
           // Adapter le message d'erreur si nécessaire, ex: "code_sms_invalide"
           const specificMessage =
@@ -122,9 +113,7 @@ export function useOtpVerification({
           );
         } else if (data && (data.session || data.user)) {
           // Vérifier la présence de session ou user dans data
-          await Haptics.notificationAsync(
-            Haptics.NotificationFeedbackType.Success
-          );
+          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           setError(false);
           setErrorMessage('');
           onSuccess();
@@ -136,16 +125,11 @@ export function useOtpVerification({
           );
           setError(true);
           setErrorMessage(t('unexpected_error_no_session', lang)); // Nouveau message à ajouter aux traductions
-          AccessibilityInfo.announceForAccessibility(
-            t('unexpected_error_no_session', lang)
-          );
+          AccessibilityInfo.announceForAccessibility(t('unexpected_error_no_session', lang));
           alreadyVerifiedRef.current = false;
         }
       } catch (err: unknown) {
-        console.error(
-          '[useOtpVerification] Catch block error in verifyCode:',
-          err
-        );
+        console.error('[useOtpVerification] Catch block error in verifyCode:', err);
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         setError(true);
         setErrorMessage(t('unexpected_error', lang));
@@ -166,10 +150,7 @@ export function useOtpVerification({
     setErrorMessage('');
 
     const fullPhoneNumberForResend = `+${callingCode}${phone}`;
-    console.log(
-      '[useOtpVerification] Attempting to resend OTP to:',
-      fullPhoneNumberForResend
-    );
+    console.log('[useOtpVerification] Attempting to resend OTP to:', fullPhoneNumberForResend);
 
     try {
       // Utilisation de signInWithOtp pour renvoyer un code par SMS
@@ -188,9 +169,7 @@ export function useOtpVerification({
       if (resendError) {
         setError(true);
         setErrorMessage(t('error_resending_otp', lang));
-        AccessibilityInfo.announceForAccessibility(
-          t('error_resending_otp', lang)
-        );
+        AccessibilityInfo.announceForAccessibility(t('error_resending_otp', lang));
         console.error(
           '[useOtpVerification] Error in resendCode:',
           JSON.stringify(resendError, null, 2)
@@ -198,15 +177,10 @@ export function useOtpVerification({
       } else {
         resetTimer();
         // Optionnel: informer l'utilisateur que le code a été renvoyé
-        AccessibilityInfo.announceForAccessibility(
-          t('otp_resent_successfully', lang)
-        ); // Nouveau message
+        AccessibilityInfo.announceForAccessibility(t('otp_resent_successfully', lang)); // Nouveau message
       }
     } catch (err: unknown) {
-      console.error(
-        '[useOtpVerification] Catch block error in resendCode:',
-        err
-      );
+      console.error('[useOtpVerification] Catch block error in resendCode:', err);
       setError(true);
       setErrorMessage(t('unexpected_error', lang));
       AccessibilityInfo.announceForAccessibility(t('unexpected_error', lang));

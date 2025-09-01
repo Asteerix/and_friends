@@ -20,7 +20,7 @@ export function withNetworkFallback<P extends object>(
     const handleRetry = useCallback(async () => {
       setIsRetrying(true);
       // Force a re-render after a delay to check network status again
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       setIsRetrying(false);
     }, []);
 
@@ -32,11 +32,7 @@ export function withNetworkFallback<P extends object>(
     // Show fallback screen when no internet
     if (!isInternetReachable) {
       return (
-        <NetworkFallback
-          onRetry={handleRetry}
-          isRetrying={isRetrying}
-          message={customMessage}
-        />
+        <NetworkFallback onRetry={handleRetry} isRetrying={isRetrying} message={customMessage} />
       );
     }
 

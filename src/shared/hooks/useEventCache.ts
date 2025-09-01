@@ -9,7 +9,7 @@ export function useEventDetails(eventId: string) {
     queryKey: ['event', 'details', eventId],
     queryFn: async () => {
       const cacheKey = CacheKeys.EVENT_DETAILS(eventId);
-      
+
       // Try cache first
       const cached = eventCache.get<Event>(cacheKey);
       if (cached) {
@@ -19,7 +19,8 @@ export function useEventDetails(eventId: string) {
       // Fetch from API
       const { data, error } = await supabase
         .from('events')
-        .select(`
+        .select(
+          `
           *,
           creator:profiles!events_creator_id_fkey(*),
           participants:event_participants(
@@ -27,7 +28,8 @@ export function useEventDetails(eventId: string) {
             status,
             profile:profiles(*)
           )
-        `)
+        `
+        )
         .eq('id', eventId)
         .single();
 
@@ -35,7 +37,7 @@ export function useEventDetails(eventId: string) {
 
       // Cache the result
       await eventCache.set(cacheKey, data, { ttl: 30 * 60 * 1000 }); // 30 minutes
-      
+
       return data as Event;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -50,12 +52,12 @@ export function useEventsList(filters?: {
   creatorId?: string;
 }) {
   const filterKey = JSON.stringify(filters || {});
-  
+
   return useInfiniteQuery({
     queryKey: ['events', 'list', filterKey],
     queryFn: async ({ pageParam = 0 }) => {
       const cacheKey = CacheKeys.EVENTS_LIST(`${filterKey}-${pageParam}`);
-      
+
       // Try cache first
       const cached = eventCache.get<any>(cacheKey);
       if (cached) {
@@ -64,11 +66,13 @@ export function useEventsList(filters?: {
 
       let query = supabase
         .from('events')
-        .select(`
+        .select(
+          `
           *,
           creator:profiles!events_creator_id_fkey(*),
           _count:event_participants(count)
-        `)
+        `
+        )
         .order('date', { ascending: false })
         .range(pageParam * 20, (pageParam + 1) * 20 - 1);
 
@@ -97,7 +101,7 @@ export function useEventsList(filters?: {
 
       // Cache the result
       await eventCache.set(cacheKey, result, { ttl: 10 * 60 * 1000 }); // 10 minutes
-      
+
       return result;
     },
     getNextPageParam: (lastPage) => lastPage.nextPage,
@@ -111,7 +115,7 @@ export function useNearbyEvents(lat: number, lng: number, radiusKm: number = 10)
     queryKey: ['events', 'nearby', lat, lng, radiusKm],
     queryFn: async () => {
       const cacheKey = CacheKeys.EVENTS_NEARBY(lat, lng, radiusKm);
-      
+
       // Try cache first
       const cached = eventCache.get<Event[]>(cacheKey);
       if (cached) {
@@ -129,7 +133,7 @@ export function useNearbyEvents(lat: number, lng: number, radiusKm: number = 10)
 
       // Cache the result
       await eventCache.set(cacheKey, data, { ttl: 10 * 60 * 1000 }); // 10 minutes
-      
+
       return data as Event[];
     },
     staleTime: 5 * 60 * 1000,
@@ -142,7 +146,7 @@ export function useEventParticipants(eventId: string) {
     queryKey: ['event', 'participants', eventId],
     queryFn: async () => {
       const cacheKey = CacheKeys.EVENT_PARTICIPANTS(eventId);
-      
+
       // Try cache first
       const cached = eventCache.get<any[]>(cacheKey);
       if (cached) {
@@ -151,10 +155,12 @@ export function useEventParticipants(eventId: string) {
 
       const { data, error } = await supabase
         .from('event_participants')
-        .select(`
+        .select(
+          `
           *,
           profile:profiles(*)
-        `)
+        `
+        )
         .eq('event_id', eventId)
         .eq('status', 'going');
 
@@ -162,7 +168,7 @@ export function useEventParticipants(eventId: string) {
 
       // Cache the result
       await eventCache.set(cacheKey, data, { ttl: 10 * 60 * 1000 }); // 10 minutes
-      
+
       return data;
     },
     staleTime: 2 * 60 * 1000, // 2 minutes
@@ -172,7 +178,7 @@ export function useEventParticipants(eventId: string) {
 
 export function useInvalidateEventCache() {
   const queryClient = useQueryClient();
-  
+
   return {
     invalidateEvent: (eventId: string) => {
       eventCache.delete(CacheKeys.EVENT_DETAILS(eventId));
@@ -183,7 +189,7 @@ export function useInvalidateEventCache() {
     invalidateEventsList: () => {
       // Clear all event list caches
       const keys = eventCache.getAllKeys();
-      keys.forEach(key => {
+      keys.forEach((key) => {
         if (key.startsWith('events:list:')) {
           eventCache.delete(key);
         }
@@ -193,7 +199,7 @@ export function useInvalidateEventCache() {
     invalidateNearbyEvents: () => {
       // Clear all nearby event caches
       const keys = eventCache.getAllKeys();
-      keys.forEach(key => {
+      keys.forEach((key) => {
         if (key.startsWith('events:nearby:')) {
           eventCache.delete(key);
         }
@@ -211,14 +217,10 @@ export function useInvalidateEventCache() {
 export function useCreateEvent() {
   const queryClient = useQueryClient();
   const { invalidateEventsList, invalidateNearbyEvents } = useInvalidateEventCache();
-  
+
   return useMutation({
     mutationFn: async (eventData: Partial<Event>) => {
-      const { data, error } = await supabase
-        .from('events')
-        .insert(eventData)
-        .select()
-        .single();
+      const { data, error } = await supabase.from('events').insert(eventData).select().single();
 
       if (error) throw error;
       return data;
@@ -233,7 +235,7 @@ export function useCreateEvent() {
 
 export function useUpdateEvent() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async ({ eventId, updates }: { eventId: string; updates: Partial<Event> }) => {
       const { data, error } = await supabase
@@ -250,7 +252,7 @@ export function useUpdateEvent() {
       // Update cache
       const cacheKey = CacheKeys.EVENT_DETAILS(eventId);
       eventCache.set(cacheKey, data, { ttl: 30 * 60 * 1000 });
-      
+
       // Update React Query cache
       queryClient.setQueryData(['event', 'details', eventId], data);
       queryClient.invalidateQueries({ queryKey: ['events', 'list'] });
@@ -260,9 +262,9 @@ export function useUpdateEvent() {
 
 export function usePrefetchEvents(eventIds: string[]) {
   const queryClient = useQueryClient();
-  
+
   return () => {
-    eventIds.forEach(eventId => {
+    eventIds.forEach((eventId) => {
       queryClient.prefetchQuery({
         queryKey: ['event', 'details', eventId],
         queryFn: async () => {
@@ -272,7 +274,8 @@ export function usePrefetchEvents(eventIds: string[]) {
 
           const { data, error } = await supabase
             .from('events')
-            .select(`
+            .select(
+              `
               *,
               creator:profiles!events_creator_id_fkey(*),
               participants:event_participants(
@@ -280,12 +283,13 @@ export function usePrefetchEvents(eventIds: string[]) {
                 status,
                 profile:profiles(*)
               )
-            `)
+            `
+            )
             .eq('id', eventId)
             .single();
 
           if (error) throw error;
-          
+
           await eventCache.set(cacheKey, data, { ttl: 30 * 60 * 1000 });
           return data as Event;
         },

@@ -88,79 +88,79 @@ const LoadingScreen: React.FC = () => {
                 </View>
               </>
             )}
-          {step === 'success' && (
-            <>
-              <Animated.View style={[styles.checkCircle, { backgroundColor: COLORS.green }]}>
-                <Animated.View
-                  style={{
-                    position: 'absolute',
-                    left: 18,
-                    top: 28,
-                    width: 24,
-                    height: 12,
-                    borderLeftWidth: 4,
-                    borderBottomWidth: 4,
-                    borderColor: COLORS.white,
-                    borderRadius: 4,
-                    transform: [
-                      {
-                        scaleX: checkAnim.interpolate({
-                          inputRange: [0, 0.5, 1],
-                          outputRange: [0, 1, 1],
-                        }),
-                      },
-                      {
-                        scaleY: checkAnim.interpolate({
-                          inputRange: [0, 0.5, 1],
-                          outputRange: [0, 1, 1],
-                        }),
-                      },
-                      {
-                        rotate: checkAnim.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: ['-45deg', '-45deg'],
-                        }),
-                      },
-                    ],
+            {step === 'success' && (
+              <>
+                <Animated.View style={[styles.checkCircle, { backgroundColor: COLORS.green }]}>
+                  <Animated.View
+                    style={{
+                      position: 'absolute',
+                      left: 18,
+                      top: 28,
+                      width: 24,
+                      height: 12,
+                      borderLeftWidth: 4,
+                      borderBottomWidth: 4,
+                      borderColor: COLORS.white,
+                      borderRadius: 4,
+                      transform: [
+                        {
+                          scaleX: checkAnim.interpolate({
+                            inputRange: [0, 0.5, 1],
+                            outputRange: [0, 1, 1],
+                          }),
+                        },
+                        {
+                          scaleY: checkAnim.interpolate({
+                            inputRange: [0, 0.5, 1],
+                            outputRange: [0, 1, 1],
+                          }),
+                        },
+                        {
+                          rotate: checkAnim.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: ['-45deg', '-45deg'],
+                          }),
+                        },
+                      ],
+                    }}
+                  />
+                </Animated.View>
+                <View style={styles.textContainer}>
+                  <Text style={styles.successText}>All set!</Text>
+                  <Text style={styles.successSubtext}>Welcome to the adventure 🎉</Text>
+                </View>
+              </>
+            )}
+            {step === 'error' && (
+              <>
+                <View style={styles.textContainer}>
+                  <Text style={[styles.errorText]}>Oops...</Text>
+                  <Text style={styles.errorSubtext}>{errorMsg || 'Something went wrong.'}</Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.retryBtn}
+                  onPress={() => {
+                    setStep('loading');
+                    setErrorMsg(null);
+                    setTimeout(() => {
+                      router.replace('/(tabs)/home');
+                    }, 500);
                   }}
-                />
-              </Animated.View>
-              <View style={styles.textContainer}>
-                <Text style={styles.successText}>All set!</Text>
-                <Text style={styles.successSubtext}>Welcome to the adventure 🎉</Text>
-              </View>
-            </>
-          )}
-          {step === 'error' && (
-            <>
-              <View style={styles.textContainer}>
-                <Text style={[styles.errorText]}>Oops...</Text>
-                <Text style={styles.errorSubtext}>{errorMsg || 'Something went wrong.'}</Text>
-              </View>
-              <TouchableOpacity
-                style={styles.retryBtn}
-                onPress={() => {
-                  setStep('loading');
-                  setErrorMsg(null);
-                  setTimeout(() => {
-                    router.replace('/(tabs)/home');
-                  }, 500);
-                }}
-              >
-                <Text style={styles.retryText}>Access the app</Text>
-              </TouchableOpacity>
-            </>
-          )}
-        </View>
-      </SafeAreaView>
-    </ImageBackground>
-  </View>
+                >
+                  <Text style={styles.retryText}>Access the app</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </SafeAreaView>
+      </ImageBackground>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  root: { 
-    flex: 1, 
+  root: {
+    flex: 1,
     backgroundColor: COLORS.blue,
   },
   backgroundImage: {
@@ -171,10 +171,10 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
   },
-  centered: { 
-    flex: 1, 
-    justifyContent: 'center', 
-    alignItems: 'center', 
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
     width: '100%',
   },
   spinner: {

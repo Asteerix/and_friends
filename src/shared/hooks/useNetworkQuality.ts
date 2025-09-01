@@ -49,30 +49,29 @@ export function useNetworkQuality(): UseNetworkQualityResult {
     }
 
     setIsTestingQuality(true);
-    
+
     try {
       // Test de latence (ping)
       const latency = await testLatency();
-      
+
       // Test de bande passante
       const bandwidth = await testBandwidth();
-      
+
       // Estimation du packet loss et jitter
       const { packetLoss, jitter } = await testNetworkStability();
-      
+
       const newMetrics: NetworkQualityMetrics = {
         latency,
         bandwidth,
         packetLoss,
-        jitter
+        jitter,
       };
-      
+
       setMetrics(newMetrics);
-      
+
       // Calcul de la qualité globale
       const calculatedQuality = calculateQuality(newMetrics);
       setQuality(calculatedQuality);
-      
     } catch (error) {
       console.error('Network quality test failed:', error);
       setQuality('poor');
@@ -86,9 +85,9 @@ export function useNetworkQuality(): UseNetworkQualityResult {
       const slowTypes = ['2g', '3g', 'slow-2g'];
       const cellularGeneration = (state.details as any)?.cellularGeneration;
       const isConnectionExpensive = (state.details as any)?.isConnectionExpensive || false;
-      
+
       setNetworkState({
-        isSlowConnection: 
+        isSlowConnection:
           (cellularGeneration && slowTypes.includes(cellularGeneration.toLowerCase())) ||
           isConnectionExpensive ||
           (state.type === NetInfoStateType.cellular && !cellularGeneration),
@@ -127,42 +126,43 @@ export function useNetworkQuality(): UseNetworkQualityResult {
     quality,
     metrics,
     isTestingQuality,
-    testQuality
+    testQuality,
   };
 }
 
 async function testLatency(): Promise<number> {
   const startTime = Date.now();
-  
+
   try {
     // Ping vers un serveur rapide (ex: Cloudflare DNS)
     await fetch('https://1.1.1.1/dns-query', {
       method: 'HEAD',
-      mode: 'no-cors'
+      mode: 'no-cors',
     });
-    
+
     return Date.now() - startTime;
   } catch {
     // Fallback: test avec un autre serveur
     const fallbackStart = Date.now();
     await fetch('https://www.google.com/generate_204', {
       method: 'HEAD',
-      mode: 'no-cors'
+      mode: 'no-cors',
     });
     return Date.now() - fallbackStart;
   }
 }
 
 async function testBandwidth(): Promise<number> {
-  const testImageUrl = 'https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png';
+  const testImageUrl =
+    'https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png';
   const startTime = Date.now();
-  
+
   try {
     const response = await fetch(testImageUrl);
     const blob = await response.blob();
     const duration = (Date.now() - startTime) / 1000; // en secondes
     const sizeInKB = blob.size / 1024;
-    
+
     // Bande passante en KB/s
     return sizeInKB / duration;
   } catch {
@@ -174,25 +174,25 @@ async function testNetworkStability(): Promise<{ packetLoss: number; jitter: num
   const pingCount = 5;
   const latencies: number[] = [];
   let failures = 0;
-  
+
   for (let i = 0; i < pingCount; i++) {
     try {
       const start = Date.now();
       await fetch('https://1.1.1.1/dns-query', {
         method: 'HEAD',
-        mode: 'no-cors'
+        mode: 'no-cors',
       });
       latencies.push(Date.now() - start);
     } catch {
       failures++;
     }
-    
+
     // Petit délai entre les pings
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
   }
-  
+
   const packetLoss = (failures / pingCount) * 100;
-  
+
   // Calcul du jitter (variation de latence)
   let jitter = 0;
   if (latencies.length > 1) {
@@ -201,13 +201,13 @@ async function testNetworkStability(): Promise<{ packetLoss: number; jitter: num
     }
     jitter = jitter / (latencies.length - 1);
   }
-  
+
   return { packetLoss, jitter };
 }
 
 function calculateQuality(metrics: NetworkQualityMetrics): UseNetworkQualityResult['quality'] {
   const { latency, bandwidth, packetLoss, jitter } = metrics;
-  
+
   // Critères de qualité
   if (latency < 50 && bandwidth > 1000 && packetLoss < 1 && jitter < 30) {
     return 'excellent';

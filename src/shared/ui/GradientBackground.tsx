@@ -2,14 +2,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, ViewStyle } from 'react-native';
 
-
 interface GradientBackgroundProps {
   colors: [string, string];
   style?: ViewStyle;
   animated?: boolean;
   duration?: number;
   children?: React.ReactNode;
-};
+}
 export const gradientPresets = {
   splash: ['#FF6B6B', '#FF8787'] as [string, string],
   onboarding1: ['#FF6B6B', '#FF8787'] as [string, string],

@@ -1,8 +1,7 @@
 import * as FileSystem from 'expo-file-system';
 import { useState, useCallback } from 'react';
-
-import { decode as base64Decode } from '@/shared/lib/base64';
-import { supabase } from '@/shared/lib/supabase/client';
+import { decode as base64Decode } from '../../../shared/lib/base64';
+import { supabase } from '../../../shared/lib/supabase/client';
 
 interface VoiceMessageData {
   uri: string;

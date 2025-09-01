@@ -91,7 +91,7 @@ export default function VoiceRecorderModal({
 
       // Update duration
       intervalRef.current = setInterval(() => {
-        setDuration(prev => prev + 1);
+        setDuration((prev) => prev + 1);
       }, 1000);
 
       // Haptic feedback
@@ -108,7 +108,7 @@ export default function VoiceRecorderModal({
     try {
       setIsRecording(false);
       await recording.stopAndUnloadAsync();
-      
+
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
@@ -123,7 +123,7 @@ export default function VoiceRecorderModal({
       setRecording(null);
       setDuration(0);
       animatedScale.stopAnimation();
-      
+
       if (!shouldSend) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       }
@@ -137,22 +137,20 @@ export default function VoiceRecorderModal({
       // Read the file
       const response = await fetch(uri);
       const blob = await response.blob();
-      
+
       // Upload to Supabase
       const fileName = `voice/${Date.now()}.m4a`;
-      const { data, error } = await supabase.storage
-        .from('chat-media')
-        .upload(fileName, blob, {
-          contentType: 'audio/m4a',
-          cacheControl: '3600',
-        });
+      const { data, error } = await supabase.storage.from('chat-media').upload(fileName, blob, {
+        contentType: 'audio/m4a',
+        cacheControl: '3600',
+      });
 
       if (error) throw error;
 
       // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('chat-media')
-        .getPublicUrl(fileName);
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from('chat-media').getPublicUrl(fileName);
 
       onSend(publicUrl, duration);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -178,12 +176,7 @@ export default function VoiceRecorderModal({
   };
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={handleCancel}
-    >
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={handleCancel}>
       <View style={styles.container}>
         <View style={styles.content}>
           <TouchableOpacity style={styles.cancelButton} onPress={handleCancel}>
@@ -191,17 +184,14 @@ export default function VoiceRecorderModal({
           </TouchableOpacity>
 
           <View style={styles.recordingInfo}>
-            <Animated.View 
-              style={[
-                styles.recordingIndicator,
-                { transform: [{ scale: animatedScale }] }
-              ]}
+            <Animated.View
+              style={[styles.recordingIndicator, { transform: [{ scale: animatedScale }] }]}
             >
               <View style={styles.recordingDot} />
             </Animated.View>
-            
+
             <Text style={styles.duration}>{formatDuration(duration)}</Text>
-            
+
             <Text style={styles.hint}>
               {isRecording ? 'Enregistrement...' : 'Appuyez pour enregistrer'}
             </Text>
@@ -217,7 +207,7 @@ export default function VoiceRecorderModal({
                   {
                     height: Math.random() * 40 + 10,
                     opacity: isRecording ? 1 : 0.3,
-                  }
+                  },
                 ]}
               />
             ))}

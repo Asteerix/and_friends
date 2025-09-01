@@ -20,12 +20,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-
+import { StoryFrame } from '../components/StoryFrame';
 import { useStories } from '@/shared/providers/StoriesContext';
 import { useSession } from '@/shared/providers/SessionContext';
 import { useMemories } from '@/shared/providers/MemoriesProvider';
 import CustomText from '@/shared/ui/CustomText';
-import { StoryFrame } from '../components/StoryFrame';
 import { supabase } from '@/shared/lib/supabase/client';
 import ReportModal from '@/features/reports/components/ReportModal';
 
@@ -55,13 +54,7 @@ export default function StoryViewerScreen() {
   const { userId, storyId } = useLocalSearchParams<{ userId: string; storyId?: string }>();
   const { session } = useSession();
   const { getStoriesByUser, viewStory, deleteStory } = useStories();
-  const { 
-    replies,
-    fetchReplies,
-    addReply,
-    toggleReplyLike,
-    deleteReply,
-  } = useMemories();
+  const { replies, fetchReplies, addReply, toggleReplyLike, deleteReply } = useMemories();
 
   const [stories, setStories] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -102,7 +95,7 @@ export default function StoryViewerScreen() {
       fetchReplies(stories[currentIndex].id);
     }
   }, [currentIndex, stories, fetchReplies]);
-  
+
   useEffect(() => {
     // Update local replies when global replies change
     setLocalReplies(replies);
@@ -117,12 +110,12 @@ export default function StoryViewerScreen() {
       const userStories = await getStoriesByUser(userId);
       console.log('📚 [StoryViewerScreen] Loaded stories:', {
         count: userStories.length,
-        stories: userStories.map((s, index) => ({ 
-          index, 
-          id: s.id, 
-          user_id: s.user_id, 
-          image_url: s.image_url 
-        }))
+        stories: userStories.map((s, index) => ({
+          index,
+          id: s.id,
+          user_id: s.user_id,
+          image_url: s.image_url,
+        })),
       });
       setStories(userStories);
 
@@ -170,19 +163,19 @@ export default function StoryViewerScreen() {
           // Fetch user profiles separately
           let enrichedViews = viewsData || [];
           if (enrichedViews.length > 0) {
-            const viewerIds = [...new Set(enrichedViews.map(v => v.viewer_id))];
+            const viewerIds = [...new Set(enrichedViews.map((v) => v.viewer_id))];
             const { data: profiles } = await supabase
               .from('profiles')
               .select('id, username, avatar_url, full_name')
               .in('id', viewerIds);
-            
-            const profilesMap = new Map(profiles?.map(p => [p.id, p]) || []);
-            enrichedViews = enrichedViews.map(view => ({
+
+            const profilesMap = new Map(profiles?.map((p) => [p.id, p]) || []);
+            enrichedViews = enrichedViews.map((view) => ({
               ...view,
-              viewer: profilesMap.get(view.viewer_id)
+              viewer: profilesMap.get(view.viewer_id),
             }));
           }
-          
+
           setViewers(enrichedViews);
           console.log('👁️ Loaded', viewsData?.length || 0, 'viewers');
         }
@@ -200,19 +193,19 @@ export default function StoryViewerScreen() {
         // Fetch user profiles separately
         let enrichedLikes = likesData || [];
         if (enrichedLikes.length > 0) {
-          const userIds = [...new Set(enrichedLikes.map(l => l.user_id))];
+          const userIds = [...new Set(enrichedLikes.map((l) => l.user_id))];
           const { data: profiles } = await supabase
             .from('profiles')
             .select('id, username, avatar_url, full_name')
             .in('id', userIds);
-          
-          const profilesMap = new Map(profiles?.map(p => [p.id, p]) || []);
-          enrichedLikes = enrichedLikes.map(like => ({
+
+          const profilesMap = new Map(profiles?.map((p) => [p.id, p]) || []);
+          enrichedLikes = enrichedLikes.map((like) => ({
             ...like,
-            user: profilesMap.get(like.user_id)
+            user: profilesMap.get(like.user_id),
           }));
         }
-        
+
         setLikes(enrichedLikes);
         setHasLiked(likesData?.some((like) => like.user_id === session.user.id) || false);
         console.log('❤️ Loaded', likesData?.length || 0, 'likes');
@@ -227,7 +220,7 @@ export default function StoryViewerScreen() {
   const startProgress = () => {
     // Reset animation
     progressAnim.setValue(0);
-    
+
     // Stop any existing animation
     if (animationRef.current) {
       animationRef.current.stop();
@@ -254,7 +247,7 @@ export default function StoryViewerScreen() {
       currentIndex,
       storiesLength: stories.length,
       userId,
-      stories: stories.map((s, i) => ({ index: i, id: s.id }))
+      stories: stories.map((s, i) => ({ index: i, id: s.id })),
     });
 
     if (currentIndex < stories.length - 1) {
@@ -272,9 +265,9 @@ export default function StoryViewerScreen() {
       // On est sur la dernière story - NE PAS FERMER
       console.log('✅ [StoryViewerScreen] Last story reached, staying on last story', {
         currentIndex,
-        totalStories: stories.length
+        totalStories: stories.length,
       });
-      
+
       // La barre reste pleine, on ne fait rien
       // L'utilisateur devra fermer manuellement avec le bouton X
     }
@@ -398,12 +391,12 @@ export default function StoryViewerScreen() {
           .select('id, username, avatar_url, full_name')
           .eq('id', session.user.id)
           .single();
-        
+
         const enrichedLike = {
           ...data,
-          user: profile
+          user: profile,
         };
-        
+
         setHasLiked(true);
         setLikes([...likes, enrichedLike]);
       }
@@ -412,9 +405,9 @@ export default function StoryViewerScreen() {
 
   const handleSendComment = async () => {
     if (!session?.user?.id || !currentStory || !commentText.trim()) return;
-    
+
     setSendingComment(true);
-    
+
     // Optimistically add the comment
     const newReply: Reply = {
       id: `temp-${Date.now()}`,
@@ -429,26 +422,26 @@ export default function StoryViewerScreen() {
         id: session.user.id,
         username: session.user.user_metadata?.username || 'Unknown',
         avatar_url: session.user.user_metadata?.avatar_url || '',
-        full_name: session.user.user_metadata?.full_name || ''
+        full_name: session.user.user_metadata?.full_name || '',
       },
-      is_liked: false
+      is_liked: false,
     };
 
     // Add to local state immediately
     if (replyingTo) {
       // Add as child reply
-      setLocalReplies(prev => {
+      setLocalReplies((prev) => {
         const updateReplies = (replies: Reply[]): Reply[] => {
-          return replies.map(r => {
+          return replies.map((r) => {
             if (r.id === replyingTo.id) {
               return {
                 ...r,
-                child_replies: [...(r.child_replies || []), newReply]
+                child_replies: [...(r.child_replies || []), newReply],
               };
             } else if (r.child_replies) {
               return {
                 ...r,
-                child_replies: updateReplies(r.child_replies)
+                child_replies: updateReplies(r.child_replies),
               };
             }
             return r;
@@ -458,7 +451,7 @@ export default function StoryViewerScreen() {
       });
     } else {
       // Add as root reply
-      setLocalReplies(prev => [...prev, newReply]);
+      setLocalReplies((prev) => [...prev, newReply]);
     }
 
     setCommentText('');
@@ -473,18 +466,18 @@ export default function StoryViewerScreen() {
       console.error('Error adding comment:', error);
       // Remove optimistic update on error
       if (replyingTo) {
-        setLocalReplies(prev => {
+        setLocalReplies((prev) => {
           const removeReply = (replies: Reply[]): Reply[] => {
-            return replies.map(r => {
+            return replies.map((r) => {
               if (r.id === replyingTo.id && r.child_replies) {
                 return {
                   ...r,
-                  child_replies: r.child_replies.filter(c => c.id !== newReply.id)
+                  child_replies: r.child_replies.filter((c) => c.id !== newReply.id),
                 };
               } else if (r.child_replies) {
                 return {
                   ...r,
-                  child_replies: removeReply(r.child_replies)
+                  child_replies: removeReply(r.child_replies),
                 };
               }
               return r;
@@ -493,7 +486,7 @@ export default function StoryViewerScreen() {
           return removeReply(prev);
         });
       } else {
-        setLocalReplies(prev => prev.filter(r => r.id !== newReply.id));
+        setLocalReplies((prev) => prev.filter((r) => r.id !== newReply.id));
       }
     } finally {
       setSendingComment(false);
@@ -543,7 +536,7 @@ export default function StoryViewerScreen() {
       if (error) throw error;
 
       setMessageText('');
-      
+
       // Show success feedback
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     } catch (error) {
@@ -565,7 +558,8 @@ export default function StoryViewerScreen() {
     try {
       const { data: likesData } = await supabase
         .from('story_likes')
-        .select(`
+        .select(
+          `
           user_id,
           created_at,
           user:profiles!story_likes_user_id_fkey (
@@ -574,7 +568,8 @@ export default function StoryViewerScreen() {
             full_name,
             avatar_url
           )
-        `)
+        `
+        )
         .eq('story_id', currentMemory.id)
         .order('created_at', { ascending: false });
 
@@ -641,32 +636,28 @@ export default function StoryViewerScreen() {
   const handleDeleteComment = async (replyId: string) => {
     if (!session?.user) return;
 
-    Alert.alert(
-      'Supprimer le commentaire',
-      'Êtes-vous sûr de vouloir supprimer ce commentaire ?',
-      [
-        { text: 'Annuler', style: 'cancel' },
-        { 
-          text: 'Supprimer', 
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await deleteReply(replyId);
-            } catch (error) {
-              console.error('Error deleting comment:', error);
-            }
+    Alert.alert('Supprimer le commentaire', 'Êtes-vous sûr de vouloir supprimer ce commentaire ?', [
+      { text: 'Annuler', style: 'cancel' },
+      {
+        text: 'Supprimer',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await deleteReply(replyId);
+          } catch (error) {
+            console.error('Error deleting comment:', error);
           }
-        }
-      ]
-    );
+        },
+      },
+    ]);
   };
 
   const formatCommentTime = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
     const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-    
-    if (diffInMinutes < 1) return 'à l\'instant';
+
+    if (diffInMinutes < 1) return "à l'instant";
     if (diffInMinutes < 60) return `${diffInMinutes}m`;
     if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h`;
     if (diffInMinutes < 10080) return `${Math.floor(diffInMinutes / 1440)}j`;
@@ -691,8 +682,8 @@ export default function StoryViewerScreen() {
             }}
           >
             <Image
-              source={{ 
-                uri: reply.user?.avatar_url || 'https://via.placeholder.com/32' 
+              source={{
+                uri: reply.user?.avatar_url || 'https://via.placeholder.com/32',
               }}
               style={styles.commentAvatar}
             />
@@ -710,7 +701,7 @@ export default function StoryViewerScreen() {
               {reply.text}
             </CustomText>
             <View style={styles.commentActions}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.commentActionButton}
                 onPress={() => setReplyingTo(reply)}
               >
@@ -718,14 +709,14 @@ export default function StoryViewerScreen() {
                   Répondre
                 </CustomText>
               </TouchableOpacity>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.commentActionButton}
                 onPress={() => handleLikeComment(reply)}
               >
-                <Ionicons 
-                  name={reply.is_liked ? "heart" : "heart-outline"} 
-                  size={14} 
-                  color={reply.is_liked ? "#FF4458" : "#666"} 
+                <Ionicons
+                  name={reply.is_liked ? 'heart' : 'heart-outline'}
+                  size={14}
+                  color={reply.is_liked ? '#FF4458' : '#666'}
                 />
                 {reply.likes_count > 0 && (
                   <CustomText size="xs" color="#666" style={{ marginLeft: 4 }}>
@@ -771,7 +762,7 @@ export default function StoryViewerScreen() {
     likesCount: likes.length,
     repliesCount: localReplies.length,
     viewersCount: viewers.length,
-    hasLiked
+    hasLiked,
   });
 
   return (
@@ -861,8 +852,8 @@ export default function StoryViewerScreen() {
         {isOwnStory ? (
           <View style={styles.interactionRow}>
             {/* Views */}
-            <TouchableOpacity 
-              style={styles.interactionItem} 
+            <TouchableOpacity
+              style={styles.interactionItem}
               onPress={() => {
                 setPaused(true);
                 animationRef.current?.stop();
@@ -878,20 +869,14 @@ export default function StoryViewerScreen() {
 
             {/* Likes */}
             <View style={styles.interactionItem}>
-              <TouchableOpacity
-                onPress={handleLike}
-                activeOpacity={0.7}
-              >
+              <TouchableOpacity onPress={handleLike} activeOpacity={0.7}>
                 <Ionicons
-                  name={hasLiked ? "heart" : "heart-outline"}
+                  name={hasLiked ? 'heart' : 'heart-outline'}
                   size={22}
-                  color={hasLiked ? "#FF0000" : "#FFF"}
+                  color={hasLiked ? '#FF0000' : '#FFF'}
                 />
               </TouchableOpacity>
-              <TouchableOpacity
-                onPress={handleShowLikes}
-                activeOpacity={0.7}
-              >
+              <TouchableOpacity onPress={handleShowLikes} activeOpacity={0.7}>
                 <CustomText size="sm" color="#FFF" weight="bold" style={styles.interactionText}>
                   {likes.length}
                 </CustomText>
@@ -899,7 +884,7 @@ export default function StoryViewerScreen() {
             </View>
 
             {/* Comments */}
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.interactionItem}
               onPress={async () => {
                 setPaused(true);
@@ -945,10 +930,7 @@ export default function StoryViewerScreen() {
           <View style={styles.interactionRow}>
             {/* Like */}
             <View style={styles.interactionItem}>
-              <TouchableOpacity
-                onPress={handleLike}
-                activeOpacity={0.7}
-              >
+              <TouchableOpacity onPress={handleLike} activeOpacity={0.7}>
                 <Ionicons
                   name={hasLiked ? 'heart' : 'heart-outline'}
                   size={22}
@@ -956,10 +938,7 @@ export default function StoryViewerScreen() {
                 />
               </TouchableOpacity>
               {likes.length > 0 && (
-                <TouchableOpacity
-                  onPress={handleShowLikes}
-                  activeOpacity={0.7}
-                >
+                <TouchableOpacity onPress={handleShowLikes} activeOpacity={0.7}>
                   <CustomText size="sm" color="#FFF" weight="bold" style={styles.interactionText}>
                     {likes.length}
                   </CustomText>
@@ -1013,15 +992,12 @@ export default function StoryViewerScreen() {
             </TouchableOpacity>
 
             {/* More Options */}
-            <TouchableOpacity 
-              style={styles.interactionItem}
-              onPress={handleReport}
-            >
+            <TouchableOpacity style={styles.interactionItem} onPress={handleReport}>
               <Ionicons name="ellipsis-horizontal" size={22} color="#FFF" />
             </TouchableOpacity>
           </View>
         )}
-        
+
         {/* Message Input for other's stories */}
         {!isOwnStory && (
           <View style={styles.messageInputContainer}>
@@ -1071,11 +1047,13 @@ export default function StoryViewerScreen() {
               <CustomText size="lg" weight="bold">
                 Vues
               </CustomText>
-              <TouchableOpacity onPress={() => {
-                setShowViewers(false);
-                setPaused(false);
-                startProgress();
-              }}>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowViewers(false);
+                  setPaused(false);
+                  startProgress();
+                }}
+              >
                 <Ionicons name="close" size={24} color="#000" />
               </TouchableOpacity>
             </View>
@@ -1128,11 +1106,13 @@ export default function StoryViewerScreen() {
               <CustomText size="lg" weight="bold">
                 Commentaires
               </CustomText>
-              <TouchableOpacity onPress={() => {
-                setShowComments(false);
-                setPaused(false);
-                startProgress();
-              }}>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowComments(false);
+                  setPaused(false);
+                  startProgress();
+                }}
+              >
                 <Ionicons name="close" size={24} color="#000" />
               </TouchableOpacity>
             </View>
@@ -1171,7 +1151,7 @@ export default function StoryViewerScreen() {
             <View style={styles.commentInputContainer}>
               <TextInput
                 style={styles.commentInput}
-                placeholder={replyingTo ? "Écrire une réponse..." : "Ajouter un commentaire..."}
+                placeholder={replyingTo ? 'Écrire une réponse...' : 'Ajouter un commentaire...'}
                 value={commentText}
                 onChangeText={setCommentText}
                 multiline
@@ -1213,11 +1193,13 @@ export default function StoryViewerScreen() {
               <CustomText size="lg" weight="bold">
                 J'aime
               </CustomText>
-              <TouchableOpacity onPress={() => {
-                setShowLikes(false);
-                setPaused(false);
-                startProgress();
-              }}>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowLikes(false);
+                  setPaused(false);
+                  startProgress();
+                }}
+              >
                 <Ionicons name="close" size={24} color="#000" />
               </TouchableOpacity>
             </View>
@@ -1235,8 +1217,7 @@ export default function StoryViewerScreen() {
                   <View key={index} style={styles.viewerItem}>
                     <Image
                       source={{
-                        uri:
-                          like.user?.avatar_url || `https://i.pravatar.cc/150?u=${like.user_id}`,
+                        uri: like.user?.avatar_url || `https://i.pravatar.cc/150?u=${like.user_id}`,
                       }}
                       style={styles.viewerAvatar}
                     />
@@ -1324,7 +1305,7 @@ export default function StoryViewerScreen() {
           </View>
         </KeyboardAvoidingView>
       )}
-      
+
       {showReportModal && currentStory && (
         <ReportModal
           visible={showReportModal}

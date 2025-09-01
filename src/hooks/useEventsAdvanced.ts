@@ -1,6 +1,5 @@
 import type { PostgrestError } from '@supabase/supabase-js';
 import { useState, useEffect, useCallback } from 'react';
-
 import { supabase } from '@/shared/lib/supabase/client';
 import { useSession } from '@/shared/providers/SessionContext';
 import { supabaseQuery } from '@/shared/lib/supabase/withNetworkRetry';
@@ -72,7 +71,7 @@ export function useEventsAdvanced() {
   const [events, setEvents] = useState<EventAdvanced[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<PostgrestError | null>(null);
-  
+
   // Use adaptive request hook for better network handling
   const { execute: executeRequest } = useAdaptiveRequest({
     baseTimeout: 15000,
@@ -101,7 +100,7 @@ export function useEventsAdvanced() {
         `
         )
         .order('date', { ascending: true });
-      
+
       if (error) throw error;
       return data;
     });
@@ -204,7 +203,8 @@ export function useEventsAdvanced() {
             age_restriction: event.age_restriction,
             capacity_limit: event.capacity_limit,
             parking_info: event.parking_info,
-            event_category: event.event_category || event.category || event.extra_data?.eventCategory,
+            event_category:
+              event.event_category || event.category || event.extra_data?.eventCategory,
             accessibility_info: event.accessibility_info,
             event_website: event.event_website,
             contact_info: event.contact_info,
@@ -351,7 +351,6 @@ export function useEventsAdvanced() {
         console.error('Error joining event:', error);
         return { error };
       }
-
 
       // Update local state
       setEvents((prev) =>
@@ -511,7 +510,8 @@ export function useEventsAdvanced() {
         age_restriction: eventData.age_restriction,
         capacity_limit: eventData.capacity_limit,
         parking_info: eventData.parking_info,
-        event_category: eventData.event_category || eventData.category || eventData.extra_data?.eventCategory,
+        event_category:
+          eventData.event_category || eventData.category || eventData.extra_data?.eventCategory,
         accessibility_info: eventData.accessibility_info,
         event_website: eventData.event_website,
         contact_info: eventData.contact_info,

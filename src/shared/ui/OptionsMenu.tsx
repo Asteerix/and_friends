@@ -1,15 +1,8 @@
 import React from 'react';
-import {
-  TouchableOpacity,
-  View,
-  StyleSheet,
-  Platform,
-  ActionSheetIOS,
-  Alert,
-} from 'react-native';
+import { TouchableOpacity, View, StyleSheet, Platform, ActionSheetIOS, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import CustomText from './CustomText';
 import { Colors } from '../config/Colors';
+import CustomText from './CustomText';
 
 export interface OptionItem {
   label: string;
@@ -30,14 +23,10 @@ interface OptionsMenuProps {
   reportConfig?: ReportConfig;
 }
 
-export default function OptionsMenu({
-  options,
-  trigger,
-  reportConfig,
-}: OptionsMenuProps) {
+export default function OptionsMenu({ options, trigger, reportConfig }: OptionsMenuProps) {
   const allOptions = React.useMemo(() => {
-    const visibleOptions = options.filter(opt => !opt.hidden);
-    
+    const visibleOptions = options.filter((opt) => !opt.hidden);
+
     if (reportConfig?.enabled) {
       visibleOptions.push({
         label: 'Signaler',
@@ -46,20 +35,21 @@ export default function OptionsMenu({
         destructive: true,
       });
     }
-    
+
     return visibleOptions;
   }, [options, reportConfig]);
 
   const handlePress = () => {
     if (Platform.OS === 'ios') {
-      const optionLabels = allOptions.map(opt => opt.label);
-      const destructiveButtonIndex = allOptions.findIndex(opt => opt.destructive);
-      
+      const optionLabels = allOptions.map((opt) => opt.label);
+      const destructiveButtonIndex = allOptions.findIndex((opt) => opt.destructive);
+
       ActionSheetIOS.showActionSheetWithOptions(
         {
           options: ['Annuler', ...optionLabels],
           cancelButtonIndex: 0,
-          destructiveButtonIndex: destructiveButtonIndex >= 0 ? destructiveButtonIndex + 1 : undefined,
+          destructiveButtonIndex:
+            destructiveButtonIndex >= 0 ? destructiveButtonIndex + 1 : undefined,
         },
         (buttonIndex) => {
           if (buttonIndex > 0) {
@@ -74,7 +64,7 @@ export default function OptionsMenu({
         'Options',
         undefined,
         [
-          ...allOptions.map(opt => ({
+          ...allOptions.map((opt) => ({
             text: opt.label,
             onPress: opt.action,
             style: opt.destructive ? 'destructive' : 'default',

@@ -19,7 +19,6 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-
 import { EventMemory, useEventMemories } from '@/hooks/useEventMemories';
 import { Colors } from '@/shared/config/Colors';
 import { useSession } from '@/shared/providers/SessionContext';
@@ -57,16 +56,22 @@ export const EventMemories: React.FC<EventMemoriesProps> = ({ eventId, eventStat
     uri: string;
     type: 'photo' | 'video';
   } | null>(null);
-  
-  const modalVideoPlayer = useVideoPlayer(selectedMemory?.type === 'video' ? selectedMemory.media_url : '', (player) => {
-    player.loop = true;
-    player.play();
-  });
-  
-  const previewVideoPlayer = useVideoPlayer(selectedMedia?.type === 'video' ? selectedMedia.uri : '', (player) => {
-    player.loop = true;
-    player.play();
-  });
+
+  const modalVideoPlayer = useVideoPlayer(
+    selectedMemory?.type === 'video' ? selectedMemory.media_url : '',
+    (player) => {
+      player.loop = true;
+      player.play();
+    }
+  );
+
+  const previewVideoPlayer = useVideoPlayer(
+    selectedMedia?.type === 'video' ? selectedMedia.uri : '',
+    (player) => {
+      player.loop = true;
+      player.play();
+    }
+  );
 
   const handleAddMemory = () => {
     if (Platform.OS === 'ios') {

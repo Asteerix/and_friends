@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-
 import { Notification } from '@/shared/providers/NotificationProvider';
 
 interface NotificationItemProps {
@@ -9,7 +8,7 @@ interface NotificationItemProps {
   onPress: () => void;
 }
 
-const DEFAULT_AVATAR = require('../../../assets/default_avatar.png');
+const DEFAULT_AVATAR = require('@/assets/default_avatar.png');
 
 export default function NotificationItem({ notification, onPress }: NotificationItemProps) {
   const getIcon = () => {
@@ -100,65 +99,43 @@ export default function NotificationItem({ notification, onPress }: Notification
       if (data.commenter_avatar_url) return data.commenter_avatar_url;
       if (data.participant_avatar_url) return data.participant_avatar_url;
     }
-    
+
     // Fallback to user avatar from joined data
     if (notification.user?.avatar_url) return notification.user.avatar_url;
-    
+
     return null;
   };
 
   const avatarUrl = getAvatarUrl();
 
   return (
-    <TouchableOpacity 
-      style={[
-        styles.container,
-        !notification.read && styles.unreadContainer
-      ]} 
+    <TouchableOpacity
+      style={[styles.container, !notification.read && styles.unreadContainer]}
       onPress={onPress}
     >
-      <View style={[
-        styles.iconContainer,
-        { backgroundColor: getIconBgColor() }
-      ]}>
-        <Ionicons 
-          name={getIcon() as any} 
-          size={24} 
-          color={getIconColor()} 
-        />
+      <View style={[styles.iconContainer, { backgroundColor: getIconBgColor() }]}>
+        <Ionicons name={getIcon() as any} size={24} color={getIconColor()} />
       </View>
-      
+
       <View style={styles.content}>
-        <Text style={[
-          styles.title,
-          !notification.read && styles.unreadText
-        ]}>
+        <Text style={[styles.title, !notification.read && styles.unreadText]}>
           {notification.title}
         </Text>
-        <Text style={[
-          styles.description,
-          !notification.read && styles.unreadDescription
-        ]}>
+        <Text style={[styles.description, !notification.read && styles.unreadDescription]}>
           {notification.body}
         </Text>
         <Text style={styles.time}>{formatTime(notification.created_at)}</Text>
       </View>
 
       {avatarUrl ? (
-        <Image 
-          source={{ uri: avatarUrl }} 
-          style={styles.avatar} 
-          defaultSource={DEFAULT_AVATAR}
-        />
+        <Image source={{ uri: avatarUrl }} style={styles.avatar} defaultSource={DEFAULT_AVATAR} />
       ) : notification.type.includes('event') ? (
         <View style={[styles.avatar, styles.eventImagePlaceholder]}>
           <Ionicons name="calendar" size={20} color="#999" />
         </View>
       ) : null}
 
-      {!notification.read && (
-        <View style={styles.unreadDot} />
-      )}
+      {!notification.read && <View style={styles.unreadDot} />}
     </TouchableOpacity>
   );
 }

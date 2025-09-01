@@ -1,1 +1,1 @@
-export { default } from '@/app/(tabs)/profile';
+export { default } from '../../src/app/(tabs)/profile';

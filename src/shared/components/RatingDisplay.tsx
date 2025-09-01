@@ -12,25 +12,30 @@ interface RatingDisplayProps {
 }
 
 // Simple in-memory cache for ratings
-const ratingsCache = new Map<string, { 
-  data: { average_rating: number; total_ratings: number }, 
-  timestamp: number 
-}>();
+const ratingsCache = new Map<
+  string,
+  {
+    data: { average_rating: number; total_ratings: number };
+    timestamp: number;
+  }
+>();
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
-export default function RatingDisplay({ 
-  userId, 
-  size = 'small', 
+export default function RatingDisplay({
+  userId,
+  size = 'small',
   showCount = true,
-  style 
+  style,
 }: RatingDisplayProps) {
   const { getUserRatingStats } = useRatings();
-  const [rating, setRating] = useState<{ average_rating: number; total_ratings: number } | null>(null);
+  const [rating, setRating] = useState<{ average_rating: number; total_ratings: number } | null>(
+    null
+  );
   const isMounted = useRef(true);
 
   useEffect(() => {
     isMounted.current = true;
-    
+
     const loadRating = async () => {
       // Check cache first
       const cached = ratingsCache.get(userId);
@@ -46,20 +51,20 @@ export default function RatingDisplay({
       if (stats && stats.total_ratings > 0 && isMounted.current) {
         const ratingData = {
           average_rating: stats.average_rating,
-          total_ratings: stats.total_ratings
+          total_ratings: stats.total_ratings,
         };
         setRating(ratingData);
-        
+
         // Update cache
         ratingsCache.set(userId, {
           data: ratingData,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         });
       }
     };
-    
+
     loadRating();
-    
+
     return () => {
       isMounted.current = false;
     };
@@ -70,7 +75,7 @@ export default function RatingDisplay({
   const sizes = {
     small: { icon: 12, text: 12, container: 4 },
     medium: { icon: 14, text: 14, container: 6 },
-    large: { icon: 16, text: 16, container: 8 }
+    large: { icon: 16, text: 16, container: 8 },
   };
 
   const currentSize = sizes[size];
@@ -82,7 +87,8 @@ export default function RatingDisplay({
         {rating.average_rating.toFixed(1)}
         {showCount && (
           <CustomText style={[styles.count, { fontSize: currentSize.text - 2 }]}>
-            {' '}({rating.total_ratings})
+            {' '}
+            ({rating.total_ratings})
           </CustomText>
         )}
       </CustomText>

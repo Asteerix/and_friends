@@ -31,7 +31,7 @@ interface AdaptiveRequestResult<T> {
  *   enableCache: true,
  *   cacheKey: 'users-list'
  * });
- * 
+ *
  * const data = await execute(() => supabase.from('users').select());
  */
 export function useAdaptiveRequest<T = any>(
@@ -44,133 +44,142 @@ export function useAdaptiveRequest<T = any>(
     enableCache = false,
     cacheKey,
     cacheTTL = 5 * 60 * 1000, // 5 minutes par défaut
-    onProgress
+    onProgress,
   } = options;
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [lastRequestFn, setLastRequestFn] = useState<(() => Promise<T>) | null>(null);
-  
+
   const { connectionQuality, isConnected } = useNetworkStore();
 
   const getAdaptedTimeout = useCallback(() => {
     switch (connectionQuality) {
-      case 'poor': return baseTimeout * 2;
-      case 'offline': return baseTimeout * 5;
-      default: return baseTimeout;
+      case 'poor':
+        return baseTimeout * 2;
+      case 'offline':
+        return baseTimeout * 5;
+      default:
+        return baseTimeout;
     }
   }, [connectionQuality, baseTimeout]);
 
   const getAdaptedRetries = useCallback(() => {
     switch (connectionQuality) {
-      case 'poor': return maxRetries + 2;
-      case 'offline': return 0; // Pas de retry si offline
-      default: return maxRetries;
+      case 'poor':
+        return maxRetries + 2;
+      case 'offline':
+        return 0; // Pas de retry si offline
+      default:
+        return maxRetries;
     }
   }, [connectionQuality, maxRetries]);
 
-  const updateProgress = useCallback((value: number) => {
-    setProgress(value);
-    if (onProgress) {
-      onProgress(value);
-    }
-  }, [onProgress]);
+  const updateProgress = useCallback(
+    (value: number) => {
+      setProgress(value);
+      if (onProgress) {
+        onProgress(value);
+      }
+    },
+    [onProgress]
+  );
 
-  const execute = useCallback(async (
-    requestFn: () => Promise<T>
-  ): Promise<T | null> => {
-    // Sauvegarder la fonction pour retry
-    setLastRequestFn(() => requestFn);
-    
-    if (!isConnected) {
-      // Si cache activé et clé fournie, tenter de récupérer depuis le cache
-      if (enableCache && cacheKey) {
-        try {
-          setLoading(true);
-          updateProgress(50);
-          const cachedData = await cachedRequest(
+  const execute = useCallback(
+    async (requestFn: () => Promise<T>): Promise<T | null> => {
+      // Sauvegarder la fonction pour retry
+      setLastRequestFn(() => requestFn);
+
+      if (!isConnected) {
+        // Si cache activé et clé fournie, tenter de récupérer depuis le cache
+        if (enableCache && cacheKey) {
+          try {
+            setLoading(true);
+            updateProgress(50);
+            const cachedData = await cachedRequest(cacheKey, requestFn, {
+              ttl: cacheTTL,
+              fallbackToCache: true,
+            });
+            updateProgress(100);
+            setLoading(false);
+            return cachedData;
+          } catch (cacheError) {
+            setError(offlineMessage);
+            setLoading(false);
+            updateProgress(0);
+            return null;
+          }
+        }
+
+        setError(offlineMessage);
+        return null;
+      }
+
+      setLoading(true);
+      setError(null);
+      updateProgress(10);
+
+      try {
+        let result: T;
+
+        if (enableCache && cacheKey) {
+          // Utiliser le cache si activé
+          updateProgress(30);
+          result = await cachedRequest(
             cacheKey,
-            requestFn,
+            async () => {
+              updateProgress(50);
+              const data = await withNetworkRetry(requestFn, {
+                maxRetries: getAdaptedRetries(),
+                timeout: getAdaptedTimeout(),
+                onRetry: (attempt) => {
+                  updateProgress(50 + attempt * 10);
+                  console.log(`🔄 [AdaptiveRequest] Retry attempt ${attempt}`);
+                },
+              });
+              updateProgress(90);
+              return data;
+            },
             { ttl: cacheTTL, fallbackToCache: true }
           );
-          updateProgress(100);
-          setLoading(false);
-          return cachedData;
-        } catch (cacheError) {
-          setError(offlineMessage);
-          setLoading(false);
-          updateProgress(0);
-          return null;
+        } else {
+          // Sans cache
+          updateProgress(30);
+          result = await withNetworkRetry(requestFn, {
+            maxRetries: getAdaptedRetries(),
+            timeout: getAdaptedTimeout(),
+            onRetry: (attempt) => {
+              updateProgress(30 + attempt * 20);
+              console.log(`🔄 [AdaptiveRequest] Retry attempt ${attempt}`);
+            },
+          });
+          updateProgress(90);
         }
+
+        updateProgress(100);
+        setLoading(false);
+        return result;
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue';
+        setError(errorMessage);
+        setLoading(false);
+        updateProgress(0);
+        console.error('❌ [AdaptiveRequest] Request failed:', err);
+        return null;
       }
-      
-      setError(offlineMessage);
-      return null;
-    }
-
-    setLoading(true);
-    setError(null);
-    updateProgress(10);
-
-    try {
-      let result: T;
-      
-      if (enableCache && cacheKey) {
-        // Utiliser le cache si activé
-        updateProgress(30);
-        result = await cachedRequest(
-          cacheKey,
-          async () => {
-            updateProgress(50);
-            const data = await withNetworkRetry(requestFn, {
-              maxRetries: getAdaptedRetries(),
-              timeout: getAdaptedTimeout(),
-              onRetry: (attempt) => {
-                updateProgress(50 + (attempt * 10));
-                console.log(`🔄 [AdaptiveRequest] Retry attempt ${attempt}`);
-              }
-            });
-            updateProgress(90);
-            return data;
-          },
-          { ttl: cacheTTL, fallbackToCache: true }
-        );
-      } else {
-        // Sans cache
-        updateProgress(30);
-        result = await withNetworkRetry(requestFn, {
-          maxRetries: getAdaptedRetries(),
-          timeout: getAdaptedTimeout(),
-          onRetry: (attempt) => {
-            updateProgress(30 + (attempt * 20));
-            console.log(`🔄 [AdaptiveRequest] Retry attempt ${attempt}`);
-          }
-        });
-        updateProgress(90);
-      }
-
-      updateProgress(100);
-      setLoading(false);
-      return result;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue';
-      setError(errorMessage);
-      setLoading(false);
-      updateProgress(0);
-      console.error('❌ [AdaptiveRequest] Request failed:', err);
-      return null;
-    }
-  }, [
-    isConnected,
-    enableCache,
-    cacheKey,
-    cacheTTL,
-    offlineMessage,
-    getAdaptedRetries,
-    getAdaptedTimeout,
-    updateProgress
-  ]);
+    },
+    [
+      isConnected,
+      enableCache,
+      cacheKey,
+      cacheTTL,
+      offlineMessage,
+      getAdaptedRetries,
+      getAdaptedTimeout,
+      updateProgress,
+    ]
+  );
 
   const retry = useCallback(async (): Promise<T | null> => {
     if (lastRequestFn) {
@@ -192,7 +201,7 @@ export function useAdaptiveRequest<T = any>(
     error,
     progress,
     retry,
-    reset
+    reset,
   };
 }
 
@@ -200,7 +209,7 @@ export function useAdaptiveRequest<T = any>(
  * Hook pour requêtes multiples avec gestion réseau
  * @example
  * const { executeAll, results, loading } = useAdaptiveMultiRequest();
- * 
+ *
  * const [users, posts] = await executeAll([
  *   () => supabase.from('users').select(),
  *   () => supabase.from('posts').select()
@@ -214,55 +223,55 @@ export function useAdaptiveMultiRequest<T = any>(
   const [errors, setErrors] = useState<(string | null)[]>([]);
   const [overallProgress, setOverallProgress] = useState(0);
 
-  const executeAll = useCallback(async (
-    requests: Array<{
-      fn: () => Promise<T>;
-      cacheKey?: string;
-    }>
-  ): Promise<(T | null)[]> => {
-    setLoading(true);
-    setErrors([]);
-    setResults([]);
-    setOverallProgress(0);
+  const executeAll = useCallback(
+    async (
+      requests: Array<{
+        fn: () => Promise<T>;
+        cacheKey?: string;
+      }>
+    ): Promise<(T | null)[]> => {
+      setLoading(true);
+      setErrors([]);
+      setResults([]);
+      setOverallProgress(0);
 
-    const results = await Promise.all(
-      requests.map(async (request, index) => {
-        const { execute } = useAdaptiveRequest<T>({
-          ...options,
-          cacheKey: request.cacheKey,
-          onProgress: (progress) => {
-            // Calculer le progrès global
-            const individualProgress = progress / requests.length;
+      const results = await Promise.all(
+        requests.map(async (request, index) => {
+          try {
+            // Progress tracking
             const baseProgress = (index / requests.length) * 100;
-            setOverallProgress(baseProgress + individualProgress);
+            setOverallProgress(baseProgress + 25); // Start progress
+
+            // Execute the request directly with network retry logic
+            const result = await withNetworkRetry(request.fn, options.maxRetries || 3);
+
+            // Update progress
+            setOverallProgress(baseProgress + 100 / requests.length);
+            return result;
+          } catch (error) {
+            setErrors((prev) => {
+              const newErrors = [...prev];
+              newErrors[index] = error instanceof Error ? error.message : 'Erreur';
+              return newErrors;
+            });
+            return null;
           }
-        });
+        })
+      );
 
-        try {
-          const result = await execute(request.fn);
-          return result;
-        } catch (error) {
-          setErrors(prev => {
-            const newErrors = [...prev];
-            newErrors[index] = error instanceof Error ? error.message : 'Erreur';
-            return newErrors;
-          });
-          return null;
-        }
-      })
-    );
-
-    setResults(results);
-    setLoading(false);
-    setOverallProgress(100);
-    return results;
-  }, [options]);
+      setResults(results);
+      setLoading(false);
+      setOverallProgress(100);
+      return results;
+    },
+    [options]
+  );
 
   return {
     executeAll,
     results,
     loading,
     errors,
-    progress: overallProgress
+    progress: overallProgress,
   };
 }

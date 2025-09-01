@@ -17,17 +17,17 @@ export class NotificationService {
   static async requestPermissions(): Promise<boolean> {
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
-    
+
     if (existingStatus !== 'granted') {
       const { status } = await Notifications.requestPermissionsAsync();
       finalStatus = status;
     }
-    
+
     if (finalStatus !== 'granted') {
       console.log('Permission notifications refusée');
       return false;
     }
-    
+
     return true;
   }
 
@@ -37,7 +37,7 @@ export class NotificationService {
       const token = await Notifications.getExpoPushTokenAsync();
       return token.data;
     } catch (error) {
-      console.error('Erreur lors de l\'obtention du token:', error);
+      console.error("Erreur lors de l'obtention du token:", error);
       return null;
     }
   }
@@ -54,24 +54,20 @@ export class NotificationService {
       // Mettre à jour le profil avec le token
       await supabase
         .from('profiles')
-        .update({ 
+        .update({
           push_token: token,
-          push_token_updated_at: new Date().toISOString()
+          push_token_updated_at: new Date().toISOString(),
         })
         .eq('id', userId);
 
       console.log('Token push enregistré:', token);
     } catch (error) {
-      console.error('Erreur lors de l\'enregistrement du token:', error);
+      console.error("Erreur lors de l'enregistrement du token:", error);
     }
   }
 
   // Envoyer une notification locale
-  static async sendLocalNotification(
-    title: string,
-    body: string,
-    data?: any
-  ): Promise<void> {
+  static async sendLocalNotification(title: string, body: string, data?: any): Promise<void> {
     await Notifications.scheduleNotificationAsync({
       content: {
         title,
@@ -97,7 +93,7 @@ export class NotificationService {
     // Ne pas notifier si l'app est au premier plan et le chat est ouvert
     const appState = await Notifications.getPresentedNotificationsAsync();
     const isAppActive = appState.length === 0; // Simplification, à améliorer
-    
+
     if (isAppActive) return;
 
     let title: string;
@@ -114,21 +110,18 @@ export class NotificationService {
     await this.sendLocalNotification(title, body, {
       chatId: chat.id,
       messageId: message.id,
-      type: 'new_message'
+      type: 'new_message',
     });
   }
 
   // Notification pour une demande d'ami
-  static async notifyFriendRequest(
-    senderName: string,
-    requestId: string
-  ): Promise<void> {
+  static async notifyFriendRequest(senderName: string, requestId: string): Promise<void> {
     await this.sendLocalNotification(
-      'Nouvelle demande d\'ami',
+      "Nouvelle demande d'ami",
       `${senderName} souhaite devenir votre ami`,
       {
         type: 'friend_request',
-        requestId
+        requestId,
       }
     );
   }
@@ -152,7 +145,7 @@ export class NotificationService {
         body = `"${eventTitle}" a été mis à jour`;
         break;
       case 'reminder':
-        title = 'Rappel d\'événement';
+        title = "Rappel d'événement";
         body = `"${eventTitle}" commence bientôt`;
         break;
     }
@@ -160,7 +153,7 @@ export class NotificationService {
     await this.sendLocalNotification(title, body, {
       type: 'event_update',
       eventId,
-      updateType
+      updateType,
     });
   }
 
@@ -233,7 +226,7 @@ export class NotificationService {
         break;
       case 'event_update':
         // Naviguer vers l'événement
-        console.log('Naviguer vers l\'événement:', data.eventId);
+        console.log("Naviguer vers l'événement:", data.eventId);
         break;
     }
   }
@@ -256,12 +249,12 @@ export class NotificationService {
   // Configurer les listeners
   static setupNotificationListeners(): () => void {
     // Listener pour les notifications reçues
-    const notificationListener = Notifications.addNotificationReceivedListener(notification => {
+    const notificationListener = Notifications.addNotificationReceivedListener((notification) => {
       console.log('Notification reçue:', notification);
     });
 
     // Listener pour les interactions avec les notifications
-    const responseListener = Notifications.addNotificationResponseReceivedListener(response => {
+    const responseListener = Notifications.addNotificationResponseReceivedListener((response) => {
       this.handleNotificationResponse(response);
     });
 

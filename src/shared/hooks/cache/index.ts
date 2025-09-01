@@ -1,15 +1,21 @@
 // Cache hooks exports
 export { useCache, useCachedData, useClearCache, usePrefetch, useBatchCache } from '../useCache';
-export { useUserProfile, useUserFriends, useInvalidateUserCache, useUpdateProfile, usePrefetchUsers } from '../useUserCache';
-export { 
-  useEventDetails, 
-  useEventsList, 
-  useNearbyEvents, 
+export {
+  useUserProfile,
+  useUserFriends,
+  useInvalidateUserCache,
+  useUpdateProfile,
+  usePrefetchUsers,
+} from '../useUserCache';
+export {
+  useEventDetails,
+  useEventsList,
+  useNearbyEvents,
   useEventParticipants,
   useInvalidateEventCache,
   useCreateEvent,
   useUpdateEvent,
-  usePrefetchEvents 
+  usePrefetchEvents,
 } from '../useEventCache';
 export { useOfflineQueue } from '../useOfflineQueue';
 export { useOfflineSync } from '../useOfflineSync';

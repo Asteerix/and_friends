@@ -82,31 +82,34 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     }
   }, [session?.user?.id]);
 
-  const markAsRead = useCallback(async (notificationId: string) => {
-    if (!session?.user?.id) return { error: { message: 'Not authenticated' } };
+  const markAsRead = useCallback(
+    async (notificationId: string) => {
+      if (!session?.user?.id) return { error: { message: 'Not authenticated' } };
 
-    try {
-      const { error } = await supabase
-        .from('notifications')
-        .update({ read: true })
-        .eq('id', notificationId)
-        .eq('user_id', session.user.id);
+      try {
+        const { error } = await supabase
+          .from('notifications')
+          .update({ read: true })
+          .eq('id', notificationId)
+          .eq('user_id', session.user.id);
 
-      if (error) {
-        console.error('Error marking notification as read:', error);
-        return { error };
+        if (error) {
+          console.error('Error marking notification as read:', error);
+          return { error };
+        }
+
+        setNotifications((prev) =>
+          prev.map((notif) => (notif.id === notificationId ? { ...notif, read: true } : notif))
+        );
+
+        return { error: null };
+      } catch (err: unknown) {
+        console.error('Unexpected error:', err);
+        return { error: err };
       }
-
-      setNotifications((prev) =>
-        prev.map((notif) => (notif.id === notificationId ? { ...notif, read: true } : notif))
-      );
-
-      return { error: null };
-    } catch (err: unknown) {
-      console.error('Unexpected error:', err);
-      return { error: err };
-    }
-  }, [session?.user?.id]);
+    },
+    [session?.user?.id]
+  );
 
   const markAllAsRead = useCallback(async () => {
     if (!session?.user?.id) return { error: { message: 'Not authenticated' } };
@@ -131,28 +134,31 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     }
   }, [session?.user?.id]);
 
-  const deleteNotification = useCallback(async (notificationId: string) => {
-    if (!session?.user?.id) return { error: { message: 'Not authenticated' } };
+  const deleteNotification = useCallback(
+    async (notificationId: string) => {
+      if (!session?.user?.id) return { error: { message: 'Not authenticated' } };
 
-    try {
-      const { error } = await supabase
-        .from('notifications')
-        .delete()
-        .eq('id', notificationId)
-        .eq('user_id', session.user.id);
+      try {
+        const { error } = await supabase
+          .from('notifications')
+          .delete()
+          .eq('id', notificationId)
+          .eq('user_id', session.user.id);
 
-      if (error) {
-        console.error('Error deleting notification:', error);
-        return { error };
+        if (error) {
+          console.error('Error deleting notification:', error);
+          return { error };
+        }
+
+        setNotifications((prev) => prev.filter((notif) => notif.id !== notificationId));
+        return { error: null };
+      } catch (err: unknown) {
+        console.error('Unexpected error:', err);
+        return { error: err };
       }
-
-      setNotifications((prev) => prev.filter((notif) => notif.id !== notificationId));
-      return { error: null };
-    } catch (err: unknown) {
-      console.error('Unexpected error:', err);
-      return { error: err };
-    }
-  }, [session?.user?.id]);
+    },
+    [session?.user?.id]
+  );
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
@@ -174,18 +180,18 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         },
         (payload) => {
           console.log('🔔 [NotificationProvider] Realtime update received:', payload.eventType);
-          
+
           if (payload.eventType === 'INSERT' && payload.new) {
             // Add new notification at the beginning
             setNotifications((prev) => [payload.new as Notification, ...prev]);
           } else if (payload.eventType === 'UPDATE' && payload.new) {
-            setNotifications((prev) => 
-              prev.map((notif) => 
-                notif.id === payload.new.id ? payload.new as Notification : notif
+            setNotifications((prev) =>
+              prev.map((notif) =>
+                notif.id === payload.new.id ? (payload.new as Notification) : notif
               )
             );
           } else if (payload.eventType === 'DELETE' && payload.old) {
-            setNotifications((prev) => 
+            setNotifications((prev) =>
               prev.filter((notif) => notif.id !== (payload.old as any).id)
             );
           }

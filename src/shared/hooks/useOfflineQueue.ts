@@ -31,7 +31,7 @@ class OfflineQueueManager {
     NetInfo.addEventListener((state) => {
       const wasOffline = !this.isOnline;
       this.isOnline = state.isConnected || false;
-      
+
       // Process queue when coming back online
       if (wasOffline && this.isOnline) {
         this.processQueue();
@@ -89,7 +89,7 @@ class OfflineQueueManager {
 
     this.isProcessing = true;
     const queue = await this.getQueue();
-    const pendingActions = queue.filter(a => a.status === 'pending');
+    const pendingActions = queue.filter((a) => a.status === 'pending');
 
     for (const action of pendingActions) {
       await this.processAction(action);
@@ -97,9 +97,7 @@ class OfflineQueueManager {
 
     // Clean up completed actions older than 24 hours
     const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
-    const cleanedQueue = queue.filter(
-      a => a.status !== 'completed' || a.timestamp > oneDayAgo
-    );
+    const cleanedQueue = queue.filter((a) => a.status !== 'completed' || a.timestamp > oneDayAgo);
     await this.saveQueue(cleanedQueue);
 
     this.isProcessing = false;
@@ -113,7 +111,7 @@ class OfflineQueueManager {
     }
 
     const queue = await this.getQueue();
-    const actionIndex = queue.findIndex(a => a.id === action.id);
+    const actionIndex = queue.findIndex((a) => a.id === action.id);
     if (actionIndex === -1) return;
 
     try {
@@ -144,12 +142,12 @@ class OfflineQueueManager {
 
   async getActionStatus(actionId: string): Promise<QueuedAction | undefined> {
     const queue = await this.getQueue();
-    return queue.find(a => a.id === actionId);
+    return queue.find((a) => a.id === actionId);
   }
 
   async removeAction(actionId: string): Promise<void> {
     const queue = await this.getQueue();
-    const filtered = queue.filter(a => a.id !== actionId);
+    const filtered = queue.filter((a) => a.id !== actionId);
     await this.saveQueue(filtered);
   }
 
@@ -159,7 +157,7 @@ class OfflineQueueManager {
 
   async retryFailedActions(): Promise<void> {
     const queue = await this.getQueue();
-    queue.forEach(action => {
+    queue.forEach((action) => {
       if (action.status === 'failed') {
         action.status = 'pending';
         action.retryCount = 0;
@@ -195,22 +193,16 @@ export function useOfflineQueue() {
     };
   }, []);
 
-  const enqueue = useCallback(
-    async (type: string, payload: any, maxRetries?: number) => {
-      const actionId = await queueManager.enqueue(type, payload, maxRetries);
-      const actions = await queueManager.getQueuedActions();
-      setQueue(actions);
-      return actionId;
-    },
-    []
-  );
+  const enqueue = useCallback(async (type: string, payload: any, maxRetries?: number) => {
+    const actionId = await queueManager.enqueue(type, payload, maxRetries);
+    const actions = await queueManager.getQueuedActions();
+    setQueue(actions);
+    return actionId;
+  }, []);
 
-  const registerHandler = useCallback(
-    (type: string, handler: ActionHandler) => {
-      queueManager.registerHandler(type, handler);
-    },
-    []
-  );
+  const registerHandler = useCallback((type: string, handler: ActionHandler) => {
+    queueManager.registerHandler(type, handler);
+  }, []);
 
   const getActionStatus = useCallback(async (actionId: string) => {
     return await queueManager.getActionStatus(actionId);
@@ -242,7 +234,7 @@ export function useOfflineQueue() {
     removeAction,
     retryFailedActions,
     clearQueue,
-    pendingCount: queue.filter(a => a.status === 'pending').length,
-    failedCount: queue.filter(a => a.status === 'failed').length,
+    pendingCount: queue.filter((a) => a.status === 'pending').length,
+    failedCount: queue.filter((a) => a.status === 'failed').length,
   };
 }

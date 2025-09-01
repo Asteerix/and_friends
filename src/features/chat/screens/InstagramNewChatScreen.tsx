@@ -13,10 +13,10 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { useSession } from '@/shared/providers/SessionContext';
 import { ChatService } from '@/features/chats/services/chatService';
 import { supabase } from '@/shared/lib/supabase/client';
-import * as Haptics from 'expo-haptics';
 
 interface User {
   id: string;
@@ -35,7 +35,7 @@ export default function InstagramNewChatScreen() {
   const [creatingChat, setCreatingChat] = useState(false);
   const [groupName, setGroupName] = useState('');
   const [showGroupNameInput, setShowGroupNameInput] = useState(false);
-  
+
   const currentUserId = session?.user?.id;
 
   useEffect(() => {
@@ -76,9 +76,9 @@ export default function InstagramNewChatScreen() {
     try {
       const { data, error } = await ChatService.searchUsers(searchQuery);
       if (error) throw error;
-      
+
       // Filter out current user
-      const filteredUsers = data?.filter(u => u.id !== currentUserId) || [];
+      const filteredUsers = data?.filter((u) => u.id !== currentUserId) || [];
       setUsers(filteredUsers);
     } catch (error) {
       console.error('Error searching users:', error);
@@ -89,11 +89,11 @@ export default function InstagramNewChatScreen() {
 
   const toggleUserSelection = (user: User) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    
-    setSelectedUsers(prev => {
-      const isSelected = prev.some(u => u.id === user.id);
+
+    setSelectedUsers((prev) => {
+      const isSelected = prev.some((u) => u.id === user.id);
       if (isSelected) {
-        return prev.filter(u => u.id !== user.id);
+        return prev.filter((u) => u.id !== user.id);
       } else {
         return [...prev, user];
       }
@@ -102,14 +102,14 @@ export default function InstagramNewChatScreen() {
 
   const handleCreateChat = async () => {
     if (selectedUsers.length === 0) return;
-    
+
     setCreatingChat(true);
     try {
       if (selectedUsers.length === 1) {
         // Create direct chat
         const { data, error } = await ChatService.getOrCreateDirectChat(selectedUsers[0].id);
         if (error) throw error;
-        
+
         router.replace(`/chat/conversation/${data.id}`);
       } else {
         // Create group chat
@@ -118,13 +118,13 @@ export default function InstagramNewChatScreen() {
           setCreatingChat(false);
           return;
         }
-        
+
         const { data, error } = await ChatService.createChat({
           name: groupName.trim() || `Groupe de ${selectedUsers[0].full_name}`,
           is_group: true,
-          participant_ids: selectedUsers.map(u => u.id)
+          participant_ids: selectedUsers.map((u) => u.id),
         });
-        
+
         if (error) throw error;
         router.replace(`/chat/conversation/${data.id}`);
       }
@@ -137,21 +137,16 @@ export default function InstagramNewChatScreen() {
   };
 
   const renderUser = ({ item }: { item: User }) => {
-    const isSelected = selectedUsers.some(u => u.id === item.id);
-    
+    const isSelected = selectedUsers.some((u) => u.id === item.id);
+
     return (
-      <TouchableOpacity 
-        style={styles.userItem}
-        onPress={() => toggleUserSelection(item)}
-      >
+      <TouchableOpacity style={styles.userItem} onPress={() => toggleUserSelection(item)}>
         <View style={styles.userAvatar}>
           {item.avatar_url ? (
             <Image source={{ uri: item.avatar_url }} style={styles.avatar} />
           ) : (
             <View style={[styles.avatar, styles.defaultAvatar]}>
-              <Text style={styles.avatarText}>
-                {item.full_name?.charAt(0) || '?'}
-              </Text>
+              <Text style={styles.avatarText}>{item.full_name?.charAt(0) || '?'}</Text>
             </View>
           )}
           {isSelected && (
@@ -160,30 +155,23 @@ export default function InstagramNewChatScreen() {
             </View>
           )}
         </View>
-        
+
         <View style={styles.userInfo}>
           <Text style={styles.userName}>{item.full_name}</Text>
-          {item.username && (
-            <Text style={styles.userUsername}>@{item.username}</Text>
-          )}
+          {item.username && <Text style={styles.userUsername}>@{item.username}</Text>}
         </View>
       </TouchableOpacity>
     );
   };
 
   const renderSelectedUser = ({ item }: { item: User }) => (
-    <TouchableOpacity 
-      style={styles.selectedUser}
-      onPress={() => toggleUserSelection(item)}
-    >
+    <TouchableOpacity style={styles.selectedUser} onPress={() => toggleUserSelection(item)}>
       <View style={styles.selectedUserAvatar}>
         {item.avatar_url ? (
           <Image source={{ uri: item.avatar_url }} style={styles.selectedAvatar} />
         ) : (
           <View style={[styles.selectedAvatar, styles.defaultAvatar]}>
-            <Text style={styles.selectedAvatarText}>
-              {item.full_name?.charAt(0) || '?'}
-            </Text>
+            <Text style={styles.selectedAvatarText}>{item.full_name?.charAt(0) || '?'}</Text>
           </View>
         )}
         <View style={styles.removeIndicator}>
@@ -203,17 +191,19 @@ export default function InstagramNewChatScreen() {
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="close" size={28} color="#000" />
         </TouchableOpacity>
-        
+
         <Text style={styles.headerTitle}>Nouveau message</Text>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           onPress={handleCreateChat}
           disabled={selectedUsers.length === 0 || creatingChat}
         >
-          <Text style={[
-            styles.nextButton,
-            (selectedUsers.length === 0 || creatingChat) && styles.nextButtonDisabled
-          ]}>
+          <Text
+            style={[
+              styles.nextButton,
+              (selectedUsers.length === 0 || creatingChat) && styles.nextButtonDisabled,
+            ]}
+          >
             {creatingChat ? 'Création...' : 'Suivant'}
           </Text>
         </TouchableOpacity>
@@ -264,7 +254,7 @@ export default function InstagramNewChatScreen() {
         <Text style={styles.sectionTitle}>
           {searchQuery ? 'Résultats de recherche' : 'Suggestions'}
         </Text>
-        
+
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#000" />

@@ -16,10 +16,10 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { useSession } from '@/shared/providers/SessionContext';
 import { ChatService } from '@/features/chats/services/chatService';
 import { supabase } from '@/shared/lib/supabase/client';
-import * as Haptics from 'expo-haptics';
 import { usePresence } from '@/hooks/usePresence';
 
 interface Participant {
@@ -50,7 +50,7 @@ export default function InstagramChatDetailsScreen() {
   const router = useRouter();
   const { session } = useSession();
   const { isUserOnline } = usePresence();
-  
+
   const [chatDetails, setChatDetails] = useState<ChatDetails | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,7 +59,7 @@ export default function InstagramChatDetailsScreen() {
   const [showEditNameModal, setShowEditNameModal] = useState(false);
   const [newChatName, setNewChatName] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  
+
   const currentUserId = session?.user?.id;
 
   useEffect(() => {
@@ -68,7 +68,7 @@ export default function InstagramChatDetailsScreen() {
       loadPreferences();
     }
   }, [chatId]);
-  
+
   const loadPreferences = async () => {
     try {
       const { data, error } = await supabase
@@ -77,7 +77,7 @@ export default function InstagramChatDetailsScreen() {
         .eq('user_id', currentUserId)
         .eq('chat_id', chatId)
         .single();
-        
+
       if (data && !error) {
         setNotificationsMuted(data.notifications_muted);
       }
@@ -101,13 +101,14 @@ export default function InstagramChatDetailsScreen() {
       setNewChatName(chat.name || '');
 
       // Load participants
-      const { data: participantsData, error: participantsError } = await ChatService.getChatParticipants(chatId!);
+      const { data: participantsData, error: participantsError } =
+        await ChatService.getChatParticipants(chatId!);
       if (participantsError) throw participantsError;
-      
+
       setParticipants(participantsData || []);
-      
+
       // Check if current user is admin
-      const currentParticipant = participantsData?.find(p => p.user_id === currentUserId);
+      const currentParticipant = participantsData?.find((p) => p.user_id === currentUserId);
       setIsAdmin(currentParticipant?.role === 'admin');
     } catch (error) {
       console.error('Error loading chat details:', error);
@@ -120,7 +121,7 @@ export default function InstagramChatDetailsScreen() {
     if (chatDetails?.is_group) {
       return chatDetails.name || 'Groupe';
     }
-    const otherParticipant = participants.find(p => p.user_id !== currentUserId);
+    const otherParticipant = participants.find((p) => p.user_id !== currentUserId);
     return otherParticipant?.profiles?.full_name || 'Conversation';
   };
 
@@ -128,19 +129,19 @@ export default function InstagramChatDetailsScreen() {
     if (chatDetails?.is_group) {
       return `${participants.length} membres`;
     }
-    const otherParticipant = participants.find(p => p.user_id !== currentUserId);
+    const otherParticipant = participants.find((p) => p.user_id !== currentUserId);
     return otherParticipant?.profiles?.username ? `@${otherParticipant.profiles.username}` : '';
   };
 
   const handleEditName = async () => {
     if (!isAdmin || !newChatName.trim()) return;
-    
+
     try {
       await ChatService.updateChat(chatId!, {
-        name: newChatName.trim()
+        name: newChatName.trim(),
       });
-      
-      setChatDetails(prev => prev ? { ...prev, name: newChatName.trim() } : null);
+
+      setChatDetails((prev) => (prev ? { ...prev, name: newChatName.trim() } : null));
       setShowEditNameModal(false);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error) {
@@ -152,19 +153,20 @@ export default function InstagramChatDetailsScreen() {
     const newMutedState = !notificationsMuted;
     setNotificationsMuted(newMutedState);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    
+
     try {
       // Save mute preference to user metadata or a separate table
-      await supabase
-        .from('chat_preferences')
-        .upsert({
+      await supabase.from('chat_preferences').upsert(
+        {
           user_id: currentUserId,
           chat_id: chatId,
           notifications_muted: newMutedState,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'user_id,chat_id'
-        });
+          updated_at: new Date().toISOString(),
+        },
+        {
+          onConflict: 'user_id,chat_id',
+        }
+      );
     } catch (error) {
       console.error('Error updating mute preference:', error);
       // Revert on error
@@ -175,50 +177,50 @@ export default function InstagramChatDetailsScreen() {
   const handleLeaveChat = () => {
     Alert.alert(
       'Quitter la conversation',
-      chatDetails?.is_group 
+      chatDetails?.is_group
         ? 'Êtes-vous sûr de vouloir quitter ce groupe ?'
         : 'Êtes-vous sûr de vouloir supprimer cette conversation ?',
       [
         { text: 'Annuler', style: 'cancel' },
-        { 
-          text: 'Quitter', 
+        {
+          text: 'Quitter',
           style: 'destructive',
           onPress: async () => {
             try {
               await ChatService.removeParticipants({
                 chat_id: chatId!,
-                user_ids: [currentUserId!]
+                user_ids: [currentUserId!],
               });
               router.back();
               router.back(); // Go back to chat list
             } catch (error) {
               Alert.alert('Erreur', 'Impossible de quitter la conversation');
             }
-          }
-        }
+          },
+        },
       ]
     );
   };
 
   const handleBlockUser = () => {
     if (chatDetails?.is_group) return;
-    
-    const otherParticipant = participants.find(p => p.user_id !== currentUserId);
+
+    const otherParticipant = participants.find((p) => p.user_id !== currentUserId);
     if (!otherParticipant) return;
-    
+
     Alert.alert(
-      'Bloquer l\'utilisateur',
+      "Bloquer l'utilisateur",
       `Bloquer ${otherParticipant.profiles.full_name} ? Cette personne ne pourra plus vous envoyer de messages.`,
       [
         { text: 'Annuler', style: 'cancel' },
-        { 
-          text: 'Bloquer', 
+        {
+          text: 'Bloquer',
           style: 'destructive',
           onPress: () => {
             // TODO: Implement block functionality
             console.log('Block user:', otherParticipant.user_id);
-          }
-        }
+          },
+        },
       ]
     );
   };
@@ -229,45 +231,41 @@ export default function InstagramChatDetailsScreen() {
 
   const handleParticipantPress = (participant: Participant) => {
     if (participant.user_id === currentUserId) return;
-    
+
     // Navigate to participant's profile
     router.push(`/profile/${participant.user_id}`);
   };
 
   const handleRemoveParticipant = (participant: Participant) => {
     if (!isAdmin || participant.user_id === currentUserId) return;
-    
-    Alert.alert(
-      'Retirer du groupe',
-      `Retirer ${participant.profiles.full_name} du groupe ?`,
-      [
-        { text: 'Annuler', style: 'cancel' },
-        { 
-          text: 'Retirer', 
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await ChatService.removeParticipants({
-                chat_id: chatId!,
-                user_ids: [participant.user_id]
-              });
-              loadChatDetails();
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            } catch (error) {
-              Alert.alert('Erreur', 'Impossible de retirer ce participant');
-            }
+
+    Alert.alert('Retirer du groupe', `Retirer ${participant.profiles.full_name} du groupe ?`, [
+      { text: 'Annuler', style: 'cancel' },
+      {
+        text: 'Retirer',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await ChatService.removeParticipants({
+              chat_id: chatId!,
+              user_ids: [participant.user_id],
+            });
+            loadChatDetails();
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          } catch (error) {
+            Alert.alert('Erreur', 'Impossible de retirer ce participant');
           }
-        }
-      ]
-    );
+        },
+      },
+    ]);
   };
 
   const renderParticipant = ({ item }: { item: Participant }) => {
     const isMe = item.user_id === currentUserId;
     const online = isUserOnline(item.user_id);
-    
+
     return (
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.participantItem}
         onPress={() => handleParticipantPress(item)}
         disabled={isMe}
@@ -277,23 +275,19 @@ export default function InstagramChatDetailsScreen() {
             <Image source={{ uri: item.profiles.avatar_url }} style={styles.avatar} />
           ) : (
             <View style={[styles.avatar, styles.defaultAvatar]}>
-              <Text style={styles.avatarText}>
-                {item.profiles.full_name?.charAt(0) || '?'}
-              </Text>
+              <Text style={styles.avatarText}>{item.profiles.full_name?.charAt(0) || '?'}</Text>
             </View>
           )}
           {online && !isMe && <View style={styles.onlineIndicator} />}
         </View>
-        
+
         <View style={styles.participantInfo}>
           <Text style={styles.participantName}>
             {item.profiles.full_name} {isMe && '(Vous)'}
           </Text>
-          {item.role === 'admin' && (
-            <Text style={styles.adminBadge}>Admin</Text>
-          )}
+          {item.role === 'admin' && <Text style={styles.adminBadge}>Admin</Text>}
         </View>
-        
+
         {isAdmin && !isMe && chatDetails?.is_group && (
           <TouchableOpacity onPress={() => handleRemoveParticipant(item)}>
             <Ionicons name="remove-circle-outline" size={24} color="#FF3B30" />
@@ -303,7 +297,7 @@ export default function InstagramChatDetailsScreen() {
     );
   };
 
-  const filteredParticipants = participants.filter(p => {
+  const filteredParticipants = participants.filter((p) => {
     if (!searchQuery) return true;
     return p.profiles.full_name?.toLowerCase().includes(searchQuery.toLowerCase());
   });
@@ -338,20 +332,18 @@ export default function InstagramChatDetailsScreen() {
                 <Ionicons name="people" size={50} color="#000" />
               </View>
             ) : participants[0]?.profiles?.avatar_url ? (
-              <Image 
-                source={{ uri: participants[0].profiles.avatar_url }} 
-                style={styles.largeAvatar} 
+              <Image
+                source={{ uri: participants[0].profiles.avatar_url }}
+                style={styles.largeAvatar}
               />
             ) : (
               <View style={[styles.largeAvatar, styles.defaultAvatar]}>
-                <Text style={styles.largeAvatarText}>
-                  {getChatTitle().charAt(0)}
-                </Text>
+                <Text style={styles.largeAvatarText}>{getChatTitle().charAt(0)}</Text>
               </View>
             )}
           </View>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             onPress={() => chatDetails?.is_group && isAdmin && setShowEditNameModal(true)}
             disabled={!chatDetails?.is_group || !isAdmin}
           >
@@ -362,10 +354,8 @@ export default function InstagramChatDetailsScreen() {
               )}
             </View>
           </TouchableOpacity>
-          
-          {getSubtitle() && (
-            <Text style={styles.profileSubtitle}>{getSubtitle()}</Text>
-          )}
+
+          {getSubtitle() && <Text style={styles.profileSubtitle}>{getSubtitle()}</Text>}
         </View>
 
         {/* Quick Actions */}
@@ -374,45 +364,43 @@ export default function InstagramChatDetailsScreen() {
             <Ionicons name="call-outline" size={28} color="#000" />
             <Text style={styles.quickActionText}>Audio</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity style={styles.quickAction}>
             <Ionicons name="videocam-outline" size={28} color="#000" />
             <Text style={styles.quickActionText}>Vidéo</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity style={styles.quickAction}>
             <Ionicons name="person-circle-outline" size={28} color="#000" />
             <Text style={styles.quickActionText}>Profil</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity style={styles.quickAction} onPress={handleToggleMute}>
-            <Ionicons 
-              name={notificationsMuted ? "notifications-off-outline" : "notifications-outline"} 
-              size={28} 
-              color="#000" 
+            <Ionicons
+              name={notificationsMuted ? 'notifications-off-outline' : 'notifications-outline'}
+              size={28}
+              color="#000"
             />
-            <Text style={styles.quickActionText}>
-              {notificationsMuted ? 'Activer' : 'Muet'}
-            </Text>
+            <Text style={styles.quickActionText}>{notificationsMuted ? 'Activer' : 'Muet'}</Text>
           </TouchableOpacity>
         </View>
 
         {/* Options Section */}
         <View style={styles.section}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.option}
             onPress={() => router.push(`/screens/notification-settings?chatId=${chatId}`)}
           >
             <Text style={styles.optionText}>Notifications personnalisées</Text>
             <Ionicons name="chevron-forward" size={20} color="#999" />
           </TouchableOpacity>
-          
+
           <TouchableOpacity style={styles.option}>
             <Text style={styles.optionText}>Fond d'écran</Text>
             <Ionicons name="chevron-forward" size={20} color="#999" />
           </TouchableOpacity>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             style={styles.option}
             onPress={() => router.push(`/screens/search-messages?chatId=${chatId}`)}
           >
@@ -425,16 +413,14 @@ export default function InstagramChatDetailsScreen() {
         {chatDetails?.is_group && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>
-                Membres ({participants.length})
-              </Text>
+              <Text style={styles.sectionTitle}>Membres ({participants.length})</Text>
               {isAdmin && (
                 <TouchableOpacity onPress={handleAddParticipants}>
                   <Ionicons name="person-add-outline" size={20} color="#3797F0" />
                 </TouchableOpacity>
               )}
             </View>
-            
+
             {participants.length > 5 && (
               <View style={styles.searchBox}>
                 <Ionicons name="search" size={18} color="#999" />
@@ -447,7 +433,7 @@ export default function InstagramChatDetailsScreen() {
                 />
               </View>
             )}
-            
+
             <FlatList
               data={filteredParticipants}
               renderItem={renderParticipant}
@@ -460,12 +446,12 @@ export default function InstagramChatDetailsScreen() {
         {/* Privacy Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Confidentialité</Text>
-          
+
           <TouchableOpacity style={styles.option}>
             <Text style={styles.optionText}>Messages éphémères</Text>
             <Ionicons name="chevron-forward" size={20} color="#999" />
           </TouchableOpacity>
-          
+
           <TouchableOpacity style={styles.option}>
             <Text style={styles.optionText}>Chiffrement</Text>
             <View style={styles.encryptionBadge}>
@@ -493,11 +479,11 @@ export default function InstagramChatDetailsScreen() {
               <Text style={styles.dangerText}>Bloquer</Text>
             </TouchableOpacity>
           )}
-          
+
           <TouchableOpacity style={styles.dangerOption}>
             <Text style={styles.dangerText}>Signaler</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity style={styles.dangerOption} onPress={handleLeaveChat}>
             <Text style={styles.dangerText}>
               {chatDetails?.is_group ? 'Quitter le groupe' : 'Supprimer la conversation'}
@@ -507,11 +493,7 @@ export default function InstagramChatDetailsScreen() {
       </ScrollView>
 
       {/* Edit Name Modal */}
-      <Modal
-        visible={showEditNameModal}
-        transparent
-        animationType="slide"
-      >
+      <Modal visible={showEditNameModal} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
@@ -523,7 +505,7 @@ export default function InstagramChatDetailsScreen() {
                 <Text style={styles.modalDone}>OK</Text>
               </TouchableOpacity>
             </View>
-            
+
             <TextInput
               style={styles.modalInput}
               value={newChatName}
@@ -532,10 +514,8 @@ export default function InstagramChatDetailsScreen() {
               autoFocus
               maxLength={25}
             />
-            
-            <Text style={styles.charCount}>
-              {newChatName.length}/25
-            </Text>
+
+            <Text style={styles.charCount}>{newChatName.length}/25</Text>
           </View>
         </View>
       </Modal>

@@ -6,7 +6,6 @@ import { DeviceMotion } from 'expo-sensors';
 import React, { useState, useEffect, useRef } from 'react';
 import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
 import AREventMarker from '../components/AREventMarker';
 import { useNearbyEvents, NearbyEvent } from '../hooks/useNearbyEvents';
 

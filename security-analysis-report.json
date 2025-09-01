@@ -1,0 +1,1332 @@
+{
+  "timestamp": "2025-08-24T21:48:05.086Z",
+  "summary": {
+    "critical": 236,
+    "high": 20,
+    "medium": 4,
+    "low": 1,
+    "info": 0,
+    "passed": 3
+  },
+  "issues": {
+    "critical": [
+      {
+        "file": "/src/__tests__/integration/full-app-test.ts",
+        "issue": "Potential hardcoded secret detected",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/__tests__/integration/supabase.integration.test.ts",
+        "issue": "Potential hardcoded secret detected",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/__tests__/integration/supabase.real.integration.test.ts",
+        "issue": "Potential hardcoded secret detected",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/__tests__/security/security.test.ts",
+        "issue": "Potential hardcoded secret detected",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/auth/screens/CodeVerificationScreen.tsx",
+        "issue": "Potential hardcoded secret detected",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/notifications/services/__tests__/notificationService.test.ts",
+        "issue": "Potential hardcoded secret detected",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/notifications/services/notificationService.ts",
+        "issue": "Potential hardcoded secret detected",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/hooks/useOtpVerification.ts",
+        "issue": "Potential hardcoded secret detected",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/hooks/usePushNotifications.ts",
+        "issue": "Potential hardcoded secret detected",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/i18n/locales/en/index.ts",
+        "issue": "Potential hardcoded secret detected",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/i18n/locales/fr/index.ts",
+        "issue": "Potential hardcoded secret detected",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/__tests__/integration/onboarding-flow.test.ts",
+        "issue": "Insecure HTTP connection detected",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/events/screens/EventDetailsScreen.tsx",
+        "issue": "Insecure HTTP connection detected",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/shared/services/__tests__/avatarService.test.ts",
+        "issue": "Insecure HTTP connection detected",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/__tests__/comprehensive/app.test.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/__tests__/e2e/e2e-setup.test.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/__tests__/error-handling.test.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/__tests__/features/auth-onboarding.test.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/__tests__/features/chat-system.test.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/__tests__/features/event-features.test.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/__tests__/features/events-functionality.test.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/__tests__/integration/CompleteIntegration.test.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/__tests__/integration/auth-flow.test.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/__tests__/integration/auth-flow.test.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/__tests__/integration/chat-messaging.test.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/__tests__/integration/event-management.test.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/__tests__/integration/full-app-test.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/__tests__/integration/onboarding-flow.test.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/__tests__/integration/supabase.integration.test.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/__tests__/mocks/eventService.mock.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/__tests__/offline/offline-sync.test.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/__tests__/performance/AppPerformance.test.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/__tests__/performance/PerformanceOptimization.test.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/__tests__/performance/chatService.performance.test.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/__tests__/performance/critical-performance.test.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/__tests__/performance/eventService.performance.test.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/__tests__/performance-optimization.test.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/__tests__/performance.test.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/__tests__/security/security-audit.test.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/__tests__/security/supabase-security.test.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/__tests__/services/authService.test.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/__tests__/services/chatService.test.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/__tests__/services/eventService.test.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/entities/event/types.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/entities/user/types.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/admin/screens/ReportsScreen.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/auth/__tests__/AvatarPickScreen.test.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/auth/__tests__/auth-integration.test.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/auth/screens/AgeInputScreen.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/auth/screens/AvatarPickScreen.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/auth/screens/BannedScreen.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/auth/screens/CodeVerificationScreen.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/auth/screens/ContactsFriendsScreen.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/auth/screens/ContactsPermissionScreen.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/auth/screens/HobbyPickerScreen.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/auth/screens/JamPickerScreen.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/auth/screens/LoadingScreen.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/auth/screens/LocationPermissionScreen.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/auth/screens/LocationPickerScreen.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/auth/screens/NameInputScreen.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/auth/screens/PathInputScreen.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/auth/screens/RestaurantPickerScreen.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/auth/screens/__tests__/AvatarPickScreen.test.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/auth/services/__tests__/authService.test.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/calendar/screens/CalendarPerfect.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/chat/__tests__/ConversationScreen.test.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/chat/__tests__/MessageBubble.test.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/chat/__tests__/chat.test.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/chat/components/MessageOptionsButton.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/chat/components/VoiceRecorder.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/chat/components/VoiceRecorderModal.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/chat/components/__tests__/MessageBubble.test.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/chat/hooks/useVoiceMessages.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/chat/screens/EnhancedConversationScreen.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/chat/screens/InstagramChatDetailsScreen.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/chat/screens/InstagramChatListScreen.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/chat/screens/InstagramConversationScreen.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/chat/screens/InstagramNotificationSettingsScreen.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/chat/screens/PollScreen.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/chat/services/__tests__/chatService.test.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/chat/services/messageServiceV2.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/chats/initializeConversationSystem.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/chats/services/__tests__/chat.test.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/chats/services/__tests__/chatService.test.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/chats/services/__tests__/conversationService.test.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/chats/services/chatService.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/chats/services/conversationService.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/chats/services/messageCacheService.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/events/__tests__/CreateEventScreen.test.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/events/__tests__/EventService.test.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/events/__tests__/eventServiceNew.test.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/events/__tests__/events-simple.test.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/events/__tests__/events.test.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/events/components/EventComments.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/events/components/EventDatePickerModal.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/events/components/EventLocationSearchModal.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/events/components/EventMemories.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/events/components/EventOptionsButton.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/events/components/GuestQuestionnaireModal.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/events/components/ItemsToBringModal.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/events/components/MemoryCard.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/events/components/ParkingInfoModal.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/events/components/PhotoAlbumModal.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/events/components/RatingModal.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/events/context/EventCoverContext.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/events/context/EventProvider.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/events/screens/CreateEventScreen.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/events/screens/EditEventCoverScreen.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/events/screens/EventDetailsScreen.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/events/screens/InviteFriendsScreen.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/events/screens/RSVPManagementScreen.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/events/screens/__tests__/RSVPManagementScreen.test.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/events/services/__tests__/eventService.test.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/events/services/eventService.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/events/services/eventServiceComplete.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/events/services/eventServiceV2.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/events/services/eventServiceV3.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/map/hooks/useNearbyEvents.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/map/screens/MapScreen.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/map/screens/MapScreenFixed.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/network/NetworkTestButtons.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/notifications/components/NotificationItem.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/notifications/screens/NotificationsFullScreen.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/notifications/screens/NotificationsScreen.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/notifications/services/__tests__/notificationService.test.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/notifications/services/notificationService.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/profile/__tests__/ProfileScreen.test.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/profile/screens/EditProfileScreen.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/profile/screens/ProfileScreen.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/profile/screens/SearchUsersScreen.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/profiles/components/ProfileOptionsButton.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/settings/screens/HelpFAQScreen.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/settings/screens/PreferencesScreen.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/settings/screens/SettingsScreen.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/settings/screens/__tests__/PreferencesScreen.test.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/stories/__tests__/StoriesScreen.test.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/stories/__tests__/stories-simple.test.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/stories/__tests__/stories.test.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/stories/components/StoryOptionsButton.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/stories/hooks/useStories.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/stories/screens/CreateStoryScreen.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/stories/screens/MemoriesScreen.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/stories/screens/StoryViewerScreen.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/features/stories/screens/UserMemoriesViewerScreen.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/hooks/__tests__/useAuth.test.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/hooks/__tests__/useEvents.test.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/hooks/__tests__/useEvents.test.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/hooks/__tests__/useNotifications.test.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/hooks/__tests__/usePollsSupabase.test.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/hooks/__tests__/useProfile.test.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/hooks/__tests__/useProfile.test.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/hooks/__tests__/usePushNotifications.test.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/hooks/__tests__/useSupabase.test.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/hooks/useActivities.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/hooks/useChats.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/hooks/useChatsTemporary.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/hooks/useEventInteractions.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/hooks/useEventMemories.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/hooks/useEventTemplates.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/hooks/useEvents.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/hooks/useEventsAdvanced.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/hooks/useFriends.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/hooks/useMessages.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/hooks/useMessagesAdvanced.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/hooks/useMessagesAdvancedTemp.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/hooks/useNotifications.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/hooks/useOnboardingStatus.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/hooks/usePollStore.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/hooks/usePollsSupabase.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/hooks/usePresence.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/hooks/useProfile.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/hooks/useProfileCompat.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/hooks/usePushNotifications.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/hooks/useRatings.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/hooks/useReports.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/hooks/useSearchHistory.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/hooks/useStories.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/hooks/useStoryHighlights.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/hooks/useUserBlocks.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/hooks/useUserProfile.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/i18n/locales/en/index.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/i18n/locales/fr/index.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/shared/components/CacheDebugPanel.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/shared/components/CacheStatusWidget.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/shared/components/CachedImage.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/shared/components/RatingDisplay.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/shared/config/constants.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/shared/hooks/__tests__/useNetworkStatus.test.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/shared/hooks/cache/index.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/shared/hooks/useAdaptiveRequest.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/shared/hooks/useCache.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/shared/hooks/useEventCache.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/shared/hooks/useManualRegistrationStep.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/shared/hooks/useOfflineQueue.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/shared/hooks/useOfflineSync.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/shared/hooks/useOptimizedImage.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/shared/hooks/useOptimizedList.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/shared/hooks/useOptimizedQuery.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/shared/hooks/useRealtimeManager.example.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/shared/hooks/useRealtimeManager.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/shared/hooks/useRealtimeSubscription.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/shared/hooks/useRegistrationStep.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/shared/hooks/useResponsive.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/shared/hooks/useResumableUpload.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/shared/hooks/useResumableUploadDebug.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/shared/hooks/useSecureSupabase.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/shared/hooks/useSupabaseStorage.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/shared/hooks/useUserCache.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/shared/lib/supabase/__tests__/client.test.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/shared/lib/supabase/client.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/shared/locales/translations.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/shared/providers/CacheProvider.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/shared/providers/MemoriesProvider.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/shared/providers/NetworkProvider.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/shared/providers/NotificationProvider.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/shared/providers/ProfileProvider.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/shared/providers/SessionContext.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/shared/providers/StoriesContext.tsx",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/shared/providers/__tests__/memories-simple.test.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/shared/services/__tests__/avatarService.test.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/shared/services/avatarService.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/shared/stores/networkStore.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/shared/utils/__tests__/bruteforceProtection.test.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/shared/utils/bruteforceProtection.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/shared/utils/cache/__tests__/cacheManager.test.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/shared/utils/cache/cacheManager.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/shared/utils/cache/imageCache.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/shared/utils/cache/offlineSync.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/shared/utils/otpCache.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/shared/utils/pendingFriendRequests.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/shared/utils/performance.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/shared/utils/realtimeMonitoring.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/shared/utils/supabaseValidation.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/types/conversation.types.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/types/crypto-browserify.d.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      },
+      {
+        "file": "/src/utils/notifications.ts",
+        "issue": "Potential SQL injection vulnerability",
+        "severity": "CRITICAL"
+      }
+    ],
+    "high": [
+      {
+        "file": "/src/__tests__/performance/authentication.performance.test.ts",
+        "issue": "Console logging of potentially sensitive data",
+        "severity": "HIGH"
+      },
+      {
+        "file": "/src/__tests__/security/supabase-security.test.ts",
+        "issue": "Console logging of potentially sensitive data",
+        "severity": "HIGH"
+      },
+      {
+        "file": "/src/features/events/services/eventServiceComplete.ts",
+        "issue": "Console logging of potentially sensitive data",
+        "severity": "HIGH"
+      },
+      {
+        "file": "/src/features/events/services/eventServiceV2.ts",
+        "issue": "Console logging of potentially sensitive data",
+        "severity": "HIGH"
+      },
+      {
+        "file": "/src/features/notifications/services/notificationService.ts",
+        "issue": "Console logging of potentially sensitive data",
+        "severity": "HIGH"
+      },
+      {
+        "file": "/src/hooks/useOnboardingStatus.ts",
+        "issue": "Console logging of potentially sensitive data",
+        "severity": "HIGH"
+      },
+      {
+        "file": "/src/hooks/usePushNotifications.ts",
+        "issue": "Console logging of potentially sensitive data",
+        "severity": "HIGH"
+      },
+      {
+        "file": "/src/services/freeGeocodingApis.ts",
+        "issue": "Console logging of potentially sensitive data",
+        "severity": "HIGH"
+      },
+      {
+        "file": "/src/services/hereApi.ts",
+        "issue": "Console logging of potentially sensitive data",
+        "severity": "HIGH"
+      },
+      {
+        "file": "/src/shared/config/environment.ts",
+        "issue": "Console logging of potentially sensitive data",
+        "severity": "HIGH"
+      },
+      {
+        "file": "/src/shared/hooks/useCache.ts",
+        "issue": "Console logging of potentially sensitive data",
+        "severity": "HIGH"
+      },
+      {
+        "file": "/src/shared/hooks/useResumableUploadDebug.ts",
+        "issue": "Console logging of potentially sensitive data",
+        "severity": "HIGH"
+      },
+      {
+        "file": "/src/shared/providers/SessionContext.tsx",
+        "issue": "Console logging of potentially sensitive data",
+        "severity": "HIGH"
+      },
+      {
+        "file": "/src/shared/utils/cache/cacheManager.ts",
+        "issue": "Console logging of potentially sensitive data",
+        "severity": "HIGH"
+      },
+      {
+        "file": "/src/shared/utils/offlineCache.ts",
+        "issue": "Console logging of potentially sensitive data",
+        "severity": "HIGH"
+      },
+      {
+        "file": "/src/shared/utils/sessionHelpers.ts",
+        "issue": "Console logging of potentially sensitive data",
+        "severity": "HIGH"
+      },
+      {
+        "file": "/src/__tests__/performance/performance.test.ts",
+        "issue": "Supabase anon key not properly handled",
+        "severity": "HIGH"
+      },
+      {
+        "file": "/src/__tests__/permissions.test.ts",
+        "issue": "Supabase anon key not properly handled",
+        "severity": "HIGH"
+      },
+      {
+        "file": "/src/__tests__/security/supabase-security.test.ts",
+        "issue": "Supabase anon key not properly handled",
+        "severity": "HIGH"
+      },
+      {
+        "file": "/src/__tests__/testflight-readiness.test.ts",
+        "issue": "Supabase anon key not properly handled",
+        "severity": "HIGH"
+      }
+    ],
+    "medium": [
+      {
+        "file": "android/app/src/main/AndroidManifest.xml",
+        "issue": "Missing android.permission.CAMERA",
+        "severity": "MEDIUM"
+      },
+      {
+        "file": "android/app/src/main/AndroidManifest.xml",
+        "issue": "Missing android.permission.ACCESS_FINE_LOCATION",
+        "severity": "MEDIUM"
+      },
+      {
+        "file": "android/app/src/main/AndroidManifest.xml",
+        "issue": "Missing android.permission.READ_CONTACTS",
+        "severity": "MEDIUM"
+      },
+      {
+        "file": "android/app/src/main/AndroidManifest.xml",
+        "issue": "Missing android.permission.RECORD_AUDIO",
+        "severity": "MEDIUM"
+      }
+    ],
+    "low": [
+      {
+        "file": "Network Security",
+        "issue": "SSL pinning not implemented",
+        "severity": "LOW"
+      }
+    ],
+    "info": []
+  },
+  "passed": [
+    "✅ App permissions configured",
+    "✅ RLS policies enabled",
+    "✅ Data validation implemented"
+  ]
+}

@@ -1,7 +1,6 @@
 import type { PostgrestError, RealtimeChannel } from '@supabase/supabase-js';
 import { useState, useEffect, useRef } from 'react';
 import { Alert } from 'react-native';
-
 import { supabase } from '@/shared/lib/supabase/client';
 import { useSession } from '@/shared/providers/SessionContext';
 import { MessageCacheService } from '@/features/chats/services/messageCacheService';
@@ -110,7 +109,7 @@ export function useMessagesAdvanced(chatId?: string) {
       }));
 
       setMessages(formattedMessages);
-      
+
       // Mettre en cache les messages
       await MessageCacheService.cacheMessages(targetId, formattedMessages);
     } catch (err: unknown) {
@@ -260,7 +259,7 @@ export function useMessagesAdvanced(chatId?: string) {
       );
 
       setChats(enrichedChats);
-      
+
       // Mettre en cache la liste des chats
       await MessageCacheService.cacheChats(enrichedChats);
     } catch (error) {

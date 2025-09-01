@@ -14,21 +14,21 @@ interface NetworkProviderProps {
  * </NetworkProvider>
  */
 export function NetworkProvider({ children }: NetworkProviderProps) {
-  const updateNetworkState = useNetworkStore(s => s.updateNetworkState);
-  
+  const updateNetworkState = useNetworkStore((s) => s.updateNetworkState);
+
   useEffect(() => {
     // Check initial
     NetInfo.fetch().then(updateNetworkState);
-    
+
     // Listener pour changements
     const unsubscribe = NetInfo.addEventListener(updateNetworkState);
-    
+
     return () => {
       if (unsubscribe) {
         unsubscribe();
       }
     };
   }, [updateNetworkState]);
-  
+
   return <>{children}</>;
 }

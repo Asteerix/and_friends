@@ -1,11 +1,5 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  Image,
-  TouchableOpacity,
-  StyleSheet,
-} from 'react-native';
+import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 
 interface Participant {
   id: string;
@@ -37,11 +31,7 @@ export default function EventCell({
   const remainingCount = goingCount - displayParticipants.length;
 
   return (
-    <TouchableOpacity
-      style={styles.container}
-      onPress={onPress}
-      activeOpacity={0.7}
-    >
+    <TouchableOpacity style={styles.container} onPress={onPress} activeOpacity={0.7}>
       {/* Cover Image */}
       <View style={styles.imageContainer}>
         {coverImage ? (
@@ -55,7 +45,7 @@ export default function EventCell({
                   key={i}
                   style={[
                     styles.checkerSquare,
-                    i % 2 === Math.floor(i / 4) % 2 ? styles.lightSquare : styles.darkSquare
+                    i % 2 === Math.floor(i / 4) % 2 ? styles.lightSquare : styles.darkSquare,
                   ]}
                 />
               ))}
@@ -72,10 +62,8 @@ export default function EventCell({
         <Text style={styles.datetime}>
           {date}, {time}
         </Text>
-        <Text style={styles.location}>
-          {location}
-        </Text>
-        
+        <Text style={styles.location}>{location}</Text>
+
         {/* Participants */}
         <View style={styles.participantsRow}>
           <View style={styles.avatarsContainer}>
@@ -84,14 +72,11 @@ export default function EventCell({
                 key={participant.id}
                 style={[
                   styles.avatarWrapper,
-                  { marginLeft: index > 0 ? -8 : 0, zIndex: displayParticipants.length - index }
+                  { marginLeft: index > 0 ? -8 : 0, zIndex: displayParticipants.length - index },
                 ]}
               >
                 {participant.avatar_url ? (
-                  <Image
-                    source={{ uri: participant.avatar_url }}
-                    style={styles.avatar}
-                  />
+                  <Image source={{ uri: participant.avatar_url }} style={styles.avatar} />
                 ) : (
                   <View style={[styles.avatar, styles.avatarPlaceholder]} />
                 )}

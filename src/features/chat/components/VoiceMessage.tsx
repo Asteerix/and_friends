@@ -82,7 +82,7 @@ export default function VoiceMessage({
 
   const handleSliderChange = async (value: number) => {
     if (player) {
-      const position = value * playbackDuration / 1000; // Convert to seconds
+      const position = (value * playbackDuration) / 1000; // Convert to seconds
       player.seekTo(position);
       setPlaybackPosition(value * playbackDuration);
     }

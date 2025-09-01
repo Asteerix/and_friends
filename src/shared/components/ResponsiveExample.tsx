@@ -24,9 +24,15 @@ export const ResponsiveExample: React.FC = () => {
 
       {/* Utilisation des dimensions responsives */}
       <View style={styles.avatarContainer}>
-        <View style={[styles.avatar, { width: dimensions.avatarLg, height: dimensions.avatarLg }]} />
-        <View style={[styles.avatar, { width: dimensions.avatarMd, height: dimensions.avatarMd }]} />
-        <View style={[styles.avatar, { width: dimensions.avatarSm, height: dimensions.avatarSm }]} />
+        <View
+          style={[styles.avatar, { width: dimensions.avatarLg, height: dimensions.avatarLg }]}
+        />
+        <View
+          style={[styles.avatar, { width: dimensions.avatarMd, height: dimensions.avatarMd }]}
+        />
+        <View
+          style={[styles.avatar, { width: dimensions.avatarSm, height: dimensions.avatarSm }]}
+        />
       </View>
 
       {/* Layout adaptatif */}

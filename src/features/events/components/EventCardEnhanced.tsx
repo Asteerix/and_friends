@@ -31,7 +31,7 @@ interface EventCardEnhancedProps {
     participants_count?: number;
     is_private?: boolean;
     distance?: number;
-    playlists?: Array<{ id: string; playlist_name?: string; spotify_link?: string; }>;
+    playlists?: Array<{ id: string; playlist_name?: string; spotify_link?: string }>;
   };
   onPress?: () => void;
   size?: 'small' | 'medium' | 'large';

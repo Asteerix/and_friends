@@ -43,11 +43,9 @@ export default function PhotoAlbumModal({
 
   const pickImage = async () => {
     if (photos.length >= MAX_PHOTOS) {
-      Alert.alert(
-        'Limite atteinte',
-        `Vous pouvez ajouter un maximum de ${MAX_PHOTOS} photos.`,
-        [{ text: 'OK' }]
-      );
+      Alert.alert('Limite atteinte', `Vous pouvez ajouter un maximum de ${MAX_PHOTOS} photos.`, [
+        { text: 'OK' },
+      ]);
       return;
     }
 
@@ -60,23 +58,23 @@ export default function PhotoAlbumModal({
 
     if (!result.canceled && result.assets) {
       const remainingSlots = MAX_PHOTOS - photos.length;
-      const newPhotos = result.assets.slice(0, remainingSlots).map(asset => asset.uri);
+      const newPhotos = result.assets.slice(0, remainingSlots).map((asset) => asset.uri);
       // Mark new photos as loading
       const loadingState: { [key: string]: boolean } = {};
-      newPhotos.forEach(uri => {
+      newPhotos.forEach((uri) => {
         loadingState[uri] = true;
       });
-      setLoadingImages(prev => ({ ...prev, ...loadingState }));
-      
+      setLoadingImages((prev) => ({ ...prev, ...loadingState }));
+
       setPhotos([...photos, ...newPhotos]);
       setHasChanges(true);
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      
+
       // Simulate image processing
       setTimeout(() => {
-        setLoadingImages(prev => {
+        setLoadingImages((prev) => {
           const updated = { ...prev };
-          newPhotos.forEach(uri => {
+          newPhotos.forEach((uri) => {
             delete updated[uri];
           });
           return updated;
@@ -87,11 +85,9 @@ export default function PhotoAlbumModal({
 
   const takePhoto = async () => {
     if (photos.length >= MAX_PHOTOS) {
-      Alert.alert(
-        'Limite atteinte',
-        `Vous pouvez ajouter un maximum de ${MAX_PHOTOS} photos.`,
-        [{ text: 'OK' }]
-      );
+      Alert.alert('Limite atteinte', `Vous pouvez ajouter un maximum de ${MAX_PHOTOS} photos.`, [
+        { text: 'OK' },
+      ]);
       return;
     }
 
@@ -102,14 +98,14 @@ export default function PhotoAlbumModal({
 
     if (!result.canceled && result.assets[0]) {
       const newPhotoUri = result.assets[0].uri;
-      setLoadingImages(prev => ({ ...prev, [newPhotoUri]: true }));
+      setLoadingImages((prev) => ({ ...prev, [newPhotoUri]: true }));
       setPhotos([...photos, newPhotoUri]);
       setHasChanges(true);
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      
+
       // Simulate image processing
       setTimeout(() => {
-        setLoadingImages(prev => {
+        setLoadingImages((prev) => {
           const updated = { ...prev };
           delete updated[newPhotoUri];
           return updated;
@@ -119,32 +115,28 @@ export default function PhotoAlbumModal({
   };
 
   const removePhoto = (index: number) => {
-    Alert.alert(
-      'Supprimer la photo ?',
-      'Cette action est irréversible.',
-      [
-        {
-          text: 'Annuler',
-          style: 'cancel',
+    Alert.alert('Supprimer la photo ?', 'Cette action est irréversible.', [
+      {
+        text: 'Annuler',
+        style: 'cancel',
+      },
+      {
+        text: 'Supprimer',
+        style: 'destructive',
+        onPress: () => {
+          const newPhotos = photos.filter((_, i) => i !== index);
+          setPhotos(newPhotos);
+          setHasChanges(true);
+          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         },
-        {
-          text: 'Supprimer',
-          style: 'destructive',
-          onPress: () => {
-            const newPhotos = photos.filter((_, i) => i !== index);
-            setPhotos(newPhotos);
-            setHasChanges(true);
-            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-          },
-        },
-      ]
-    );
+      },
+    ]);
   };
 
   const removeAllPhotos = () => {
     Alert.alert(
       'Supprimer toutes les photos ?',
-      'Cette action supprimera toutes les photos de l\'album. Cette action est irréversible.',
+      "Cette action supprimera toutes les photos de l'album. Cette action est irréversible.",
       [
         {
           text: 'Annuler',
@@ -164,15 +156,11 @@ export default function PhotoAlbumModal({
   };
 
   const handleAddPhotos = () => {
-    Alert.alert(
-      'Add Photos',
-      'Choose an option',
-      [
-        { text: 'Take Photo', onPress: takePhoto },
-        { text: 'Choose from Library', onPress: pickImage },
-        { text: 'Cancel', style: 'cancel' },
-      ],
-    );
+    Alert.alert('Add Photos', 'Choose an option', [
+      { text: 'Take Photo', onPress: takePhoto },
+      { text: 'Choose from Library', onPress: pickImage },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
   };
 
   const handleSave = () => {
@@ -184,29 +172,25 @@ export default function PhotoAlbumModal({
 
   const handleClose = () => {
     if (hasChanges) {
-      Alert.alert(
-        'Modifications non sauvegardées',
-        'Voulez-vous sauvegarder vos modifications ?',
-        [
-          {
-            text: 'Annuler',
-            style: 'cancel',
+      Alert.alert('Modifications non sauvegardées', 'Voulez-vous sauvegarder vos modifications ?', [
+        {
+          text: 'Annuler',
+          style: 'cancel',
+        },
+        {
+          text: 'Ne pas sauvegarder',
+          style: 'destructive',
+          onPress: () => {
+            setPhotos(initialPhotos);
+            setHasChanges(false);
+            onClose();
           },
-          {
-            text: 'Ne pas sauvegarder',
-            style: 'destructive',
-            onPress: () => {
-              setPhotos(initialPhotos);
-              setHasChanges(false);
-              onClose();
-            },
-          },
-          {
-            text: 'Sauvegarder',
-            onPress: handleSave,
-          },
-        ]
-      );
+        },
+        {
+          text: 'Sauvegarder',
+          onPress: handleSave,
+        },
+      ]);
     } else {
       onClose();
     }
@@ -219,7 +203,11 @@ export default function PhotoAlbumModal({
       title="📸 Photo Album"
       height={600}
       onSave={handleSave}
-      saveButtonText={photos.length > 0 ? `Sauvegarder (${photos.length} photo${photos.length > 1 ? 's' : ''})` : 'Sauvegarder'}
+      saveButtonText={
+        photos.length > 0
+          ? `Sauvegarder (${photos.length} photo${photos.length > 1 ? 's' : ''})`
+          : 'Sauvegarder'
+      }
     >
       <View style={styles.container}>
         {photos.length === 0 ? (
@@ -228,7 +216,7 @@ export default function PhotoAlbumModal({
               <Ionicons name="images-outline" size={48} color="#C7C7CC" />
               <Text style={styles.emptyStateText}>No photos yet</Text>
             </View>
-            
+
             <TouchableOpacity style={styles.uploadCard} onPress={handleAddPhotos}>
               <Ionicons name="camera-outline" size={48} color="#666" />
               <Text style={styles.uploadText}>Upload Photos</Text>
@@ -245,20 +233,17 @@ export default function PhotoAlbumModal({
                   <Text style={styles.limitWarning}>Limite atteinte</Text>
                 )}
               </View>
-              <TouchableOpacity
-                style={styles.deleteAllButton}
-                onPress={removeAllPhotos}
-              >
+              <TouchableOpacity style={styles.deleteAllButton} onPress={removeAllPhotos}>
                 <Ionicons name="trash-outline" size={18} color="#FF3B30" />
                 <Text style={styles.deleteAllText}>Tout supprimer</Text>
               </TouchableOpacity>
             </View>
-            
+
             <View style={styles.photosGrid}>
               {photos.map((photo, index) => (
                 <View key={`photo-${index}-${photo}`} style={styles.photoContainer}>
-                  <Image 
-                    source={{ uri: photo }} 
+                  <Image
+                    source={{ uri: photo }}
                     style={styles.photo}
                     onError={() => {
                       Alert.alert('Error', 'Unable to load this image');
@@ -279,7 +264,7 @@ export default function PhotoAlbumModal({
                   </TouchableOpacity>
                 </View>
               ))}
-              
+
               {photos.length < MAX_PHOTOS && (
                 <TouchableOpacity style={styles.addMoreButton} onPress={handleAddPhotos}>
                   <Ionicons name="add" size={32} color="#007AFF" />
@@ -289,7 +274,7 @@ export default function PhotoAlbumModal({
             </View>
           </ScrollView>
         )}
-        
+
         {photos.length > 0 && photos.length < MAX_PHOTOS && (
           <View style={styles.centerContainer}>
             <TouchableOpacity style={styles.addPhotosLink} onPress={handleAddPhotos}>
