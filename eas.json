@@ -22,10 +22,17 @@
       "ios": {
         "resourceClass": "m-medium",
         "buildConfiguration": "Release",
-        "distribution": "store"
+        "distribution": "store",
+        "cache": {
+          "disabled": false,
+          "key": "ios-production-v2"
+        }
       },
       "android": {
         "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_NO_DOTENV": "1"
       }
     }
   },

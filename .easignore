@@ -1,0 +1,48 @@
+# .easignore - Files to exclude from EAS Build
+
+# Development files
+.env
+.env.local
+.env.*.local
+
+# Local iOS environment
+ios/.xcode.env.local
+
+# Test and coverage
+coverage/
+__tests__/
+*.test.js
+*.test.ts
+*.test.tsx
+
+# Documentation
+docs/
+*.md
+
+# Scripts not needed for build
+scripts/test-*.js
+scripts/create-test-user.js
+
+# Temporary files
+*.log
+*.tmp
+.DS_Store
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.idea/
+.vscode/
+
+# Test reports
+*-report.json
+*-report.md
+TESTFLIGHT_*.md
+SECURITY_*.md
+CRITICAL_*.md
+COMPREHENSIVE_*.md
+PERFORMANCE_*.md
+PRODUCTION_*.md
+FINAL_*.md
