@@ -3,6 +3,13 @@
     "version": ">= 3.0.0",
     "appVersionSource": "remote"
   },
+  "hooks": {
+    "eas": {
+      "build": {
+        "onStart": "./scripts/eas-build-pre-install.sh"
+      }
+    }
+  },
   "build": {
     "development": {
       "developmentClient": true,
@@ -19,13 +26,6 @@
       }
     },
     "production": {
-      "hooks": {
-        "eas": {
-          "build": {
-            "onStart": "./scripts/eas-build-pre-install.sh"
-          }
-        }
-      },
       "ios": {
         "resourceClass": "m-medium",
         "buildConfiguration": "Release",
