@@ -1,5 +1,8 @@
 # .easignore - Files to exclude from EAS Build
 
+# Expo local state
+.expo/
+
 # Native directories (using Prebuild/CNG)
 ios/
 android/
