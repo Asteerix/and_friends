@@ -24,6 +24,7 @@ export default {
         "applinks:*.andfriends.app"
       ],
       infoPlist: {
+        ITSAppUsesNonExemptEncryption: false,
         NSContactsUsageDescription: "& friends needs access to your contacts to help you find and connect with friends who are already using the app.",
         NSLocationWhenInUseUsageDescription: "& friends uses your location to show you events happening nearby and connect you with friends in your area.",
         NSLocationAlwaysAndWhenInUseUsageDescription: "& friends uses your location to show you events happening nearby and notify you when friends are hosting events near you.",
