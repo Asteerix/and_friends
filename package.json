@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "scripts": {
     "eas-build-pre-install": "node scripts/prebuild-fix.js",
+    "eas-build-post-install": "node scripts/post-install-ios.js",
     "start": "expo start",
     "start:iphone": "./scripts/start-with-simulator.sh",
     "start:sim": "node ./scripts/start-with-env-simulator.js",
