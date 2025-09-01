@@ -55,6 +55,13 @@ fi
 echo "Installing JavaScript dependencies..."
 yarn install || npm install
 
+# Run Expo prebuild to generate native code
+echo "Running Expo prebuild..."
+npx expo prebuild --clean --platform ios || {
+    echo "Expo prebuild failed, trying without clean..."
+    npx expo prebuild --platform ios
+}
+
 # Navigate to iOS directory
 echo "Navigating to iOS directory..."
 cd ios || exit 1
@@ -69,9 +76,13 @@ else
     echo "CocoaPods found: $(pod --version)"
 fi
 
-# Install CocoaPods dependencies
+# Clean and install CocoaPods dependencies
+echo "Cleaning Pods..."
+rm -rf Pods
+rm -f Podfile.lock
+
 echo "Running pod install..."
-pod install
+pod install --repo-update || pod install
 
 # Verify Pod installation
 if [ -d "Pods" ]; then
