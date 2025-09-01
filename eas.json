@@ -19,13 +19,20 @@
       }
     },
     "production": {
+      "hooks": {
+        "eas": {
+          "build": {
+            "onStart": "./scripts/eas-build-pre-install.sh"
+          }
+        }
+      },
       "ios": {
         "resourceClass": "m-medium",
         "buildConfiguration": "Release",
         "distribution": "store",
         "cache": {
           "disabled": false,
-          "key": "ios-production-v2"
+          "key": "ios-production-v3"
         }
       },
       "android": {
