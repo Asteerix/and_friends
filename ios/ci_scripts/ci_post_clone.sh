@@ -4,54 +4,48 @@
 
 echo "=== Starting ci_post_clone.sh ==="
 echo "Current directory: $(pwd)"
-echo "Repository structure:"
-ls -la
 
-# First, install Node dependencies (required for Expo/React Native Podfile)
+# Install Node dependencies first (required for Expo/React Native Podfile)
 echo "Installing Node dependencies..."
 npm ci || npm install
 
-# Now navigate to ios directory for Pod installation
+# Ensure expo is available
+echo "Installing expo-cli globally..."
+npm install -g expo-cli
+
+# Navigate to ios directory
 cd ios
 echo "Changed to directory: $(pwd)"
-echo "iOS directory contents:"
-ls -la
 
-# Check if Podfile.lock exists
-if [ -f "Podfile.lock" ]; then
-    echo "Podfile.lock found"
-else
-    echo "WARNING: Podfile.lock not found"
-fi
+# Clean any existing Pods to ensure fresh installation
+echo "Cleaning existing Pods..."
+rm -rf Pods
+rm -f Podfile.lock
 
-# Install CocoaPods if needed
-echo "Checking for CocoaPods..."
-if ! command -v pod &> /dev/null; then
-    echo "CocoaPods not found, installing..."
-    sudo gem install cocoapods
-else
-    echo "CocoaPods already installed: $(pod --version)"
-fi
+# Install CocoaPods
+echo "Installing CocoaPods..."
+sudo gem install cocoapods
 
-# Run pod install with the existing Podfile.lock
+# Run pod install without deployment flag
 echo "Running pod install..."
-pod install --deployment --verbose
+pod install
 
-# Verify the installation
-echo "Verifying Pods installation..."
-if [ -d "Pods" ]; then
-    echo "✅ Pods directory exists"
-    echo "Pods directory structure:"
-    ls -la Pods/
-    
-    if [ -d "Pods/Target Support Files/Pods-friends" ]; then
-        echo "✅ Pods-friends directory exists"
-        ls -la "Pods/Target Support Files/Pods-friends/"
-    else
-        echo "❌ ERROR: Pods-friends directory not found!"
-    fi
+# Double check the critical file exists
+if [ -f "Pods/Target Support Files/Pods-friends/Pods-friends.release.xcconfig" ]; then
+    echo "✅ SUCCESS: Pods-friends.release.xcconfig exists!"
 else
-    echo "❌ ERROR: Pods directory was not created!"
+    echo "❌ ERROR: Pods-friends.release.xcconfig not found after pod install"
+    echo "Attempting to regenerate pods..."
+    pod deintegrate
+    pod install
+    
+    # Final check
+    if [ -f "Pods/Target Support Files/Pods-friends/Pods-friends.release.xcconfig" ]; then
+        echo "✅ SUCCESS: Pods-friends.release.xcconfig created after retry!"
+    else
+        echo "❌ FATAL: Could not create required pod configuration files"
+        exit 1
+    fi
 fi
 
-echo "=== ci_post_clone.sh completed ==="
+echo "=== ci_post_clone.sh completed successfully ==="
