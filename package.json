@@ -152,20 +152,5 @@
   "browser": {
     "stream": "stream-browserify"
   },
-  "private": true,
-  "packageManager": "pnpm@9.12.1",
-  "engines": {
-    "node": "20.x"
-  },
-  "pnpm": {
-    "overrides": {
-      "node-forge@<1.0.0": ">=1.0.0",
-      "node-forge@<0.10.0": ">=0.10.0",
-      "node-forge@<1.3.0": ">=1.3.0",
-      "ws@<1.1.1": ">=1.1.1",
-      "ws@>=0.2.6 <1.1.5": ">=1.1.5",
-      "ws@<1.0.1": ">=1.0.1",
-      "node-fetch@<2.6.7": ">=2.6.7"
-    }
-  }
+  "private": true
 }
