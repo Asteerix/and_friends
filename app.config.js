@@ -1,5 +1,6 @@
 export default {
   expo: {
+    jsEngine: "hermes",
     scheme: "andfriends",
     name: "& friends",
     slug: "andfriends",

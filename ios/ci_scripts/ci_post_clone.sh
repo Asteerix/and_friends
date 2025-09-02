@@ -1,51 +1,41 @@
-#!/bin/sh
+#!/usr/bin/env bash
+set -euxo pipefail
 
-# Script executed by Xcode Cloud after cloning the repository
+echo "=== Xcode Cloud post-clone ==="
+echo "PWD: $(pwd)"
+echo "Xcode: $(xcodebuild -version || true)"
+echo "Ruby: $(ruby -v || true)"
+echo "Node: $(node -v || true)"
+echo "NPM:  $(npm -v  || true)"
 
-echo "=== Starting ci_post_clone.sh ==="
-echo "Current directory: $(pwd)"
-
-# Install Node dependencies first (required for Expo/React Native Podfile)
-echo "Installing Node dependencies..."
-npm ci || npm install
-
-# Ensure expo is available
-echo "Installing expo-cli globally..."
-npm install -g expo-cli
-
-# Navigate to ios directory
-cd ios
-echo "Changed to directory: $(pwd)"
-
-# Clean any existing Pods to ensure fresh installation
-echo "Cleaning existing Pods..."
-rm -rf Pods
-rm -f Podfile.lock
-
-# Install CocoaPods
-echo "Installing CocoaPods..."
-sudo gem install cocoapods
-
-# Run pod install without deployment flag
-echo "Running pod install..."
-pod install
-
-# Double check the critical file exists
-if [ -f "Pods/Target Support Files/Pods-friends/Pods-friends.release.xcconfig" ]; then
-    echo "✅ SUCCESS: Pods-friends.release.xcconfig exists!"
-else
-    echo "❌ ERROR: Pods-friends.release.xcconfig not found after pod install"
-    echo "Attempting to regenerate pods..."
-    pod deintegrate
-    pod install
-    
-    # Final check
-    if [ -f "Pods/Target Support Files/Pods-friends/Pods-friends.release.xcconfig" ]; then
-        echo "✅ SUCCESS: Pods-friends.release.xcconfig created after retry!"
-    else
-        echo "❌ FATAL: Could not create required pod configuration files"
-        exit 1
-    fi
+# Dépendances JS (au besoin adapte au lockfile présent)
+if [ -f package-lock.json ]; then
+  npm ci
+elif [ -f yarn.lock ]; then
+  yarn install --frozen-lockfile
+elif [ -f pnpm-lock.yaml ]; then
+  pnpm install --frozen-lockfile
 fi
 
-echo "=== ci_post_clone.sh completed successfully ==="
+# Bundler local (sans sudo) + installation des gems du Gemfile racine
+gem install --user-install bundler -N
+export GEM_HOME="$HOME/.gem"
+export PATH="$GEM_HOME/bin:$PATH"
+bundle config set path 'vendor/bundle'
+bundle install --jobs 4 --retry 3
+
+# CocoaPods dans ios/
+pushd ios
+
+# Nettoyage minimal sans toucher au Podfile.lock (source de vérité)
+rm -rf Pods
+
+# Résolution + génération des xcconfig
+BUNDLE_GEMFILE="../Gemfile" bundle exec pod install --repo-update --verbose
+
+# Sanity check: les fichiers Pods-*.xcconfig doivent exister
+ls -la "Pods/Target Support Files" || true
+test -f Pods/Target\ Support\ Files/Pods-*/Pods-*.release.xcconfig
+
+popd
+echo "=== post-clone OK ==="
