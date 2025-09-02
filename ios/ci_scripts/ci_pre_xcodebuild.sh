@@ -1,3 +1,6 @@
 #!/usr/bin/env bash
 set -euxo pipefail
-test -f ios/Pods/Target\ Support\ Files/Pods-*/Pods-*.release.xcconfig
+
+# Script is run from ios/ci_scripts, we need to check in parent directory
+cd ..
+test -f "Pods/Target Support Files/Pods-friends/Pods-friends.release.xcconfig"
