@@ -1,83 +1,44 @@
-#!/bin/sh
+#!/usr/bin/env bash
+set -Eeuo pipefail
 
-# Script executed by Xcode Cloud after cloning the repository
-set -e
+echo "=== Xcode Cloud post-clone (deterministic setup) ==="
 
-echo "=== Xcode Cloud post-clone script starting ==="
-echo "Current directory: $(pwd)"
-echo "Ruby version: $(ruby -v)"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+cd "$REPO_ROOT"
 
-# Go to repository root
-cd ../..
-echo "Changed to repository root: $(pwd)"
-
-# Install Node.js using Homebrew (Xcode Cloud has brew pre-installed)
-echo "Installing Node.js..."
-brew install node || true
-
-echo "Node version: $(node -v)"
-echo "NPM version: $(npm -v)"
-
-# Install Node dependencies (required for React Native/Expo)
-echo "Installing Node dependencies..."
-if [ -f "package-lock.json" ]; then
-    echo "Found package-lock.json, running npm ci..."
-    npm ci
-elif [ -f "yarn.lock" ]; then
-    echo "Found yarn.lock, installing yarn first..."
-    npm install -g yarn
-    yarn install --frozen-lockfile
+# 1) Node 20 LTS via Homebrew (écrase Node 24 installé plus haut)
+if brew list node@20 >/dev/null 2>&1; then
+  echo "node@20 déjà présent"
 else
-    echo "No lock file found, running npm install..."
-    npm install
+  brew install node@20
 fi
+brew unlink node || true
+brew link --overwrite --force node@20
+export PATH="/usr/local/opt/node@20/bin:$PATH"
+node -v
+npm -v || true
 
-# Navigate to ios directory
+# 2) Corepack + pnpm (version figée par packageManager)
+corepack enable
+# Optionnel: forcer si nécessaire la version exacte
+corepack prepare pnpm@9.12.1 --activate
+pnpm -v
+
+# 3) Install Node deps de manière figée
+if [ ! -f "pnpm-lock.yaml" ]; then
+  echo "ERREUR: pnpm-lock.yaml manquant. Générez-le et committez-le."; exit 1
+fi
+pnpm install --frozen-lockfile
+
+# 4) CocoaPods via Bundler (version figée)
+gem install bundler --no-document || true
+bundle config set path 'vendor/bundle'
+bundle install --jobs 4 --retry 3
 cd ios
-echo "Changed to ios directory: $(pwd)"
+bundle exec pod repo update
+bundle exec pod install
 
-# Install CocoaPods if not already installed
-if ! command -v pod >/dev/null 2>&1; then
-    echo "CocoaPods not found, installing..."
-    sudo gem install cocoapods
-else
-    echo "CocoaPods already installed: $(pod --version)"
-fi
+# 5) Sanity checks
+test -f "Pods/Target Support Files/Pods-friends/Pods-friends.release.xcconfig"
 
-# Clean Pods directory but keep Podfile.lock
-echo "Cleaning Pods directory..."
-rm -rf Pods
-
-# Run pod install
-echo "Running pod install..."
-pod install --repo-update
-
-# Verify the critical files were created
-echo "Verifying Pod installation..."
-if [ -d "Pods/Target Support Files/Pods-friends" ]; then
-    echo "✅ Pods-friends directory exists"
-    
-    if [ -f "Pods/Target Support Files/Pods-friends/Pods-friends.release.xcconfig" ]; then
-        echo "✅ SUCCESS: Pods-friends.release.xcconfig found!"
-    else
-        echo "❌ ERROR: Pods-friends.release.xcconfig not found!"
-        echo "Attempting pod deintegrate and reinstall..."
-        pod deintegrate
-        pod install --repo-update
-        
-        # Final check
-        if [ -f "Pods/Target Support Files/Pods-friends/Pods-friends.release.xcconfig" ]; then
-            echo "✅ SUCCESS: xcconfig created after retry!"
-        else
-            echo "❌ FATAL: Could not create required Pod configuration files"
-            exit 1
-        fi
-    fi
-else
-    echo "❌ ERROR: Pods-friends directory not found!"
-    echo "Contents of Pods/Target Support Files/:"
-    ls -la "Pods/Target Support Files/" || true
-    exit 1
-fi
-
-echo "=== post-clone script completed successfully ==="
+echo "=== post-clone OK ==="
