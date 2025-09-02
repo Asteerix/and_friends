@@ -29,10 +29,20 @@ if [ ! -f "pnpm-lock.yaml" ]; then
 fi
 pnpm install --frozen-lockfile
 
-# 4) CocoaPods directement (sans Bundler pour éviter les conflits Ruby 2.6)
+# 4) CocoaPods - installation locale sans sudo
 cd ios
-echo "Installing CocoaPods..."
-sudo gem install cocoapods -v 1.16.2
+echo "Checking for CocoaPods..."
+
+# Essayer d'utiliser CocoaPods système s'il existe
+if command -v pod >/dev/null 2>&1; then
+  echo "Using system CocoaPods: $(pod --version)"
+else
+  echo "Installing CocoaPods locally..."
+  # Installer dans un répertoire local accessible en écriture
+  export GEM_HOME="$HOME/.gem"
+  export PATH="$GEM_HOME/bin:$PATH"
+  gem install cocoapods -v 1.16.2 --user-install
+fi
 
 # Clean and install pods
 echo "Cleaning Pods directory..."
