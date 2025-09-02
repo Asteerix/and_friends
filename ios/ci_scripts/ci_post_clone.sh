@@ -6,7 +6,7 @@ echo "=== Xcode Cloud post-clone (deterministic setup) ==="
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$REPO_ROOT"
 
-# 1) Node 20 LTS via Homebrew (écrase Node 24 installé plus haut)
+# 1) Node 20 LTS via Homebrew
 if brew list node@20 >/dev/null 2>&1; then
   echo "node@20 déjà présent"
 else
@@ -20,7 +20,6 @@ npm -v || true
 
 # 2) Corepack + pnpm (version figée par packageManager)
 corepack enable
-# Optionnel: forcer si nécessaire la version exacte
 corepack prepare pnpm@9.12.1 --activate
 pnpm -v
 
@@ -30,13 +29,16 @@ if [ ! -f "pnpm-lock.yaml" ]; then
 fi
 pnpm install --frozen-lockfile
 
-# 4) CocoaPods via Bundler (version figée)
-gem install bundler --no-document || true
-bundle config set path 'vendor/bundle'
-bundle install --jobs 4 --retry 3
+# 4) CocoaPods directement (sans Bundler pour éviter les conflits Ruby 2.6)
 cd ios
-bundle exec pod repo update
-bundle exec pod install
+echo "Installing CocoaPods..."
+sudo gem install cocoapods -v 1.16.2
+
+# Clean and install pods
+echo "Cleaning Pods directory..."
+rm -rf Pods
+echo "Running pod install..."
+pod install --repo-update
 
 # 5) Sanity checks
 test -f "Pods/Target Support Files/Pods-friends/Pods-friends.release.xcconfig"
